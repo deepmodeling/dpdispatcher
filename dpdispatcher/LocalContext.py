@@ -1,7 +1,7 @@
 import os,shutil,uuid,hashlib
 import subprocess as sp
 from glob import glob
-from dpgen import dlog
+from dpdispatcher import dlog
 
 class LocalSession (object) :
     def __init__ (self, jdata) :

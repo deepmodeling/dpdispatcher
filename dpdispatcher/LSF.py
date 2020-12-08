@@ -1,6 +1,6 @@
 import os,getpass,time
-from dpgen.dispatcher.Batch import Batch
-from dpgen.dispatcher.JobStatus import JobStatus
+from dpdispatcher.Batch import Batch
+from dpdispatcher.JobStatus import JobStatus
 
 def _default_item(resources, key, value) :
     if key not in resources :
@@ -120,7 +120,7 @@ class LSF(Batch) :
                 0] + ':' + res['time_limit'].split(':')[1])
         if res['mem_limit'] > 0 :
             ret += "#BSUB -M %d \n" % (res['mem_limit'])
-        ret += '#BSUB -J %s\n' % (res['job_name'] if 'job_name' in res else 'dpgen')
+        ret += '#BSUB -J %s\n' % (res['job_name'] if 'job_name' in res else 'dpdisp')
         if len(res['partition']) > 0 :
             ret += '#BSUB -q %s\n' % res['partition']
         ret += "\n"

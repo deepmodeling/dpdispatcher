@@ -1,16 +1,16 @@
 import os,sys,time,random,json,glob
-from dpgen.dispatcher.LocalContext import LocalSession
-from dpgen.dispatcher.LocalContext import LocalContext
-from dpgen.dispatcher.LazyLocalContext import LazyLocalContext
-from dpgen.dispatcher.SSHContext import SSHSession
-from dpgen.dispatcher.SSHContext import SSHContext
-from dpgen.dispatcher.Slurm import Slurm
-from dpgen.dispatcher.LSF import LSF
-from dpgen.dispatcher.PBS import PBS
-from dpgen.dispatcher.Shell import Shell
-from dpgen.dispatcher.AWS import AWS 
-from dpgen.dispatcher.JobStatus import JobStatus
-from dpgen import dlog
+from dpdispatcher.LocalContext import LocalSession
+from dpdispatcher.LocalContext import LocalContext
+from dpdispatcher.LazyLocalContext import LazyLocalContext
+from dpdispatcher.SSHContext import SSHSession
+from dpdispatcher.SSHContext import SSHContext
+from dpdispatcher.Slurm import Slurm
+from dpdispatcher.LSF import LSF
+from dpdispatcher.PBS import PBS
+from dpdispatcher.Shell import Shell
+from dpdispatcher.AWS import AWS 
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher import dlog
 from hashlib import sha1
 
 def _split_tasks(tasks,
@@ -314,7 +314,7 @@ class JobRecord(object):
 def make_dispatcher(mdata, mdata_resource=None, work_path=None, run_tasks=None, group_size=None):
     if 'cloud_resources' in mdata:
         if mdata['cloud_resources']['cloud_platform'] == 'ali':
-            from dpgen.dispatcher.ALI import ALI
+            from dpdispatcher.ALI import ALI
             dispatcher = ALI(mdata, mdata_resource, work_path, run_tasks, group_size, mdata['cloud_resources'])
             dispatcher.init()
             return dispatcher

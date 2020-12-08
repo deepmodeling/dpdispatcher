@@ -1,0 +1,2 @@
+monty==2.0.4
+paramiko==2.6.0

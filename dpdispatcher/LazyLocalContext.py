@@ -1,7 +1,7 @@
 import os,shutil,uuid
 import subprocess as sp
 from glob import glob
-from dpgen import dlog
+from dpdispatcher import dlog
 
 class SPRetObj(object) :
     def __init__ (self,
