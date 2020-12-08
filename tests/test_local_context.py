@@ -2,11 +2,11 @@ import os,sys,json,glob,shutil,uuid,time
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-__package__ = 'dispatcher'
-from .context import LocalContext, LocalSession
-from .context import setUpModule
-from .context import _identical_files
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# __package__ = 'dpdispatcher'
+from context import LocalContext, LocalSession
+from context import setUpModule
+from context import _identical_files
 
 class TestIdFile(unittest.TestCase) :
     def test_id(self) :

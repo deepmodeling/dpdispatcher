@@ -1,16 +1,17 @@
 import sys,os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from dpgen.dispatcher.LocalContext import LocalSession
-from dpgen.dispatcher.LocalContext import LocalContext
-from dpgen.dispatcher.LazyLocalContext import LazyLocalContext
-from dpgen.dispatcher.SSHContext import SSHSession
-from dpgen.dispatcher.SSHContext import SSHContext
+from dpdispatcher.LocalContext import LocalSession
+from dpdispatcher.LocalContext import LocalContext
+from dpdispatcher.LazyLocalContext import LazyLocalContext
+from dpdispatcher.SSHContext import SSHSession
+from dpdispatcher.SSHContext import SSHContext
 # from dpgen.dispatcher.Dispatcher import FinRecord
-from dpgen.dispatcher.Dispatcher import _split_tasks
+from dpdispatcher.Dispatcher import _split_tasks
 
-from dpgen.dispatcher.LocalContext import _identical_files
+from dpdispatcher.LocalContext import _identical_files
 
 def setUpModule():
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
