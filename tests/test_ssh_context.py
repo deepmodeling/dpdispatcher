@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-__package__ = 'dispatcher'
+__package__ = 'tests'
 from .context import SSHContext, SSHSession
 from .context import setUpModule
 
