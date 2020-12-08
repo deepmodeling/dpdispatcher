@@ -3,7 +3,7 @@
 
 import os, sys, paramiko, json, uuid, tarfile, time, stat, shutil
 from glob import glob
-from dpgen import dlog
+from dpdispatcher import dlog
 
 class SSHSession (object) :
     def __init__ (self, jdata) :

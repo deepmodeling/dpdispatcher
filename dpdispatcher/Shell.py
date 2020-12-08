@@ -1,6 +1,6 @@
 import os,getpass,time
-from dpgen.dispatcher.Batch import Batch
-from dpgen.dispatcher.JobStatus import JobStatus
+from dpdispatcher.Batch import Batch
+from dpdispatcher.JobStatus import JobStatus
 import datetime
 
 def _default_item(resources, key, value) :

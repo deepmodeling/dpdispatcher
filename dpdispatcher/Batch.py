@@ -1,7 +1,7 @@
 import os,sys,time
 
-from dpgen.dispatcher.JobStatus import JobStatus
-from dpgen import dlog
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher import dlog
 
 
 class Batch(object) :

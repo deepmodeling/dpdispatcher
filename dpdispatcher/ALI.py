@@ -18,11 +18,11 @@ from aliyunsdkecs.request.v20140526.DescribeImagesRequest import DescribeImagesR
 from aliyunsdkecs.request.v20140526.DescribeSecurityGroupsRequest import DescribeSecurityGroupsRequest
 from aliyunsdkvpc.request.v20160428.DescribeVSwitchesRequest import DescribeVSwitchesRequest
 import time, json, os, glob, string, random, sys
-from dpgen.dispatcher.Dispatcher import Dispatcher, _split_tasks, JobRecord
-from dpgen.dispatcher.SSHContext import SSHSession
-from dpgen.dispatcher.DispatcherList import DispatcherList, Entity
+from dpdispatcher.Dispatcher import Dispatcher, _split_tasks, JobRecord
+from dpdispatcher.SSHContext import SSHSession
+from dpdispatcher.DispatcherList import DispatcherList, Entity
 from os.path import join
-from dpgen  import dlog
+from dpdispatcher  import dlog
 from hashlib import sha1
 
 # cloud_resources = {"AccessKey_ID":"",
@@ -194,7 +194,7 @@ class ALI(DispatcherList):
             time.sleep(120)
             self.server_pool = self.get_server_pool()
             self.ip_pool = self.get_ip(self.server_pool)
-        else: dlog.info("restart dpgen")
+        else: dlog.info("restart dispatcher")
         
     def delete_apg(self):
         request = DeleteAutoProvisioningGroupRequest()

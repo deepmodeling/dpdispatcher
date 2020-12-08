@@ -1,7 +1,7 @@
-from dpgen.dispatcher.Dispatcher import Dispatcher, _split_tasks, JobRecord
+from dpdispatcher.Dispatcher import Dispatcher, _split_tasks, JobRecord
 from paramiko.ssh_exception import NoValidConnectionsError
 import os, time
-from dpgen import dlog
+from dpdispatcher import dlog
 class Entity():
     def __init__(self, ip, instance_id, job_record=None, job_handler=None):
         self.ip = ip

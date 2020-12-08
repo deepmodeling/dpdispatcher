@@ -1,9 +1,9 @@
 import os,getpass,time
 from datetime import datetime
 from itertools import zip_longest
-from dpgen.dispatcher.Batch import Batch 
-from dpgen.dispatcher.JobStatus import JobStatus
-from dpgen import dlog
+from dpdispatcher.Batch import Batch 
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher import dlog
 
 try:
     import boto3
@@ -19,7 +19,7 @@ class AWS(Batch):
     _query_next_allow_time = datetime.now().timestamp()
 
     @staticmethod
-    def map_aws_status_to_dpgen_status(aws_status):
+    def map_aws_status_to_dpdisp_status(aws_status):
         map_dict = {'SUBMITTED': JobStatus.waiting,
                 'PENDING': JobStatus.waiting,
                 'RUNNABLE': JobStatus.waiting,
@@ -51,7 +51,7 @@ class AWS(Batch):
                     status_list=status_response.get('jobSummaryList')
                     nextToken = status_response.get('nextToken', None)
                     for job_dict in status_list:
-                        cls._job_id_map_status.update({job_dict['jobId']: cls.map_aws_status_to_dpgen_status(job_dict['status'])})
+                        cls._job_id_map_status.update({job_dict['jobId']: cls.map_aws_status_to_dpdisp_status(job_dict['status'])})
             dlog.debug('20000:_map: %s' %(cls._job_id_map_status))
         dlog.debug('62000:job_id:%s, _query: %s, _map: %s' %(job_id, query_dict, cls._job_id_map_status))
         if job_id:
@@ -85,7 +85,7 @@ class AWS(Batch):
         self._job_id = response['jobId']
         self._job_name = response['jobName']
         self.__class__._jobQueue = jobQueue
-        self.__class__._job_id_map_status[self._job_id] = self.map_aws_status_to_dpgen_status(response.get('status', 'SUBMITTED'))
+        self.__class__._job_id_map_status[self._job_id] = self.map_aws_status_to_dpdisp_status(response.get('status', 'SUBMITTED'))
         self.context.write_file(self.job_id_name, self._job_id)
         dlog.debug("15000, _job_id:%s, _job_name:%s, _map:%s, _Queue:%s" % (self._job_id, self._job_name, self.__class__._job_id_map_status, self.__class__._jobQueue))
 
