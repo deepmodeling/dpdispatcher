@@ -9,16 +9,12 @@ class Submission(object):
                 work_base,
                 resources,
                 forward_common_files,
-                backward_common_files,
-                context,
-                batch):
+                backward_common_files):
         # self.submission_list = submission_list
         self.work_base = work_base
         self.resources = resources
         self.forward_common_files= forward_common_files
         self.backward_common_files = backward_common_files
-        self.context = context
-        self.batch = batch
 
 
         self.uuid = "<to be implemented>"
@@ -31,7 +27,7 @@ class Submission(object):
     def register_task_list(self, task_list):
         self.belonging_tasks.extend(task_list)
             
-    def run_jobs(self):
+    def run_jobs(self, batch=None):
         self.submit_jobs()
         while not self.check_all_finished():
             time.sleep(20)
