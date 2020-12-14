@@ -37,6 +37,9 @@ setuptools.setup(
     ],
     keywords='deep potential generator active learning deepmd-kit',
     install_requires=install_requires,    
+    extras_require={
+        'docs': ['sphinx', 'recommonmark', 'sphinx_rtd_theme'],
+    },
         entry_points={
           'console_scripts': [
               SHORT_CMD+'= dpdispatcher.dpdisp:main']
