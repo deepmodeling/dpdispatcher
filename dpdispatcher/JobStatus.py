@@ -1,6 +1,5 @@
-from enum import Enum
-
-class JobStatus (Enum) :
+from enum import IntEnum
+class JobStatus(IntEnum) :
     unsubmitted = 1
     waiting = 2
     running = 3

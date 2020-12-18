@@ -1,0 +1,102 @@
+{
+  "work_base": "temp1/0_md",
+  "resources": {
+    "number_node": 1,
+    "cpu_per_node": 4,
+    "gpu_per_node": 1,
+    "queue_name": "V100_8_32",
+    "group_size": 2
+  },
+  "forward_common_files": [
+    "graph.pb"
+  ],
+  "backward_common_files": [
+    "submission.json"
+  ],
+  "belonging_jobs": [
+    {
+      "893c97c1ae7e05ed5832bde47ea17fdf74100467": {
+        "job_task_list": [
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-3",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err"
+          },
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-2",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err"
+          }
+        ],
+        "resources": {
+          "number_node": 1,
+          "cpu_per_node": 4,
+          "gpu_per_node": 1,
+          "queue_name": "V100_8_32",
+          "group_size": 2
+        },
+        "job_state": 1,
+        "job_id": "18113.scheduler",
+        "fail_count": 0
+      }
+    },
+    {
+      "6aa47f70ed092fb03a6ca1a5e84d3ba3f7159d31": {
+        "job_task_list": [
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-4",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err"
+          },
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-1",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err"
+          }
+        ],
+        "resources": {
+          "number_node": 1,
+          "cpu_per_node": 4,
+          "gpu_per_node": 1,
+          "queue_name": "V100_8_32",
+          "group_size": 2
+        },
+        "job_state": 1,
+        "job_id": "18114.scheduler",
+        "fail_count": 0
+      }
+    }
+  ]
+}
