@@ -22,8 +22,8 @@ class Submission(object):
     def __init__(self,
                 work_base,
                 resources,
-                forward_common_files,
-                backward_common_files,
+                forward_common_files=[],
+                backward_common_files=[],
                 batch=None):
         # self.submission_list = submission_list
         self.work_base = work_base
@@ -94,19 +94,19 @@ class Submission(object):
         """
         self.try_recover_from_json()
         # print('submission.run_submission:self', self)
-            
         if self.check_all_finished():
             pass
             # print('recover success submission.run_submission: recover all finished 1', self)
         else:
+            # self.update_submission_state()
             self.upload_jobs()
-            self.submit_submission()
-            # self.upload_jobs()
-       
-        # print('submission.run_submission: recover all finished 2', self)
-        # self.submission_to_json()
-        # print('submission.run_submission: recover all finished 3', self)
+            self.update_submission_state()
+            self.submission_to_json
+        #     self.submit_submission()
+        
         while not self.check_all_finished():
+            # if_dump_to_json = self.update_submission_state()
+            #     self.submission_to_json()
             try: 
                 time.sleep(10)
             except KeyboardInterrupt as e:
@@ -135,22 +135,27 @@ class Submission(object):
         self.download_jobs()
         return True
     
+    def get_submission_state(self):
+        for job in self.belonging_jobs:
+            job.get_job_state()
+        # self.submission_to_json()
+
     def update_submission_state(self):
         for job in self.belonging_jobs:
             job.update_job_state()
-        # self.submission_to_json()
 
     def submit_submission(self):
         for job in self.belonging_jobs:        
             job.submit_job()
-        self.update_submission_state()
+        self.get_submission_state()
 
     def check_all_finished(self):
-        self.update_submission_state()
+        self.get_submission_state()
         # print('debug:***', [job.job_state for job in self.belonging_jobs])
         # print('debug:***', [job for job in self.belonging_jobs])
-        if any( (job.job_state in  [JobStatus.running, JobStatus.waiting, JobStatus.unsubmitted, JobStatus.completing] ) for job in self.belonging_jobs):
-            
+        if any( (job.job_state in  [JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
+            self.submission_to_json()
+        if any( (job.job_state in  [JobStatus.running, JobStatus.waiting, JobStatus.unsubmitted, JobStatus.completing, JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
             return False
         else:
             return True
@@ -190,7 +195,7 @@ class Submission(object):
     
     def submission_to_json(self):
         # print('~~~~,~~~', self.serialize())
-        self.update_submission_state()
+        self.get_submission_state()
         write_str = json.dumps(self.serialize(), indent=2, default=str)
         self.batch.context.write_file('submission.json', write_str=write_str)
     
@@ -235,16 +240,22 @@ class Task(object):
         the files to be transmitted to other location before the calculation begins
     backward_files : list of path-like 
         the files to be transmitted from other location after the calculation finished
+    log : str
+        the files to be transmitted from other location after the calculation finished
+    err : str
+        the files to be transmitted from other location after the calculation finished
+    task_need_resources : float number, between 0 to 1.
+        the reources need to execute the task. For example, if task_need_resources==0.33, then 3 tasks will run in parallel
     """
     def __init__(self,
                 command,
                 task_work_path,
-                forward_files,
-                backward_files,
+                forward_files=[],
+                backward_files=[],
                 outlog='log',
                 errlog='err',
                 *,
-                task_need_resources=None):
+                task_need_resources=1):
 
         self.command = command
         self.task_work_path = task_work_path
@@ -253,8 +264,10 @@ class Task(object):
         self.outlog = outlog
         self.errlog = errlog
 
+        self.task_need_resources = task_need_resources
+
         self.uuid = "<to be implemented>"
-        self.task_need_resources="<to be completed in the future>"
+        # self.task_need_resources="<to be completed in the future>"
         # self.uuid = 
 
     def __repr__(self):
@@ -276,6 +289,7 @@ class Task(object):
         task_dict['backward_files'] = self.backward_files
         task_dict['outlog'] = self.outlog
         task_dict['errlog'] = self.errlog
+        task_dict['task_need_resources'] = self.task_need_resources
         return task_dict
 
 class Job(object):
@@ -304,7 +318,7 @@ class Job(object):
         
         self.job_state = None # JobStatus.unsubmitted
         self.job_id = ""
-        self.fail_count = 0
+        self.fail_count = -1
 
         # self.job_hash = self.get_hash()
         self.job_hash = self.get_hash()
@@ -332,11 +346,31 @@ class Job(object):
         job.fail_count = job_dict[job_hash]['fail_count']
         return job
 
-    def update_job_state(self):
+    def get_job_state(self):
         job_state = self.batch.check_status(self)
         self.job_state = job_state
-        # return job_state
-    
+
+    def update_job_state(self):
+        job_state = self.job_state
+
+        if job_state == JobStatus.unknown:
+            raise RuntimeError("job_state for job {job} is unknown".format(job=self))
+
+        if job_state == JobStatus.terminated:
+            print("job: {job_hash} terminated; restarting job".format(job_hash=self.job_hash))
+            if self.fail_count > 5:
+                raise RuntimeError("job:job {job} failed 5 times".format(job=self))
+            self.fail_count += 1
+            self.submit_job()
+            self.get_job_state()
+
+        if job_state == JobStatus.unsubmitted:
+            if self.fail_count > 5:
+                raise RuntimeError("job:job {job} failed 5 times".format(job=self))
+            self.fail_count += 1
+            self.submit_job()
+            print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+            self.get_job_state()
     
     def get_hash(self):
         return str(list(self.serialize(if_static=True).keys())[0])
@@ -387,12 +421,23 @@ class Resources(object):
                  cpu_per_node,
                  gpu_per_node,
                  queue_name,
-                 group_size=1):
+                 group_size=1,
+                 *,
+                 if_cuda_multi_devices=False):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
         self.queue_name = queue_name
         self.group_size = group_size
+        
+        self.if_cuda_multi_devices = if_cuda_multi_devices
+        # if self.gpu_per_node > 1:
+            
+        if self.if_cuda_multi_devices is True:
+            if gpu_per_node < 1:
+                raise RuntimeError("gpu_per_node can not be smaller than 1 when if_cuda_multi_devices is True")
+            if number_node != 1:
+                raise RuntimeError("number_node must be 1 when if_cuda_multi_devices is True")
 
     def __eq__(self, other):
         return self.serialize() == other.serialize()
@@ -404,6 +449,7 @@ class Resources(object):
         resources_dict['gpu_per_node'] = self.gpu_per_node
         resources_dict['queue_name'] = self.queue_name
         resources_dict['group_size'] = self.group_size
+        resources_dict['if_cuda_multi_devices'] = self.if_cuda_multi_devices
         return resources_dict
      
     @classmethod

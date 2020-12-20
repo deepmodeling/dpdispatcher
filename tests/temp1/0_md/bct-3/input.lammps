@@ -26,6 +26,6 @@ minimize        1.000000e-12 1.000000e-06 5000 500000
 # unfix         2
 
 dump            1  all custom 1 final.dump.relax id type xs ys zs fx fy fz
-run             0
+run             10000
 
 write_data	out.lmp

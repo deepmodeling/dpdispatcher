@@ -6,11 +6,8 @@ from dpdispatcher.batch import Batch
 
 pbs_script_template="""
 {pbs_script_header}
-
 {pbs_script_env}
-
 {pbs_script_command}
-
 {pbs_script_end}
 
 """
@@ -26,29 +23,31 @@ pbs_script_header_template="""
 pbs_script_env_template="""
 cd $PBS_O_WORKDIR
 test $? -ne 0 && exit 1
-
 """
 
 pbs_script_command_template="""
-
 cd $PBS_O_WORKDIR
 cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f tag_0_finished ] ;then
-  {command}  1>> {outlog} 2>> {errlog}
+  {command_env} {command}  1>> {outlog} 2>> {errlog} 
   if test $? -ne 0; then touch tag_0_failure; fi
   touch tag_0_finished
-fi
-
+fi &
 """
 
 pbs_script_end_template="""
+
 cd $PBS_O_WORKDIR
 test $? -ne 0 && exit 1
 
 wait
 
 touch {job_tag_finished}
+"""
+
+pbs_script_wait="""
+wait
 """
 
 class PBS(Batch):
@@ -66,8 +65,30 @@ class PBS(Batch):
       
         pbs_script_command = ""
         
+        
+        resources_in_use=0
         for task in job.job_task_list:
-            temp_pbs_script_command = pbs_script_command_template.format(
+            command_env = ""     
+            task_need_resources_mod = task.task_need_resources
+            if resources_in_use+task_need_resources_mod > 1:
+               pbs_script_command += pbs_script_wait
+               resources_in_use = 0
+
+            if resources.if_cuda_multi_devices is True:
+                min_CUDA_VISIBLE_DEVICES = int(resources_in_use*resources.gpu_per_node)
+                max_CUDA_VISIBLE_DEVICES = int((resources_in_use + task_need_resources_mod)*resources.gpu_per_node-0.000000001)
+   
+                list_CUDA_VISIBLE_DEVICES  = list(range(min_CUDA_VISIBLE_DEVICES, max_CUDA_VISIBLE_DEVICES+1))
+                str_CUDA_VISIBLE_DEVICES = "CUDA_VISIBLE_DEVICES="
+                for ii in list_CUDA_VISIBLE_DEVICES:
+                    str_CUDA_VISIBLE_DEVICES+="{ii},".format(ii=ii) 
+                command_env = "export {str_CUDA_VISIBLE_DEVICES} ;".format(str_CUDA_VISIBLE_DEVICES=str_CUDA_VISIBLE_DEVICES)
+               
+            command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
+
+            resources_in_use += task_need_resources_mod
+
+            temp_pbs_script_command = pbs_script_command_template.format(command_env=command_env, 
                  task_work_path=task.task_work_path, command=task.command, outlog=task.outlog, errlog=task.errlog)
             pbs_script_command+=temp_pbs_script_command
         

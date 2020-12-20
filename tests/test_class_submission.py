@@ -20,7 +20,7 @@ class TestSubmission(unittest.TestCase) :
         local_context = LocalContext(local_root='temp1/0_md', work_profile=local_session)
         pbs = PBS(context=local_context)
 
-        resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2) 
+        resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=False) 
         self.submission = Submission(work_base='temp1/0_md', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=['submission.json']) #,  batch=PBS)
         self.task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
         self.task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
@@ -70,12 +70,12 @@ class TestSubmission(unittest.TestCase) :
         self.submission.belonging_jobs[1].job_state = JobStatus.finished
         self.assertFalse(self.submission.check_all_finished())
 
-        self.submission.belonging_jobs[0].job_state = JobStatus.terminated
+        self.submission.belonging_jobs[0].job_state = JobStatus.finished
         self.submission.belonging_jobs[1].job_state = JobStatus.unknown
         self.assertTrue(self.submission.check_all_finished())
 
         self.submission.belonging_jobs[0].job_state = JobStatus.finished
-        self.submission.belonging_jobs[1].job_state = JobStatus.terminated
+        self.submission.belonging_jobs[1].job_state = JobStatus.finished
         self.assertTrue(self.submission.check_all_finished())
 
     def test_submision_to_json(self):
