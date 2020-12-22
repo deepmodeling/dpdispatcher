@@ -15,9 +15,9 @@ task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1', forwa
 
 class TestTask(unittest.TestCase) :
     def setUp(self) :
-        self.task = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], outlog = 'log', errlog='err')
+        self.task = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], outlog = 'log', errlog='err', task_need_resources=1)
 
-        self.task_dict={'command': 'lmp_serial -i input.lammps', 'task_work_path': 'bct-1', 'forward_files': ['conf.lmp', 'input.lammps'] , 'backward_files': ['log.lammps'], 'outlog': 'log', 'errlog':'err'}
+        self.task_dict={'command': 'lmp_serial -i input.lammps', 'task_work_path': 'bct-1', 'forward_files': ['conf.lmp', 'input.lammps'] , 'backward_files': ['log.lammps'], 'outlog': 'log', 'errlog':'err', 'task_need_resources':1}
 
     def test_serialize(self):
         self.assertEqual(self.task.serialize(), self.task_dict)

@@ -1,12 +1,12 @@
 {
-  "work_base": "0_md",
+  "work_base": "0_md/",
   "resources": {
     "number_node": 1,
     "cpu_per_node": 4,
     "gpu_per_node": 1,
     "queue_name": "V100_8_32",
-    "group_size": 4,
-    "if_cuda_multi_devices": true
+    "group_size": 2,
+    "if_cuda_multi_devices": false
   },
   "forward_common_files": [
     "graph.pb"
@@ -16,7 +16,7 @@
   ],
   "belonging_jobs": [
     {
-      "89936e3ac869b3132977da5cc4187725f3318ea3": {
+      "67f0fe3eace7127b8689cc3bef9e12d2a3c017ae": {
         "job_task_list": [
           {
             "command": "lmp_serial -i input.lammps",
@@ -30,7 +30,7 @@
             ],
             "outlog": "log",
             "errlog": "err",
-            "task_need_resources": 0.25
+            "task_need_resources": 1
           },
           {
             "command": "lmp_serial -i input.lammps",
@@ -44,8 +44,25 @@
             ],
             "outlog": "log",
             "errlog": "err",
-            "task_need_resources": 0.25
-          },
+            "task_need_resources": 1
+          }
+        ],
+        "resources": {
+          "number_node": 1,
+          "cpu_per_node": 4,
+          "gpu_per_node": 1,
+          "queue_name": "V100_8_32",
+          "group_size": 2,
+          "if_cuda_multi_devices": false
+        },
+        "job_state": 1,
+        "job_id": "",
+        "fail_count": 0
+      }
+    },
+    {
+      "8c83d7ccce091d6ccc324d1ba939621c796b4766": {
+        "job_task_list": [
           {
             "command": "lmp_serial -i input.lammps",
             "task_work_path": "bct-4",
@@ -58,7 +75,7 @@
             ],
             "outlog": "log",
             "errlog": "err",
-            "task_need_resources": 0.5
+            "task_need_resources": 1
           },
           {
             "command": "lmp_serial -i input.lammps",
@@ -80,11 +97,11 @@
           "cpu_per_node": 4,
           "gpu_per_node": 1,
           "queue_name": "V100_8_32",
-          "group_size": 4,
-          "if_cuda_multi_devices": true
+          "group_size": 2,
+          "if_cuda_multi_devices": false
         },
-        "job_state": 5,
-        "job_id": 18524,
+        "job_state": 1,
+        "job_id": "",
         "fail_count": 0
       }
     }

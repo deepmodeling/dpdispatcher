@@ -14,9 +14,9 @@ from .context import Submission, Job, Task, Resources
 
 class TestResources(unittest.TestCase) :
     def setUp(self) :
-        self.resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2) 
+        self.resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=False) 
 
-        self.resources_dict={'number_node': 1, 'cpu_per_node':4, 'gpu_per_node':1, 'queue_name':'V100_8_32', 'group_size':2}
+        self.resources_dict={'number_node': 1, 'cpu_per_node':4, 'gpu_per_node':1, 'queue_name':'V100_8_32', 'group_size':2, 'if_cuda_multi_devices':False}
 
     def test_serialize(self):
         self.assertEqual(self.resources.serialize(), self.resources_dict)

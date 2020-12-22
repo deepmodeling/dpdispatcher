@@ -15,7 +15,7 @@ from .context import Submission, Job, Task, Resources
 class TestJob(unittest.TestCase) :
     def setUp(self) :
         resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2) 
-        self.submission = Submission(work_base='temp1/0_md', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=[]) #,  batch=PBS)
+        self.submission = Submission(work_base='0_md/', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=[]) #,  batch=PBS)
         self.task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
         self.task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
         self.task3 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-3', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])

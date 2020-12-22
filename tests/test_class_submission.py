@@ -16,12 +16,12 @@ from .context import Submission, Job, Task, Resources
 
 class TestSubmission(unittest.TestCase) :
     def setUp(self) :
-        local_session = LocalSession({'work_path':'temp2'})
-        local_context = LocalContext(local_root='temp1/0_md', work_profile=local_session)
+        local_session = LocalSession({'work_path':'test_work_path/'})
+        local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
         pbs = PBS(context=local_context)
 
         resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=False) 
-        self.submission = Submission(work_base='temp1/0_md', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=['submission.json']) #,  batch=PBS)
+        self.submission = Submission(work_base='0_md/', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=['submission.json']) #,  batch=PBS)
         self.task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
         self.task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
         self.task3 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-3', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
@@ -40,6 +40,8 @@ class TestSubmission(unittest.TestCase) :
             job.job_id =  ""
         # self.submission2 = Submission.submission_from_json('jsons/submission.json')
         
+    def test_submision_to_json(self):
+        self.submission.submission_to_json()
 
     def test_submission_from_json(self):
         self.assertTrue(self.submission == self.submission2)
@@ -54,9 +56,9 @@ class TestSubmission(unittest.TestCase) :
         self.assertEqual(self.submission, Submission.deserialize(submission_dict=self.submission.serialize()))
         self.submission.generate_jobs()
 
-    @patch('dpdispatcher.Submission.update_submission_state')
+    @patch('dpdispatcher.Submission.get_submission_state')
     def test_check_all_finished(self, patch_update_submission_state):
-        patch_update_submission_state = MagicMock(return_value=None)
+        patch_get_submission_state = MagicMock(return_value=None)
 
         self.submission.belonging_jobs[0].job_state = JobStatus.running
         self.submission.belonging_jobs[1].job_state = JobStatus.waiting
@@ -72,13 +74,11 @@ class TestSubmission(unittest.TestCase) :
 
         self.submission.belonging_jobs[0].job_state = JobStatus.finished
         self.submission.belonging_jobs[1].job_state = JobStatus.unknown
-        self.assertTrue(self.submission.check_all_finished())
+        self.assertFalse(self.submission.check_all_finished())
 
         self.submission.belonging_jobs[0].job_state = JobStatus.finished
         self.submission.belonging_jobs[1].job_state = JobStatus.finished
         self.assertTrue(self.submission.check_all_finished())
 
-    def test_submision_to_json(self):
-        pass
         # self.submission_to_json()
       

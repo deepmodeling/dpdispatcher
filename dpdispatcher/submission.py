@@ -322,7 +322,7 @@ class Job(object):
         
         self.job_state = None # JobStatus.unsubmitted
         self.job_id = ""
-        self.fail_count = -1
+        self.fail_count = 0
 
         # self.job_hash = self.get_hash()
         self.job_hash = self.get_hash()
