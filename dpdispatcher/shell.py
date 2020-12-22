@@ -1,32 +1,30 @@
 import os,sys,time,random,uuid
+import psutil
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.batch import Batch
 
-pbs_script_template="""
-{pbs_script_header}
-{pbs_script_env}
-{pbs_script_command}
-{pbs_script_end}
+shell_script_template="""
+{shell_script_header}
+{shell_script_env}
+{shell_script_command}
+{shell_script_end}
 
 """
 
-pbs_script_header_template="""
+shell_script_header_template="""
 #!/bin/bash -l
-{select_node_line}
-{walltime_line}
-#PBS -j oe
-{queue_name_line}
+export REMOTE_ROOT={remote_root}
 """
 
-pbs_script_env_template="""
-cd $PBS_O_WORKDIR
+shell_script_env_template="""
+cd $REMOTE_ROOT
 test $? -ne 0 && exit 1
 """
 
-pbs_script_command_template="""
-cd $PBS_O_WORKDIR
+shell_script_command_template="""
+cd $REMOTE_ROOT
 cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f tag_0_finished ] ;then
@@ -36,9 +34,9 @@ if [ ! -f tag_0_finished ] ;then
 fi &
 """
 
-pbs_script_end_template="""
+shell_script_end_template="""
+cd $REMOTE_ROOT
 
-cd $PBS_O_WORKDIR
 test $? -ne 0 && exit 1
 
 wait
@@ -46,24 +44,25 @@ wait
 touch {job_tag_finished}
 """
 
-pbs_script_wait="""
+shell_script_wait="""
 wait
 """
 
-class PBS(Batch):
+class Shell(Batch):
     def gen_script(self, job):
         resources = job.resources
         script_header_dict= {}
-        script_header_dict['select_node_line']="#PBS -l select={number_node}:ncpus={cpu_per_node}:ngpus={gpu_per_node}".format(
-            number_node=resources.number_node, cpu_per_node=resources.cpu_per_node, gpu_per_node=resources.gpu_per_node)
-        script_header_dict['walltime_line']="#PBS -l walltime=120:0:0"
-        script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
+        script_header_dict['remote_root']=self.context.remote_root
+        # script_header_dict['select_node_line']="#PBS -l select={number_node}:ncpus={cpu_per_node}:ngpus={gpu_per_node}".format(
+        #     number_node=resources.number_node, cpu_per_node=resources.cpu_per_node, gpu_per_node=resources.gpu_per_node)
+        # script_header_dict['walltime_line']="#PBS -l walltime=120:0:0"
+        # script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
 
-        pbs_script_header = pbs_script_header_template.format(**script_header_dict) 
+        shell_script_header = shell_script_header_template.format(**script_header_dict) 
 
-        pbs_script_env = pbs_script_env_template.format()
+        shell_script_env = shell_script_env_template.format()
       
-        pbs_script_command = ""
+        shell_script_command = ""
         
         
         resources_in_use=0
@@ -71,7 +70,7 @@ class PBS(Batch):
             command_env = ""     
             task_need_resources_mod = task.task_need_resources
             if resources_in_use+task_need_resources_mod > 1:
-               pbs_script_command += pbs_script_wait
+               shell_script_command += shell_script_wait
                resources_in_use = 0
 
             if resources.if_cuda_multi_devices is True:
@@ -88,37 +87,75 @@ class PBS(Batch):
 
             resources_in_use += task_need_resources_mod
 
-            temp_pbs_script_command = pbs_script_command_template.format(command_env=command_env, 
+            temp_shell_script_command = shell_script_command_template.format(command_env=command_env, 
                  task_work_path=task.task_work_path, command=task.command, outlog=task.outlog, errlog=task.errlog)
-            pbs_script_command+=temp_pbs_script_command
+            shell_script_command+=temp_shell_script_command
         
-        pbs_script_end = pbs_script_end_template.format(job_tag_finished=job.job_hash+'_tag_finished')
+        shell_script_end = shell_script_end_template.format(job_tag_finished=job.job_hash+'_tag_finished')
 
-        pbs_script = pbs_script_template.format(
-                          pbs_script_header=pbs_script_header,
-                          pbs_script_env=pbs_script_env,
-                          pbs_script_command=pbs_script_command,
-                          pbs_script_end=pbs_script_end)
-        return pbs_script
+        shell_script = shell_script_template.format(
+                          shell_script_header=shell_script_header,
+                          shell_script_env=shell_script_env,
+                          shell_script_command=shell_script_command,
+                          shell_script_end=shell_script_end)
+        return shell_script
     
     def do_submit(self, job):
+        script_str = self.gen_script(job) 
         script_file_name = job.script_file_name
-        script_str = self.gen_script(job)
         job_id_name = job.job_hash + '_job_id'
-        # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
-        # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
-        stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
-        subret = (stdout.readlines())
-        job_id = subret[0].split()[0]
-        self.context.write_file(job_id_name, job_id)        
+        proc = self.context.call('cd %s && exec bash %s' % (self.context.remote_root, script_file_name))
+
+        job_id = int(proc.pid)
+        print('shell.do_submit.job_id', job_id)
+        self.context.write_file(job_id_name, str(job_id))
         return job_id
+
+        # script_file_name = job.script_file_name
+        # script_str = self.gen_script(job)
+        # job_id_name = job.job_hash + '_job_id'
+        # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
+        # self.context.write_file(fname=script_file_name, write_str=script_str)
+        # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
+        # subret = (stdout.readlines())
+        # job_id = subret[0].split()[0]
+        # self.context.write_file(job_id_name, job_id)        
+        # return job_id
 
 
     def default_resources(self, resources) :
         pass
     
     def check_status(self, job):
+        job_id = job.job_id
+        print('shell.check_status.job_id', job_id)
+        job_state = JobStatus.unknown
+        if job_id == "" :
+            return JobStatus.unsubmitted
+
+        if_job_exists = psutil.pid_exists(pid=job_id)
+        if self.check_finish_tag(job=job):
+            return JobStatus.finished
+
+        if if_job_exists:
+            return JobStatus.running
+        else:
+            return JobStatus.terminated
+        return job_state
+    
+    # def check_status(self, job):
+    #     job_id = job.job_id
+    #     uuid_names = job.job_hash
+    #     cnt = 0
+    #     ret, stdin, stdout, stderr = self.context.block_call("ps aux | grep %s"%uuid_names)
+    #     response_list = stdout.read().decode('utf-8').split("\n")
+    #     for response in response_list:
+    #         if  uuid_names + ".sub" in response:
+    #             return True
+    #     return False
+
+    def check_status_(self, job):
         job_id = job.job_id
         if job_id == "" :
             return JobStatus.unsubmitted

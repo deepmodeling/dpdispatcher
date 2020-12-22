@@ -100,11 +100,12 @@ class LazyLocalContext(object) :
         pass
 
     def write_file(self, fname, write_str):
-        with open(os.path.join(self.local_root, fname), 'w') as fp :
+        os.makedirs(os.path.join(self.remote_root, self.submission.work_base), exist_ok = True)
+        with open(os.path.join(self.local_root, self.submission.work_base, fname), 'w') as fp :
             fp.write(write_str)
 
     def read_file(self, fname):
-        with open(os.path.join(self.local_root, fname), 'r') as fp:
+        with open(os.path.join(self.local_root, self.submission.work_base, fname), 'r') as fp:
             ret = fp.read()
         return ret
 

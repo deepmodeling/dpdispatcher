@@ -1,5 +1,5 @@
 {
-  "work_base": "temp1/0_md",
+  "work_base": "0_md",
   "resources": {
     "number_node": 1,
     "cpu_per_node": 4,
@@ -84,7 +84,7 @@
           "if_cuda_multi_devices": true
         },
         "job_state": 5,
-        "job_id": "18562.scheduler",
+        "job_id": "18737.scheduler",
         "fail_count": 0
       }
     }

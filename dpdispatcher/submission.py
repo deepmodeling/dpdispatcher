@@ -105,6 +105,7 @@ class Submission(object):
         #     self.submit_submission()
         
         while not self.check_all_finished():
+            # print
             # if_dump_to_json = self.update_submission_state()
             #     self.submission_to_json()
             try: 
@@ -127,6 +128,8 @@ class Submission(object):
                 print(self.serialize())
                 print('>>>>>>dpdispatcher>>>>>>{e}>>>>>>exit>>>>>>'.format(e=e))
                 exit(3)
+            else:
+                self.update_submission_state()
             finally:
                 pass
       
@@ -138,6 +141,7 @@ class Submission(object):
     def get_submission_state(self):
         for job in self.belonging_jobs:
             job.get_job_state()
+            print('debug:***', job.job_state)
         # self.submission_to_json()
 
     def update_submission_state(self):

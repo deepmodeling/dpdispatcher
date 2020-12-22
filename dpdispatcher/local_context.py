@@ -49,7 +49,7 @@ class LocalContext(object) :
         local_root:
         """
         assert(type(local_root) == str)
-        self.local_root = os.path.abspath(local_root)
+        self.temp_local_root = os.path.abspath(local_root)
         self.work_profile = work_profile
         self.job_uuid = job_uuid
         self.submission = None
@@ -68,19 +68,27 @@ class LocalContext(object) :
     
     def bind_submission(self, submission):
         self.submission = submission
+        self.local_root = os.path.join(self.temp_local_root, submission.work_base)
+        self.remote_root = os.path.join(self.work_profile.get_work_root(), self.submission.submission_hash, self.submission.work_base )
         # self.job_uuid = submission.submission_hash
         # self.remote_root = os.path.join(self.work_profile.get_work_root(), self.job_uuid)
         # os.makedirs(self.remote_root, exist_ok = True)
         # print('local_context.bind_submission:self.remote_root', self.remote_root)
         # dlog.debug("remote_root is %s"% self.remote_root)
 
-    @property
-    def remote_root(self):
+   #  @property
+   #  def remote_root(self):
         # print('local_context.remote_root:self.submission.submission_hash', self.submission.submission_hash)
         # print('local_context.remote_root self.submission', self.submission)
-        self._remote_root = os.path.join(self.work_profile.get_work_root(), self.submission.submission_hash)
+   #      self._remote_root = os.path.join(self.work_profile.get_work_root(), self.submission.submission_hash, self.submission.work_base)
             # os.makedirs(self._remote_root, exist_ok = True)
-        return self._remote_root
+   #      return self._remote_root
+    
+   #  @property
+   #  def local_root(self):
+   #      # self.local_root = os.path.abspath(local_root)
+   #      self._local_root =  os.path.join(, self.submission.submission_hash, self.submission.work_base)
+   #      return self._local_root
 
     def upload(self, submission):
         os.makedirs(self.remote_root, exist_ok = True)

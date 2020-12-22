@@ -11,13 +11,13 @@ from dpdispatcher.pbs import PBS
 
 # local_session = LocalSession({'work_path':'temp2'})
 # local_context = LocalContext(local_root='temp1/0_md', work_profile=local_session)
-lazy_local_context = LazyLocalContext(local_root='/home/fengbo/10_dpdispatcher/dpdispatcher/tests/temp3/0_md', work_profile=None)
+lazy_local_context = LazyLocalContext(local_root='/home/fengbo/10_dpdispatcher/dpdispatcher/tests/temp3', work_profile=None)
 
 # pbs = PBS(context=local_context)
 pbs = PBS(context=lazy_local_context)
 
 resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=4, if_cuda_multi_devices=True) 
-submission = Submission(work_base='', resources=resources)
+submission = Submission(work_base='0_md', resources=resources)
 task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1') 
 task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2')
 task3 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-3')
