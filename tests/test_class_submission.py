@@ -80,5 +80,10 @@ class TestSubmission(unittest.TestCase) :
         self.submission.belonging_jobs[1].job_state = JobStatus.finished
         self.assertTrue(self.submission.check_all_finished())
 
+    def test_check_bind_batch(self):
+        pass  
+ 
+    def test_try_recover_from_json():
+        pass
         # self.submission_to_json()
       

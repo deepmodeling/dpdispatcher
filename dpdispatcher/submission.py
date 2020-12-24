@@ -425,7 +425,10 @@ class Job(object):
         submission : Job
             the Job class instance converted from the job_dict
         """
+        if len(job_dict.keys()) != 1:
+            raise RuntimeError("json file may be broken, len(job_dict.keys()) must be 1. {job_dict}".format(job_dict=job_dict))
         job_hash = list(job_dict.keys())[0]
+        
         job_task_list = [Task.deserialize(task_dict) for task_dict in job_dict[job_hash]['job_task_list']]
         job = Job(job_task_list=job_task_list, 
            #  job_work_base=job_dict[job_hash]['job_work_base'],

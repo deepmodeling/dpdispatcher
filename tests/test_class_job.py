@@ -43,6 +43,12 @@ class TestJob(unittest.TestCase) :
     def test_serialize_deserialize(self):
         self.assertEqual(self.job, Job.deserialize(job_dict=self.job.serialize()))
      
+    def test_static_serialize(self):
+        
+        self.assertNotIn('job_state', list(self.job.serialize(if_static=True).values())[0] )
+        self.assertNotIn('job_id', list(self.job.serialize(if_static=True).values())[0] )
+        self.assertNotIn('fail_count', list(self.job.serialize(if_static=True).values())[0] )
+        
    #  def test_content_serialize(self):
    #      self.assertEqual(self.job.content_serialize(), self.job.serialize()[self.job.job_hash])
             

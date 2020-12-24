@@ -50,6 +50,7 @@ class LocalContext(object) :
         """
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
+        self.temp_remote_root = os.path.abspath(work_profile.get_work_root())
         self.work_profile = work_profile
         self.job_uuid = job_uuid
         self.submission = None
@@ -69,7 +70,7 @@ class LocalContext(object) :
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        self.remote_root = os.path.join(self.work_profile.get_work_root(), self.submission.submission_hash, self.submission.work_base )
+        self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         # self.job_uuid = submission.submission_hash
         # self.remote_root = os.path.join(self.work_profile.get_work_root(), self.job_uuid)
         # os.makedirs(self.remote_root, exist_ok = True)
