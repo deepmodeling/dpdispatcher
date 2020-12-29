@@ -1,5 +1,4 @@
-
-import os,sys,time,random,uuid,json
+import os,sys,time,random,uuid,json,copy
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
@@ -241,7 +240,7 @@ class Submission(object):
         
         for ii in random_task_index_ll:
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
-            job = Job(job_task_list=job_task_list, batch=self.batch, resources=self.resources)
+            job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepdopy(self.resources))
             self.belonging_jobs.append(job)
 
         self.submission_hash = self.get_hash()
@@ -552,6 +551,8 @@ class Resources(object):
         
         self.if_cuda_multi_devices = if_cuda_multi_devices
         # if self.gpu_per_node > 1:
+        
+        self.in_use = 0
             
         if self.if_cuda_multi_devices is True:
             if gpu_per_node < 1:

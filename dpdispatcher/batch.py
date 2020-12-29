@@ -36,3 +36,21 @@ class Batch(object) :
 
     def check_finish_tag(self) :
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
+
+    def get_command_env_cuda_devices(resources, task):
+        task_need_resources = task.task_need_resources
+        command_env=""
+        if resources.if_cuda_multi_devices is True:
+            min_CUDA_VISIBLE_DEVICES = int(resources.in_use*resources.gpu_per_node)
+            max_CUDA_VISIBLE_DEVICES = int((resources.in_use + task_need_resources)*resources.gpu_per_node-0.000000001)
+            list_CUDA_VISIBLE_DEVICES  = list(range(min_CUDA_VISIBLE_DEVICES, max_CUDA_VISIBLE_DEVICES+1))
+            if len(list_CUDA_VISIBLE_DEVICES) == 0:
+                raise RuntimeError("list_CUDA_VISIBLE_DEVICES can not be empty")
+
+            command_env+="export CUDA_VISIBLE_DEVICES="
+            for ii in list_CUDA_VISIBLE_DEVICES:
+                command_env+="{ii},".format(ii=ii) 
+            command_env+=" ;"
+        return command_env
+
+

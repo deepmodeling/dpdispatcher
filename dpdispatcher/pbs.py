@@ -69,24 +69,14 @@ class PBS(Batch):
         resources_in_use=0
         for task in job.job_task_list:
             command_env = ""     
-            task_need_resources_mod = task.task_need_resources
-            if resources_in_use+task_need_resources_mod > 1:
+            task_need_resources = task.task_need_resources
+            if resources.in_use+task_need_resources > 1:
                pbs_script_command += pbs_script_wait
-               resources_in_use = 0
+               resources.in_use = 0
 
-            if resources.if_cuda_multi_devices is True:
-                min_CUDA_VISIBLE_DEVICES = int(resources_in_use*resources.gpu_per_node)
-                max_CUDA_VISIBLE_DEVICES = int((resources_in_use + task_need_resources_mod)*resources.gpu_per_node-0.000000001)
-   
-                list_CUDA_VISIBLE_DEVICES  = list(range(min_CUDA_VISIBLE_DEVICES, max_CUDA_VISIBLE_DEVICES+1))
-                str_CUDA_VISIBLE_DEVICES = "CUDA_VISIBLE_DEVICES="
-                for ii in list_CUDA_VISIBLE_DEVICES:
-                    str_CUDA_VISIBLE_DEVICES+="{ii},".format(ii=ii) 
-                command_env = "export {str_CUDA_VISIBLE_DEVICES} ;".format(str_CUDA_VISIBLE_DEVICES=str_CUDA_VISIBLE_DEVICES)
+            command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
                
             command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
-
-            resources_in_use += task_need_resources_mod
 
             temp_pbs_script_command = pbs_script_command_template.format(command_env=command_env, 
                  task_work_path=task.task_work_path, command=task.command, outlog=task.outlog, errlog=task.errlog)
