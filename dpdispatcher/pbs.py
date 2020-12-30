@@ -62,24 +62,22 @@ class PBS(Batch):
         pbs_script_header = pbs_script_header_template.format(**script_header_dict) 
 
         pbs_script_env = pbs_script_env_template.format()
-      
+
         pbs_script_command = ""
         
-        
-        resources_in_use=0
         for task in job.job_task_list:
             command_env = ""     
             task_need_resources = task.task_need_resources
             if resources.in_use+task_need_resources > 1:
-               pbs_script_command += pbs_script_wait
-               resources.in_use = 0
+                pbs_script_command += pbs_script_wait
+                resources.in_use = 0
 
             command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
-               
+
             command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
 
             temp_pbs_script_command = pbs_script_command_template.format(command_env=command_env, 
-                 task_work_path=task.task_work_path, command=task.command, outlog=task.outlog, errlog=task.errlog)
+                task_work_path=task.task_work_path, command=task.command, outlog=task.outlog, errlog=task.errlog)
             pbs_script_command+=temp_pbs_script_command
         
         pbs_script_end = pbs_script_end_template.format(job_tag_finished=job.job_hash+'_tag_finished')
@@ -138,7 +136,7 @@ class PBS(Batch):
                 return JobStatus.terminated
         else :
             return JobStatus.unknown
-   
+
     def check_finish_tag(self, job):
         job_finished_tag = job.job_hash + '_tag_finished'
         print('^^^^^', job_finished_tag)

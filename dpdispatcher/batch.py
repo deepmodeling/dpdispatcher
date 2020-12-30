@@ -37,7 +37,7 @@ class Batch(object) :
     def check_finish_tag(self) :
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
-    def get_command_env_cuda_devices(resources, task):
+    def get_command_env_cuda_devices(self, resources, task):
         task_need_resources = task.task_need_resources
         command_env=""
         if resources.if_cuda_multi_devices is True:
