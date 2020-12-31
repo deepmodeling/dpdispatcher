@@ -240,7 +240,7 @@ class Submission(object):
         
         for ii in random_task_index_ll:
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
-            job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepdopy(self.resources))
+            job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepcopy(self.resources))
             self.belonging_jobs.append(job)
 
         self.submission_hash = self.get_hash()
