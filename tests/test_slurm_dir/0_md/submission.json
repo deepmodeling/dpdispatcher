@@ -4,10 +4,10 @@
     "resources": {
       "number_node": 1,
       "cpu_per_node": 4,
-      "gpu_per_node": 1,
-      "queue_name": "all",
+      "gpu_per_node": 0,
+      "queue_name": "debug",
       "group_size": 4,
-      "if_cuda_multi_devices": true
+      "if_cuda_multi_devices": false
     },
     "slurm_sbatch_dict": {
       "mem": "10G",
@@ -23,10 +23,10 @@
   ],
   "belonging_jobs": [
     {
-      "f04a74f3899ba0a5e9e7c708a0e2af89d2c44714": {
+      "8cda6723de155874106d96a543e1872c9fc9aa1d": {
         "job_task_list": [
           {
-            "command": "module load deepmd-kit/1.2.0-cpu && lmp -i input.lammps",
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
             "task_work_path": "bct-3",
             "forward_files": [
               "conf.lmp",
@@ -40,7 +40,7 @@
             "task_need_resources": 0.25
           },
           {
-            "command": "module load deepmd-kit/1.2.0-cpu && lmp -i input.lammps",
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
             "task_work_path": "bct-2",
             "forward_files": [
               "conf.lmp",
@@ -54,7 +54,7 @@
             "task_need_resources": 0.25
           },
           {
-            "command": "module load deepmd-kit/1.2.0-cpu && lmp -i input.lammps",
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
             "task_work_path": "bct-4",
             "forward_files": [
               "conf.lmp",
@@ -68,7 +68,7 @@
             "task_need_resources": 0.5
           },
           {
-            "command": "module load deepmd-kit/1.2.0-cpu && lmp -i input.lammps",
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
             "task_work_path": "bct-1",
             "forward_files": [
               "conf.lmp",
@@ -86,10 +86,10 @@
           "resources": {
             "number_node": 1,
             "cpu_per_node": 4,
-            "gpu_per_node": 1,
-            "queue_name": "all",
+            "gpu_per_node": 0,
+            "queue_name": "debug",
             "group_size": 4,
-            "if_cuda_multi_devices": true
+            "if_cuda_multi_devices": false
           },
           "slurm_sbatch_dict": {
             "mem": "10G",
@@ -98,7 +98,7 @@
           }
         },
         "job_state": 5,
-        "job_id": "328369",
+        "job_id": "7",
         "fail_count": 1
       }
     }

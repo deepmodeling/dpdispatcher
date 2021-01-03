@@ -118,15 +118,15 @@ class SSHContext (object):
     def __init__ (self,
                   local_root,
                   ssh_session,
-                  job_uuid=None,
-    ) :
+                  job_uuid=None):
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
-        if job_uuid:
-           self.job_uuid=job_uuid
-        else:
-           self.job_uuid = str(uuid.uuid4())
-        self.temp_remote_root = os.path.join(ssh_session.get_session_root(), self.job_uuid)
+        self.job_uuid = job_uuid
+        # if job_uuid:
+        #    self.job_uuid=job_uuid
+        # else:
+        #    self.job_uuid = str(uuid.uuid4())
+        self.temp_remote_root = os.path.join(ssh_session.get_session_root())
         self.ssh_session = ssh_session
         self.ssh_session.ensure_alive()
         try:
@@ -149,7 +149,17 @@ class SSHContext (object):
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
+        # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
+        self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
+           
+        self.job_uuid = submission.submission_hash
+        # try:
+        print('self.remote_root', self.remote_root)
+        sftp = self.ssh_session.ssh.open_sftp() 
+        sftp.mkdir(self.remote_root)
+        sftp.close()
+        # except:
+        #     pass
         
     def upload(self,
                # job_dirs,
@@ -187,7 +197,7 @@ class SSHContext (object):
         # for ii in job_dirs :
         for task in submission.belonging_tasks :
             for jj in task.forward_files  :
-                file_name = os.path.join(task.task_work_base, jj)                
+                file_name = os.path.join(task.task_work_path, jj)                
                 if check_exists:
                     if self.check_file_exists(file_name):
                         file_list.append(file_name)
