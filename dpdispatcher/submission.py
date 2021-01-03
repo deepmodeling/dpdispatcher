@@ -579,14 +579,21 @@ class Resources(object):
         return resources
 
 class Machine(object):
-    """Machaine represents the information of the compute of other ip or in localhost
+    """Machaine represents the information of the computer in the web or 'localhost'
 
     Parameters
     ----------
     hostname : str
         the ip of the machine, or 'localhost' to run on the localhost
+    remote_root : path-like str
+        the dir where dpdispatcher uploads the data and task files.
     username : str
         dpdispatcher will initialize a ssh connection ssh -p port 'username@hostname'
+    password : str
+        password of user username. This can be None. 
+        Note: You can use linux 'ssh-copy-id' command to ssh connect without password.
+    port : str
+        ssh connection port. In most linux systems, the default value is 22. 
     """
     def __init__(self,
                 hostname,
