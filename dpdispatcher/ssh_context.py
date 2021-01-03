@@ -6,7 +6,7 @@ from glob import glob
 from dpdispatcher import dlog
 
 class SSHSession (object) :
-    def __init__ (self, jdata) :
+    def bk__init__ (self, jdata) :
         self.remote_profile = jdata
         # with open(remote_profile) as fp :
         #     self.remote_profile = json.load(fp)
@@ -56,7 +56,7 @@ class SSHSession (object) :
         except EOFError:
             return False        
 
-    def _setup_ssh(self,
+    def bk_setup_ssh(self,
                    hostname,
                    port=22,
                    username=None,
@@ -73,6 +73,14 @@ class SSHSession (object) :
         assert(self.ssh.get_transport().is_active())
         transport = self.ssh.get_transport()
         transport.set_keepalive(60)
+    
+    def _setup_ssh(self):
+        machine = self.machine
+        self.ssh = paramiko.SSHClient()
+        self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
+        self.ssh.connect(hostname=machine.hostname, port=machine.port,
+                         username=machine.username, password=machine.password,)
+                         
 
     def get_ssh_client(self) :
         return self.ssh

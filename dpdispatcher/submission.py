@@ -578,3 +578,22 @@ class Resources(object):
         resources = cls(**resources_dict)
         return resources
 
+class Machine(object):
+    """Machaine represents the information of the compute of other ip or in localhost
+
+    Parameters
+    ----------
+    hostname : str
+        the ip of the machine, or 'localhost' to run on the localhost
+    username : str
+        dpdispatcher will initialize a ssh connection ssh -p port 'username@hostname'
+    """
+    def __init__(hostname,
+                 username,
+                 remote_root,
+                 port=22):
+        self.hostname = hostname
+        self.username = username
+        self.remote_root = remote_root
+        self.port = port
+
