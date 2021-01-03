@@ -4,45 +4,64 @@
 import os, sys, paramiko, json, uuid, tarfile, time, stat, shutil
 from glob import glob
 from dpdispatcher import dlog
+from dpdispatcher.submission import Machine
 
 class SSHSession (object) :
-    def bk__init__ (self, jdata) :
-        self.remote_profile = jdata
-        # with open(remote_profile) as fp :
-        #     self.remote_profile = json.load(fp)
-        self.remote_host = self.remote_profile['hostname']
-        self.remote_uname = self.remote_profile['username']
-        self.remote_port = self.remote_profile.get('port', 22)
-        self.remote_password = self.remote_profile.get('password', None)
-        self.local_key_filename = self.remote_profile.get('key_filename', None)
-        self.remote_timeout = self.remote_profile.get('timeout', None)
-        self.local_key_passphrase = self.remote_profile.get('passphrase', None)
-        self.remote_workpath = self.remote_profile['work_path']
-        self.ssh = None
-        self._setup_ssh(hostname=self.remote_host,
-                        port=self.remote_port,
-                        username=self.remote_uname,
-                        password=self.remote_password,
-                        key_filename=self.local_key_filename,
-                        timeout=self.remote_timeout,
-                        passphrase=self.local_key_passphrase)
+    # def bk__init__ (self, jdata) :
+    #     self.remote_profile = jdata
+    #     # with open(remote_profile) as fp :
+    #     #     self.remote_profile = json.load(fp)
+    #     self.remote_host = self.remote_profile['hostname']
+    #     self.remote_uname = self.remote_profile['username']
+    #     self.remote_port = self.remote_profile.get('port', 22)
+    #     self.remote_password = self.remote_profile.get('password', None)
+    #     self.local_key_filename = self.remote_profile.get('key_filename', None)
+    #     self.remote_timeout = self.remote_profile.get('timeout', None)
+    #     self.local_key_passphrase = self.remote_profile.get('passphrase', None)
+    #     self.remote_workpath = self.remote_profile['work_path']
+    #     self.ssh = None
+    #     self._setup_ssh(hostname=self.remote_host,
+    #                     port=self.remote_port,
+    #                     username=self.remote_uname,
+    #                     password=self.remote_password,
+    #                     key_filename=self.local_key_filename,
+    #                     timeout=self.remote_timeout,
+    #                     passphrase=self.local_key_passphrase)
+    
+    def __init__(self, machine):
+        self.machine = machine
+        self.ssh=None
+        self._setup_ssh()
+
+    # def bk_ensure_alive(self,
+    #                  max_check = 10,
+    #                  sleep_time = 10):
+    #     count = 1
+    #     while not self._check_alive():
+    #         if count == max_check:
+    #             raise RuntimeError('cannot connect ssh after %d failures at interval %d s' %
+    #                                (max_check, sleep_time))
+    #         dlog.info('connection check failed, try to reconnect to ' + self.remote_host)
+    #         self._setup_ssh(hostname=self.remote_host,
+    #                         port=self.remote_port,
+    #                         username=self.remote_uname,
+    #                         password=self.remote_password,
+    #                         key_filename=self.local_key_filename,
+    #                         timeout=self.remote_timeout,
+    #                         passphrase=self.local_key_passphrase)
+    #         count += 1
+    #         time.sleep(sleep_time)
 
     def ensure_alive(self,
-                     max_check = 10,
-                     sleep_time = 10):
+                    max_check = 10,
+                    sleep_time = 10):
         count = 1
         while not self._check_alive():
             if count == max_check:
                 raise RuntimeError('cannot connect ssh after %d failures at interval %d s' %
-                                   (max_check, sleep_time))
-            dlog.info('connection check failed, try to reconnect to ' + self.remote_host)
-            self._setup_ssh(hostname=self.remote_host,
-                            port=self.remote_port,
-                            username=self.remote_uname,
-                            password=self.remote_password,
-                            key_filename=self.local_key_filename,
-                            timeout=self.remote_timeout,
-                            passphrase=self.local_key_passphrase)
+                                    (max_check, sleep_time))
+            dlog.info('connection check failed, try to reconnect to ' + self.machine.remote_root)
+            self._setup_ssh()
             count += 1
             time.sleep(sleep_time)
 
@@ -79,14 +98,17 @@ class SSHSession (object) :
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
         self.ssh.connect(hostname=machine.hostname, port=machine.port,
-                         username=machine.username, password=machine.password,)
-                         
+                        username=machine.username, password=machine.password)
+        assert(self.ssh.get_transport().is_active())
+        transport = self.ssh.get_transport()
+        transport.set_keepalive(60)
+                        
 
     def get_ssh_client(self) :
         return self.ssh
 
     def get_session_root(self) :
-        return self.remote_workpath
+        return self.machine.remote_root
 
     def close(self) :
         self.ssh.close()
@@ -142,7 +164,7 @@ class SSHContext (object):
       #   for ii in job_dirs :
         for task in submission.belonging_tasks :
             for jj in task.forward_files :
-                file_list.append(os.path.join(ii, jj))        
+                # file_list.append(os.path.join(ii, jj))        
                 file_list.append(os.path.join(task.task_work_path, jj))        
         # for ii in submission.forward_common_files:
         #     file_list.append(ii)
@@ -170,14 +192,14 @@ class SSHContext (object):
                     if self.check_file_exists(file_name):
                         file_list.append(file_name)
                     elif mark_failure :
-                        with open(os.path.join(self.local_root, ii, 'tag_failure_download_%s' % jj), 'w') as fp: pass
+                        with open(os.path.join(self.local_root, task.task_work_path, 'tag_failure_download_%s' % jj), 'w') as fp: pass
                     else:
                         pass
                 else:
                     file_list.append(file_name)
             if back_error:
-               errors=glob(os.path.join(ii,'error*'))
-               file_list.extend(errors)
+                errors=glob(os.path.join(task.task_work_path, 'error*'))
+                file_list.extend(errors)
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
             self._get_files(file_list)

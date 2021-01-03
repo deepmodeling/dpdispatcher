@@ -588,12 +588,15 @@ class Machine(object):
     username : str
         dpdispatcher will initialize a ssh connection ssh -p port 'username@hostname'
     """
-    def __init__(hostname,
-                 username,
-                 remote_root,
-                 port=22):
+    def __init__(self,
+                hostname,
+                remote_root,
+                username,
+                password=None,
+                port=22):
         self.hostname = hostname
-        self.username = username
         self.remote_root = remote_root
+        self.username = username
+        self.password = password
         self.port = port
 
