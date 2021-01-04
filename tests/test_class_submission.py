@@ -56,9 +56,12 @@ class TestSubmission(unittest.TestCase) :
         self.assertEqual(self.submission, Submission.deserialize(submission_dict=self.submission.serialize()))
         # self.submission.generate_jobs()
 
+
+    @patch('dpdispatcher.Submission.submission_to_json')
     @patch('dpdispatcher.Submission.get_submission_state')
-    def test_check_all_finished(self, patch_update_submission_state):
+    def test_check_all_finished(self, patch_get_submission_state, patch_submission_to_json):
         patch_get_submission_state = MagicMock(return_value=None)
+        patch_submission_to_json = MagicMock(return_value=None)
 
         self.submission.belonging_jobs[0].job_state = JobStatus.running
         self.submission.belonging_jobs[1].job_state = JobStatus.waiting

@@ -214,7 +214,7 @@ class Submission(object):
 
         Notes
         -----
-        this method will not handle unexpected job state in the submission.
+        This method will not handle unexpected job state in the submission.
         """
         self.get_submission_state()
         # print('debug:***', [job.job_state for job in self.belonging_jobs])
