@@ -12,8 +12,11 @@ from dpdispatcher.slurm import SlurmResources, Slurm
 # local_session = LocalSession({'work_path':'temp2'})
 # local_context = LocalContext(local_root='test_slurm_dir/', work_profile=local_session)
 # lazy_local_context = LazyLocalContext(local_root='/home/fengbo/10_dpdispatcher/dpdispatcher/tests/temp3/0_md', work_profile=None)
-machine_dict = dict(hostname='localhost', remote_root='/home/dp/dpdispatcher/tests/temp2', username='dp')
-ssh_session = SSHSession(**machine_dict)
+
+
+# machine_dict = dict(hostname='localhost', remote_root='/home/dp/dpdispatcher/tests/temp2', username='dp')
+# ssh_session = SSHSession(**machine_dict)
+ssh_session = SSHSession(hostname='8.131.233.55', remote_root='/home/dp/dp_remote', username='dp')
 ssh_context = SSHContext(local_root='test_slurm_dir', ssh_session=ssh_session)
 slurm = Slurm(context=ssh_context)
 

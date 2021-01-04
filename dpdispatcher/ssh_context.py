@@ -151,11 +151,11 @@ class SSHContext (object):
         self.ssh_session = ssh_session
         self.ssh_session.ensure_alive()
         try:
-           sftp = self.ssh_session.ssh.open_sftp() 
-           sftp.mkdir(self.temp_remote_root)
-           sftp.close()
+            sftp = self.ssh_session.ssh.open_sftp() 
+            sftp.mkdir(self.temp_remote_root)
+            sftp.close()
         except: 
-           pass
+            pass
     
     @property
     def ssh(self):

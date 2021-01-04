@@ -70,7 +70,7 @@ class LocalContext(object) :
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
+        self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
         # self.job_uuid = submission.submission_hash
         # self.remote_root = os.path.join(self.work_profile.get_work_root(), self.job_uuid)
         # os.makedirs(self.remote_root, exist_ok = True)

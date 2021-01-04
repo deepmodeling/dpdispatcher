@@ -31,7 +31,6 @@ class Submission(object):
         self.forward_common_files= forward_common_files
         self.backward_common_files = backward_common_files
 
-
         self.submission_hash = None
         self.uuid = "<to be implemented>"
         self.belonging_tasks = []
@@ -46,8 +45,8 @@ class Submission(object):
         """When check whether the two submission are equal, 
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
-       #  print('submission.__eq__() self', self.serialize(), )
-       #  print('submission.__eq__() other', other.serialize())
+        #  print('submission.__eq__() self', self.serialize(), )
+        #  print('submission.__eq__() other', other.serialize())
         return self.serialize(if_static=True) == other.serialize(if_static=True)    
     
     @classmethod
@@ -100,9 +99,15 @@ class Submission(object):
         return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest() 
 
     def register_task(self, task):
+        if self.belonging_jobs:
+            raise RuntimeError("Not allowed to register tasks after generating jobs."
+                    "submission hash error {submission}".format(self))
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list):
+        if self.belonging_jobs:
+            raise RuntimeError("Not allowed to register tasks after generating jobs."
+                    "submission hash error {submission}".format(self))
         self.belonging_tasks.extend(task_list)
     
     def bind_batch(self, batch):
@@ -129,21 +134,22 @@ class Submission(object):
         Third, run the submission defined previously.
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         """
+        # self.generate_jobs()
         self.try_recover_from_json()
         # print('submission.run_submission:self', self)
         if self.check_all_finished():
             pass
             # print('recover success submission.run_submission: recover all finished 1', self)
         else:
-            # self.update_submission_state()
+            # self.handle_unexpected_submission_state()
             self.upload_jobs()
-            self.update_submission_state()
+            self.handle_unexpected_submission_state()
             self.submission_to_json
         #     self.submit_submission()
         
         while not self.check_all_finished():
             # print
-            # if_dump_to_json = self.update_submission_state()
+            # if_dump_to_json = self.handle_unexpected_submission_state()
             #     self.submission_to_json()
             try: 
                 time.sleep(10)
@@ -166,11 +172,10 @@ class Submission(object):
                 print('>>>>>>dpdispatcher>>>>>>{e}>>>>>>exit>>>>>>'.format(e=e))
                 exit(3)
             else:
-                self.update_submission_state()
+                self.handle_unexpected_submission_state()
             finally:
                 pass
-      
-        self.update_submission_state()
+        self.handle_unexpected_submission_state()
         self.submission_to_json()
         self.download_jobs()
         return True
@@ -180,21 +185,21 @@ class Submission(object):
 
         Notes 
         -----
-        this method will not update the job state in the submission.
+        this method will not handle unexpected (like resubmit terminated) job state in the submission.
         """
         for job in self.belonging_jobs:
             job.get_job_state()
             print('debug:***', job.job_state)
         # self.submission_to_json()
 
-    def update_submission_state(self):
-        """update the job state of the submission.
+    def handle_unexpected_submission_state(self):
+        """handle unexpected job state of the submission.
         If the job state is unsubmitted, submit the job.
         If the job state is terminated (killed unexpectly), resubmit the job.
         If the job state is unknown, raise an error.
         """
         for job in self.belonging_jobs:
-            job.update_job_state()
+            job.handle_unexpect_job_state()
 
     def submit_submission(self):
         """submit the job belonging to the submission.
@@ -208,7 +213,7 @@ class Submission(object):
 
         Notes
         -----
-        this method will not update the job state in the submission.
+        this method will not handle unexpected job state in the submission.
         """
         self.get_submission_state()
         # print('debug:***', [job.job_state for job in self.belonging_jobs])
@@ -227,6 +232,13 @@ class Submission(object):
         Why we randomly shuffle the tasks is under the consideration of load balance.
         The random seed is a constant (to be concrete, 42). And this insures that the jobs are equal when we re-run the program.
         """
+
+        # if self.belonging_jobs:
+        #     if self.submission_hash != self.get_hash():
+        #         raise RuntimeError("Not allowed to register tasks after generating jobs."
+        #                             "submission hash error {submission}".format(self))
+        #     else:
+        #         return None
         group_size = self.resources.group_size
         if group_size < 1 or type(group_size) is not int:
             raise RuntimeError('group_size must be a positive number')   
@@ -450,7 +462,7 @@ class Job(object):
         job_state = self.batch.check_status(self)
         self.job_state = job_state
 
-    def update_job_state(self):
+    def handle_unexpected_job_state(self):
         job_state = self.job_state
 
         if job_state == JobStatus.unknown:
