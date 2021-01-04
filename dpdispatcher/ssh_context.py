@@ -4,7 +4,7 @@
 import os, sys, paramiko, json, uuid, tarfile, time, stat, shutil
 from glob import glob
 from dpdispatcher import dlog
-from dpdispatcher.submission import Machine
+# from dpdispatcher.submission import Machine
 
 class SSHSession (object) :
     # def bk__init__ (self, jdata) :
@@ -28,11 +28,31 @@ class SSHSession (object) :
     #                     timeout=self.remote_timeout,
     #                     passphrase=self.local_key_passphrase)
     
-    def __init__(self, machine):
-        self.machine = machine
-        self.ssh=None
-        self._setup_ssh()
+    # def __init__(self, machine):
+    #     self.machine = machine
+    #     self.ssh=None
+    #     self._setup_ssh()
+    
+    def __init__(self,
+                hostname,
+                remote_root,
+                username,
+                password=None,
+                port=22,
+                key_filename=None,
+                passphrase=None,
+                timeout=10):
 
+        self.hostname = hostname
+        self.remote_root = remote_root
+        self.username = username
+        self.password = None
+        self.port = port
+        self.key_filename = key_filename
+        self.passphrase = passphrase
+        self.timeout = timeout
+        self.ssh = None
+        self._setup_ssh()
     # def bk_ensure_alive(self,
     #                  max_check = 10,
     #                  sleep_time = 10):
@@ -60,7 +80,7 @@ class SSHSession (object) :
             if count == max_check:
                 raise RuntimeError('cannot connect ssh after %d failures at interval %d s' %
                                     (max_check, sleep_time))
-            dlog.info('connection check failed, try to reconnect to ' + self.machine.remote_root)
+            dlog.info('connection check failed, try to reconnect to ' + self.remote_root)
             self._setup_ssh()
             count += 1
             time.sleep(sleep_time)
@@ -75,30 +95,31 @@ class SSHSession (object) :
         except EOFError:
             return False        
 
-    def bk_setup_ssh(self,
-                   hostname,
-                   port=22,
-                   username=None,
-                   password=None,
-                   key_filename=None,
-                   timeout=None,
-                   passphrase=None):
-        self.ssh = paramiko.SSHClient()
-        # ssh_client.load_system_host_keys()
-        self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
-        self.ssh.connect(hostname=hostname, port=port,
-                         username=username, password=password,
-                         key_filename=key_filename, timeout=timeout, passphrase=passphrase)
-        assert(self.ssh.get_transport().is_active())
-        transport = self.ssh.get_transport()
-        transport.set_keepalive(60)
+    # def bk_setup_ssh(self,
+    #                hostname,
+    #                port=22,
+    #                username=None,
+    #                password=None,
+    #                key_filename=None,
+    #                timeout=None,
+    #                passphrase=None):
+    #     self.ssh = paramiko.SSHClient()
+    #     # ssh_client.load_system_host_keys()
+    #     self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
+    #     self.ssh.connect(hostname=hostname, port=port,
+    #                      username=username, password=password,
+    #                      key_filename=key_filename, timeout=timeout, passphrase=passphrase)
+    #     assert(self.ssh.get_transport().is_active())
+    #     transport = self.ssh.get_transport()
+    #     transport.set_keepalive(60)
     
     def _setup_ssh(self):
-        machine = self.machine
+        # machine = self.machine
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
-        self.ssh.connect(hostname=machine.hostname, port=machine.port,
-                        username=machine.username, password=machine.password)
+        self.ssh.connect(hostname=self.hostname, port=self.port,
+                        username=self.username, password=self.password,
+                        key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase)
         assert(self.ssh.get_transport().is_active())
         transport = self.ssh.get_transport()
         transport.set_keepalive(60)
@@ -108,7 +129,7 @@ class SSHSession (object) :
         return self.ssh
 
     def get_session_root(self) :
-        return self.machine.remote_root
+        return self.remote_root
 
     def close(self) :
         self.ssh.close()

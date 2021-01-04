@@ -5,15 +5,15 @@ from dpdispatcher.local_context import LocalSession, LocalContext
 from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.ssh_context import SSHSession, SSHContext
 
-from dpdispatcher.submission import Submission, Job, Task, Resources, Machine
+from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.batch import Batch
 from dpdispatcher.slurm import SlurmResources, Slurm
 
 # local_session = LocalSession({'work_path':'temp2'})
 # local_context = LocalContext(local_root='test_slurm_dir/', work_profile=local_session)
 # lazy_local_context = LazyLocalContext(local_root='/home/fengbo/10_dpdispatcher/dpdispatcher/tests/temp3/0_md', work_profile=None)
-machine = Machine(hostname='localhost', remote_root='/home/dp/dpdispatcher/tests/temp2', username='dp')
-ssh_session = SSHSession(machine=machine)
+machine_dict = dict(hostname='localhost', remote_root='/home/dp/dpdispatcher/tests/temp2', username='dp')
+ssh_session = SSHSession(**machine_dict)
 ssh_context = SSHContext(local_root='test_slurm_dir', ssh_session=ssh_session)
 slurm = Slurm(context=ssh_context)
 
