@@ -188,7 +188,7 @@ class Shell(Batch):
    
     def check_finish_tag(self, job):
         job_finished_tag = job.job_hash + '_tag_finished'
-        print('^^^^^', job_finished_tag)
+        print('job finished', job_finished_tag)
         
         return self.context.check_file_exists(job_finished_tag)
 

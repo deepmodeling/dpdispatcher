@@ -150,12 +150,12 @@ class SSHContext (object):
         self.temp_remote_root = os.path.join(ssh_session.get_session_root())
         self.ssh_session = ssh_session
         self.ssh_session.ensure_alive()
+        sftp = self.ssh_session.ssh.open_sftp() 
         try:
-            sftp = self.ssh_session.ssh.open_sftp() 
             sftp.mkdir(self.temp_remote_root)
-            sftp.close()
-        except: 
+        except OSError: 
             pass
+        sftp.close()
     
     @property
     def ssh(self):
@@ -175,10 +175,10 @@ class SSHContext (object):
            
         self.job_uuid = submission.submission_hash
         # try:
-        print('self.remote_root', self.remote_root)
-        sftp = self.ssh_session.ssh.open_sftp() 
-        sftp.mkdir(self.remote_root)
-        sftp.close()
+        # print('self.remote_root', self.remote_root)
+        # sftp = self.ssh_session.ssh.open_sftp() 
+        # sftp.mkdir(self.remote_root)
+        # sftp.close()
         # except:
         #     pass
         
@@ -333,6 +333,13 @@ class SSHContext (object):
             for ii in files :
                 tar.add(ii)
         os.chdir(cwd)
+
+        sftp = self.ssh_session.ssh.open_sftp() 
+        try:
+            sftp.mkdir(self.remote_root)
+        except OSError: 
+            pass
+        sftp.close()
         # trans
         from_f = os.path.join(self.local_root, of)
         to_f = os.path.join(self.remote_root, of)
@@ -340,7 +347,7 @@ class SSHContext (object):
         try:
            sftp.put(from_f, to_f)
         except FileNotFoundError:
-           raise FileNotFoundError("from %s to %s Error!"%(from_f,to_f))
+           raise FileNotFoundError("from %s to %s @ %s : %s Error!"%(from_f, self.username, self.hostname, to_f))
         # remote extract
         self.block_checkcall('tar xf %s' % of)
         # clean up

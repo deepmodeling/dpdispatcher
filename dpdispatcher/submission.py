@@ -2,6 +2,7 @@ import os,sys,time,random,uuid,json,copy
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
+from dpdispatcher.slurm import SlurmResources
 
 class Submission(object):
     """submission represents the whole workplace, all the tasks to be calculated
@@ -45,8 +46,8 @@ class Submission(object):
         """When check whether the two submission are equal, 
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
-        #  print('submission.__eq__() self', self.serialize(), )
-        #  print('submission.__eq__() other', other.serialize())
+        # print('submission.__eq__()  self', self.serialize(if_static=True))
+        # print('submission.__eq__() other', other.serialize(if_static=True))
         return self.serialize(if_static=True) == other.serialize(if_static=True)    
     
     @classmethod
@@ -101,13 +102,13 @@ class Submission(object):
     def register_task(self, task):
         if self.belonging_jobs:
             raise RuntimeError("Not allowed to register tasks after generating jobs."
-                    "submission hash error {submission}".format(self))
+                    "submission hash error {self}".format(self))
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
             raise RuntimeError("Not allowed to register tasks after generating jobs."
-                    "submission hash error {submission}".format(self))
+                    "submission hash error {self}".format(self))
         self.belonging_tasks.extend(task_list)
     
     def bind_batch(self, batch):
@@ -189,7 +190,7 @@ class Submission(object):
         """
         for job in self.belonging_jobs:
             job.get_job_state()
-            print('debug:***', job.job_state)
+            print('debug:***', job.job_id, job.job_state)
         # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):
@@ -199,7 +200,7 @@ class Submission(object):
         If the job state is unknown, raise an error.
         """
         for job in self.belonging_jobs:
-            job.handle_unexpect_job_state()
+            job.handle_unexpected_job_state()
 
     def submit_submission(self):
         """submit the job belonging to the submission.
@@ -442,7 +443,6 @@ class Job(object):
         
         job_task_list = [Task.deserialize(task_dict) for task_dict in job_dict[job_hash]['job_task_list']]
         job = Job(job_task_list=job_task_list, 
-           #  job_work_base=job_dict[job_hash]['job_work_base'],
             resources=Resources.deserialize(resources_dict=job_dict[job_hash]['resources']),
             batch=batch)
 
@@ -587,7 +587,12 @@ class Resources(object):
      
     @classmethod
     def deserialize(cls, resources_dict):
-        resources = cls(**resources_dict)
+        if 'slurm_sbatch_dict' in resources_dict:
+            resources = cls.deserialize(resources_dict=resources_dict['resources'])
+            slurm_sbatch_dict = resources_dict['slurm_sbatch_dict']
+            return SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
+        else:
+            resources = cls(**resources_dict)
         return resources
 
 # class Machine(object):

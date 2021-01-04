@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-from dpdispatcher.submission import Resources
+# from dpdispatcher.submission import Resources
 from dpdispatcher.batch import Batch
 
 slurm_script_template="""\
@@ -76,12 +76,12 @@ class SlurmResources(object):
         slurm_resources_dict['slurm_sbatch_dict'] = self.slurm_sbatch_dict
         return slurm_resources_dict
 
-    @classmethod
-    def deserialize(cls, slurm_resources_dict):
-        resources = Resources.deserialize(slurm_resources_dict['resources'])
-        slurm_sbatch_dict = slurm_resources_dict['slurm_sbatch_dict']
-        slurm_resources = cls(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
-        return slurm_resources
+#     @classmethod
+#     def deserialize(cls, slurm_resources_dict):
+#         resources =  Resources.deserialize(slurm_resources_dict['resources'])
+#         slurm_sbatch_dict = slurm_resources_dict['slurm_sbatch_dict']
+#         slurm_resources = cls(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
+#         return slurm_resources
 
 class Slurm(Batch):
     def gen_script(self, job):
@@ -192,7 +192,7 @@ class Slurm(Batch):
 
     def check_finish_tag(self, job):
         job_finished_tag = job.job_hash + '_tag_finished'
-        print('^^^^^', job_finished_tag)
+        print('job finished', job.job_id, job_finished_tag)
         
         return self.context.check_file_exists(job_finished_tag)
 

@@ -20,12 +20,12 @@ class TestSubmission(unittest.TestCase) :
         local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
         pbs = PBS(context=local_context)
 
-        resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=False) 
+        resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=True) 
         self.submission = Submission(work_base='0_md/', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=['submission.json']) #,  batch=PBS)
-        self.task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
-        self.task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
-        self.task3 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-3', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
-        self.task4 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-4', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
+        self.task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=1)
+        self.task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)
+        self.task3 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-3/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)
+        self.task4 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-4/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.5)
     
         self.submission.register_task_list([self.task1, self.task2, self.task3, ])
         self.submission.register_task(self.task4)
@@ -51,10 +51,10 @@ class TestSubmission(unittest.TestCase) :
         self.assertEqual([[self.task3, self.task2], [self.task4, self.task1]], task_ll)
 
     def test_serialize_deserialize(self):
-        self.submission.register_task_list([self.task1, self.task2, self.task3, self.task4, ])
-        self.submission.generate_jobs()
+        # self.submission.register_task_list([self.task1, self.task2, self.task3, self.task4, ])
+        # self.submission.generate_jobs()
         self.assertEqual(self.submission, Submission.deserialize(submission_dict=self.submission.serialize()))
-        self.submission.generate_jobs()
+        # self.submission.generate_jobs()
 
     @patch('dpdispatcher.Submission.get_submission_state')
     def test_check_all_finished(self, patch_update_submission_state):
@@ -83,7 +83,7 @@ class TestSubmission(unittest.TestCase) :
     def test_check_bind_batch(self):
         pass  
  
-    def test_try_recover_from_json():
+    def test_try_recover_from_json(self):
         pass
         # self.submission_to_json()
       
