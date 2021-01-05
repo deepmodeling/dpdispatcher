@@ -272,7 +272,8 @@ class Submission(object):
         # print('~~~~,~~~', self.serialize())
         self.get_submission_state()
         write_str = json.dumps(self.serialize(), indent=2, default=str)
-        self.batch.context.write_file('submission.json', write_str=write_str)
+        submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
+        self.batch.context.write_file(submission_file_name, write_str=write_str)
     
     @classmethod
     def submission_from_json(cls, json_file_name='submission.json'):
@@ -283,12 +284,13 @@ class Submission(object):
         return submission
    
     def try_recover_from_json(self):
-        if_recover = self.batch.context.check_file_exists('submission.json')
+        submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
+        if_recover = self.batch.context.check_file_exists(submission_file_name)
         # print('submission.try_recover_from_json if_recover', if_recover)
         submission = None
         submission_dict = {}
         if if_recover :
-            submission_dict_str = self.batch.context.read_file(fname='submission.json')
+            submission_dict_str = self.batch.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
             # print('submission.try_recover_from_json submission_dict', submission_dict)
             submission = Submission.deserialize(submission_dict=submission_dict)
@@ -300,7 +302,9 @@ class Submission(object):
                 # print('!!!!!!!!!submission.try_recover_from_json submission', self)
                 # self.submission_hash = self.get_hash()
             else:
-                raise RuntimeError("recover fail")
+                print(self.serialize())
+                print(submission.serialize())
+                raise RuntimeError("Recover failed.")
         # return submission
 
 class Task(object):
@@ -344,7 +348,7 @@ class Task(object):
 
         self.task_need_resources = task_need_resources
 
-        self.uuid = "<to be implemented>"
+        self.task_hash = self.get_hash()
         # self.task_need_resources="<to be completed in the future>"
         # self.uuid = 
 
@@ -353,6 +357,10 @@ class Task(object):
     
     def __eq__(self, other):
         return self.serialize() == other.serialize()
+    
+    
+    def get_hash(self):
+        return sha1(str(self.serialize()).encode('utf-8')).hexdigest() 
 
     @classmethod
     def deserialize(cls, task_dict):
