@@ -27,10 +27,10 @@ shell_script_command_template="""
 cd $REMOTE_ROOT
 cd {task_work_path}
 test $? -ne 0 && exit 1
-if [ ! -f tag_0_finished ] ;then
+if [ ! -f {task_tag_finished} ] ;then
   {command_env} {command}  1>> {outlog} 2>> {errlog} 
-  if test $? -ne 0; then touch tag_0_failure; fi
-  touch tag_0_finished
+  if test $? -ne 0; then touch {task_tag_finished}; fi
+  touch {task_tag_finished}
 fi &
 """
 
@@ -64,7 +64,6 @@ class Shell(Batch):
       
         shell_script_command = ""
         
-        
         resources_in_use=0
         for task in job.job_task_list:
             command_env = ""     
@@ -73,25 +72,22 @@ class Shell(Batch):
                shell_script_command += shell_script_wait
                resources_in_use = 0
 
-            if resources.if_cuda_multi_devices is True:
-                min_CUDA_VISIBLE_DEVICES = int(resources_in_use*resources.gpu_per_node)
-                max_CUDA_VISIBLE_DEVICES = int((resources_in_use + task_need_resources_mod)*resources.gpu_per_node-0.000000001)
-   
-                list_CUDA_VISIBLE_DEVICES  = list(range(min_CUDA_VISIBLE_DEVICES, max_CUDA_VISIBLE_DEVICES+1))
-                str_CUDA_VISIBLE_DEVICES = "CUDA_VISIBLE_DEVICES="
-                for ii in list_CUDA_VISIBLE_DEVICES:
-                    str_CUDA_VISIBLE_DEVICES+="{ii},".format(ii=ii) 
-                command_env = "export {str_CUDA_VISIBLE_DEVICES} ;".format(str_CUDA_VISIBLE_DEVICES=str_CUDA_VISIBLE_DEVICES)
+            command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
+
+            command_env = "export {str_CUDA_VISIBLE_DEVICES} ;".format(str_CUDA_VISIBLE_DEVICES=str_CUDA_VISIBLE_DEVICES)
                
             command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
 
-            resources_in_use += task_need_resources_mod
+            task_tag_finished = task.task_hash + '_task_tag_finished'
 
             temp_shell_script_command = shell_script_command_template.format(command_env=command_env, 
-                 task_work_path=task.task_work_path, command=task.command, outlog=task.outlog, errlog=task.errlog)
+                 task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
+                 outlog=task.outlog, errlog=task.errlog)
+
             shell_script_command+=temp_shell_script_command
         
-        shell_script_end = shell_script_end_template.format(job_tag_finished=job.job_hash+'_tag_finished')
+        job_tag_finished = job.job_hash + '_job_tag_finished'
+        shell_script_end = shell_script_end_template.format(job_tag_finished=job_tag_finished)
 
         shell_script = shell_script_template.format(
                           shell_script_header=shell_script_header,

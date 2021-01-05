@@ -30,10 +30,10 @@ slurm_script_command_template="""
 cd $REMOTE_ROOT
 cd {task_work_path}
 test $? -ne 0 && exit 1
-if [ ! -f tag_0_finished ] ;then
+if [ ! -f {task_tag_finished} ] ;then
   {command_env} {command}  1>> {outlog} 2>> {errlog} 
-  if test $? -ne 0; then touch tag_0_failure; fi
-  touch tag_0_finished
+  if test $? -ne 0; then touch {task_tag_finished}; fi
+  touch {task_tag_finished}
 fi &
 """
 
@@ -123,12 +123,17 @@ class Slurm(Batch):
 
             command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
 
+            task_tag_finished = task.task_hash + '_task_tag_finished'
+
             temp_slurm_script_command = slurm_script_command_template.format(command_env=command_env, 
-                task_work_path=task.task_work_path, command=task.command, outlog=task.outlog, errlog=task.errlog)
+                task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
+                outlog=task.outlog, errlog=task.errlog)
+
             slurm_script_command+=temp_slurm_script_command
             
 
-        slurm_script_end = slurm_script_end_template.format(job_tag_finished=job.job_hash+'_tag_finished')
+        job_tag_finished = job.job_hash + '_job_tag_finished'
+        slurm_script_end = slurm_script_end_template.format(job_tag_finished=job_tag_finished)
 
         slurm_script = slurm_script_template.format(
                           slurm_script_header=slurm_script_header,
