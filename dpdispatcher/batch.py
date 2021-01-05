@@ -8,8 +8,8 @@ class Batch(object) :
                   context):
         self.context = context
         # self.uuid_names = uuid_names
-        self.upload_tag_name = '%s_tag_upload' % self.context.job_uuid
-        self.finish_tag_name = '%s_tag_finished' % self.context.job_uuid
+        self.upload_tag_name = '%s_job_tag_upload' % self.context.job_uuid
+        self.finish_tag_name = '%s_job_tag_finished' % self.context.job_uuid
         self.sub_script_name = '%s.sub' % self.context.job_uuid
         self.job_id_name = '%s_job_id' % self.context.job_uuid
 

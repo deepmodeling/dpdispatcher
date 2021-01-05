@@ -157,18 +157,21 @@ class Submission(object):
             except KeyboardInterrupt as e:
                 self.submission_to_json()
                 print('<<<<<<dpdispatcher<<<<<<KeyboardInterrupt<<<<<<exit<<<<<<')
+                print('submission: ', self.submission_hash)
                 print(self.serialize())
                 print('>>>>>>dpdispatcher>>>>>>KeyboardInterrupt>>>>>>exit>>>>>>')
                 exit(1)
             except SystemExit as e:
                 self.submission_to_json()
                 print('<<<<<<dpdispatcher<<<<<<SystemExit<<<<<<exit<<<<<<')
+                print('submission: ', self.submission_hash)
                 print(self.serialize())
                 print('>>>>>>dpdispatcher>>>>>>SystemExit>>>>>>exit>>>>>>')
                 exit(2)
             except Exception as e:
                 self.submission_to_json()
                 print('<<<<<<dpdispatcher<<<<<<{e}<<<<<<exit<<<<<<'.format(e=e))
+                print('submission: ', self.submission_hash)
                 print(self.serialize())
                 print('>>>>>>dpdispatcher>>>>>>{e}>>>>>>exit>>>>>>'.format(e=e))
                 exit(3)
@@ -190,7 +193,7 @@ class Submission(object):
         """
         for job in self.belonging_jobs:
             job.get_job_state()
-            print('debug:***', job.job_id, job.job_state)
+            print('debug: job: ', job.job_hash, job.job_id, job.job_state)
         # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):

@@ -194,12 +194,7 @@ class Slurm(Batch):
         else :
             return JobStatus.unknown                    
         
-
     def check_finish_tag(self, job):
-        job_finished_tag = job.job_hash + '_tag_finished'
-        print('job finished', job.job_id, job_finished_tag)
-        
-        return self.context.check_file_exists(job_finished_tag)
-
-
-
+        job_tag_finished = job.job_hash + '_job_tag_finished'
+        print('job finished: ',job.job_id, job_tag_finished)
+        return self.context.check_file_exists(job_tag_finished)

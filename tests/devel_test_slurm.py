@@ -23,7 +23,7 @@ slurm = Slurm(context=ssh_context)
 resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=0, queue_name="debug", group_size=4, if_cuda_multi_devices=False)
 slurm_sbatch_dict={'mem': '10G', 'cpus_per_task':1, 'time': "120:0:0"} 
 slurm_resources = SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
-submission = Submission(work_base='0_md', resources=slurm_resources,  forward_common_files=['graph.pb'], backward_common_files=['submission.json']) #,  batch=PBS)
+submission = Submission(work_base='0_md', resources=slurm_resources,  forward_common_files=['graph.pb'], backward_common_files=['*.json']) #,  batch=PBS)
 task1 = Task(command='/home/dp/deepmd-kit/bin/lmp -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=1)
 task2 = Task(command='/home/dp/deepmd-kit/bin/lmp -i input.lammps', task_work_path='bct-2', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)
 task3 = Task(command='/home/dp/deepmd-kit/bin/lmp -i input.lammps', task_work_path='bct-3', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)
