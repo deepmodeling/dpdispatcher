@@ -19,3 +19,4 @@ from dpdispatcher.submission import Submission, Job, Task, Resources
 
 def setUpModule():
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
+

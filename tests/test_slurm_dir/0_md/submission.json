@@ -1,19 +1,12 @@
 {
   "work_base": "0_md",
   "resources": {
-    "resources": {
-      "number_node": 1,
-      "cpu_per_node": 4,
-      "gpu_per_node": 0,
-      "queue_name": "debug",
-      "group_size": 4,
-      "if_cuda_multi_devices": false
-    },
-    "slurm_sbatch_dict": {
-      "mem": "10G",
-      "cpus_per_task": 1,
-      "time": "120:0:0"
-    }
+    "number_node": 1,
+    "cpu_per_node": 4,
+    "gpu_per_node": 1,
+    "queue_name": "V100_8_32",
+    "group_size": 4,
+    "if_cuda_multi_devices": true
   },
   "forward_common_files": [
     "graph.pb"
@@ -23,10 +16,10 @@
   ],
   "belonging_jobs": [
     {
-      "8cda6723de155874106d96a543e1872c9fc9aa1d": {
+      "89936e3ac869b3132977da5cc4187725f3318ea3": {
         "job_task_list": [
           {
-            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "command": "lmp_serial -i input.lammps",
             "task_work_path": "bct-3",
             "forward_files": [
               "conf.lmp",
@@ -40,7 +33,7 @@
             "task_need_resources": 0.25
           },
           {
-            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "command": "lmp_serial -i input.lammps",
             "task_work_path": "bct-2",
             "forward_files": [
               "conf.lmp",
@@ -54,7 +47,7 @@
             "task_need_resources": 0.25
           },
           {
-            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "command": "lmp_serial -i input.lammps",
             "task_work_path": "bct-4",
             "forward_files": [
               "conf.lmp",
@@ -68,7 +61,7 @@
             "task_need_resources": 0.5
           },
           {
-            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "command": "lmp_serial -i input.lammps",
             "task_work_path": "bct-1",
             "forward_files": [
               "conf.lmp",
@@ -83,22 +76,15 @@
           }
         ],
         "resources": {
-          "resources": {
-            "number_node": 1,
-            "cpu_per_node": 4,
-            "gpu_per_node": 0,
-            "queue_name": "debug",
-            "group_size": 4,
-            "if_cuda_multi_devices": false
-          },
-          "slurm_sbatch_dict": {
-            "mem": "10G",
-            "cpus_per_task": 1,
-            "time": "120:0:0"
-          }
+          "number_node": 1,
+          "cpu_per_node": 4,
+          "gpu_per_node": 1,
+          "queue_name": "V100_8_32",
+          "group_size": 4,
+          "if_cuda_multi_devices": true
         },
         "job_state": 5,
-        "job_id": "12",
+        "job_id": "21463.scheduler",
         "fail_count": 1
       }
     }

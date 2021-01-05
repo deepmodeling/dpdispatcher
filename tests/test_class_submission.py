@@ -13,8 +13,13 @@ from .context import Dispatcher
 from .context import setUpModule
 from .context import Submission, Job, Task, Resources
 
+# class TestSubmissionInit(unittest.TestCase):
+#     def setUp(self):
+#         pass
+    
 
-class TestSubmission(unittest.TestCase) :
+
+class TestSubmission(unittest.TestCase):
     def setUp(self) :
         local_session = LocalSession({'work_path':'test_work_path/'})
         local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)

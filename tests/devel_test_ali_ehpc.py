@@ -11,7 +11,13 @@ from dpdispatcher.pbs import PBS
 
 local_session = LocalSession({'work_path':'test_work_path/'})
 local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
-# lazy_local_context = LazyLocalContext(local_root='/home/fengbo/10_dpdispatcher/dpdispatcher/tests/temp3/0_md', work_profile=None)
+
+# lazy_local_context = LazyLocalContext(local_root='/home/fengbo/10_dpdispatcher/dpdispatcher/tests/test_pbs_dir', work_profile=None)
+
+# ssh_session = SSHSession(hostname='39.106.84.25', remote_root='/home/fengbo/dp_remote', username='fengbo')
+# ssh_context = SSHContext(local_root='test_slurm_dir', ssh_session=ssh_session)
+
+# pbs = PBS(context=ssh_context)
 pbs = PBS(context=local_context)
 # pbs = PBS(context=lazy_local_context)
 
