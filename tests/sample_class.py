@@ -13,15 +13,22 @@ from .context import Dispatcher
 from .context import setUpModule
 from .context import Submission, Job, Task, Resources
 
-# class TestSubmissionInit(unittest.TestCase):
-#     def setUp(self):
-#         pass
 class SampleClass(object):
     @classmethod
     def get_sample_resources(cls):
-        resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=True) 
+        resources = Resources(number_node=1, cpu_per_node=4, 
+            gpu_per_node=1, queue_name="V100_8_32", 
+            group_size=2, if_cuda_multi_devices=True)
         return resources
     
+    @classmethod
+    def get_sample_resources_dict(cls):
+        resources_dict={'number_node': 1, 'cpu_per_node':4, 
+            'gpu_per_node':1, 'queue_name':'V100_8_32', 
+            'group_size':2, 'if_cuda_multi_devices':True}
+        return resources_dict
+
+
     @classmethod
     def get_sample_task(cls):
         task = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=1)
@@ -48,5 +55,17 @@ class SampleClass(object):
         task_list = cls.get_sample_task_list()
         submission.register_task_list(task_list)
         submission.generate_jobs()
-        return submission 
+        return submission
     
+    @classmethod
+    def get_sample_job(cls):
+        Submission = cls.get_sample_submission()
+        job = Submission.belonging_jobs[0]
+        return job
+    
+    @classmethod
+    def get_sample_pbs_local_context(cls):
+        local_session = LocalSession({'work_path':'test_work_path/'})
+        local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
+        pbs = PBS(context=local_context)
+        return pbs

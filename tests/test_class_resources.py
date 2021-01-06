@@ -11,12 +11,12 @@ from .context import JobStatus
 from .context import Dispatcher
 from .context import setUpModule
 from .context import Submission, Job, Task, Resources
+from .sample_class import SampleClass
 
 class TestResources(unittest.TestCase) :
     def setUp(self) :
-        self.resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=False) 
-
-        self.resources_dict={'number_node': 1, 'cpu_per_node':4, 'gpu_per_node':1, 'queue_name':'V100_8_32', 'group_size':2, 'if_cuda_multi_devices':False}
+        self.resources = SampleClass.get_sample_resources()
+        self.resources_dict = SampleClass.get_sample_resources_dict()
 
     def test_serialize(self):
         self.assertEqual(self.resources.serialize(), self.resources_dict)
@@ -27,7 +27,7 @@ class TestResources(unittest.TestCase) :
     
     def test_serialize_deserialize(self):
         self.assertEqual(self.resources, Resources.deserialize(resources_dict=self.resources.serialize()))
-     
+
     def test_eq(self):
         self.assertNotEqual(self.resources, Resources(number_node=4, cpu_per_node=2, gpu_per_node=4, queue_name="V100_12_92", group_size=1))
             

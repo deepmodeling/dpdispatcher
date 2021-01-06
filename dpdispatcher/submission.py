@@ -33,7 +33,6 @@ class Submission(object):
         self.backward_common_files = backward_common_files
 
         self.submission_hash = None
-        self.uuid = "<to be implemented>"
         self.belonging_tasks = []
         self.belonging_jobs = []
     
@@ -95,10 +94,6 @@ class Submission(object):
         # print('&&&&&&&&', submission_dict['belonging_jobs'] )
         return submission_dict
     
-    # @property
-    def get_hash(self):
-        return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest() 
-
     def register_task(self, task):
         if self.belonging_jobs:
             raise RuntimeError("Not allowed to register tasks after generating jobs."
@@ -110,6 +105,8 @@ class Submission(object):
             raise RuntimeError("Not allowed to register tasks after generating jobs."
                     "submission hash error {self}".format(self))
         self.belonging_tasks.extend(task_list)
+    def get_hash(self):
+        return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest() 
     
     def bind_batch(self, batch):
         """bind this submission to a batch. update the batch's context remote_root and local_root.
@@ -135,23 +132,15 @@ class Submission(object):
         Third, run the submission defined previously.
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         """
-        # self.generate_jobs()
         self.try_recover_from_json()
-        # print('submission.run_submission:self', self)
         if self.check_all_finished():
             pass
-            # print('recover success submission.run_submission: recover all finished 1', self)
         else:
-            # self.handle_unexpected_submission_state()
             self.upload_jobs()
             self.handle_unexpected_submission_state()
             self.submission_to_json
-        #     self.submit_submission()
         
         while not self.check_all_finished():
-            # print
-            # if_dump_to_json = self.handle_unexpected_submission_state()
-            #     self.submission_to_json()
             try: 
                 time.sleep(10)
             except KeyboardInterrupt as e:
@@ -237,12 +226,6 @@ class Submission(object):
         The random seed is a constant (to be concrete, 42). And this insures that the jobs are equal when we re-run the program.
         """
 
-        # if self.belonging_jobs:
-        #     if self.submission_hash != self.get_hash():
-        #         raise RuntimeError("Not allowed to register tasks after generating jobs."
-        #                             "submission hash error {submission}".format(self))
-        #     else:
-        #         return None
         group_size = self.resources.group_size
         if group_size < 1 or type(group_size) is not int:
             raise RuntimeError('group_size must be a positive number')   
@@ -258,7 +241,6 @@ class Submission(object):
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
             job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepcopy(self.resources))
             self.belonging_jobs.append(job)
-
         self.submission_hash = self.get_hash()
         
 
@@ -285,30 +267,24 @@ class Submission(object):
         # submission_dict = batch.context.read_file(json_file_name)
         submission = cls.deserialize(submission_dict=submission_dict, batch=None) 
         return submission
-   
+
     def try_recover_from_json(self):
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
         if_recover = self.batch.context.check_file_exists(submission_file_name)
-        # print('submission.try_recover_from_json if_recover', if_recover)
         submission = None
         submission_dict = {}
-        if if_recover :
+        if recover :
             submission_dict_str = self.batch.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
-            # print('submission.try_recover_from_json submission_dict', submission_dict)
             submission = Submission.deserialize(submission_dict=submission_dict)
-            # print('-------submission.try_recover_from_json submission', submission)
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.bind_batch(batch=self.batch)
                 self = submission.bind_batch(batch=self.batch)
-                # print('!!!!!!!!!submission.try_recover_from_json submission', self)
-                # self.submission_hash = self.get_hash()
             else:
                 print(self.serialize())
                 print(submission.serialize())
                 raise RuntimeError("Recover failed.")
-        # return submission
 
 class Task(object):
     """a task is a sequential command to be executed, as well as its files to transmit forward and backward.
@@ -521,7 +497,6 @@ class Job(object):
             job_content_dict['job_state'] = self.job_state
             job_content_dict['job_id'] = self.job_id
             job_content_dict['fail_count'] = self.fail_count
-         
         return {job_hash: job_content_dict}
 
     def register_job_id(self, job_id):
@@ -559,13 +534,13 @@ class Resources(object):
         Usually, this option will be used with Task.task_need_resources variable simultaneously.
     """
     def __init__(self,
-                 number_node,
-                 cpu_per_node,
-                 gpu_per_node,
-                 queue_name,
-                 group_size=1,
-                 *,
-                 if_cuda_multi_devices=False):
+                number_node,
+                cpu_per_node,
+                gpu_per_node,
+                queue_name,
+                group_size=1,
+                *,
+                if_cuda_multi_devices=False):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
