@@ -12,11 +12,15 @@ from .context import JobStatus
 from .context import Dispatcher
 from .context import setUpModule
 from .context import Submission, Job, Task, Resources
+from .sample_class import SampleClass
 
-# class TestSubmissionInit(unittest.TestCase):
-#     def setUp(self):
-#         pass
+class TestSubmissionInit(unittest.TestCase):
+    def setUp(self):
+        self.submission = SampleClass.get_sample_empty_submission()
     
+    def test_reigister_task(self):
+  #       task = SampleClass.get
+        pass
 
 
 class TestSubmission(unittest.TestCase):
@@ -24,18 +28,9 @@ class TestSubmission(unittest.TestCase):
         local_session = LocalSession({'work_path':'test_work_path/'})
         local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
         pbs = PBS(context=local_context)
+        
+        self.submission = SampleClass.get_sample_submission()
 
-        resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=True) 
-        self.submission = Submission(work_base='0_md/', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=['submission.json']) #,  batch=PBS)
-        self.task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=1)
-        self.task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)
-        self.task3 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-3/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)
-        self.task4 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-4/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.5)
-    
-        self.submission.register_task_list([self.task1, self.task2, self.task3, ])
-        self.submission.register_task(self.task4)
-
-        self.submission.generate_jobs()
         self.submission.bind_batch(batch=pbs)
 
         self.submission2 = Submission.submission_from_json('jsons/submission.json')
