@@ -11,9 +11,7 @@
   "forward_common_files": [
     "graph.pb"
   ],
-  "backward_common_files": [
-    "submission.json"
-  ],
+  "backward_common_files": [],
   "belonging_jobs": [
     {
       "774fff971527ea6b9cf2ce3a162c10cace409ae5": {
@@ -56,7 +54,7 @@
           "if_cuda_multi_devices": true
         },
         "job_state": 2,
-        "job_id": "21407.scheduler",
+        "job_id": "21569.scheduler",
         "fail_count": 1
       }
     },
@@ -101,7 +99,7 @@
           "if_cuda_multi_devices": true
         },
         "job_state": 2,
-        "job_id": "21408.scheduler",
+        "job_id": "21570.scheduler",
         "fail_count": 1
       }
     }

@@ -273,7 +273,7 @@ class Submission(object):
         if_recover = self.batch.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
-        if recover :
+        if if_recover :
             submission_dict_str = self.batch.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
             submission = Submission.deserialize(submission_dict=submission_dict)
