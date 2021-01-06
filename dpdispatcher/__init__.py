@@ -1,6 +1,7 @@
 import logging
 import os
 
+
 ROOT_PATH=__path__[0]
 NAME="dpdispatcher"
 SHORT_CMD="dpdisp"
@@ -23,6 +24,11 @@ try:
     from ._date import date as __date__
 except ImportError:
     __date__ = 'unkown'
+
+from .submission import Submission
+from .submission import Task
+from .submission import Job
+from .submission import Resources
 
 def info():
     """

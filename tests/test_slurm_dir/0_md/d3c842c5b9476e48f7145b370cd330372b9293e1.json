@@ -1,0 +1,106 @@
+{
+  "work_base": "0_md",
+  "resources": {
+    "resources": {
+      "number_node": 1,
+      "cpu_per_node": 4,
+      "gpu_per_node": 0,
+      "queue_name": "debug",
+      "group_size": 4,
+      "if_cuda_multi_devices": false
+    },
+    "slurm_sbatch_dict": {
+      "mem": "10G",
+      "cpus_per_task": 1,
+      "time": "120:0:0"
+    }
+  },
+  "forward_common_files": [
+    "graph.pb"
+  ],
+  "backward_common_files": [
+    "*.json"
+  ],
+  "belonging_jobs": [
+    {
+      "8cda6723de155874106d96a543e1872c9fc9aa1d": {
+        "job_task_list": [
+          {
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "task_work_path": "bct-3",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 0.25
+          },
+          {
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "task_work_path": "bct-2",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 0.25
+          },
+          {
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "task_work_path": "bct-4",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 0.5
+          },
+          {
+            "command": "/home/dp/deepmd-kit/bin/lmp -i input.lammps",
+            "task_work_path": "bct-1",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 1
+          }
+        ],
+        "resources": {
+          "resources": {
+            "number_node": 1,
+            "cpu_per_node": 4,
+            "gpu_per_node": 0,
+            "queue_name": "debug",
+            "group_size": 4,
+            "if_cuda_multi_devices": false
+          },
+          "slurm_sbatch_dict": {
+            "mem": "10G",
+            "cpus_per_task": 1,
+            "time": "120:0:0"
+          }
+        },
+        "job_state": 5,
+        "job_id": "20",
+        "fail_count": 1
+      }
+    }
+  ]
+}
