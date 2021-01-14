@@ -303,10 +303,11 @@ class Task(object):
         the files to be transmitted from other location after the calculation finished
     err : str
         the files to be transmitted from other location after the calculation finished
-    task_need_resources : float number, between 0 to 1.
-        the reources need to execute the task. For example, if task_need_resources==0.333333333, then 3 tasks will run in parallel
-        Sometimes, this option will be used with Task.task_need_resources variable simultaneously. 
-        Especially when the machine contains multiple Nvidia GPUs.
+    task_need_gpus : non-negative float number. 
+        the gpus number need to execute the task. 
+        For example, if task_need_gpus==0.25, then 4 tasks will run in parallel on a single GPU.
+        Sometimes, this option will be used with Resources.if_cuda_multi_devices variable simultaneously. 
+        Especially when the node has multiple nvidia GPUs.
     """
     def __init__(self,
                 command,
@@ -316,7 +317,7 @@ class Task(object):
                 outlog='log',
                 errlog='err',
                 *,
-                task_need_resources=1):
+                task_need_gpus=None):
 
         self.command = command
         self.task_work_path = task_work_path
@@ -325,7 +326,7 @@ class Task(object):
         self.outlog = outlog
         self.errlog = errlog
 
-        self.task_need_resources = task_need_resources
+        self.task_need_gpus = task_need_gpus
 
         self.task_hash = self.get_hash()
         # self.task_need_resources="<to be completed in the future>"
@@ -365,7 +366,7 @@ class Task(object):
         task_dict['backward_files'] = self.backward_files
         task_dict['outlog'] = self.outlog
         task_dict['errlog'] = self.errlog
-        task_dict['task_need_resources'] = self.task_need_resources
+        task_dict['task_need_gpus'] = self.task_need_gpus
         return task_dict
 
 class Job(object):
@@ -540,17 +541,17 @@ class Resources(object):
                 queue_name,
                 group_size=1,
                 *,
-                if_cuda_multi_devices=False):
+                if_cuda_multi_devices=True):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
         self.queue_name = queue_name
         self.group_size = group_size
         
+        self.gpu_in_use = 0
+
         self.if_cuda_multi_devices = if_cuda_multi_devices
         # if self.gpu_per_node > 1:
-        
-        self.in_use = 0
             
         if self.if_cuda_multi_devices is True:
             if gpu_per_node < 1:
