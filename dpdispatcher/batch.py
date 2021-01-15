@@ -31,7 +31,7 @@ class Batch(object) :
         '''
         raise NotImplementedError('abstract method do_submit should be implemented by derived class')        
 
-    def gen_script(self):
+    def gen_script(self, **kwargs):
         raise NotImplementedError('abstract method gen_script should be implemented by derived class')        
 
     def check_finish_tag(self) :
