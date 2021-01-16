@@ -62,19 +62,19 @@ default_slurm_sbatch_dict={
     'exclude':[]
 }
 
-class SlurmResources(object):
-    def __init__(self,
-                resources,
-                slurm_sbatch_dict):
-        self.resources = resources
-        self.group_size = resources.group_size
-        self.slurm_sbatch_dict = slurm_sbatch_dict
+# class SlurmResources(object):
+#     def __init__(self,
+#                 resources,
+#                 slurm_sbatch_dict):
+#         self.resources = resources
+#         self.group_size = resources.group_size
+#         self.slurm_sbatch_dict = slurm_sbatch_dict
 
-    def serialize(self):
-        slurm_resources_dict={}
-        slurm_resources_dict['resources'] = self.resources.serialize()
-        slurm_resources_dict['slurm_sbatch_dict'] = self.slurm_sbatch_dict
-        return slurm_resources_dict
+#     def serialize(self):
+#         slurm_resources_dict={}
+#         slurm_resources_dict['resources'] = self.resources.serialize()
+#         slurm_resources_dict['slurm_sbatch_dict'] = self.slurm_sbatch_dict
+#         return slurm_resources_dict
 
 #     @classmethod
 #     def deserialize(cls, slurm_resources_dict):
@@ -85,15 +85,17 @@ class SlurmResources(object):
 
 class Slurm(Batch):
     def gen_script(self, job):
-        if type(job.resources) is SlurmResources:
-            resources = job.resources.resources
-            slurm_sbatch_dict = job.resources.slurm_sbatch_dict
-        elif type(job.resources) is Resources:
-            resources = job.resources
-            slurm_sbatch_dict = {}
-        else:
-            raise RuntimeError('type job.resource error')
-
+        # if type(job.resources) is SlurmResources:
+        #     resources = job.resources.resources
+        #     slurm_sbatch_dict = job.resources.slurm_sbatch_dict
+        # elif type(job.resources) is Resources:
+        #     resources = job.resources
+        #     slurm_sbatch_dict = {}
+        # else:
+        #     raise RuntimeError('type job.resource error')
+        resources = job.resources
+        slurm_sbatch_dict = resources.kwargs.get('slurm_sbatch_dict', {})
+        
         script_header_dict = {}
         script_header_dict['slurm_nodes_line']="#SBATCH --nodes {number_node}".format(number_node=resources.number_node)
         script_header_dict['slurm_ntasks_per_node_line']="#SBATCH --ntasks-per-node {cpu_per_node}".format(cpu_per_node=resources.cpu_per_node)

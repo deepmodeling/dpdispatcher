@@ -1,9 +1,11 @@
+
+# %%
 import os,sys,time,random,uuid,json,copy
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
-from dpdispatcher.slurm import SlurmResources
-
+# from dpdispatcher.slurm import SlurmResources
+#%%
 class Submission(object):
     """submission represents the whole workplace, all the tasks to be calculated
     Parameters
@@ -25,12 +27,15 @@ class Submission(object):
                 resources,
                 forward_common_files=[],
                 backward_common_files=[],
-                batch=None):
+                batch=None,
+                *,
+                task_list=[]):
         # self.submission_list = submission_list
         self.work_base = work_base
         self.resources = resources
         self.forward_common_files= forward_common_files
         self.backward_common_files = backward_common_files
+        self.task_list = task_list
 
         self.submission_hash = None
         self.belonging_tasks = []
@@ -132,6 +137,8 @@ class Submission(object):
         Third, run the submission defined previously.
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         """
+        if self.belonging_jobs == []:
+            self.generate_jobs()
         self.try_recover_from_json()
         if self.check_all_finished():
             pass
@@ -225,7 +232,8 @@ class Submission(object):
         Why we randomly shuffle the tasks is under the consideration of load balance.
         The random seed is a constant (to be concrete, 42). And this insures that the jobs are equal when we re-run the program.
         """
-
+        if self.belonging_jobs:
+            raise RuntimeError(f'Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}')
         group_size = self.resources.group_size
         if group_size < 1 or type(group_size) is not int:
             raise RuntimeError('group_size must be a positive number')   
@@ -241,8 +249,11 @@ class Submission(object):
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
             job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepcopy(self.resources))
             self.belonging_jobs.append(job)
-        self.submission_hash = self.get_hash()
         
+        if self.batch is not None:
+            self.bind_batch(self.batch)
+        
+        self.submission_hash = self.get_hash()
 
     def upload_jobs(self):
         self.batch.context.upload(self)
@@ -541,16 +552,18 @@ class Resources(object):
                 queue_name,
                 group_size=1,
                 *,
-                if_cuda_multi_devices=True):
+                if_cuda_multi_devices=True,
+                **kwargs):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
         self.queue_name = queue_name
         self.group_size = group_size
-        
-        self.gpu_in_use = 0
 
         self.if_cuda_multi_devices = if_cuda_multi_devices
+
+        self.kwargs = kwargs
+        self.gpu_in_use = 0
         # if self.gpu_per_node > 1:
             
         if self.if_cuda_multi_devices is True:
@@ -570,17 +583,21 @@ class Resources(object):
         resources_dict['queue_name'] = self.queue_name
         resources_dict['group_size'] = self.group_size
         resources_dict['if_cuda_multi_devices'] = self.if_cuda_multi_devices
+        resources_dict['kwargs'] = self.kwargs
         return resources_dict
      
     @classmethod
     def deserialize(cls, resources_dict):
-        if 'slurm_sbatch_dict' in resources_dict:
-            resources = cls.deserialize(resources_dict=resources_dict['resources'])
-            slurm_sbatch_dict = resources_dict['slurm_sbatch_dict']
-            return SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
-        else:
-            resources = cls(**resources_dict)
+        resources = cls(**resources_dict)
         return resources
+
+        # if 'slurm_sbatch_dict' in resources_dict:
+        #     resources = cls.deserialize(resources_dict=resources_dict['resources'])
+        #     slurm_sbatch_dict = resources_dict['slurm_sbatch_dict']
+        #     return SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
+        # else:
+        #     resources = cls(**resources_dict)
+        # return resources
 
 # class Machine(object):
 #     """Machaine represents the information of the computer in the web or 'localhost'
@@ -611,3 +628,5 @@ class Resources(object):
 #         self.password = password
 #         self.port = port
 
+
+# %%
