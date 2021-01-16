@@ -35,10 +35,9 @@ class Submission(object):
         self.resources = resources
         self.forward_common_files= forward_common_files
         self.backward_common_files = backward_common_files
-        self.task_list = task_list
 
         self.submission_hash = None
-        self.belonging_tasks = []
+        self.belonging_tasks = task_list
         self.belonging_jobs = []
     
         self.bind_batch(batch)
