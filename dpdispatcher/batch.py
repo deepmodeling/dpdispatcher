@@ -38,6 +38,9 @@ class Batch(object) :
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
     def get_script_wait(self, resources, task):
+        if resources.if_cuda_multi_devices is False:
+            return ""
+
         task_need_gpus = task.task_need_gpus
         if resources.gpu_in_use + task_need_gpus > resources.gpu_per_node:
             # pbs_script_command += pbs_script_wait

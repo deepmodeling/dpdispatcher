@@ -587,7 +587,13 @@ class Resources(object):
      
     @classmethod
     def deserialize(cls, resources_dict):
-        resources = cls(**resources_dict)
+        resources = cls(number_node=resources_dict['number_node'],
+                        cpu_per_node=resources_dict['cpu_per_node'],
+                        gpu_per_node=resources_dict['gpu_per_node'],
+                        queue_name=resources_dict['queue_name'],
+                        group_size=resources_dict['group_size'],
+                        if_cuda_multi_devices=resources_dict['if_cuda_multi_devices'],
+                        **resources_dict['kwargs'])
         return resources
 
         # if 'slurm_sbatch_dict' in resources_dict:
