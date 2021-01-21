@@ -72,7 +72,8 @@ class LSFResources(Resources):
             prepend_text="",
             append_text="",
             gpu_usage=True,
-            gpu_new_syntax=True
+            gpu_new_syntax=True,
+            lsf_bsub_dict=None
     ):
         """define LSF resources
 
@@ -87,10 +88,13 @@ class LSFResources(Resources):
         gpu_usage: choose if GPU line is used
         """
         super().__init__(number_node, cpu_per_node, gpu_per_node, queue_name)
+        if lsf_bsub_dict is None:
+            lsf_bsub_dict = {}
         self.gpu_new_syntax = gpu_new_syntax
         self.gpu_usage = gpu_usage
         self.prepend_text = prepend_text
         self.append_text = append_text
+        self.lsf_bsub_dict = lsf_bsub_dict
 
 
 class LSF(Batch):
@@ -100,7 +104,9 @@ class LSF(Batch):
     def gen_script(self, job):
         if type(job.resources) is LSFResources:
             resources = job.resources
-            lsf_bsub_dict = {}
+            lsf_bsub_dict = job.resources.lsf_bsub_dict
+            if lsf_bsub_dict is None:
+                lsf_bsub_dict = {}
         elif type(job.resources) is Resources:
             resources = LSFResources(**job.resources.__dict__)
             lsf_bsub_dict = {}
@@ -116,7 +122,7 @@ class LSF(Batch):
             'lsf_partition_line': "#BSUB -q {queue_name}".format(
                 queue_name=resources.queue_name)
         }
-        if resources.gpu is True:
+        if resources.gpu_usage is True:
             if resources.gpu_new_syntax is True:
                 script_header_dict['lsf_number_gpu_line'] = "#BSUB -gpu 'num={gpu_per_node}:mode=shared:" \
                                                             "j_exclusive=yes'".format(
@@ -229,7 +235,7 @@ class LSF(Batch):
         elif status_word in ["RUN", "USUSP"]:
             return JobStatus.running
         elif status_word in ["DONE", "EXIT"]:
-            if self.check_finish_tag():
+            if self.check_finish_tag(job):
                 return JobStatus.finished
             else:
                 return JobStatus.terminated
