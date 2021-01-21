@@ -34,7 +34,7 @@ class Batch(object) :
     def gen_script(self, **kwargs):
         raise NotImplementedError('abstract method gen_script should be implemented by derived class')        
 
-    def check_finish_tag(self) :
+    def check_finish_tag(self, **kwargs):
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
     def get_command_env_cuda_devices(self, resources, task):
