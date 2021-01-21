@@ -1,10 +1,10 @@
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from dpdispatcher.ssh_context import SSHSession, SSHContext
 from dpdispatcher.submission import Submission, Task
 from dpdispatcher.lsf import LSFResources, LSF
-
 
 ssh_session = SSHSession(
     hostname='127.0.0.1',
@@ -22,7 +22,7 @@ module load deepmd/1.0
 source /home/dp/scripts/avail_gpu.sh
 '''
 
-lsf_bsub_dict={
+lsf_bsub_dict = {
     'R': "'select[hname != g005]'",
     'W': "12:00"
 }
@@ -35,9 +35,9 @@ resources = LSFResources(
     append_text="",
     gpu_usage=False,
     gpu_new_syntax=False,
-    lsf_bsub_dict=lsf_bsub_dict
+    lsf_bsub_dict=lsf_bsub_dict,
+    group_size=1
 )
-
 
 # task_need_resources has no effect
 submission = Submission(
@@ -77,6 +77,5 @@ task4 = Task(
 submission.register_task_list([task1, task2, task3, task4, ])
 submission.generate_jobs()
 submission.bind_batch(batch=lsf)
-
 
 submission.run_submission()

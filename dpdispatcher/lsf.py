@@ -1,4 +1,6 @@
 import os, getpass, time
+from abc import ABC
+
 from dpdispatcher.batch import Batch
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.submission import Resources
@@ -73,7 +75,8 @@ class LSFResources(Resources):
             append_text="",
             gpu_usage=True,
             gpu_new_syntax=True,
-            lsf_bsub_dict=None
+            lsf_bsub_dict=None,
+            group_size=1
     ):
         """define LSF resources
 
@@ -82,10 +85,12 @@ class LSFResources(Resources):
         number_node: nodes to be used
         cpu_per_node: CPU cores uesd on each node
         gpu_per_node: GPU
-        queue_name:
+        queue_name: the name of queue
         prepend_text: prepend scripts, code executed before the task run
         append_text: append scripts, code executed after the task run
         gpu_usage: choose if GPU line is used
+        lsf_bsub_dict: other bsub parameters.
+        group_size: tasks contained by each group
         """
         super().__init__(number_node, cpu_per_node, gpu_per_node, queue_name)
         if lsf_bsub_dict is None:
@@ -95,9 +100,10 @@ class LSFResources(Resources):
         self.prepend_text = prepend_text
         self.append_text = append_text
         self.lsf_bsub_dict = lsf_bsub_dict
+        self.group_size = group_size
 
 
-class LSF(Batch):
+class LSF(Batch, ABC):
     """
     LSF batch
     """
