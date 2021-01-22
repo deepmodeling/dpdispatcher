@@ -468,8 +468,8 @@ class Job(object):
 
         if job_state == JobStatus.terminated:
             print("job: {job_hash} terminated; restarting job".format(job_hash=self.job_hash))
-            if self.fail_count > 1:
-                raise RuntimeError("job:job {job} failed 1 times".format(job=self))
+            if self.fail_count > 3:
+                raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
             self.submit_job()
             self.get_job_state()
@@ -480,7 +480,7 @@ class Job(object):
             self.fail_count += 1
             self.submit_job()
             print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
-            self.get_job_state()
+            # self.get_job_state()
     
     def get_hash(self):
         return str(list(self.serialize(if_static=True).keys())[0])

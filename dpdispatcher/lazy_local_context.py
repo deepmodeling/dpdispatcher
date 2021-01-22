@@ -73,7 +73,9 @@ class LazyLocalContext(object) :
     def block_checkcall(self,
                         cmd) :
         cwd = os.getcwd()
+        # script_dir = os.path.join(self.local_root, self.submission.work_base)
         os.chdir(self.local_root)
+        # os.chdir(script_dir)
         proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
         o, e = proc.communicate()
         stdout = SPRetObj(o)
@@ -110,7 +112,10 @@ class LazyLocalContext(object) :
         return ret
 
     def check_file_exists(self, fname):
-        return os.path.isfile(os.path.join(self.local_root, fname))
+        submission_work_base = os.path.join(self.local_root, self.submission.work_base)
+        file_to_be_checked = os.path.join(submission_work_base, fname)
+        print('debug:dpdispatcher.LazyLocalContext().check_file_exists:file_to_be_checked', file_to_be_checked)
+        return os.path.isfile(file_to_be_checked)
         
     def call(self, cmd) :
         cwd = os.getcwd()
