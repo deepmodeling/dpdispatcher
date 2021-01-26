@@ -37,7 +37,7 @@ if [ ! -f {task_tag_finished} ] ;then
   {command_env} {command}  1>> {outlog} 2>> {errlog} 
   if test $? -ne 0; then touch {task_tag_finished}; fi
   touch {task_tag_finished}
-fi &
+fi 
 """
 
 lsf_script_end_template = """
@@ -135,10 +135,10 @@ class LSF(Batch, ABC):
                     gpu_per_node=resources.gpu_per_node)
             else:
                 script_header_dict['lsf_number_gpu_line'] = '#BSUB -R "select[ngpus >0] rusage[' \
-                                                            'ngpus_excl_p={gpu_per_node}]"\n'.format(
+                                                            'ngpus_excl_p={gpu_per_node}]"'.format(
                     gpu_per_node=resources.gpu_per_node)
         else:
-            script_header_dict['lsf_number_gpu_line'] = "\n"
+            script_header_dict['lsf_number_gpu_line'] = ""
         lsf_script_header = lsf_script_header_template.format(**script_header_dict)
 
         for k, v in lsf_bsub_dict.items():
