@@ -95,7 +95,8 @@ class PBS(Batch):
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
-        script_file_dir = os.path.join(self.context.submission.work_base)
+        # script_file_dir = os.path.join(self.context.submission.work_base)
+        script_file_dir = self.context.remote_root
         # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
         stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (script_file_dir, 'qsub', script_file_name))
         subret = (stdout.readlines())

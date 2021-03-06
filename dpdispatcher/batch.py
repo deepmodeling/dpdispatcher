@@ -38,7 +38,7 @@ class Batch(object) :
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
     def get_script_wait(self, resources, task):
-        if resources.if_cuda_multi_devices is False:
+        if resources.strategy['if_cuda_multi_devices'] is False:
             return ""
 
         task_need_gpus = task.task_need_gpus
@@ -49,11 +49,11 @@ class Batch(object) :
         return ""
     
     def get_command_env_cuda_devices(self, resources, task):
-        task_need_gpus = task.task_need_gpus
+        task_need_resources = task.task_need_resources
         command_env = ""
         # gpu_number = resources.gpu_per_node
         # resources.gpu_in_use = 0
-        if resources.if_cuda_multi_devices :
+        if resources.strategy['if_cuda_multi_devices'] is True:
             min_CUDA_VISIBLE_DEVICES = int(resources.gpu_in_use)
             max_CUDA_VISIBLE_DEVICES = int(resources.gpu_in_use + task_need_gpus - 0.000000001)
             list_CUDA_VISIBLE_DEVICES  = list(range(min_CUDA_VISIBLE_DEVICES, max_CUDA_VISIBLE_DEVICES+1))

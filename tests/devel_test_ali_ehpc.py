@@ -25,7 +25,8 @@ from dpdispatcher.pbs import PBS
 submission = SampleClass.get_sample_submission()
 pbs = SampleClass.get_sample_pbs_local_context()
 submission.bind_batch(batch=pbs)
-submission.run_submission()
+# submission.run_submission()
+submission.run_submission(exit_on_submit=True)
 
 
 # resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=True) 
