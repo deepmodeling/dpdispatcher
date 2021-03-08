@@ -9,6 +9,7 @@ from .context import LocalSession
 # from dpdispatcher.local_context import LocalContext
 from .context import LocalContext
 from .context import PBS
+from .context import Slurm
 from .context import JobStatus
 from .context import Submission, Job, Task, Resources
 
@@ -94,3 +95,14 @@ class SampleClass(object):
         local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
         pbs = PBS(context=local_context)
         return pbs
+
+    @classmethod
+    def get_sample_slurm_local_context(cls):
+        local_session = LocalSession({'work_path':'test_work_path/'})
+        local_context = LocalContext(local_root='test_slurm_dir/', work_profile=local_session)
+        slurm = Slurm(context=local_context)
+        return slurm
+
+
+
+

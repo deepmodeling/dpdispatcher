@@ -12,6 +12,7 @@ from dpdispatcher.ssh_context import SSHContext
 # from dpgen.dispatcher.Dispatcher import FinRecord
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.pbs import PBS
+from dpdispatcher.slurm import Slurm
 from dpdispatcher.local_context import _identical_files
 from dpdispatcher.submission import Submission, Job, Task, Resources
 

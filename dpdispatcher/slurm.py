@@ -95,7 +95,7 @@ class Slurm(Batch):
         #     raise RuntimeError('type job.resource error')
         resources = job.resources
         # slurm_sbatch_dict = resources.extra_strategy.get('slurm_sbatch_dict', {})
-        slurm_sbatch_dict = resources.extra_strategy.copy()
+        slurm_sbatch_dict = resources.extra_specification.copy()
         
         script_header_dict = {}
         script_header_dict['slurm_nodes_line']="#SBATCH --nodes {number_node}".format(number_node=resources.number_node)
@@ -117,14 +117,8 @@ class Slurm(Batch):
         
         for task in job.job_task_list:
             command_env = ""     
-            task_need_resources = task.task_need_resources
-            if resources.in_use+task_need_resources > 1:
-                slurm_script_command += slurm_script_wait
-                resources.in_use = 0
-
+            slurm_script_command += self.get_script_wait(resources=resources, task=task)
             command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
-
-            # command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
 
             task_tag_finished = task.task_hash + '_task_tag_finished'
 

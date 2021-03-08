@@ -44,7 +44,7 @@ class Submission(object):
         # warning: can not remote .copy() or there will be bugs
         # self.belonging_tasks = task_list
         self.belonging_tasks = task_list.copy()
-        self.belonging_jobs = []
+        self.belonging_jobs = list()
     
         self.bind_batch(batch)
 
@@ -144,7 +144,7 @@ class Submission(object):
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         if exit_on_submit is True, submission will exit.
         """
-        if self.belonging_jobs is []:
+        if not self.belonging_jobs:
             self.generate_jobs()
         self.try_recover_from_json()
         if self.check_all_finished():
@@ -474,6 +474,7 @@ class Job(object):
         -----
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
+        print('debug:self.batch',self.batch)
         job_state = self.batch.check_status(self)
         self.job_state = job_state
 
