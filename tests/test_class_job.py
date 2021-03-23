@@ -8,7 +8,6 @@ from .context import LocalSession
 from dpdispatcher.local_context import LocalContext
 from .context import PBS
 from .context import JobStatus
-from .context import Dispatcher
 from .context import setUpModule
 from .context import Submission, Job, Task, Resources
 from .sample_class import SampleClass
