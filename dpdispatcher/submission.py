@@ -157,11 +157,11 @@ class Submission(object):
         while not self.check_all_finished():
             if exit_on_submit is True:
                 print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
-                print(f"submission: {self.submission_hash}")
+                print(f"submission succeeded: {self.submission_hash}")
                 print(f"at {self.batch.context.remote_root}")
                 print("exit_on_submit")
                 print('>>>>>>dpdispatcher>>>>>>SuccessSubmit>>>>>>exit 0>>>>>>')
-                return 0
+                return self.serialize()
             try: 
                 time.sleep(20)
             except KeyboardInterrupt as e:
@@ -192,7 +192,7 @@ class Submission(object):
         self.handle_unexpected_submission_state()
         self.submission_to_json()
         self.download_jobs()
-        return True
+        return self.serialize()
     
     def get_submission_state(self):
         """check whether all the jobs in the submission.
