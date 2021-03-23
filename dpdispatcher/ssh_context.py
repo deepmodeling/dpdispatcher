@@ -217,7 +217,7 @@ class SSHContext (object):
         file_list = []
         # for ii in job_dirs :
         for task in submission.belonging_tasks :
-            for jj in task.backward_files  :
+            for jj in task.backward_files:
                 file_name = os.path.join(task.task_work_path, jj)                
                 if check_exists:
                     if self.check_file_exists(file_name):
