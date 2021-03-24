@@ -7,12 +7,14 @@ from dpdispatcher.ssh_context import SSHSession, SSHContext
 from dpdispatcher.submission import Submission, Task, Resources
 from dpdispatcher.lsf import LSF
 
+# edit ssh parameters
 ssh_session = SSHSession(
     hostname='127.0.0.1',
     port=22,
     remote_root='/home/dp/dpdispatcher/tests',
     username='debug'
 )
+# local_root is the relevant path that containing tasks to be submit
 ssh_context = SSHContext(local_root='test_lsf_dir', ssh_session=ssh_session)
 lsf = LSF(context=ssh_context)
 
@@ -36,16 +38,16 @@ resources = Resources(
     append_text="",
     gpu_usage=False,
     gpu_new_syntax=False,
-    lsf_bsub_dict=lsf_bsub_dict,
+    extra_specification=lsf_bsub_dict,
     group_size=1
 )
 
 # task_need_resources has no effect
 submission = Submission(
-    work_base='0_md',
-    resources=resources,
-    forward_common_files=['graph.pb'],
-    backward_common_files=['*.json']
+    work_base='0_md',  # the dir containing all of task_work_path
+    resources=resources,  # resources above
+    forward_common_files=['graph.pb'],  # file to be upload
+    backward_common_files=['*.json']  # file to be downloaded
 )
 task1 = Task(
     command='lmp_mpi_20201029 -i input.lammps',
