@@ -1,10 +1,11 @@
-import sys, os
+import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from dpdispatcher.ssh_context import SSHSession, SSHContext
-from dpdispatcher.submission import Submission, Task
-from dpdispatcher.lsf import LSFResources, LSF
+from dpdispatcher.submission import Submission, Task, Resources
+from dpdispatcher.lsf import LSF
 
 ssh_session = SSHSession(
     hostname='127.0.0.1',
@@ -25,7 +26,7 @@ source /home/dp/scripts/avail_gpu.sh
 lsf_bsub_dict = {
     'R': "'select[hname != g005]'"
 }
-resources = LSFResources(
+resources = Resources(
     number_node=1,
     cpu_per_node=4,
     gpu_per_node=0,

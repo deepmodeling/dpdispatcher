@@ -156,7 +156,7 @@ class LSF(Batch, ABC):
 
         # envs
         script_env_dict = {
-            'prepend_text': resources.prepend_text,
+            'prepend_text': resources.kwargs.get('prepend_text', ""),
             'remote_root': self.context.remote_root
         }
         lsf_script_env = lsf_script_env_template.format(**script_env_dict)
@@ -184,7 +184,7 @@ class LSF(Batch, ABC):
         # end
         job_tag_finished = job.job_hash + '_job_tag_finished'
         lsf_script_end = lsf_script_end_template.format(
-            append_text=resources.append_text,
+            append_text=resources.kwargs.get('append_text', ""),
             job_tag_finished=job_tag_finished
         )
 
