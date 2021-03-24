@@ -64,26 +64,17 @@ class Shell(Batch):
       
         shell_script_command = ""
         
-        resources_in_use=0
+        # resources_in_use=0
         for task in job.job_task_list:
             command_env = ""     
-            task_need_resources_mod = task.task_need_resources
-            if resources_in_use+task_need_resources_mod > 1:
-               shell_script_command += shell_script_wait
-               resources_in_use = 0
-
+            shell_script_command +=  self.get_script_wait(resources=resources, task=task)
             command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
-
-            command_env = "export {str_CUDA_VISIBLE_DEVICES} ;".format(str_CUDA_VISIBLE_DEVICES=str_CUDA_VISIBLE_DEVICES)
-               
-            command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
 
             task_tag_finished = task.task_hash + '_task_tag_finished'
 
             temp_shell_script_command = shell_script_command_template.format(command_env=command_env, 
-                 task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
-                 outlog=task.outlog, errlog=task.errlog)
-
+                task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
+                outlog=task.outlog, errlog=task.errlog)
             shell_script_command+=temp_shell_script_command
         
         job_tag_finished = job.job_hash + '_job_tag_finished'

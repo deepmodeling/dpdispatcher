@@ -28,8 +28,8 @@ class LazyLocalContext(object) :
         local_root:
         """
         assert(type(local_root) == str)
-        self.local_root = os.path.abspath(local_root)
-        self.remote_root = self.local_root
+        self.temp_local_root = os.path.abspath(local_root)
+        self.temp_remote_root = os.path.abspath(local_root)
         self.job_uuid = job_uuid
         self.submission = None
         # if job_uuid:
@@ -39,6 +39,9 @@ class LazyLocalContext(object) :
         
     def bind_submission(self, submission):
         self.submission = submission
+        self.local_root = os.path.join(self.temp_local_root, submission.work_base)
+        self.remote_root = os.path.join(self.temp_local_root, submission.work_base)
+        print('debug:LazyLocalContext',self.local_root, self.remote_root)
 
     def get_job_root(self) :
         return self.local_root
@@ -73,7 +76,9 @@ class LazyLocalContext(object) :
     def block_checkcall(self,
                         cmd) :
         cwd = os.getcwd()
+        # script_dir = os.path.join(self.local_root, self.submission.work_base)
         os.chdir(self.local_root)
+        # os.chdir(script_dir)
         proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
         o, e = proc.communicate()
         stdout = SPRetObj(o)
@@ -100,17 +105,21 @@ class LazyLocalContext(object) :
         pass
 
     def write_file(self, fname, write_str):
-        os.makedirs(os.path.join(self.local_root, self.submission.work_base), exist_ok = True)
-        with open(os.path.join(self.local_root, self.submission.work_base, fname), 'w') as fp :
+        os.makedirs(self.remote_root, exist_ok = True)
+        with open(os.path.join(self.remote_root, fname), 'w') as fp :
             fp.write(write_str)
 
     def read_file(self, fname):
-        with open(os.path.join(self.local_root, self.submission.work_base, fname), 'r') as fp:
+        with open(os.path.join(self.remote_root, fname), 'r') as fp:
             ret = fp.read()
         return ret
 
     def check_file_exists(self, fname):
-        return os.path.isfile(os.path.join(self.local_root, fname))
+        # submission_work_base = os.path.join(self.local_root, self.submission.work_base)
+        # file_to_be_checked = os.path.join(submission_work_base, fname)
+        # print('debug:dpdispatcher.LazyLocalContext().check_file_exists:file_to_be_checked', file_to_be_checked)
+        # return os.path.isfile(file_to_be_checked)
+        return os.path.isfile(os.path.join(self.remote_root, fname))
         
     def call(self, cmd) :
         cwd = os.getcwd()

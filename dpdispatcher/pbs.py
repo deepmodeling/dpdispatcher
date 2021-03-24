@@ -46,9 +46,9 @@ wait
 touch {job_tag_finished}
 """
 
-pbs_script_wait="""
-wait
-"""
+# pbs_script_wait="""
+# wait
+# """
 
 class PBS(Batch):
     def gen_script(self, job):
@@ -60,24 +60,17 @@ class PBS(Batch):
         script_header_dict['walltime_line']="#PBS -l walltime=120:0:0"
         script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
 
-        pbs_script_header = pbs_script_header_template.format(**script_header_dict) 
+        pbs_script_header = pbs_script_header_template.format(**script_header_dict)
 
         pbs_script_env = pbs_script_env_template.format()
 
-
         pbs_script_command = ""
-        
-        for task in job.job_task_list:
-            command_env = ""     
-            task_need_resources = task.task_need_resources
-            if resources.in_use+task_need_resources > 1:
-                pbs_script_command += pbs_script_wait
-                resources.in_use = 0
 
+        for task in job.job_task_list:
+            command_env = ""
+            pbs_script_command +=  self.get_script_wait(resources=resources, task=task)
             command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
 
-            command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(task_need_resources=task.task_need_resources)
-           
             task_tag_finished = task.task_hash + '_task_tag_finished'
 
             temp_pbs_script_command = pbs_script_command_template.format(command_env=command_env, 
@@ -102,7 +95,10 @@ class PBS(Batch):
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
-        stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
+        # script_file_dir = os.path.join(self.context.submission.work_base)
+        script_file_dir = self.context.remote_root
+        # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
+        stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (script_file_dir, 'qsub', script_file_name))
         subret = (stdout.readlines())
         job_id = subret[0].split()[0]
         self.context.write_file(job_id_name, job_id)        
@@ -121,7 +117,7 @@ class PBS(Batch):
         err_str = stderr.read().decode('utf-8')
         if (ret != 0) :
             if str("qstat: Unknown Job Id") in err_str :
-                if self.check_finish_tag() :
+                if self.check_finish_tag(job=job) :
                     return JobStatus.finished
                 else :
                     return JobStatus.terminated

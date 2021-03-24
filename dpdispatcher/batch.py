@@ -5,7 +5,7 @@ from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 class Batch(object) :
     def __init__ (self,
-                  context):
+                context):
         self.context = context
         # self.uuid_names = uuid_names
         self.upload_tag_name = '%s_job_tag_upload' % self.context.job_uuid
@@ -37,16 +37,28 @@ class Batch(object) :
     def check_finish_tag(self, **kwargs):
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
+    def get_script_wait(self, resources, task):
+        if not resources.strategy.get('if_cuda_multi_devices', None):
+            return "wait \n"
+
+        task_need_gpus = task.task_need_gpus
+        if resources.gpu_in_use + task_need_gpus > resources.gpu_per_node:
+            # pbs_script_command += pbs_script_wait
+            resources.gpu_in_use = 0
+            return "wait \n"
+        return ""
+    
     def get_command_env_cuda_devices(self, resources, task):
         task_need_resources = task.task_need_resources
-        command_env=""
-        if resources.if_cuda_multi_devices is True:
-            min_CUDA_VISIBLE_DEVICES = int(resources.in_use*resources.gpu_per_node)
-            max_CUDA_VISIBLE_DEVICES = int((resources.in_use + task_need_resources)*resources.gpu_per_node-0.000000001)
+        command_env = ""
+        # gpu_number = resources.gpu_per_node
+        # resources.gpu_in_use = 0
+        if resources.strategy['if_cuda_multi_devices'] is True:
+            min_CUDA_VISIBLE_DEVICES = int(resources.gpu_in_use)
+            max_CUDA_VISIBLE_DEVICES = int(resources.gpu_in_use + task_need_gpus - 0.000000001)
             list_CUDA_VISIBLE_DEVICES  = list(range(min_CUDA_VISIBLE_DEVICES, max_CUDA_VISIBLE_DEVICES+1))
             if len(list_CUDA_VISIBLE_DEVICES) == 0:
                 raise RuntimeError("list_CUDA_VISIBLE_DEVICES can not be empty")
-
             command_env+="export CUDA_VISIBLE_DEVICES="
             for ii in list_CUDA_VISIBLE_DEVICES:
                 command_env+="{ii},".format(ii=ii) 
