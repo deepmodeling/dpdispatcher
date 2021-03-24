@@ -5,7 +5,7 @@ from dpdispatcher.LazyLocalContext import LazyLocalContext
 from dpdispatcher.SSHContext import SSHSession
 from dpdispatcher.SSHContext import SSHContext
 from dpdispatcher.Slurm import Slurm
-from dpdispatcher.lsf import LSF
+from dpdispatcher.LSF import LSF
 from dpdispatcher.PBS import PBS
 from dpdispatcher.Shell import Shell
 from dpdispatcher.AWS import AWS 
