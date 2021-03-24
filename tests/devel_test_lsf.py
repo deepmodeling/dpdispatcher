@@ -23,14 +23,14 @@ source /home/dp/scripts/avail_gpu.sh
 '''
 
 lsf_bsub_dict = {
-    'R': "'select[hname != g005]'",
-    'W': "12:00"
+    'R': "'select[hname != g005]'"
 }
 resources = LSFResources(
     number_node=1,
     cpu_per_node=4,
     gpu_per_node=0,
     queue_name="gpu",
+    walltime="24:00:00",
     prepend_text=prepend_text,
     append_text="",
     gpu_usage=False,

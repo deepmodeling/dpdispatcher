@@ -20,6 +20,7 @@ lsf_script_header_template = """\
 {lsf_nodes_line}
 {lsf_ptile_line}
 {lsf_partition_line}
+{lsf_walltime_line}
 {lsf_number_gpu_line}
 """
 
@@ -56,7 +57,6 @@ wait
 """
 
 default_lsf_bsub_dict = {
-    'w': "120:00:00",
     'm': "8G"
 }
 
@@ -71,6 +71,7 @@ class LSFResources(Resources):
             cpu_per_node,
             gpu_per_node,
             queue_name,
+            walltime="120:00:00",
             prepend_text="",
             append_text="",
             gpu_usage=True,
@@ -83,16 +84,17 @@ class LSFResources(Resources):
         Parameters
         ----------
         number_node: nodes to be used
-        cpu_per_node: CPU cores uesd on each node
+        cpu_per_node: CPU cores used on each node
         gpu_per_node: GPU
         queue_name: the name of queue
+        walltime: max time of task
         prepend_text: prepend scripts, code executed before the task run
         append_text: append scripts, code executed after the task run
         gpu_usage: choose if GPU line is used
         lsf_bsub_dict: other bsub parameters.
         group_size: tasks contained by each group
         """
-        super().__init__(number_node, cpu_per_node, gpu_per_node, queue_name)
+        super().__init__(number_node, cpu_per_node, gpu_per_node, queue_name, walltime)
         if lsf_bsub_dict is None:
             lsf_bsub_dict = {}
         self.gpu_new_syntax = gpu_new_syntax
@@ -126,7 +128,9 @@ class LSF(Batch, ABC):
             'lsf_ptile_line': "#BSUB -R 'span[ptile={cpu_per_node}]'".format(
                 cpu_per_node=resources.cpu_per_node),
             'lsf_partition_line': "#BSUB -q {queue_name}".format(
-                queue_name=resources.queue_name)
+                queue_name=resources.queue_name),
+            'lsf_walltime_line': "#BSUB -W {walltime}".format(
+                walltime=resources.walltime)
         }
         if resources.gpu_usage is True:
             if resources.gpu_new_syntax is True:
@@ -157,15 +161,8 @@ class LSF(Batch, ABC):
 
         for task in job.job_task_list:
             command_env = ""
-            task_need_resources = task.task_need_resources
-            if resources.in_use + task_need_resources > 1:
-                lsf_script_command += lsf_script_wait
-                resources.in_use = 0
-
+            lsf_script_command += self.get_script_wait(resources=resources, task=task)
             command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
-
-            command_env += "export DP_TASK_NEED_RESOURCES={task_need_resources} ;".format(
-                task_need_resources=task.task_need_resources)
 
             task_tag_finished = task.task_hash + '_task_tag_finished'
 
