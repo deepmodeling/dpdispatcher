@@ -94,15 +94,15 @@ class LSFResources(Resources):
         lsf_bsub_dict: other bsub parameters.
         group_size: tasks contained by each group
         """
-        super().__init__(number_node, cpu_per_node, gpu_per_node, queue_name, walltime)
+        super().__init__(number_node, cpu_per_node, gpu_per_node, queue_name, group_size)
         if lsf_bsub_dict is None:
             lsf_bsub_dict = {}
+        self.walltime = walltime
         self.gpu_new_syntax = gpu_new_syntax
         self.gpu_usage = gpu_usage
         self.prepend_text = prepend_text
         self.append_text = append_text
         self.lsf_bsub_dict = lsf_bsub_dict
-        self.group_size = group_size
 
 
 class LSF(Batch, ABC):
