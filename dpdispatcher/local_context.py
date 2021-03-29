@@ -370,5 +370,3 @@ class LocalContext(object) :
                 stdout = None
                 stderr = None
         return ret, stdout, stderr
-    
-    

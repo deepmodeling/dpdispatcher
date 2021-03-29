@@ -1,0 +1,12 @@
+{
+    "number_node": 1,
+    "cpu_per_node": 4,
+    "gpu_per_node": 1,
+    "queue_name": "V100_8_32",
+    "group_size": 2,
+    "extra_specification": {},
+    "strategy": {
+        "if_cuda_multi_devices": false
+    },
+    "kwargs": {}
+}

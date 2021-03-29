@@ -1,0 +1,14 @@
+{
+    "command": "lmp_serial -i input.lammps",
+    "task_work_path": "bct-1/",
+    "forward_files": [
+        "conf.lmp",
+        "input.lammps"
+    ],
+    "backward_files": [
+        "log.lammps"
+    ],
+    "outlog": "log",
+    "errlog": "err",
+    "task_need_resources": {}
+}

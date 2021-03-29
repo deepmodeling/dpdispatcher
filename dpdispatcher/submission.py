@@ -1,8 +1,12 @@
+
+# %%
 import os,sys,time,random,uuid,json,copy
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
-from dpdispatcher.slurm import SlurmResources
+# from dpdispatcher.slurm import SlurmResources
+#%%
+default_strategy = dict(if_cuda_multi_devices=False)
 
 class Submission(object):
     """submission represents the whole workplace, all the tasks to be calculated
@@ -25,7 +29,9 @@ class Submission(object):
                 resources,
                 forward_common_files=[],
                 backward_common_files=[],
-                batch=None):
+                batch=None,
+                *,
+                task_list=[]):
         # self.submission_list = submission_list
         self.work_base = work_base
         self.resources = resources
@@ -33,13 +39,17 @@ class Submission(object):
         self.backward_common_files = backward_common_files
 
         self.submission_hash = None
-        self.belonging_tasks = []
-        self.belonging_jobs = []
+        # print('Submission.__init__:task_list', task_list)
+        # print('empty_list:', [])
+        # warning: can not remote .copy() or there will be bugs
+        # self.belonging_tasks = task_list
+        self.belonging_tasks = task_list.copy()
+        self.belonging_jobs = list()
 
         self.bind_batch(batch)
 
     def __repr__(self):
-        return str(self.serialize())
+        return json.dumps(self.serialize(), indent=4)
 
     def __eq__(self, other):
         """When check whether the two submission are equal,
@@ -99,6 +109,7 @@ class Submission(object):
             raise RuntimeError("Not allowed to register tasks after generating jobs."
                     "submission hash error {self}".format(self))
         self.belonging_tasks.append(task)
+        # self.belonging_tasks = task
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
@@ -125,13 +136,16 @@ class Submission(object):
         return self
 
 
-    def run_submission(self, clean=True):
+    def run_submission(self, *, exit_on_submit=False, clean=True):
         """main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
         Third, run the submission defined previously.
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
+        if exit_on_submit is True, submission will exit.
         """
+        if not self.belonging_jobs:
+            self.generate_jobs()
         self.try_recover_from_json()
         if self.check_all_finished():
             pass
@@ -139,30 +153,36 @@ class Submission(object):
             self.upload_jobs()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
-
         while not self.check_all_finished():
+            if exit_on_submit is True:
+                print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
+                print(f"submission succeeded: {self.submission_hash}")
+                print(f"at {self.batch.context.remote_root}")
+                print("exit_on_submit")
+                print('>>>>>>dpdispatcher>>>>>>SuccessSubmit>>>>>>exit 0>>>>>>')
+                return self.serialize()
             try:
-                time.sleep(10)
+                time.sleep(20)
             except KeyboardInterrupt as e:
                 self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<KeyboardInterrupt<<<<<<exit<<<<<<')
+                print('<<<<<<dpdispatcher<<<<<<KeyboardInterrupt<<<<<<exit 1<<<<<<')
                 print('submission: ', self.submission_hash)
                 print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>KeyboardInterrupt>>>>>>exit>>>>>>')
+                print('>>>>>>dpdispatcher>>>>>>KeyboardInterrupt>>>>>>exit 1>>>>>>')
                 exit(1)
             except SystemExit as e:
                 self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<SystemExit<<<<<<exit<<<<<<')
+                print('<<<<<<dpdispatcher<<<<<<SystemExit<<<<<<exit 2<<<<<<')
                 print('submission: ', self.submission_hash)
                 print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>SystemExit>>>>>>exit>>>>>>')
+                print('>>>>>>dpdispatcher>>>>>>SystemExit>>>>>>exit 2>>>>>>')
                 exit(2)
             except Exception as e:
                 self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<{e}<<<<<<exit<<<<<<'.format(e=e))
+                print('<<<<<<dpdispatcher<<<<<<{e}<<<<<<exit 3<<<<<<'.format(e=e))
                 print('submission: ', self.submission_hash)
                 print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>{e}>>>>>>exit>>>>>>'.format(e=e))
+                print('>>>>>>dpdispatcher>>>>>>{e}>>>>>>exit 3>>>>>>'.format(e=e))
                 exit(3)
             else:
                 self.handle_unexpected_submission_state()
@@ -173,7 +193,7 @@ class Submission(object):
         self.download_jobs()
         if clean:
             self.clean_jobs()
-        return True
+        return self.serialize()
 
     def get_submission_state(self):
         """check whether all the jobs in the submission.
@@ -227,9 +247,10 @@ class Submission(object):
         Why we randomly shuffle the tasks is under the consideration of load balance.
         The random seed is a constant (to be concrete, 42). And this insures that the jobs are equal when we re-run the program.
         """
-
+        if self.belonging_jobs:
+            raise RuntimeError(f'Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}')
         group_size = self.resources.group_size
-        if group_size < 1 or type(group_size) is not int:
+        if ( group_size < 1 ) or ( type(group_size) is not int ):
             raise RuntimeError('group_size must be a positive number')
         task_num = len(self.belonging_tasks)
         if task_num == 0:
@@ -242,9 +263,13 @@ class Submission(object):
         for ii in random_task_index_ll:
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
             job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepcopy(self.resources))
+            # print('generate_jobs', ii, job)
             self.belonging_jobs.append(job)
-        self.submission_hash = self.get_hash()
 
+        if self.batch is not None:
+            self.bind_batch(self.batch)
+
+        self.submission_hash = self.get_hash()
 
     def upload_jobs(self):
         self.batch.context.upload(self)
@@ -261,7 +286,7 @@ class Submission(object):
     def submission_to_json(self):
         # print('~~~~,~~~', self.serialize())
         self.get_submission_state()
-        write_str = json.dumps(self.serialize(), indent=2, default=str)
+        write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
         self.batch.context.write_file(submission_file_name, write_str=write_str)
 
@@ -308,10 +333,11 @@ class Task(object):
         the files to be transmitted from other location after the calculation finished
     err : str
         the files to be transmitted from other location after the calculation finished
-    task_need_resources : float number, between 0 to 1.
-        the reources need to execute the task. For example, if task_need_resources==0.333333333, then 3 tasks will run in parallel
-        Sometimes, this option will be used with Task.task_need_resources variable simultaneously.
-        Especially when the machine contains multiple Nvidia GPUs.
+    task_need_gpus : non-negative float number.
+        the gpus number need to execute the task.
+        For example, if task_need_gpus==0.25, then 4 tasks will run in parallel on a single GPU.
+        Sometimes, this option will be used with Resources.if_cuda_multi_devices variable simultaneously.
+        Especially when the node has multiple nvidia GPUs.
     """
     def __init__(self,
                 command,
@@ -321,7 +347,7 @@ class Task(object):
                 outlog='log',
                 errlog='err',
                 *,
-                task_need_resources=1):
+                task_need_resources={}):
 
         self.command = command
         self.task_work_path = task_work_path
@@ -451,6 +477,7 @@ class Job(object):
         -----
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
+        print('debug:self.batch',self.batch)
         job_state = self.batch.check_status(self)
         self.job_state = job_state
 
@@ -462,19 +489,19 @@ class Job(object):
 
         if job_state == JobStatus.terminated:
             print("job: {job_hash} terminated; restarting job".format(job_hash=self.job_hash))
-            if self.fail_count > 5:
-                raise RuntimeError("job:job {job} failed 5 times".format(job=self))
+            if self.fail_count > 3:
+                raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
             self.submit_job()
             self.get_job_state()
 
         if job_state == JobStatus.unsubmitted:
-            if self.fail_count > 5:
-                raise RuntimeError("job:job {job} failed 5 times".format(job=self))
+            if self.fail_count > 3:
+                raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
             self.submit_job()
             print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
-            self.get_job_state()
+            # self.get_job_state()
 
     def get_hash(self):
         return str(list(self.serialize(if_static=True).keys())[0])
@@ -510,12 +537,12 @@ class Job(object):
     def submit_job(self):
         job_id = self.batch.do_submit(self)
         self.register_job_id(job_id)
+        self.job_state = JobStatus.waiting
 
     def job_to_json(self):
         # print('~~~~,~~~', self.serialize())
         write_str = json.dumps(self.serialize(), indent=2, default=str)
         self.batch.context.write_file(self.job_hash + '_job.json', write_str=write_str)
-
 
 
 class Resources(object):
@@ -533,7 +560,7 @@ class Resources(object):
         the job queue name of slurm or pbs job scheduler system.
     group_size : int
         the number of tasks in a job submitting script.
-    if_cuda_multi_devices : bool
+    strategy['if_cuda_multi_devices'] : bool
         experimentally, if there are multiple nvidia GPUS on the target computer, we want to compute the jobs to different GPUS.
         With this option, dpdispatcher will manually allocate environment variable CUDA_VISIBLE_DEVICES to different task.
         Usually, this option will be used with Task.task_need_resources variable simultaneously.
@@ -543,21 +570,27 @@ class Resources(object):
                 cpu_per_node,
                 gpu_per_node,
                 queue_name,
-                group_size=1,
+                group_size,
                 *,
-                if_cuda_multi_devices=False):
+                extra_specification={},
+                strategy=default_strategy,
+                **kwargs):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
         self.queue_name = queue_name
-        self.group_size = group_size
 
-        self.if_cuda_multi_devices = if_cuda_multi_devices
+        self.extra_specification = extra_specification
+        self.strategy = strategy
+        self.group_size = group_size
+        # self.if_cuda_multi_devices = if_cuda_multi_devices
+
+        self.kwargs = kwargs
+
+        self.gpu_in_use = 0
         # if self.gpu_per_node > 1:
 
-        self.in_use = 0
-
-        if self.if_cuda_multi_devices is True:
+        if self.strategy['if_cuda_multi_devices'] is True:
             if gpu_per_node < 1:
                 raise RuntimeError("gpu_per_node can not be smaller than 1 when if_cuda_multi_devices is True")
             if number_node != 1:
@@ -573,18 +606,30 @@ class Resources(object):
         resources_dict['gpu_per_node'] = self.gpu_per_node
         resources_dict['queue_name'] = self.queue_name
         resources_dict['group_size'] = self.group_size
-        resources_dict['if_cuda_multi_devices'] = self.if_cuda_multi_devices
+        resources_dict['extra_specification'] = self.extra_specification
+        resources_dict['strategy'] = self.strategy
+        resources_dict['kwargs'] = self.kwargs
         return resources_dict
 
     @classmethod
     def deserialize(cls, resources_dict):
-        if 'slurm_sbatch_dict' in resources_dict:
-            resources = cls.deserialize(resources_dict=resources_dict['resources'])
-            slurm_sbatch_dict = resources_dict['slurm_sbatch_dict']
-            return SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
-        else:
-            resources = cls(**resources_dict)
+        resources = cls(number_node=resources_dict['number_node'],
+                        cpu_per_node=resources_dict['cpu_per_node'],
+                        gpu_per_node=resources_dict['gpu_per_node'],
+                        queue_name=resources_dict['queue_name'],
+                        group_size=resources_dict['group_size'],
+                        extra_specification=resources_dict['extra_specification'],
+                        strategy=resources_dict['strategy'],
+                        **resources_dict['kwargs'])
         return resources
+
+        # if 'slurm_sbatch_dict' in resources_dict:
+        #     resources = cls.deserialize(resources_dict=resources_dict['resources'])
+        #     slurm_sbatch_dict = resources_dict['slurm_sbatch_dict']
+        #     return SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
+        # else:
+        #     resources = cls(**resources_dict)
+        # return resources
 
 # class Machine(object):
 #     """Machaine represents the information of the computer in the web or 'localhost'
@@ -615,3 +660,5 @@ class Resources(object):
 #         self.password = password
 #         self.port = port
 
+
+# %%
