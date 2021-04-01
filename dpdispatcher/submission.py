@@ -18,10 +18,10 @@ class Submission(object):
         the machine resources (cpu or gpu) used to generate the slurm/pbs script
     forward_common_files: list
         the common files to be uploaded to other computers before the jobs begin
-    backward_common_files: list 
+    backward_common_files: list
         the common files to be downloaded from other computers after the jobs finish
     batch : Batch
-        Batch class object (for example, PBS, Slurm, Shell) to execute the jobs. 
+        Batch class object (for example, PBS, Slurm, Shell) to execute the jobs.
         The batch can still be bound after the instantiation with the bind_submission method.
     """
     def __init__(self,
@@ -45,20 +45,20 @@ class Submission(object):
         # self.belonging_tasks = task_list
         self.belonging_tasks = task_list.copy()
         self.belonging_jobs = list()
-    
+
         self.bind_batch(batch)
 
     def __repr__(self):
         return json.dumps(self.serialize(), indent=4)
 
     def __eq__(self, other):
-        """When check whether the two submission are equal, 
+        """When check whether the two submission are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
         # print('submission.__eq__()  self', self.serialize(if_static=True))
         # print('submission.__eq__() other', other.serialize(if_static=True))
-        return self.serialize(if_static=True) == other.serialize(if_static=True)    
-    
+        return self.serialize(if_static=True) == other.serialize(if_static=True)
+
     @classmethod
     def deserialize(cls, submission_dict, batch=None):
         """convert the submission_dict to a Submission class object
@@ -103,7 +103,7 @@ class Submission(object):
         submission_dict['belonging_jobs'] = [ job.serialize(if_static=if_static) for job in self.belonging_jobs]
         # print('&&&&&&&&', submission_dict['belonging_jobs'] )
         return submission_dict
-    
+
     def register_task(self, task):
         if self.belonging_jobs:
             raise RuntimeError("Not allowed to register tasks after generating jobs."
@@ -117,8 +117,8 @@ class Submission(object):
                     "submission hash error {self}".format(self))
         self.belonging_tasks.extend(task_list)
     def get_hash(self):
-        return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest() 
-    
+        return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest()
+
     def bind_batch(self, batch):
         """bind this submission to a batch. update the batch's context remote_root and local_root.
 
@@ -135,8 +135,8 @@ class Submission(object):
             self.batch.context.bind_submission(self)
         return self
 
-            
-    def run_submission(self, *, exit_on_submit=False):
+
+    def run_submission(self, *, exit_on_submit=False, clean=True):
         """main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -153,7 +153,6 @@ class Submission(object):
             self.upload_jobs()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
-        
         while not self.check_all_finished():
             if exit_on_submit is True:
                 print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
@@ -162,7 +161,7 @@ class Submission(object):
                 print("exit_on_submit")
                 print('>>>>>>dpdispatcher>>>>>>SuccessSubmit>>>>>>exit 0>>>>>>')
                 return self.serialize()
-            try: 
+            try:
                 time.sleep(20)
             except KeyboardInterrupt as e:
                 self.submission_to_json()
@@ -192,12 +191,14 @@ class Submission(object):
         self.handle_unexpected_submission_state()
         self.submission_to_json()
         self.download_jobs()
+        if clean:
+            self.clean_jobs()
         return self.serialize()
-    
+
     def get_submission_state(self):
         """check whether all the jobs in the submission.
 
-        Notes 
+        Notes
         -----
         this method will not handle unexpected (like resubmit terminated) job state in the submission.
         """
@@ -218,7 +219,7 @@ class Submission(object):
     def submit_submission(self):
         """submit the job belonging to the submission.
         """
-        for job in self.belonging_jobs:        
+        for job in self.belonging_jobs:
             job.submit_job()
         self.get_submission_state()
 
@@ -240,7 +241,7 @@ class Submission(object):
             return True
 
     def generate_jobs(self):
-        """After tasks register to the self.belonging_tasks, 
+        """After tasks register to the self.belonging_tasks,
         This method generate the jobs and add these jobs to self.belonging_jobs.
         The jobs are generated by the tasks randomly, and there are self.resources.group_size tasks in a task.
         Why we randomly shuffle the tasks is under the consideration of load balance.
@@ -249,9 +250,8 @@ class Submission(object):
         if self.belonging_jobs:
             raise RuntimeError(f'Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}')
         group_size = self.resources.group_size
-
         if ( group_size < 1 ) or ( type(group_size) is not int ):
-            raise RuntimeError('group_size must be a positive number')   
+            raise RuntimeError('group_size must be a positive number')
         task_num = len(self.belonging_tasks)
         if task_num == 0:
             raise RuntimeError("submission must have at least 1 task")
@@ -259,40 +259,43 @@ class Submission(object):
         random_task_index = list(range(task_num))
         random.shuffle(random_task_index)
         random_task_index_ll = [random_task_index[ii:ii+group_size] for ii in range(0,task_num,group_size)]
-        
+
         for ii in random_task_index_ll:
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
             job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepcopy(self.resources))
             # print('generate_jobs', ii, job)
             self.belonging_jobs.append(job)
-        
+
         if self.batch is not None:
             self.bind_batch(self.batch)
-        
+
         self.submission_hash = self.get_hash()
 
     def upload_jobs(self):
         self.batch.context.upload(self)
-    
+
     def download_jobs(self):
         self.batch.context.download(self)
         # for job in self.belonging_jobs:
         #     job.tag_finished()
         # self.batch.context.write_file(self.batch.finish_tag_name, write_str="")
-    
+
+    def clean_jobs(self):
+        self.batch.context.clean()
+
     def submission_to_json(self):
         # print('~~~~,~~~', self.serialize())
         self.get_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
         self.batch.context.write_file(submission_file_name, write_str=write_str)
-    
+
     @classmethod
     def submission_from_json(cls, json_file_name='submission.json'):
         with open(json_file_name, 'r') as f:
             submission_dict = json.load(f)
         # submission_dict = batch.context.read_file(json_file_name)
-        submission = cls.deserialize(submission_dict=submission_dict, batch=None) 
+        submission = cls.deserialize(submission_dict=submission_dict, batch=None)
         return submission
 
     def try_recover_from_json(self):
@@ -322,18 +325,18 @@ class Task(object):
         the command to be executed.
     task_work_path : path-like
         the directory of each file where the files are dependent on.
-    forward_files : list of path-like 
+    forward_files : list of path-like
         the files to be transmitted to other location before the calculation begins
-    backward_files : list of path-like 
+    backward_files : list of path-like
         the files to be transmitted from other location after the calculation finished
     log : str
         the files to be transmitted from other location after the calculation finished
     err : str
         the files to be transmitted from other location after the calculation finished
-    task_need_gpus : non-negative float number. 
-        the gpus number need to execute the task. 
+    task_need_gpus : non-negative float number.
+        the gpus number need to execute the task.
         For example, if task_need_gpus==0.25, then 4 tasks will run in parallel on a single GPU.
-        Sometimes, this option will be used with Resources.if_cuda_multi_devices variable simultaneously. 
+        Sometimes, this option will be used with Resources.if_cuda_multi_devices variable simultaneously.
         Especially when the node has multiple nvidia GPUs.
     """
     def __init__(self,
@@ -357,17 +360,17 @@ class Task(object):
 
         self.task_hash = self.get_hash()
         # self.task_need_resources="<to be completed in the future>"
-        # self.uuid = 
+        # self.uuid =
 
     def __repr__(self):
         return str(self.serialize())
-    
+
     def __eq__(self, other):
         return self.serialize() == other.serialize()
-    
-    
+
+
     def get_hash(self):
-        return sha1(str(self.serialize()).encode('utf-8')).hexdigest() 
+        return sha1(str(self.serialize()).encode('utf-8')).hexdigest()
 
     @classmethod
     def deserialize(cls, task_dict):
@@ -397,8 +400,8 @@ class Task(object):
         return task_dict
 
 class Job(object):
-    """Job is generated by Submission represnting a collection of task. 
-    Each Job can generate a Shell, PBS, or a Slurm script to be submitted the job scheduler system or executed locally. 
+    """Job is generated by Submission represnting a collection of task.
+    Each Job can generate a Shell, PBS, or a Slurm script to be submitted the job scheduler system or executed locally.
 
     Parameters
     ----------
@@ -419,7 +422,7 @@ class Job(object):
         # self.job_work_base = job_work_base
         self.resources = resources
         self.batch = batch
-        
+
         self.job_state = None # JobStatus.unsubmitted
         self.job_id = ""
         self.fail_count = 0
@@ -431,9 +434,9 @@ class Job(object):
 
     def __repr__(self):
         return str(self.serialize())
-    
+
     def __eq__(self, other):
-        """When check whether the two jobs are equal, 
+        """When check whether the two jobs are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the jobs.
         """
         return self.serialize(if_static=True) == other.serialize(if_static=True)
@@ -455,13 +458,13 @@ class Job(object):
         if len(job_dict.keys()) != 1:
             raise RuntimeError("json file may be broken, len(job_dict.keys()) must be 1. {job_dict}".format(job_dict=job_dict))
         job_hash = list(job_dict.keys())[0]
-        
+
         job_task_list = [Task.deserialize(task_dict) for task_dict in job_dict[job_hash]['job_task_list']]
-        job = Job(job_task_list=job_task_list, 
+        job = Job(job_task_list=job_task_list,
             resources=Resources.deserialize(resources_dict=job_dict[job_hash]['resources']),
             batch=batch)
 
-        # job.job_runtime_info=job_dict[job_hash]['job_runtime_info'] 
+        # job.job_runtime_info=job_dict[job_hash]['job_runtime_info']
         job.job_state = job_dict[job_hash]['job_state']
         job.job_id = job_dict[job_hash]['job_id']
         job.fail_count = job_dict[job_hash]['fail_count']
@@ -470,7 +473,7 @@ class Job(object):
     def get_job_state(self):
         """get the jobs. Usually, this method will query the database of slurm or pbs job scheduler system and get the results.
 
-        Notes 
+        Notes
         -----
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
@@ -499,7 +502,7 @@ class Job(object):
             self.submit_job()
             print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             # self.get_job_state()
-    
+
     def get_hash(self):
         return str(list(self.serialize(if_static=True).keys())[0])
 
@@ -518,10 +521,10 @@ class Job(object):
         """
         job_content_dict = {}
         # for task in self.job_task_list:
-        job_content_dict['job_task_list'] = [ task.serialize() for task in self.job_task_list ] 
+        job_content_dict['job_task_list'] = [ task.serialize() for task in self.job_task_list ]
         job_content_dict['resources'] = self.resources.serialize()
         # job_content_dict['job_work_base'] = self.job_work_base
-        job_hash = sha1(str(job_content_dict).encode('utf-8')).hexdigest() 
+        job_hash = sha1(str(job_content_dict).encode('utf-8')).hexdigest()
         if not if_static:
             job_content_dict['job_state'] = self.job_state
             job_content_dict['job_id'] = self.job_id
@@ -530,7 +533,7 @@ class Job(object):
 
     def register_job_id(self, job_id):
         self.job_id = job_id
-    
+
     def submit_job(self):
         job_id = self.batch.do_submit(self)
         self.register_job_id(job_id)
@@ -558,7 +561,7 @@ class Resources(object):
     group_size : int
         the number of tasks in a job submitting script.
     strategy['if_cuda_multi_devices'] : bool
-        experimentally, if there are multiple nvidia GPUS on the target computer, we want to compute the jobs to different GPUS. 
+        experimentally, if there are multiple nvidia GPUS on the target computer, we want to compute the jobs to different GPUS.
         With this option, dpdispatcher will manually allocate environment variable CUDA_VISIBLE_DEVICES to different task.
         Usually, this option will be used with Task.task_need_resources variable simultaneously.
     """
@@ -576,7 +579,7 @@ class Resources(object):
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
         self.queue_name = queue_name
-        
+
         self.extra_specification = extra_specification
         self.strategy = strategy
         self.group_size = group_size
@@ -586,7 +589,7 @@ class Resources(object):
 
         self.gpu_in_use = 0
         # if self.gpu_per_node > 1:
-            
+
         if self.strategy['if_cuda_multi_devices'] is True:
             if gpu_per_node < 1:
                 raise RuntimeError("gpu_per_node can not be smaller than 1 when if_cuda_multi_devices is True")
@@ -595,7 +598,7 @@ class Resources(object):
 
     def __eq__(self, other):
         return self.serialize() == other.serialize()
-        
+
     def serialize(self):
         resources_dict = {}
         resources_dict['number_node'] = self.number_node
@@ -607,7 +610,7 @@ class Resources(object):
         resources_dict['strategy'] = self.strategy
         resources_dict['kwargs'] = self.kwargs
         return resources_dict
-     
+
     @classmethod
     def deserialize(cls, resources_dict):
         resources = cls(number_node=resources_dict['number_node'],
@@ -640,10 +643,10 @@ class Resources(object):
 #     username : str
 #         dpdispatcher will initialize a ssh connection ssh -p port 'username@hostname'
 #     password : str
-#         password of user username. This can be None. 
+#         password of user username. This can be None.
 #         Note: You can use linux 'ssh-copy-id' command to ssh connect without password.
 #     port : int
-#         ssh connection port. In most linux systems, the default value is 22. 
+#         ssh connection port. In most linux systems, the default value is 22.
 #     """
 #     def __init__(self,
 #                 hostname,

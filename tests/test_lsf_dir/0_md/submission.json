@@ -1,0 +1,92 @@
+{
+  "work_base": "0_md",
+  "resources": {
+    "number_node": 1,
+    "cpu_per_node": 4,
+    "gpu_per_node": 1,
+    "queue_name": "V100_8_32",
+    "group_size": 4,
+    "if_cuda_multi_devices": true
+  },
+  "forward_common_files": [
+    "graph.pb"
+  ],
+  "backward_common_files": [
+    "submission.json"
+  ],
+  "belonging_jobs": [
+    {
+      "89936e3ac869b3132977da5cc4187725f3318ea3": {
+        "job_task_list": [
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-3",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 0.25
+          },
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-2",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 0.25
+          },
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-4",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 0.5
+          },
+          {
+            "command": "lmp_serial -i input.lammps",
+            "task_work_path": "bct-1",
+            "forward_files": [
+              "conf.lmp",
+              "input.lammps"
+            ],
+            "backward_files": [
+              "log.lammps"
+            ],
+            "outlog": "log",
+            "errlog": "err",
+            "task_need_resources": 1
+          }
+        ],
+        "resources": {
+          "number_node": 1,
+          "cpu_per_node": 4,
+          "gpu_per_node": 1,
+          "queue_name": "V100_8_32",
+          "group_size": 4,
+          "if_cuda_multi_devices": true
+        },
+        "job_state": 5,
+        "job_id": "21463.scheduler",
+        "fail_count": 1
+      }
+    }
+  ]
+}

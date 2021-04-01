@@ -46,7 +46,7 @@ class SSHSession (object) :
         self.hostname = hostname
         self.remote_root = remote_root
         self.username = username
-        self.password = None
+        self.password = password
         self.port = port
         self.key_filename = key_filename
         self.passphrase = passphrase
