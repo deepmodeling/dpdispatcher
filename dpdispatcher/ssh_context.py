@@ -53,6 +53,12 @@ class SSHSession (object) :
         self.timeout = timeout
         self.ssh = None
         self._setup_ssh()
+
+    # @classmethod
+    # def deserialize(cls, jdata):
+    #     instance = cls(**jdata)
+    #     return instance
+        
     # def bk_ensure_alive(self,
     #                  max_check = 10,
     #                  sleep_time = 10):
@@ -137,12 +143,13 @@ class SSHSession (object) :
 
 class SSHContext (object):
     def __init__ (self,
-                  local_root,
-                  ssh_session,
-                  job_uuid=None):
+                local_root,
+                ssh_session,
+                ):
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
-        self.job_uuid = job_uuid
+        self.job_uuid = None
+        # self.job_uuid = job_uuid
         # if job_uuid:
         #    self.job_uuid=job_uuid
         # else:
@@ -156,6 +163,27 @@ class SSHContext (object):
         except OSError: 
             pass
         sftp.close()
+
+    @classmethod
+    def deserialize(cls, jdata):
+        # instance = cls()
+        input = dict(
+            hostname = jdata('hostname'),
+            remote_root = jdata('remote_root'),
+            username = jdata('username'),
+            password = jdata('password', None),
+            port = jdata.get('port', 22),
+            key_filename = jdata.get('key_filename', None),
+            passphrase = jdata.get('passphrase', None),
+            timeout = jdata.get('timeout', 10),
+        )
+        local_root = jdata['local_root']
+        ssh_session = SSHSession(**input)
+        ssh_context = SSHContext(
+            local_root=local_root,
+            ssh_session=ssh_session
+            )
+        return ssh_context
     
     @property
     def ssh(self):
@@ -172,7 +200,7 @@ class SSHContext (object):
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
-           
+
         self.job_uuid = submission.submission_hash
         # try:
         # print('self.remote_root', self.remote_root)
