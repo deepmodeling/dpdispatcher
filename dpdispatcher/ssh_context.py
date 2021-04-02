@@ -165,13 +165,13 @@ class SSHContext (object):
         sftp.close()
 
     @classmethod
-    def deserialize(cls, jdata):
+    def from_jdata(cls, jdata):
         # instance = cls()
         input = dict(
-            hostname = jdata('hostname'),
-            remote_root = jdata('remote_root'),
-            username = jdata('username'),
-            password = jdata('password', None),
+            hostname = jdata.get('hostname', None),
+            remote_root = jdata.get('remote_root', None),
+            username = jdata.get('username', None),
+            password = jdata.get('password', None),
             port = jdata.get('port', 22),
             key_filename = jdata.get('key_filename', None),
             passphrase = jdata.get('passphrase', None),
@@ -270,6 +270,7 @@ class SSHContext (object):
         stdin, stdout, stderr = self.ssh.exec_command(('cd %s ;' % self.remote_root) + cmd)
         exit_status = stdout.channel.recv_exit_status() 
         if exit_status != 0:
+            print('debug:self.remote_root, cmd', self.remote_root, cmd)
             raise RuntimeError("Get error code %d in calling %s through ssh with job: %s . message: %s" %
                                (exit_status, cmd, self.job_uuid, stderr.read().decode('utf-8')))
         return stdin, stdout, stderr    

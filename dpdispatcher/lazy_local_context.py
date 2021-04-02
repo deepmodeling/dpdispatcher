@@ -20,23 +20,26 @@ class SPRetObj(object) :
 
 class LazyLocalContext(object) :
     def __init__ (self,
-                  local_root,
-                  work_profile = None,
-                  job_uuid = None) :
+                local_root,
+                ):
         """
-        work_profile:
         local_root:
         """
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(local_root)
-        self.job_uuid = job_uuid
+        self.job_uuid = None
         self.submission = None
         # if job_uuid:
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
-        
+    @classmethod
+    def from_jdata(cls, jdata):
+        local_root = jdata['local_root']
+        instance = cls(local_root=local_root)
+        return instance
+
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
