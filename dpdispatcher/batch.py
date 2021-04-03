@@ -13,6 +13,7 @@ class Batch(object) :
         self.sub_script_name = '%s.sub' % self.context.job_uuid
         self.job_id_name = '%s_job_id' % self.context.job_uuid
 
+
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        
         
