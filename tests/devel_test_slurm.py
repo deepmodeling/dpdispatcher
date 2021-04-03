@@ -11,19 +11,20 @@ from dpdispatcher.slurm import SlurmResources, Slurm
 
 # local_session = LocalSession({'work_path':'temp2'})
 # local_context = LocalContext(local_root='test_slurm_dir/', work_profile=local_session)
-# lazy_local_context = LazyLocalContext(local_root='/home/fengbo/10_dpdispatcher/dpdispatcher/tests/temp3/0_md', work_profile=None)
+lazy_local_context = LazyLocalContext(local_root='./')
 
 
 # machine_dict = dict(hostname='localhost', remote_root='/home/dp/dpdispatcher/tests/temp2', username='dp')
 # ssh_session = SSHSession(**machine_dict)
-ssh_session = SSHSession(hostname='8.131.233.55', remote_root='/home/dp/dp_remote', username='dp')
-ssh_context = SSHContext(local_root='test_slurm_dir', ssh_session=ssh_session)
-slurm = Slurm(context=ssh_context)
+# ssh_session = SSHSession(hostname='8.131.233.55', remote_root='/home/dp/dp_remote', username='dp')
+# ssh_context = SSHContext(local_root='test_slurm_dir', ssh_session=ssh_session)
+# slurm = Slurm(context=ssh_context)
+slurm = Slurm(context=lazy_local_context)
 
-resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=0, queue_name="debug", group_size=4, if_cuda_multi_devices=False)
-slurm_sbatch_dict={'mem': '10G', 'cpus_per_task':1, 'time': "120:0:0"} 
-slurm_resources = SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
-submission = Submission(work_base='0_md', resources=slurm_resources,  forward_common_files=['graph.pb'], backward_common_files=['*.json']) #,  batch=PBS)
+resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=0, queue_name="GPU_2080Ti", group_size=4)
+# slurm_sbatch_dict={'mem': '10G', 'cpus_per_task':1, 'time': "120:0:0"} 
+# slurm_resources = SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
+submission = Submission(work_base='0_md', resources=slurm_resources,  forward_common_files=['graph.pb'], backward_common_files=[]) #,  batch=PBS)
 task1 = Task(command='/home/dp/deepmd-kit/bin/lmp -i input.lammps', task_work_path='bct-1', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=1)
 task2 = Task(command='/home/dp/deepmd-kit/bin/lmp -i input.lammps', task_work_path='bct-2', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)
 task3 = Task(command='/home/dp/deepmd-kit/bin/lmp -i input.lammps', task_work_path='bct-3', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)

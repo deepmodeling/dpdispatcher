@@ -20,25 +20,31 @@ class SPRetObj(object) :
 
 class LazyLocalContext(object) :
     def __init__ (self,
-                  local_root,
-                  work_profile = None,
-                  job_uuid = None) :
+                local_root,
+                ):
         """
-        work_profile:
         local_root:
         """
         assert(type(local_root) == str)
-        self.local_root = os.path.abspath(local_root)
-        self.remote_root = self.local_root
-        self.job_uuid = job_uuid
+        self.temp_local_root = os.path.abspath(local_root)
+        self.temp_remote_root = os.path.abspath(local_root)
+        self.job_uuid = None
         self.submission = None
         # if job_uuid:
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
-        
+    @classmethod
+    def from_jdata(cls, jdata):
+        local_root = jdata['local_root']
+        instance = cls(local_root=local_root)
+        return instance
+
     def bind_submission(self, submission):
         self.submission = submission
+        self.local_root = os.path.join(self.temp_local_root, submission.work_base)
+        self.remote_root = os.path.join(self.temp_local_root, submission.work_base)
+        print('debug:LazyLocalContext',self.local_root, self.remote_root)
 
     def get_job_root(self) :
         return self.local_root
@@ -102,20 +108,21 @@ class LazyLocalContext(object) :
         pass
 
     def write_file(self, fname, write_str):
-        os.makedirs(os.path.join(self.local_root, self.submission.work_base), exist_ok = True)
-        with open(os.path.join(self.local_root, self.submission.work_base, fname), 'w') as fp :
+        os.makedirs(self.remote_root, exist_ok = True)
+        with open(os.path.join(self.remote_root, fname), 'w') as fp :
             fp.write(write_str)
 
     def read_file(self, fname):
-        with open(os.path.join(self.local_root, self.submission.work_base, fname), 'r') as fp:
+        with open(os.path.join(self.remote_root, fname), 'r') as fp:
             ret = fp.read()
         return ret
 
     def check_file_exists(self, fname):
-        submission_work_base = os.path.join(self.local_root, self.submission.work_base)
-        file_to_be_checked = os.path.join(submission_work_base, fname)
-        print('debug:dpdispatcher.LazyLocalContext().check_file_exists:file_to_be_checked', file_to_be_checked)
-        return os.path.isfile(file_to_be_checked)
+        # submission_work_base = os.path.join(self.local_root, self.submission.work_base)
+        # file_to_be_checked = os.path.join(submission_work_base, fname)
+        # print('debug:dpdispatcher.LazyLocalContext().check_file_exists:file_to_be_checked', file_to_be_checked)
+        # return os.path.isfile(file_to_be_checked)
+        return os.path.isfile(os.path.join(self.remote_root, fname))
         
     def call(self, cmd) :
         cwd = os.getcwd()

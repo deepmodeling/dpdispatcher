@@ -3,13 +3,13 @@ import subprocess as sp
 from glob import glob
 from dpdispatcher import dlog
 
-class LocalSession (object) :
-    def __init__ (self, jdata) :
-        self.work_path = os.path.abspath(jdata['work_path'])
-        assert(os.path.exists(self.work_path))
+# class LocalSession (object) :
+#     def __init__ (self, jdata) :
+#         self.work_path = os.path.abspath(jdata['work_path'])
+#         assert(os.path.exists(self.work_path))
 
-    def get_work_root(self) :
-        return self.work_path
+#     def get_work_root(self) :
+#         return self.work_path
 
 class SPRetObj(object) :
     def __init__ (self,
@@ -40,19 +40,19 @@ def _identical_files(fname0, fname1) :
 
 
 class LocalContext(object) :
-    def __init__ (self,
-                  local_root,
-                  work_profile,
-                  job_uuid = None) :
+    def __init__(self,
+                local_root,
+                remote_root
+                ) :
         """
         work_profile:
         local_root:
         """
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
-        self.temp_remote_root = os.path.abspath(work_profile.get_work_root())
-        self.work_profile = work_profile
-        self.job_uuid = job_uuid
+        self.temp_remote_root = os.path.abspath(remote_root)
+        # self.work_profile = work_profile
+        # self.job_uuid = job_uuid
         self.submission = None
         # if job_uuid:
         #    self.job_uuid = job_uuid
@@ -63,6 +63,17 @@ class LocalContext(object) :
         dlog.debug("local_root is %s"% local_root)
 
         # os.makedirs(self.remote_root, exist_ok = True)
+    
+    @classmethod
+    def from_jdata(cls, jdata):
+        local_root = jdata['local_root']
+        remote_root = jdata['remote_root']
+        instance = cls(
+            local_root=local_root,
+            remote_root=remote_root
+        )
+        return instance
+        # pass
         
     def get_job_root(self) :
         return self.remote_root
@@ -370,5 +381,3 @@ class LocalContext(object) :
                 stdout = None
                 stderr = None
         return ret, stdout, stderr
-    
-    

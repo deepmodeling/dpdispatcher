@@ -46,13 +46,19 @@ class SSHSession (object) :
         self.hostname = hostname
         self.remote_root = remote_root
         self.username = username
-        self.password = None
+        self.password = password
         self.port = port
         self.key_filename = key_filename
         self.passphrase = passphrase
         self.timeout = timeout
         self.ssh = None
         self._setup_ssh()
+
+    # @classmethod
+    # def deserialize(cls, jdata):
+    #     instance = cls(**jdata)
+    #     return instance
+        
     # def bk_ensure_alive(self,
     #                  max_check = 10,
     #                  sleep_time = 10):
@@ -137,12 +143,13 @@ class SSHSession (object) :
 
 class SSHContext (object):
     def __init__ (self,
-                  local_root,
-                  ssh_session,
-                  job_uuid=None):
+                local_root,
+                ssh_session,
+                ):
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
-        self.job_uuid = job_uuid
+        self.job_uuid = None
+        # self.job_uuid = job_uuid
         # if job_uuid:
         #    self.job_uuid=job_uuid
         # else:
@@ -156,6 +163,27 @@ class SSHContext (object):
         except OSError: 
             pass
         sftp.close()
+
+    @classmethod
+    def from_jdata(cls, jdata):
+        # instance = cls()
+        input = dict(
+            hostname = jdata.get('hostname', None),
+            remote_root = jdata.get('remote_root', None),
+            username = jdata.get('username', None),
+            password = jdata.get('password', None),
+            port = jdata.get('port', 22),
+            key_filename = jdata.get('key_filename', None),
+            passphrase = jdata.get('passphrase', None),
+            timeout = jdata.get('timeout', 10),
+        )
+        local_root = jdata['local_root']
+        ssh_session = SSHSession(**input)
+        ssh_context = SSHContext(
+            local_root=local_root,
+            ssh_session=ssh_session
+            )
+        return ssh_context
     
     @property
     def ssh(self):
@@ -172,7 +200,7 @@ class SSHContext (object):
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
-           
+
         self.job_uuid = submission.submission_hash
         # try:
         # print('self.remote_root', self.remote_root)
@@ -217,7 +245,7 @@ class SSHContext (object):
         file_list = []
         # for ii in job_dirs :
         for task in submission.belonging_tasks :
-            for jj in task.forward_files  :
+            for jj in task.backward_files:
                 file_name = os.path.join(task.task_work_path, jj)                
                 if check_exists:
                     if self.check_file_exists(file_name):
@@ -242,6 +270,7 @@ class SSHContext (object):
         stdin, stdout, stderr = self.ssh.exec_command(('cd %s ;' % self.remote_root) + cmd)
         exit_status = stdout.channel.recv_exit_status() 
         if exit_status != 0:
+            print('debug:self.remote_root, cmd', self.remote_root, cmd)
             raise RuntimeError("Get error code %d in calling %s through ssh with job: %s . message: %s" %
                                (exit_status, cmd, self.job_uuid, stderr.read().decode('utf-8')))
         return stdin, stdout, stderr    
