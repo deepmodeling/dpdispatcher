@@ -168,9 +168,9 @@ class SSHContext (object):
     def from_jdata(cls, jdata):
         # instance = cls()
         input = dict(
-            hostname = jdata.get('hostname', None),
-            remote_root = jdata.get('remote_root', None),
-            username = jdata.get('username', None),
+            hostname = jdata['hostname'],
+            remote_root = jdata['remote_root'],
+            username = jdata['username'],
             password = jdata.get('password', None),
             port = jdata.get('port', 22),
             key_filename = jdata.get('key_filename', None),
