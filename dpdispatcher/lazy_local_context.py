@@ -5,7 +5,7 @@ from dpdispatcher import dlog
 
 class SPRetObj(object) :
     def __init__ (self,
-                  ret) :
+                ret) :
         self.data = ret
 
     def read(self) :
@@ -34,17 +34,20 @@ class LazyLocalContext(object) :
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
+
     @classmethod
     def from_jdata(cls, jdata):
         local_root = jdata['local_root']
-        instance = cls(local_root=local_root)
+        instance = cls(
+            local_root=local_root
+        )
         return instance
 
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(self.temp_local_root, submission.work_base)
-        print('debug:LazyLocalContext',self.local_root, self.remote_root)
+        # print('debug:LazyLocalContext',self.local_root, self.remote_root)
 
     def get_job_root(self) :
         return self.local_root

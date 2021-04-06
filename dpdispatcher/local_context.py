@@ -13,7 +13,7 @@ from dpdispatcher import dlog
 
 class SPRetObj(object) :
     def __init__ (self,
-                  ret) :
+                ret) :
         self.data = ret
 
     def read(self) :
@@ -81,7 +81,7 @@ class LocalContext(object) :
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
+        self.remote_root = os.path.join(self.temp_remote_root, submission.submission_hash)
         # self.job_uuid = submission.submission_hash
         # self.remote_root = os.path.join(self.work_profile.get_work_root(), self.job_uuid)
         # os.makedirs(self.remote_root, exist_ok = True)
@@ -95,7 +95,7 @@ class LocalContext(object) :
    #      self._remote_root = os.path.join(self.work_profile.get_work_root(), self.submission.submission_hash, self.submission.work_base)
             # os.makedirs(self._remote_root, exist_ok = True)
    #      return self._remote_root
-    
+
    #  @property
    #  def local_root(self):
    #      # self.local_root = os.path.abspath(local_root)
@@ -120,7 +120,7 @@ class LocalContext(object) :
                     os.remove(os.path.join(remote_job, jj))
                 _check_file_path(jj)
                 os.symlink(os.path.join(local_job, jj),
-                           os.path.join(remote_job, jj))
+                            os.path.join(remote_job, jj))
         os.chdir(cwd)
 
         local_job = self.local_root
@@ -161,12 +161,12 @@ class LocalContext(object) :
 
 
     def download(self, 
-                 submission,
-                 check_exists = False,
-                 mark_failure = True,
-                 back_error=False) :
+                submission,
+                check_exists = False,
+                mark_failure = True,
+                back_error=False) :
         cwd = os.getcwd()
-         
+        
         for ii in submission.belonging_tasks:
         # for ii in job_dirs :
             local_job = os.path.join(self.local_root, ii.task_work_path)
@@ -180,11 +180,14 @@ class LocalContext(object) :
             for jj in flist :
                 rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
+                # print('debug:', rfile, lfile)
                 if not os.path.realpath(rfile) == os.path.realpath(lfile) :
                     if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
                         if check_exists :
                             if mark_failure:
-                                with open(os.path.join(self.local_root, ii, 'tag_failure_download_%s' % jj), 'w') as fp: pass
+                                tag_file_path = os.path.join(self.local_root, ii.task_work_path, 'tag_failure_download_%s' % jj)
+                                with open(tag_file_path, 'w') as fp: 
+                                    pass
                             else :
                                 pass
                         else :
@@ -242,6 +245,7 @@ class LocalContext(object) :
                     # trivial case, download happily
                     shutil.move(rfile, lfile)
                 elif (os.path.exists(rfile)) and (os.path.exists(lfile)) :
+                    # print('both exist')
                     # both exists, replace!
                     dlog.info('find existing %s, replacing by %s' % (lfile, rfile))
                     if os.path.isdir(lfile):
@@ -257,7 +261,7 @@ class LocalContext(object) :
                 pass
         os.chdir(cwd)
 
-     
+
 
     def download_(self, 
                  job_dirs,
@@ -279,9 +283,10 @@ class LocalContext(object) :
                 lfile = os.path.join(local_job, jj)
                 if not os.path.realpath(rfile) == os.path.realpath(lfile) :
                     if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
-                        if check_exists :
+                        if check_exists:
                             if mark_failure:
-                                with open(os.path.join(self.local_root, ii, 'tag_failure_download_%s' % jj), 'w') as fp: pass
+                                with open(os.path.join(self.local_root, ii, 'tag_failure_download_%s' % jj), 'w') as fp:
+                                    pass
                             else :
                                 pass
                         else :

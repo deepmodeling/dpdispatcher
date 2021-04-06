@@ -3,7 +3,6 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 __package__ = 'tests'
-from .context import LocalSession
 # from .context import LocalContext
 from dpdispatcher.local_context import LocalContext
 from .context import JobStatus
@@ -27,7 +26,7 @@ class TestTask(unittest.TestCase) :
     
     def test_serialize_deserialize(self):
         self.assertEqual(Task.deserialize(task_dict=self.task.serialize()), self.task)
-    
+
     def test_task_json(self):
         with open('jsons/task.json', 'r') as f:
             task_json_dict = json.load(f)

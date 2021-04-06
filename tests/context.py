@@ -1,9 +1,9 @@
-import sys,os
+import sys, os, hashlib, pathlib
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
-from dpdispatcher.local_context import LocalSession
+import dpdispatcher
+# from dpdispatcher.local_context import LocalSession
 from dpdispatcher.local_context import LocalContext
 # from dpdispatcher.local_context import local_context
 from dpdispatcher.lazy_local_context import LazyLocalContext
@@ -19,3 +19,5 @@ from dpdispatcher.submission import Submission, Job, Task, Resources
 def setUpModule():
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
+def get_file_md5(file_path):
+    return hashlib.md5(pathlib.Path(file_path).read_bytes()).hexdigest()
