@@ -8,10 +8,10 @@ class Batch(object) :
                 context):
         self.context = context
         # self.uuid_names = uuid_names
-        self.upload_tag_name = '%s_job_tag_upload' % self.context.job_uuid
-        self.finish_tag_name = '%s_job_tag_finished' % self.context.job_uuid
-        self.sub_script_name = '%s.sub' % self.context.job_uuid
-        self.job_id_name = '%s_job_id' % self.context.job_uuid
+        # self.upload_tag_name = '%s_job_tag_upload' % self.context.job_uuid
+        # self.finish_tag_name = '%s_job_tag_finished' % self.context.job_uuid
+        # self.sub_script_name = '%s.sub' % self.context.job_uuid
+        # self.job_id_name = '%s_job_id' % self.context.job_uuid
 
 
     def check_status(self, job) :
@@ -51,6 +51,7 @@ class Batch(object) :
     
     def get_command_env_cuda_devices(self, resources, task):
         task_need_resources = task.task_need_resources
+        task_need_gpus = task_need_resources.get('task_need_gpus', 1)
         command_env = ""
         # gpu_number = resources.gpu_per_node
         # resources.gpu_in_use = 0

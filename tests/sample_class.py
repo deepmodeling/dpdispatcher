@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 __package__ = 'tests'
-from .context import LocalSession
+# from .context import LocalSession
 # from .context import LocalContext
 # from dpdispatcher.local_context import LocalContext
 from .context import LocalContext
@@ -16,18 +16,26 @@ from .context import Submission, Job, Task, Resources
 class SampleClass(object):
     @classmethod
     def get_sample_resources(cls):
-        resources = Resources(number_node=1, cpu_per_node=4, 
-            gpu_per_node=1, queue_name="V100_8_32", group_size=2,
+        resources = Resources(number_node=1,
+            cpu_per_node=4, 
+            gpu_per_node=1,
+            queue_name="V100_8_32",
+            group_size=2,
             extra_specification={},
             strategy={'if_cuda_multi_devices': False})
         return resources
     
     @classmethod
     def get_sample_resources_dict(cls):
-        resources_dict={'number_node': 1, 'cpu_per_node':4, 
-            'gpu_per_node':1, 'queue_name':'V100_8_32', 'group_size':2,
-             'extra_specification':{},
-             'strategy':{'if_cuda_multi_devices': False}, 'kwargs': {}}
+        resources_dict={'number_node': 1, 
+            'cpu_per_node':4, 
+            'gpu_per_node':1, 
+            'queue_name':'V100_8_32', 
+            'group_size':2,
+            'extra_specification':{},
+            'strategy':{'if_cuda_multi_devices': False}, 
+            'kwargs': {}
+        }
         return resources_dict
 
 
@@ -44,10 +52,14 @@ class SampleClass(object):
         
     @classmethod
     def get_sample_task_list(cls):
-        task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources={})
-        task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources={})
-        task3 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-3/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources={})
-        task4 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-4/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources={})
+        task1 = Task(command='lmp_serial -i input.lammps', 
+            task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
+        task2 = Task(command='lmp_serial -i input.lammps', 
+            task_work_path='bct-2/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
+        task3 = Task(command='lmp_serial -i input.lammps', 
+            task_work_path='bct-3/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
+        task4 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-4/', 
+            forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
         task_list = [task1, task2, task3, task4]
         return task_list
         
@@ -55,7 +67,10 @@ class SampleClass(object):
     def get_sample_empty_submission(cls):
         resources = cls.get_sample_resources()
         # print(task_list)
-        empty_submission = Submission(work_base='0_md/', resources=resources, forward_common_files=['graph.pb'], backward_common_files=[]) #,  batch=PBS)
+        empty_submission = Submission(work_base='0_md/', 
+            resources=resources, 
+            forward_common_files=['graph.pb'], 
+            backward_common_files=[])
         # print('SampleClass.get_sample_empty_submission:', empty_submission)
         # print('SampleClass.get_sample_empty_submission.belonging_tasks:', empty_submission.belonging_tasks)
         return empty_submission 
@@ -70,7 +85,7 @@ class SampleClass(object):
         # print('------', submission.belonging_jobs)
         # print('vvvvvvv', submission)
         return submission
-   
+
     @classmethod
     def get_sample_submission_dict(cls):
         submission = cls.get_sample_submission()
@@ -91,15 +106,17 @@ class SampleClass(object):
     
     @classmethod
     def get_sample_pbs_local_context(cls):
-        local_session = LocalSession({'work_path':'test_work_path/'})
-        local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
+        # local_session = LocalSession({'work_path':'test_work_path/'})
+        local_context = LocalContext(local_root='test_pbs_dir/',
+            remote_root='tmp_pbs_dir/')
         pbs = PBS(context=local_context)
         return pbs
 
     @classmethod
     def get_sample_slurm_local_context(cls):
-        local_session = LocalSession({'work_path':'test_work_path/'})
-        local_context = LocalContext(local_root='test_slurm_dir/', work_profile=local_session)
+        # local_session = LocalSession({'work_path':'test_work_path/'})
+        local_context = LocalContext(local_root='test_slurm_dir/',
+            remote_root='tmp_slurm_dir/')
         slurm = Slurm(context=local_context)
         return slurm
 

@@ -1,5 +1,6 @@
 POTCAR
-*.pb
+# *.pb
+tests/graph_real.pb
 *~
 *.d
 *.o

@@ -1,4 +1,4 @@
-
+import json
 from dpdispatcher.batch import Batch
 from dpdispatcher.pbs import PBS
 from dpdispatcher.lsf import LSF
@@ -7,6 +7,7 @@ from dpdispatcher.shell import Shell
 from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.local_context import LocalContext
 from dpdispatcher.ssh_context import SSHContext
+from dpdispatcher.submission import Resources
 
 
 class BatchObject(object):
@@ -35,4 +36,15 @@ class BatchObject(object):
         else:
             raise RuntimeError(f"unknown batch_type:{batch_type}")
         return batch
+
+def get_batch_and_resources_from_machine_json(json_path):
+    with open(json_path, 'r') as f:
+        mdata = json.load(f)
+    batch_dict = mdata['batch']
+    resources_dict = mdata['resources_dict']
+    batch = BatchObject(jdata=batch_dict)
+    resources = Resources(**resources_dict)
+    return batch, resources
+
+# submission.bind_batch(batch=batch)
 

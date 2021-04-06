@@ -1,0 +1,6 @@
+{
+    "batch_type": "pbs",
+    "context_type": "lazy_local",
+    "local_root" : "./test_batch_object",
+    "remote_root" : "./tmp/"
+}

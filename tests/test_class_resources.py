@@ -3,9 +3,9 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 __package__ = 'tests'
-from .context import LocalSession
+# from .context import LocalSession
 # from .context import LocalContext
-from dpdispatcher.local_context import LocalContext
+from .context import LocalContext
 from .context import PBS
 from .context import JobStatus
 from .context import setUpModule
