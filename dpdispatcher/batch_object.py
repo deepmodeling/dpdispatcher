@@ -9,7 +9,8 @@ from dpdispatcher.local_context import LocalContext
 from dpdispatcher.ssh_context import SSHContext
 from dpdispatcher.submission import Resources
 
-from typing import TypedDict
+# from typing import TypedDict
+from typing_extensions import TypedDict
 from os import PathLike
 
 class BatchObject(object):
