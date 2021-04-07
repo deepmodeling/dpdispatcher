@@ -26,7 +26,7 @@ class Submission(object):
     """
     def __init__(self,
                 work_base,
-                resources,
+                resources=None,
                 forward_common_files=[],
                 backward_common_files=[],
                 batch=None,

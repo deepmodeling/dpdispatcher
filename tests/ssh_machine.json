@@ -1,8 +1,0 @@
-{
-    "batch_type": "pbs",
-    "context_type": "ssh",
-    "hostname" : "39.106.84.25",
-    "local_root" : "./",
-    "remote_root" : "/home/fengbo/work_path_dpdispatcher_test/",
-    "username" : "fengbo"
-}
