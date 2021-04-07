@@ -44,9 +44,9 @@ class MachineDict(TypedDict):
     batch : dict
     resources : dict
 
-FilePathStr = PathLike[str]
+# FilePathStr = PathLike[str]
 class MachineConfig(TypedDict):
-    machine_config_json : FilePathStr
+    machine_config_json : PathLike
     batch_name : str
     resources_name : str
 
