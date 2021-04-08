@@ -3,7 +3,7 @@ import os,sys,time,random,uuid
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-class Batch(object) :
+class Batch(object):
     def __init__ (self,
                 context):
         self.context = context

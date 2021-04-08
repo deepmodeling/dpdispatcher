@@ -1,0 +1,27 @@
+{
+    "batch_lazy_pbs":{
+        "batch_type": "pbs",
+        "context_type": "lazy_local",
+        "local_root": "./"
+    },
+    "batch_local_slurm":{
+        "batch_type": "slurm",
+        "context_type": "local",
+        "local_root": "./",
+        "remote_root": "./"
+    },
+    "resources_gpu":{
+        "number_node": 1,
+        "cpu_per_node": 4,
+        "gpu_per_node": 1,
+        "queue_name": "T4_4_14",
+        "group_size": 5
+    },
+    "resources_cpu":{
+        "number_node": 1,
+        "cpu_per_node": 8,
+        "gpu_per_node": 0,
+        "queue_name": "C32_64",
+        "group_size": 5
+    }
+}
