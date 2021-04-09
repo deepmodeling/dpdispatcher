@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - run: pip install coverage
+    - run: pip install . coverage
     - name: Test
       run: coverage run --source=./dpdispatcher -m unittest -v && coverage report
     - uses: codecov/codecov-action@v1
