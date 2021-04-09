@@ -153,6 +153,7 @@ class Submission(object):
             self.upload_jobs()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
+        time.sleep(1)
         while not self.check_all_finished():
             if exit_on_submit is True:
                 print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
@@ -235,7 +236,12 @@ class Submission(object):
         # print('debug:***', [job for job in self.belonging_jobs])
         if any( (job.job_state in  [JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
             self.submission_to_json()
-        if any( (job.job_state in  [JobStatus.running, JobStatus.waiting, JobStatus.unsubmitted, JobStatus.completing, JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
+        if any( (job.job_state in  [JobStatus.running,
+            JobStatus.waiting,
+            JobStatus.unsubmitted,
+            JobStatus.completing,
+            JobStatus.terminated,
+            JobStatus.unknown]) for job in self.belonging_jobs):
             return False
         else:
             return True
@@ -281,7 +287,7 @@ class Submission(object):
         # self.batch.context.write_file(self.batch.finish_tag_name, write_str="")
 
     def clean_jobs(self):
-        self.batch.context.clean()
+        self.batch.context.clean(self)
 
     def submission_to_json(self):
         # print('~~~~,~~~', self.serialize())

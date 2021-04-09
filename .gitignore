@@ -16,6 +16,8 @@ tests/graph_real.pb
 *.pyc
 \#*
 iter.*
+tests/test_shell_trival_dir/parent_dir/dir?/out.txt
+# out.txt
 topol.tpr
 mdout.mdp
 traj*xtc

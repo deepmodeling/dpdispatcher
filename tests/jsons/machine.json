@@ -3,7 +3,9 @@
         "batch_type": "pbs",
         "context_type": "local",
         "local_root" : "./",
-        "remote_root" : "./"
+        "remote_root" : "./",
+        "hostname": "39.106.xx.xxx",
+        "username": "user1"
     },
     "resources":{
         "number_node": 1,

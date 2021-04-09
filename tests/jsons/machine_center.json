@@ -10,6 +10,14 @@
         "local_root": "./",
         "remote_root": "./"
     },
+    "batch_ehpc_ssh_pbs":{
+        "batch_type":"pbs",
+        "context_type":"ssh",
+        "local_root": "./",
+        "remote_root": "~/dpdispatcher_work_dir",
+        "hostname": "39.106.xx.xxx",
+        "username": "user1"
+    },
     "resources_gpu":{
         "number_node": 1,
         "cpu_per_node": 4,
