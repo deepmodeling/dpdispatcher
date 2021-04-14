@@ -339,11 +339,11 @@ class LocalContext(object) :
         os.chdir(cwd)        
         return code, None, stdout, stderr
 
-    def clean(self, submission) :
+    def clean(self):
         shutil.rmtree(self.remote_root, ignore_errors=True)
 
-    def _clean(self) :
-        shutil.rmtree(self.remote_root, ignore_errors=True)
+    # def _clean(self) :
+    #     shutil.rmtree(self.remote_root, ignore_errors=True)
 
     def write_file(self, fname, write_str):
         os.makedirs(self.remote_root, exist_ok = True)
