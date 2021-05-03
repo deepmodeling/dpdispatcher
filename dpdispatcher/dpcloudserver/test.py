@@ -4,8 +4,10 @@ import sys
 import uuid
 import unittest
 
-import api
-from zip_file import zip_files
+from dpdispatcher.dpcloudserver import api
+from dpdispatcher.dpcloudserver.zip_file import zip_files
+# import api
+# from zip_file import zip_files
 
 
 #%%

@@ -37,8 +37,9 @@ class TestShellTrival(unittest.TestCase):
             f1 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'example.txt')
             f2 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'out.txt')
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
-    
-    def tearDown(self):
+
+    @classmethod
+    def tearDownClass(self):
         shutil.rmtree('tmp_shell_trival_dir/')
 
 
