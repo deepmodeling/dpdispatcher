@@ -342,7 +342,7 @@ class LocalContext(object) :
     def clean(self, submission) :
         shutil.rmtree(self.remote_root, ignore_errors=True)
 
-    def _clean(self) :
+    def _clean(self):
         shutil.rmtree(self.remote_root, ignore_errors=True)
 
     def write_file(self, fname, write_str):

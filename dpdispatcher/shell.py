@@ -61,7 +61,7 @@ class Shell(Batch):
         shell_script_header = shell_script_header_template.format(**script_header_dict) 
 
         shell_script_env = shell_script_env_template.format()
-      
+
         shell_script_command = ""
         
         # resources_in_use=0

@@ -141,7 +141,7 @@ class PBS(Batch):
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
-        print('job finished: ',job.job_id, job_tag_finished)
+        print('check if job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
 
 

@@ -1,0 +1,110 @@
+import os,sys,time,random,uuid
+
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher import dlog
+from dpdispatcher.batch import Batch
+from dpdispatcher.shell import Shell
+from dpdispatcher.dpcloudserver import api
+from dpdispatcher.dpcloudserver.config import API_HOST, ALI_STS_ENDPOINT
+
+# input_data = {
+#         'job_type': 'indicate',
+#         'log_file': 'dp_cloud_server.log',
+#         'command': '',
+#         'backward_files': [],
+#         'job_name': 'dpdispatcher_job',
+#         'machine': {
+#             'platform': 'ali',
+#             'resources': {
+#                 'gpu_type': '1 * NVIDIA P100',
+#                 'cpu_num': 4,
+#                 'mem_limit': 28,
+#                 'time_limit': '2:00:00',
+#                 'image_name': 'yfb-deepmd-kit-1.2.4-cuda10'
+#             }
+#         },
+#         'job_resources': ''
+#     }
+
+class DpCloudServer(Shell):
+    def __init__(self, context, input_data):
+        self.context = context
+        self.input_data = input_data
+
+    # @classmethod
+    # def from_jdata(cls, jdata):
+        
+    #     pass
+
+    def gen_local_script(self, job):
+        script_str = self.gen_script(job) 
+        script_file_name = job.script_file_name
+        # job_id_name = job.job_hash + '_job_id'
+        self.context.write_local_file(
+            fname=script_file_name, 
+            write_str=script_str
+        )
+        return script_file_name
+
+    def do_submit(self, job):
+        self.gen_local_script(job)
+        zip_filename = job.job_hash + '.zip'
+        oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
+        job_resources = ALI_STS_ENDPOINT + '/' + oss_task_zip
+        print(897, job_resources)
+        # oss_task_zip = 'indicate'
+        # oss_path = 
+
+        input_data = self.input_data.copy()
+
+        input_data['job_resources'] = job_resources
+        input_data['command'] = f"bash {job.script_file_name}"
+
+        print(898, input_data)
+
+        job_id = api.job_create(
+            job_type=input_data['job_type'],
+            oss_path=input_data['job_resources'],
+            input_data=input_data
+        )
+
+        job.job_id = job_id
+        job.job_state = JobStatus.waiting
+        return job_id
+
+    def check_status(self, job):
+        if job.job_id == '':
+            return JobStatus.unsubmitted
+        print('debug: check_status', job)
+        dp_job_status = api.get_tasks(job.job_id)[0]["status"]
+        job_state = self.map_dp_job_state(dp_job_status)
+        return job_state
+
+    def check_finish_tag(self, job):
+        job_tag_finished = job.job_hash + '_job_tag_finished'
+        print('check if job finished: ',job.job_id, job_tag_finished)
+        return self.context.check_file_exists(job_tag_finished)
+        # return
+        # pass
+
+    def check_if_recover(self):
+        return False
+        # pass
+
+    @staticmethod
+    def map_dp_job_state(status):
+        map_dict = {
+            -1:JobStatus.terminated,
+            0:JobStatus.waiting,
+            1:JobStatus.running,
+            2:JobStatus.finished
+        }
+        return map_dict[status]
+
+
+    # def check_finish_tag(self, job):
+    #     job_tag_finished = job.job_hash + '_job_tag_finished'
+    #     return self.context.check_file_exists(job_tag_finished)
+
+
+
