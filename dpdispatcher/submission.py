@@ -135,7 +135,6 @@ class Submission(object):
             self.batch.context.bind_submission(self)
         return self
 
-
     def run_submission(self, *, exit_on_submit=False, clean=True):
         """main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
@@ -148,11 +147,14 @@ class Submission(object):
             self.generate_jobs()
         self.try_recover_from_json()
         if self.check_all_finished():
+            print('debug:check_all_finished: True')
             pass
         else:
+            print('debug:check_all_finished: False')
             self.upload_jobs()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
+        time.sleep(1)
         while not self.check_all_finished():
             if exit_on_submit is True:
                 print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
@@ -204,7 +206,7 @@ class Submission(object):
         """
         for job in self.belonging_jobs:
             job.get_job_state()
-            print('debug: job: ', job.job_hash, job.job_id, job.job_state)
+            print('debug:get_submission_state: job: ', job.job_hash, job.job_id, job.job_state)
         # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):
@@ -235,7 +237,12 @@ class Submission(object):
         # print('debug:***', [job for job in self.belonging_jobs])
         if any( (job.job_state in  [JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
             self.submission_to_json()
-        if any( (job.job_state in  [JobStatus.running, JobStatus.waiting, JobStatus.unsubmitted, JobStatus.completing, JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
+        if any( (job.job_state in  [JobStatus.running,
+            JobStatus.waiting,
+            JobStatus.unsubmitted,
+            JobStatus.completing,
+            JobStatus.terminated,
+            JobStatus.unknown]) for job in self.belonging_jobs):
             return False
         else:
             return True
@@ -297,6 +304,8 @@ class Submission(object):
         # submission_dict = batch.context.read_file(json_file_name)
         submission = cls.deserialize(submission_dict=submission_dict, batch=None)
         return submission
+
+    # def check_if_recover()
 
     def try_recover_from_json(self):
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
@@ -426,6 +435,7 @@ class Job(object):
         self.job_state = None # JobStatus.unsubmitted
         self.job_id = ""
         self.fail_count = 0
+        self.job_uuid = uuid.uuid4()
 
         # self.job_hash = self.get_hash()
         self.job_hash = self.get_hash()
@@ -468,6 +478,7 @@ class Job(object):
         job.job_state = job_dict[job_hash]['job_state']
         job.job_id = job_dict[job_hash]['job_id']
         job.fail_count = job_dict[job_hash]['fail_count']
+        # job.job_uuid = job_dict[job_hash]['job_uuid']
         return job
 
     def get_job_state(self):
@@ -491,14 +502,14 @@ class Job(object):
             print("job: {job_hash} terminated; restarting job".format(job_hash=self.job_hash))
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
-            self.fail_count += 1
+            # self.fail_count += 1
             self.submit_job()
             self.get_job_state()
 
         if job_state == JobStatus.unsubmitted:
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
-            self.fail_count += 1
+            # self.fail_count += 1
             self.submit_job()
             print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             # self.get_job_state()
@@ -512,7 +523,7 @@ class Job(object):
         Parameters
         ----------
         if_static : bool
-            whether dump the job runtime infomation (like job_id, job_state, fail_count) to the dictionary.
+            whether dump the job runtime infomation (job_id, job_state, fail_count, job_uuid) to the dictionary.
 
         Returns
         -------
@@ -529,6 +540,7 @@ class Job(object):
             job_content_dict['job_state'] = self.job_state
             job_content_dict['job_id'] = self.job_id
             job_content_dict['fail_count'] = self.fail_count
+            # job_content_dict['job_uuid'] = self.job_uuid
         return {job_hash: job_content_dict}
 
     def register_job_id(self, job_id):

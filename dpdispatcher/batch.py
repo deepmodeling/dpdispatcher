@@ -35,6 +35,12 @@ class Batch(object):
     def gen_script(self, **kwargs):
         raise NotImplementedError('abstract method gen_script should be implemented by derived class')        
 
+    def check_if_recover(self, submission):
+        submission_hash = submission.submission_hash
+        submission_file_name = "{submission_hash}.json".format(submission_hash=submission_hash)
+        if_recover = self.context.check_file_exists(submission_file_name)
+        return if_recover
+
     def check_finish_tag(self, **kwargs):
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 

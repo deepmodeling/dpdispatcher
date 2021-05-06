@@ -60,7 +60,7 @@ class LocalContext(object) :
         #    self.job_uuid = str(uuid.uuid4())
 
         # self.remote_root = os.path.join(work_profile.get_work_root(), self.job_uuid)
-        dlog.debug("local_root is %s"% local_root)
+        # dlog.debug("local_root is %s"% local_root)
 
         # os.makedirs(self.remote_root, exist_ok = True)
     
@@ -82,6 +82,7 @@ class LocalContext(object) :
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(self.temp_remote_root, submission.submission_hash)
+        # os.makedirs(self.remote_root, exist_ok = True)
         # self.job_uuid = submission.submission_hash
         # self.remote_root = os.path.join(self.work_profile.get_work_root(), self.job_uuid)
         # os.makedirs(self.remote_root, exist_ok = True)
@@ -245,7 +246,7 @@ class LocalContext(object) :
                     # trivial case, download happily
                     shutil.move(rfile, lfile)
                 elif (os.path.exists(rfile)) and (os.path.exists(lfile)) :
-                    # print('both exist')
+                    print('both exist,', rfile, lfile)
                     # both exists, replace!
                     dlog.info('find existing %s, replacing by %s' % (lfile, rfile))
                     if os.path.isdir(lfile):
@@ -338,11 +339,11 @@ class LocalContext(object) :
         os.chdir(cwd)        
         return code, None, stdout, stderr
 
-    def clean(self, submission) :
+    def clean(self):
         shutil.rmtree(self.remote_root, ignore_errors=True)
 
-    def _clean(self) :
-        shutil.rmtree(self.remote_root, ignore_errors=True)
+    # def _clean(self) :
+    #     shutil.rmtree(self.remote_root, ignore_errors=True)
 
     def write_file(self, fname, write_str):
         os.makedirs(self.remote_root, exist_ok = True)

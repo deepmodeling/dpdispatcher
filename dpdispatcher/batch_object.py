@@ -4,9 +4,12 @@ from dpdispatcher.pbs import PBS
 from dpdispatcher.lsf import LSF
 from dpdispatcher.slurm import Slurm
 from dpdispatcher.shell import Shell
+from dpdispatcher.dp_cloud_server import DpCloudServer
 from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.local_context import LocalContext
 from dpdispatcher.ssh_context import SSHContext
+from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
+
 from dpdispatcher.submission import Resources
 
 # from typing import TypedDict
@@ -25,6 +28,8 @@ class BatchObject(object):
             context = LazyLocalContext.from_jdata(jdata=jdata)
         elif context_type == 'ssh':
             context = SSHContext.from_jdata(jdata=jdata)
+        elif context_type == 'dp_cloud_server':
+            context = DpCloudServerContext.from_jdata(jdata=jdata)
         else:
             raise RuntimeError(f"unknown context_type:{context_type}")
 
@@ -36,6 +41,9 @@ class BatchObject(object):
             batch = Slurm(context=context)
         elif batch_type == 'shell':
             batch = Shell(context=context)
+        elif batch_type == 'dp_cloud_server':
+            input_data = jdata.get('input_data')
+            batch = DpCloudServer(context=context, input_data=input_data)
         else:
             raise RuntimeError(f"unknown batch_type:{batch_type}")
         return batch
@@ -58,13 +66,16 @@ class Machine(object):
     ):
         self.batch = batch
         self.resources = resources
-    
+
     @classmethod
     def load_from_machine_dict(cls, machine_dict):
         batch_dict = machine_dict['batch']
         resources_dict = machine_dict['resources']
         batch = BatchObject(jdata=batch_dict)
+        # if resources_dict is not None: 
         resources = Resources(**resources_dict)
+        # else:
+        #     resources = None
         machine = cls(batch=batch,resources=resources)
         return machine
 
