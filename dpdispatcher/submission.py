@@ -288,7 +288,7 @@ class Submission(object):
         # self.batch.context.write_file(self.batch.finish_tag_name, write_str="")
 
     def clean_jobs(self):
-        self.batch.context.clean(self)
+        self.batch.context.clean()
 
     def submission_to_json(self):
         # print('~~~~,~~~', self.serialize())
