@@ -32,7 +32,7 @@ from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
 # with open('test_dp_cloud_server.json', 'r') as f:
 #     jdata = json.load(f)
 
-machine = Machine.load_from_json_file('test_dp_cloud_server.json')
+machine = Machine.load_from_json_file('jsons/machine_dp_cloud_server.private.json')
 dp_cloud_server = machine.batch
 resources = machine.resources
 # resources = Resources()

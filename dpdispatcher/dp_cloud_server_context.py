@@ -153,9 +153,9 @@ class DpCloudServerContext(object):
     def check_home_file_exits(self, fname):
         return os.path.isfile(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname))
 
-    def clean(self, submission):
+    def clean(self):
         submission_file_name = "{submission_hash}.json".format(
-            submission_hash=submission.submission_hash
+            submission_hash=self.submission.submission_hash
         )
         submission_json = os.path.join(
             DP_CLOUD_SERVER_HOME_DIR,

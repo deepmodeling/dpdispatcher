@@ -10,7 +10,7 @@
             "job_type": "indicate",
             "log_file": "dp_cloud_server.log",
             "__command": "",
-            "__backward_files": [],
+            "backward_files": [],
             "job_name": "dpdispatcher_job",
             "machine": {
                 "platform": "ali",
