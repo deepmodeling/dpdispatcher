@@ -5,7 +5,7 @@ from dpdispatcher import dlog
 from dpdispatcher.batch import Batch
 from dpdispatcher.shell import Shell
 from dpdispatcher.dpcloudserver import api
-from dpdispatcher.dpcloudserver.config import API_HOST, ALI_STS_ENDPOINT
+from dpdispatcher.dpcloudserver.config import API_HOST, ALI_OSS_BUCKET_URL
 
 # input_data = {
 #         'job_type': 'indicate',
@@ -50,7 +50,8 @@ class DpCloudServer(Shell):
         self.gen_local_script(job)
         zip_filename = job.job_hash + '.zip'
         oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
-        job_resources = ALI_STS_ENDPOINT + '/' + oss_task_zip
+        job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
+        # job_resources = ALI_STS_ENDPOINT + '/' + oss_task_zip
         print(897, job_resources)
         # oss_task_zip = 'indicate'
         # oss_path = 
