@@ -47,7 +47,8 @@ class LazyLocalContext(object) :
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(self.temp_local_root, submission.work_base)
-        # print('debug:LazyLocalContext',self.local_root, self.remote_root)
+        print('debug:LazyLocalContext.bind_submission', submission.submission_hash,
+            self.local_root, self.remote_root)
 
     def get_job_root(self) :
         return self.local_root
