@@ -135,7 +135,7 @@ class Submission(object):
             self.batch.context.bind_submission(self)
         return self
 
-    def run_submission(self, *, exit_on_submit=False, clean=True):
+    def run_submission(self, *, exit_on_submit=False, clean=False):
         """main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
