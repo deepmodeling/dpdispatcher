@@ -4,90 +4,29 @@ from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.batch import Batch
 
-pbs_script_template="""
-{pbs_script_header}
-{pbs_script_env}
-{pbs_script_command}
-{pbs_script_end}
-
-"""
 
 pbs_script_header_template="""
 #!/bin/bash -l
 {select_node_line}
-{walltime_line}
 #PBS -j oe
 {queue_name_line}
 """
 
-pbs_script_env_template="""
-cd $PBS_O_WORKDIR
-test $? -ne 0 && exit 1
-"""
-
-pbs_script_command_template="""
-cd $PBS_O_WORKDIR
-cd {task_work_path}
-test $? -ne 0 && exit 1
-if [ ! -f {task_tag_finished} ] ;then
-  {command_env} {command}  1>> {outlog} 2>> {errlog} 
-  if test $? -ne 0; then touch {task_tag_finished}; fi
-  touch {task_tag_finished}
-fi &
-"""
-
-pbs_script_end_template="""
-
-cd $PBS_O_WORKDIR
-test $? -ne 0 && exit 1
-
-wait
-
-touch {job_tag_finished}
-"""
-
-# pbs_script_wait="""
-# wait
-# """
-
 class PBS(Batch):
     def gen_script(self, job):
-        resources = job.resources
-        
-        script_header_dict= {}
-        script_header_dict['select_node_line']="#PBS -l select={number_node}:ncpus={cpu_per_node}:ngpus={gpu_per_node}".format(
-            number_node=resources.number_node, cpu_per_node=resources.cpu_per_node, gpu_per_node=resources.gpu_per_node)
-        # script_header_dict['walltime_line']="#PBS -l walltime=120:0:0"
-        script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
-
-        pbs_script_header = pbs_script_header_template.format(**script_header_dict)
-
-        pbs_script_env = pbs_script_env_template.format()
-
-        pbs_script_command = ""
-
-        for task in job.job_task_list:
-            command_env = ""
-            pbs_script_command +=  self.get_script_wait(resources=resources, task=task)
-            command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
-
-            task_tag_finished = task.task_hash + '_task_tag_finished'
-
-            temp_pbs_script_command = pbs_script_command_template.format(command_env=command_env, 
-                task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
-                outlog=task.outlog, errlog=task.errlog)
-            pbs_script_command+=temp_pbs_script_command
-
-        job_tag_finished = job.job_hash + '_job_tag_finished'
-        pbs_script_end = pbs_script_end_template.format(job_tag_finished=job_tag_finished)
-
-        pbs_script = pbs_script_template.format(
-                          pbs_script_header=pbs_script_header,
-                          pbs_script_env=pbs_script_env,
-                          pbs_script_command=pbs_script_command,
-                          pbs_script_end=pbs_script_end)
+        pbs_script = super(PBS, self).gen_script(job)
         return pbs_script
-    
+
+    def gen_script_header(self, job):
+        resources = job.resources
+        pbs_script_header_dict= {}
+        pbs_script_header_dict['select_node_line']="#PBS -l select={number_node}:ncpus={cpu_per_node}:ngpus={gpu_per_node}".format(
+            number_node=resources.number_node, cpu_per_node=resources.cpu_per_node, gpu_per_node=resources.gpu_per_node
+        )
+        pbs_script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
+        pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+        return pbs_script_header
+
     def do_submit(self, job):
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
