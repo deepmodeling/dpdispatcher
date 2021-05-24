@@ -9,31 +9,32 @@ from urllib.parse import urljoin
 
 from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
-cookies = None
-
+token = ''
 def get(url, params):
-    global cookies
+    global token
+    headers = {'Authorization': "jwt " + token}
     ret = requests.get(
                 urljoin(API_HOST, url),
                 params=params,
                 timeout=HTTP_TIME_OUT,
-                cookies=cookies
+                headers=headers
                 )
     print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
+
     return ret['data']
 
 def post(url, params):
-    global cookies
+    global token
+    headers = {'Authorization': "jwt " + token}
     ret = requests.post(
                 urljoin(API_HOST, url),
                 json=params,
                 timeout=HTTP_TIME_OUT,
-                cookies=cookies
+                headers=headers
                 )
-    cookies = requests.utils.dict_from_cookiejar(ret.cookies)
     print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
     if ret['code'] != RETCODE.OK:
@@ -43,10 +44,12 @@ def post(url, params):
 
 
 def login(username, password):
-    return post(
+    global token
+    ret = post(
             '/account/login',
             {"username": username, "password": password}
             )
+    token = ret['token']
 
 
 def _get_oss_bucket(endpoint, bucket_name):
