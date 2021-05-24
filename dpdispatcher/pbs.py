@@ -57,7 +57,7 @@ class PBS(Batch):
         script_header_dict= {}
         script_header_dict['select_node_line']="#PBS -l select={number_node}:ncpus={cpu_per_node}:ngpus={gpu_per_node}".format(
             number_node=resources.number_node, cpu_per_node=resources.cpu_per_node, gpu_per_node=resources.gpu_per_node)
-        script_header_dict['walltime_line']="#PBS -l walltime=120:0:0"
+        # script_header_dict['walltime_line']="#PBS -l walltime=120:0:0"
         script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
 
         pbs_script_header = pbs_script_header_template.format(**script_header_dict)

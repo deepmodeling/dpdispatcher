@@ -26,16 +26,16 @@ export REMOTE_ROOT={remote_root}
 test $? -ne 0 && exit 1
 """
 
-slurm_script_command_template="""
-cd $REMOTE_ROOT
-cd {task_work_path}
-test $? -ne 0 && exit 1
-if [ ! -f {task_tag_finished} ] ;then
-  {command_env} {command}  1>> {outlog} 2>> {errlog} 
-  if test $? -ne 0; then touch {task_tag_finished}; fi
-  touch {task_tag_finished}
-fi &
-"""
+# slurm_script_command_template="""
+# cd $REMOTE_ROOT
+# cd {task_work_path}
+# test $? -ne 0 && exit 1
+# if [ ! -f {task_tag_finished} ] ;then
+#   {command_env} {command}  1>> {outlog} 2>> {errlog} 
+#   if test $? -ne 0; then touch {task_tag_finished}; fi
+#   touch {task_tag_finished}
+# fi &
+# """
 
 slurm_script_end_template="""
 
@@ -51,16 +51,16 @@ slurm_script_wait="""
 wait
 """
 
-default_slurm_sbatch_dict={
+# default_slurm_sbatch_dict={
 #     'nodes': 1,
 #     'tasks_per_node':4,
 #     'gpus_per_node':0,
 #     'partition': 'GPUV100',
-    'cpus_per_task':1,
-    'time': "120:0:0",
-    'mem': "8G",
-    'exclude':[]
-}
+#     'cpus_per_task':1,
+#     'time': "120:0:0",
+#     'mem': "8G",
+#     'exclude':[]
+# }
 
 # class SlurmResources(object):
 #     def __init__(self,
@@ -95,7 +95,8 @@ class Slurm(Batch):
         #     raise RuntimeError('type job.resource error')
         resources = job.resources
         # slurm_sbatch_dict = resources.extra_strategy.get('slurm_sbatch_dict', {})
-        slurm_sbatch_dict = resources.extra_specification.copy()
+        # slurm_sbatch_dict = resources.extra_specification.copy()
+        custom_flags = resources.custom_flags
         
         script_header_dict = {}
         script_header_dict['slurm_nodes_line']="#SBATCH --nodes {number_node}".format(number_node=resources.number_node)
@@ -104,29 +105,39 @@ class Slurm(Batch):
         script_header_dict['slurm_partition_line']="#SBATCH --partition {queue_name}".format(queue_name=resources.queue_name)
         slurm_script_header = slurm_script_header_template.format(**script_header_dict) 
 
-        for k,v in slurm_sbatch_dict.items():
-            line = "#SBATCH --{key} {value}\n".format(key=k.replace('_', '-'), value=str(v))
-            slurm_script_header += line
+        # for k,v in slurm_sbatch_dict.items():
+        #     line = "#SBATCH --{key} {value}\n".format(key=k.replace('_', '-'), value=str(v))
+        #     slurm_script_header += line
+
+        custom_flags = resources.custom_flags
+        for ii in custom_flags:
+            line = ii + '\n'
+            slurm_script_header += line 
 
         script_env_dict = {}
         script_env_dict['remote_root'] = self.context.remote_root
-
         slurm_script_env = slurm_script_env_template.format(**script_env_dict)
+        source_list = resources.source_list
+        for ii in source_list:
+            line = f"source {ii}\n"
+            slurm_script_env += line
 
-        slurm_script_command = ""
-        
-        for task in job.job_task_list:
-            command_env = ""     
-            slurm_script_command += self.get_script_wait(resources=resources, task=task)
-            command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
+        # slurm_script_command = ""
+        slurm_script_command = self.gen_script_command(job)
 
-            task_tag_finished = task.task_hash + '_task_tag_finished'
+        # in_para_task_num = 0
+        # for task in job.job_task_list:
+        #     command_env = ""
+        #     slurm_script_command += self.get_script_wait(resources=resources, task=task)
+        #     command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
 
-            temp_slurm_script_command = slurm_script_command_template.format(command_env=command_env, 
-                task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
-                outlog=task.outlog, errlog=task.errlog)
+        #     task_tag_finished = task.task_hash + '_task_tag_finished'
 
-            slurm_script_command+=temp_slurm_script_command
+        #     temp_slurm_script_command = slurm_script_command_template.format(command_env=command_env, 
+        #         task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
+        #         outlog=task.outlog, errlog=task.errlog)
+
+        #     slurm_script_command+=temp_slurm_script_command
             
 
         job_tag_finished = job.job_hash + '_job_tag_finished'

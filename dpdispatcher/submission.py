@@ -1,6 +1,7 @@
 
 # %%
 import os,sys,time,random,uuid,json,copy
+from typing import SupportsRound
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
@@ -135,7 +136,7 @@ class Submission(object):
             self.batch.context.bind_submission(self)
         return self
 
-    def run_submission(self, *, exit_on_submit=False, clean=False):
+    def run_submission(self, *, exit_on_submit=False, clean=True):
         """main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -164,7 +165,7 @@ class Submission(object):
                 print('>>>>>>dpdispatcher>>>>>>SuccessSubmit>>>>>>exit 0>>>>>>')
                 return self.serialize()
             try:
-                time.sleep(20)
+                time.sleep(40)
             except KeyboardInterrupt as e:
                 self.submission_to_json()
                 print('<<<<<<dpdispatcher<<<<<<KeyboardInterrupt<<<<<<exit 1<<<<<<')
@@ -342,11 +343,6 @@ class Task(object):
         the files to be transmitted from other location after the calculation finished
     err : str
         the files to be transmitted from other location after the calculation finished
-    task_need_gpus : non-negative float number.
-        the gpus number need to execute the task.
-        For example, if task_need_gpus==0.25, then 4 tasks will run in parallel on a single GPU.
-        Sometimes, this option will be used with Resources.if_cuda_multi_devices variable simultaneously.
-        Especially when the node has multiple nvidia GPUs.
     """
     def __init__(self,
                 command,
@@ -355,8 +351,7 @@ class Task(object):
                 backward_files=[],
                 outlog='log',
                 errlog='err',
-                *,
-                task_need_resources={}):
+                ):
 
         self.command = command
         self.task_work_path = task_work_path
@@ -365,7 +360,7 @@ class Task(object):
         self.outlog = outlog
         self.errlog = errlog
 
-        self.task_need_resources = task_need_resources
+        # self.task_need_resources = task_need_resources
 
         self.task_hash = self.get_hash()
         # self.task_need_resources="<to be completed in the future>"
@@ -405,7 +400,7 @@ class Task(object):
         task_dict['backward_files'] = self.backward_files
         task_dict['outlog'] = self.outlog
         task_dict['errlog'] = self.errlog
-        task_dict['task_need_resources'] = self.task_need_resources
+        # task_dict['task_need_resources'] = self.task_need_resources
         return task_dict
 
 class Job(object):
@@ -576,6 +571,8 @@ class Resources(object):
         experimentally, if there are multiple nvidia GPUS on the target computer, we want to compute the jobs to different GPUS.
         With this option, dpdispatcher will manually allocate environment variable CUDA_VISIBLE_DEVICES to different task.
         Usually, this option will be used with Task.task_need_resources variable simultaneously.
+    para_deg : int
+        Decide how many tasks will be run in parallel.
     """
     def __init__(self,
                 number_node,
@@ -584,23 +581,31 @@ class Resources(object):
                 queue_name,
                 group_size,
                 *,
-                extra_specification={},
+                custom_flags=[],
                 strategy=default_strategy,
+                para_deg=1,
+                source_list=[],
                 **kwargs):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
         self.queue_name = queue_name
-
-        self.extra_specification = extra_specification
-        self.strategy = strategy
         self.group_size = group_size
+
+        # self.extra_specification = extra_specification
+        self.custom_flags = custom_flags
+        self.strategy = strategy
+        self.para_deg = para_deg
+        self.source_list = source_list
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
         self.kwargs = kwargs
 
         self.gpu_in_use = 0
+        self.task_in_para = 0
+        # self. = 0
         # if self.gpu_per_node > 1:
+        # self.in_para_task_num = 0
 
         if self.strategy['if_cuda_multi_devices'] is True:
             if gpu_per_node < 1:
@@ -618,8 +623,11 @@ class Resources(object):
         resources_dict['gpu_per_node'] = self.gpu_per_node
         resources_dict['queue_name'] = self.queue_name
         resources_dict['group_size'] = self.group_size
-        resources_dict['extra_specification'] = self.extra_specification
+
+        resources_dict['custom_flags'] = self.custom_flags
         resources_dict['strategy'] = self.strategy
+        resources_dict['para_deg'] = self.para_deg
+        resources_dict['source_list'] = self.source_list
         resources_dict['kwargs'] = self.kwargs
         return resources_dict
 
@@ -630,8 +638,11 @@ class Resources(object):
                         gpu_per_node=resources_dict['gpu_per_node'],
                         queue_name=resources_dict['queue_name'],
                         group_size=resources_dict['group_size'],
-                        extra_specification=resources_dict['extra_specification'],
+
+                        custom_flags=resources_dict['custom_flags'],
                         strategy=resources_dict['strategy'],
+                        para_deg=resources_dict['para_deg'],
+                        source_list=resources_dict['source_list'],
                         **resources_dict['kwargs'])
         return resources
 

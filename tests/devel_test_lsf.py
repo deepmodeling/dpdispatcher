@@ -54,28 +54,24 @@ task1 = Task(
     task_work_path='bct-1',
     forward_files=['conf.lmp', 'input.lammps'],
     backward_files=['log.lammps'],
-    task_need_resources=1
 )
 task2 = Task(
     command='lmp_mpi_20201029 -i input.lammps',
     task_work_path='bct-2',
     forward_files=['conf.lmp', 'input.lammps'],
     backward_files=['log.lammps'],
-    task_need_resources=0.25
 )
 task3 = Task(
     command='lmp_mpi_20201029 -i input.lammps',
     task_work_path='bct-3',
     forward_files=['conf.lmp', 'input.lammps'],
     backward_files=['log.lammps'],
-    task_need_resources=0.25
 )
 task4 = Task(
     command='lmp_mpi_20201029 -i input.lammps',
     task_work_path='bct-4',
     forward_files=['conf.lmp', 'input.lammps'],
     backward_files=['log.lammps'],
-    task_need_resources=0.5
 )
 submission.register_task_list([task1, task2, task3, task4, ])
 submission.generate_jobs()
