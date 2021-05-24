@@ -6,10 +6,9 @@
         "username": "",
         "password": "",
         "input_data":{
-            "_comment":"comment with leading __ means it will be overwriten",
             "job_type": "indicate",
             "log_file": "dp_cloud_server.log",
-            "__command": "",
+            "command": "",
             "backward_files": [],
             "job_name": "dpdispatcher_job",
             "machine": {
@@ -18,18 +17,20 @@
                     "gpu_type": "1 * NVIDIA P100",
                     "cpu_num": 4,
                     "mem_limit": 28,
+	   	            "disk_size": 100,
+		            "region": "cn-beijing",
                     "time_limit": "2:00:00",
                     "image_name": "yfb-deepmd-kit-1.2.4-cuda10"
                     }
                 },
-            "__job_resources": null
+            "job_resources": null
             }
         },
     "resources": {
         "number_node": 1,
         "cpu_per_node": 4,
         "gpu_per_node": 1,
-        "queue_name": "V100",
+        "queue_name": "GPU",
         "group_size": 5
     }
 }

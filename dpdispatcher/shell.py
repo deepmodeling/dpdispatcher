@@ -5,88 +5,19 @@ from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.batch import Batch
 
-shell_script_template="""
-{shell_script_header}
-{shell_script_env}
-{shell_script_command}
-{shell_script_end}
-
-"""
-
 shell_script_header_template="""
 #!/bin/bash -l
-export REMOTE_ROOT={remote_root}
-"""
-
-shell_script_env_template="""
-cd $REMOTE_ROOT
-test $? -ne 0 && exit 1
-"""
-
-shell_script_command_template="""
-cd $REMOTE_ROOT
-cd {task_work_path}
-test $? -ne 0 && exit 1
-if [ ! -f {task_tag_finished} ] ;then
-  {command_env} {command}  1>> {outlog} 2>> {errlog} 
-  if test $? -ne 0; then touch {task_tag_finished}; fi
-  touch {task_tag_finished}
-fi &
-"""
-
-shell_script_end_template="""
-cd $REMOTE_ROOT
-
-test $? -ne 0 && exit 1
-
-wait
-
-touch {job_tag_finished}
-"""
-
-shell_script_wait="""
-wait
 """
 
 class Shell(Batch):
     def gen_script(self, job):
-        resources = job.resources
-        script_header_dict= {}
-        script_header_dict['remote_root']=self.context.remote_root
-        # script_header_dict['select_node_line']="#PBS -l select={number_node}:ncpus={cpu_per_node}:ngpus={gpu_per_node}".format(
-        #     number_node=resources.number_node, cpu_per_node=resources.cpu_per_node, gpu_per_node=resources.gpu_per_node)
-        # script_header_dict['walltime_line']="#PBS -l walltime=120:0:0"
-        # script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
-
-        shell_script_header = shell_script_header_template.format(**script_header_dict) 
-
-        shell_script_env = shell_script_env_template.format()
-
-        shell_script_command = ""
-        
-        # resources_in_use=0
-        for task in job.job_task_list:
-            command_env = ""     
-            shell_script_command +=  self.get_script_wait(resources=resources, task=task)
-            command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
-
-            task_tag_finished = task.task_hash + '_task_tag_finished'
-
-            temp_shell_script_command = shell_script_command_template.format(command_env=command_env, 
-                task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
-                outlog=task.outlog, errlog=task.errlog)
-            shell_script_command+=temp_shell_script_command
-        
-        job_tag_finished = job.job_hash + '_job_tag_finished'
-        shell_script_end = shell_script_end_template.format(job_tag_finished=job_tag_finished)
-
-        shell_script = shell_script_template.format(
-                          shell_script_header=shell_script_header,
-                          shell_script_env=shell_script_env,
-                          shell_script_command=shell_script_command,
-                          shell_script_end=shell_script_end)
+        shell_script = super(Shell, self).gen_script(job)
         return shell_script
-    
+
+    def gen_script_header(self, job):
+        shell_script_header = shell_script_header_template
+        return shell_script_header
+
     def do_submit(self, job):
         script_str = self.gen_script(job) 
         script_file_name = job.script_file_name

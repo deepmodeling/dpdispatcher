@@ -202,6 +202,10 @@ class SSHContext (object):
         self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
 
         self.job_uuid = submission.submission_hash
+        print('debug:SSHContext.bind_submission', 
+            submission.submission_hash,
+            self.local_root, self.remote_root)
+
         # try:
         # print('self.remote_root', self.remote_root)
         # sftp = self.ssh_session.ssh.open_sftp() 

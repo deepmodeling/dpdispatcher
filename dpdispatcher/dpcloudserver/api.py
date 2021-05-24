@@ -49,6 +49,7 @@ def login(username, password):
             '/account/login',
             {"username": username, "password": password}
             )
+    print('debug181', ret)
     token = ret['token']
 
 

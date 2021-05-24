@@ -30,7 +30,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="",
     python_requires="~=3.6",
-    packages=['dpdispatcher'],
+    packages=['dpdispatcher', 'dpdispatcher/dpcloudserver'],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",

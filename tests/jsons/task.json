@@ -1,5 +1,5 @@
 {
-    "command": "lmp_serial -i input.lammps",
+    "command": "lmp -i input.lammps",
     "task_work_path": "bct-1/",
     "forward_files": [
         "conf.lmp",

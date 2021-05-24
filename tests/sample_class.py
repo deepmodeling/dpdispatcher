@@ -21,8 +21,11 @@ class SampleClass(object):
             gpu_per_node=1,
             queue_name="V100_8_32",
             group_size=2,
-            extra_specification={},
-            strategy={'if_cuda_multi_devices': False})
+            custom_flags=[],
+            strategy={'if_cuda_multi_devices': False},
+            para_deg=1,
+            source_list=[],
+        )
         return resources
     
     @classmethod
@@ -32,8 +35,10 @@ class SampleClass(object):
             'gpu_per_node':1, 
             'queue_name':'V100_8_32', 
             'group_size':2,
-            'extra_specification':{},
+            'custom_flags':[],
             'strategy':{'if_cuda_multi_devices': False}, 
+            'para_deg':1,
+            'source_list':[],
             'kwargs': {}
         }
         return resources_dict
@@ -41,28 +46,27 @@ class SampleClass(object):
 
     @classmethod
     def get_sample_task(cls):
-        task = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], outlog='log', errlog='err', task_need_resources={})
+        task = Task(command='lmp -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], outlog='log', errlog='err')
         return task
 
     @classmethod
     def get_sample_task_dict(cls):
-        task_dict = {'command': 'lmp_serial -i input.lammps', 'task_work_path': 'bct-1/', 'forward_files': ['conf.lmp', 'input.lammps'] , 'backward_files': ['log.lammps'], 'outlog': 'log', 'errlog':'err', 'task_need_resources':{}}
+        task_dict = {'command': 'lmp -i input.lammps', 'task_work_path': 'bct-1/', 'forward_files': ['conf.lmp', 'input.lammps'] , 'backward_files': ['log.lammps'], 'outlog': 'log', 'errlog':'err'}
         return task_dict
-        
-        
+
     @classmethod
     def get_sample_task_list(cls):
-        task1 = Task(command='lmp_serial -i input.lammps', 
+        task1 = Task(command='lmp -i input.lammps', 
             task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
-        task2 = Task(command='lmp_serial -i input.lammps', 
+        task2 = Task(command='lmp -i input.lammps', 
             task_work_path='bct-2/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
-        task3 = Task(command='lmp_serial -i input.lammps', 
+        task3 = Task(command='lmp -i input.lammps', 
             task_work_path='bct-3/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
-        task4 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-4/', 
+        task4 = Task(command='lmp -i input.lammps', task_work_path='bct-4/', 
             forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
         task_list = [task1, task2, task3, task4]
         return task_list
-        
+
     @classmethod
     def get_sample_empty_submission(cls):
         resources = cls.get_sample_resources()
@@ -78,12 +82,9 @@ class SampleClass(object):
     @classmethod
     def get_sample_submission(cls):
         submission = cls.get_sample_empty_submission()
-        # print('^^^^^^^', submission)
         task_list = cls.get_sample_task_list()
         submission.register_task_list(task_list)
         submission.generate_jobs()
-        # print('------', submission.belonging_jobs)
-        # print('vvvvvvv', submission)
         return submission
 
     @classmethod
