@@ -81,21 +81,22 @@ class Batch(object):
         # in_para_task_num = 0
         for task in job.job_task_list:
             command_env = ""
-            script_command += self.get_script_wait(resources=resources, task=task)
-            command_env += self.get_command_env_cuda_devices(resources=resources, task=task)
+            command_env += self.get_command_env_cuda_devices(resources=resources)
 
             task_tag_finished = task.task_hash + '_task_tag_finished'
 
             log_err_part = ""
             if task.outlog is not None:
-                log_err_part += f"1 >> {task.outlog}"
+                log_err_part += f"1>>{task.outlog} "
             if task.errlog is not None:
-                log_err_part += f"2 >> {task.errlog}"
+                log_err_part += f"2>>{task.errlog} "
 
             single_script_command = script_command_template.format(command_env=command_env, 
                 task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part)
             script_command += single_script_command
+
+            script_command += self.get_script_wait(resources=resources)
         return script_command
 
     def get_script_wait(self, resources):
