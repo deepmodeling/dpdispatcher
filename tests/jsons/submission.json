@@ -6,10 +6,12 @@
         "gpu_per_node": 1,
         "queue_name": "V100_8_32",
         "group_size": 2,
-        "extra_specification": {},
+        "custom_flags": [],
         "strategy": {
             "if_cuda_multi_devices": false
         },
+        "para_deg": 1,
+        "source_list": [],
         "kwargs": {}
     },
     "forward_common_files": [
@@ -18,10 +20,10 @@
     "backward_common_files": [],
     "belonging_jobs": [
         {
-            "251f16f27459dcd7a3190b97fd214e6a0478d674": {
+            "4e3e8c88e576aa6fc104ec9445e0ee2303e77c9d": {
                 "job_task_list": [
                     {
-                        "command": "lmp_serial -i input.lammps",
+                        "command": "lmp -i input.lammps",
                         "task_work_path": "bct-3/",
                         "forward_files": [
                             "conf.lmp",
@@ -31,11 +33,10 @@
                             "log.lammps"
                         ],
                         "outlog": "log",
-                        "errlog": "err",
-                        "task_need_resources": {}
+                        "errlog": "err"
                     },
                     {
-                        "command": "lmp_serial -i input.lammps",
+                        "command": "lmp -i input.lammps",
                         "task_work_path": "bct-2/",
                         "forward_files": [
                             "conf.lmp",
@@ -45,8 +46,7 @@
                             "log.lammps"
                         ],
                         "outlog": "log",
-                        "errlog": "err",
-                        "task_need_resources": {}
+                        "errlog": "err"
                     }
                 ],
                 "resources": {
@@ -55,10 +55,12 @@
                     "gpu_per_node": 1,
                     "queue_name": "V100_8_32",
                     "group_size": 2,
-                    "extra_specification": {},
+                    "custom_flags": [],
                     "strategy": {
                         "if_cuda_multi_devices": false
                     },
+                    "para_deg": 1,
+                    "source_list": [],
                     "kwargs": {}
                 },
                 "job_state": null,
@@ -67,10 +69,10 @@
             }
         },
         {
-            "0bc84cd2498bfc54a81c75c03afd1e3ef9808005": {
+            "8dba64434a52c3fafdde65fa82e8ae74b42786d7": {
                 "job_task_list": [
                     {
-                        "command": "lmp_serial -i input.lammps",
+                        "command": "lmp -i input.lammps",
                         "task_work_path": "bct-4/",
                         "forward_files": [
                             "conf.lmp",
@@ -80,11 +82,10 @@
                             "log.lammps"
                         ],
                         "outlog": "log",
-                        "errlog": "err",
-                        "task_need_resources": {}
+                        "errlog": "err"
                     },
                     {
-                        "command": "lmp_serial -i input.lammps",
+                        "command": "lmp -i input.lammps",
                         "task_work_path": "bct-1/",
                         "forward_files": [
                             "conf.lmp",
@@ -94,8 +95,7 @@
                             "log.lammps"
                         ],
                         "outlog": "log",
-                        "errlog": "err",
-                        "task_need_resources": {}
+                        "errlog": "err"
                     }
                 ],
                 "resources": {
@@ -104,10 +104,12 @@
                     "gpu_per_node": 1,
                     "queue_name": "V100_8_32",
                     "group_size": 2,
-                    "extra_specification": {},
+                    "custom_flags": [],
                     "strategy": {
                         "if_cuda_multi_devices": false
                     },
+                    "para_deg": 1,
+                    "source_list": [],
                     "kwargs": {}
                 },
                 "job_state": null,
