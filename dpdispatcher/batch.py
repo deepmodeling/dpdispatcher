@@ -101,6 +101,7 @@ class Batch(object):
         for ii in custom_flags:
             line = ii + '\n'
             custom_flags_lines += line 
+        return custom_flags_lines
 
     def gen_script_env(self, job):
         source_files_part = ""
