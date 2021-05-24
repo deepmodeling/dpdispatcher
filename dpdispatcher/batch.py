@@ -4,6 +4,13 @@ import os,sys,time,random,uuid
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 
+
+script_env_template="""
+export REMOTE_ROOT={remote_root}
+test $? -ne 0 && exit 1
+{source_files_part}
+"""
+
 script_command_template="""
 cd $REMOTE_ROOT
 cd {task_work_path}
@@ -56,7 +63,19 @@ class Batch(object):
     def check_finish_tag(self, **kwargs):
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
-    def gen_script_command(self, job):
+    def get_script_env(self, job):
+        source_files_part = ""
+        source_list = job.resources.source_list
+        for ii in source_list:
+            line = f"source {ii}\n"
+            source_files_part += line
+
+        script_env = script_env_template.format(
+            remote_root=self.context.remote_root,
+            source_files_part=source_files_part)
+        return script_env
+
+    def get_script_command(self, job):
         script_command = ""
         resources = job.resources
         # in_para_task_num = 0
@@ -77,6 +96,7 @@ class Batch(object):
                 task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part)
             script_command += single_script_command
+        return script_command
 
     def get_script_wait(self, resources):
         # if not resources.strategy.get('if_cuda_multi_devices', None):

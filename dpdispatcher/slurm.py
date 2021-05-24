@@ -21,10 +21,11 @@ slurm_script_header_template="""\
 {slurm_partition_line}
 """
 
-slurm_script_env_template="""
-export REMOTE_ROOT={remote_root}
-test $? -ne 0 && exit 1
-"""
+# slurm_script_env_template="""
+# export REMOTE_ROOT={remote_root}
+# test $? -ne 0 && exit 1
+# {source_files_part}
+# """
 
 # slurm_script_command_template="""
 # cd $REMOTE_ROOT
@@ -47,9 +48,9 @@ wait
 touch {job_tag_finished}
 """
 
-slurm_script_wait="""
-wait
-"""
+# slurm_script_wait="""
+# wait
+# """
 
 # default_slurm_sbatch_dict={
 #     'nodes': 1,
@@ -105,25 +106,30 @@ class Slurm(Batch):
         script_header_dict['slurm_partition_line']="#SBATCH --partition {queue_name}".format(queue_name=resources.queue_name)
         slurm_script_header = slurm_script_header_template.format(**script_header_dict) 
 
-        # for k,v in slurm_sbatch_dict.items():
-        #     line = "#SBATCH --{key} {value}\n".format(key=k.replace('_', '-'), value=str(v))
-        #     slurm_script_header += line
-
         custom_flags = resources.custom_flags
         for ii in custom_flags:
             line = ii + '\n'
             slurm_script_header += line 
 
-        script_env_dict = {}
-        script_env_dict['remote_root'] = self.context.remote_root
-        slurm_script_env = slurm_script_env_template.format(**script_env_dict)
-        source_list = resources.source_list
-        for ii in source_list:
-            line = f"source {ii}\n"
-            slurm_script_env += line
+        # for k,v in slurm_sbatch_dict.items():
+        #     line = "#SBATCH --{key} {value}\n".format(key=k.replace('_', '-'), value=str(v))
+        #     slurm_script_header += line
+
+        # slurm_scirpt_env = ""
+
+        # source_files_part = ""
+        # source_list = resources.source_list
+        # for ii in source_list:
+        #     line = f"source {ii}\n"
+        #     source_files_part += line
+
+        # slurm_script_env = slurm_script_env_template.format(
+        #     remote_root=self.context.remote_root,
+        #     source_files_part=source_files_part)
 
         # slurm_script_command = ""
-        slurm_script_command = self.gen_script_command(job)
+        slurm_script_env = self.get_script_env(job)
+        slurm_script_command = self.get_script_command(job)
 
         # in_para_task_num = 0
         # for task in job.job_task_list:
@@ -138,16 +144,16 @@ class Slurm(Batch):
         #         outlog=task.outlog, errlog=task.errlog)
 
         #     slurm_script_command+=temp_slurm_script_command
-            
 
         job_tag_finished = job.job_hash + '_job_tag_finished'
         slurm_script_end = slurm_script_end_template.format(job_tag_finished=job_tag_finished)
 
         slurm_script = slurm_script_template.format(
-                          slurm_script_header=slurm_script_header,
-                          slurm_script_env=slurm_script_env,
-                          slurm_script_command=slurm_script_command,
-                          slurm_script_end=slurm_script_end)
+                        slurm_script_header=slurm_script_header,
+                        slurm_script_env=slurm_script_env,
+                        slurm_script_command=slurm_script_command,
+                        slurm_script_end=slurm_script_end
+        )
         return slurm_script
     
     def do_submit(self, job):
