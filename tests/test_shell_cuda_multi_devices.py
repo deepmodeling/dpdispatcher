@@ -15,7 +15,7 @@ class TestShellTrival(unittest.TestCase):
 
     def test_shell_trival(self):
         machine = Machine.load_from_json_file(json_path='jsons/machine.if_cuda_multi_devices.json')
-        submission = Submission(work_base='test_dir/', resources=machine.resources,  forward_common_files=['test.log'], backward_common_files=['out.txt'])
+        submission = Submission(work_base='test_dir/', resources=machine.resources,  forward_common_files=['test.txt'], backward_common_files=['out.txt'])
         task_list = []
         for ii in range(16):
             task = Task(command=f"echo dpdispatcher_unittest_{ii}", task_work_path='./', forward_files=[], backward_files=[], outlog='out.txt')
@@ -24,15 +24,15 @@ class TestShellTrival(unittest.TestCase):
         submission.bind_batch(batch=machine.batch)
         submission.run_submission(clean=False)
 
-        # for dir in ['dir1', 'dir2', 'dir3', 'dir4']:
-        #     f1 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'example.txt')
-        #     f2 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'out.txt')
-        #     self.assertEqual(get_file_md5(f1), get_file_md5(f2))
+        for ii in ['out.txt', 'test.txt']:
+            f1 = os.path.join('test_if_cuda_multi_devices/', 'test_dir/', ii)
+            f2 = os.path.join('tmp_if_cuda_multi_devices/', submission.submission_hash, ii)
+            self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
     @classmethod
     def tearDownClass(self):
-        pass
-        # shutil.rmtree('tmp_if_cuda_multi_devices/')
+        # pass
+        shutil.rmtree('tmp_if_cuda_multi_devices/')
 
 
 
