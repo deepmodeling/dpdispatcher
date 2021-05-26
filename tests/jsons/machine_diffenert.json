@@ -1,0 +1,30 @@
+{   
+    "train":{
+        "batch":{
+            "batch_type": "pbs",
+            "context_type": "lazy_local",
+            "local_root": "./"
+        },
+        "resources":{
+            "number_node": 1,
+            "cpu_per_node": 4,
+            "gpu_per_node": 1,
+            "queue_name": "T4_4_14",
+            "group_size": 5
+        }
+    },
+    "md":{
+        "batch":{
+            "batch_type": "Shell",
+            "context_type": "lazy_local",
+            "local_root": "./"
+        },
+        "resources":{
+            "number_node": null,
+            "cpu_per_node": null,
+            "gpu_per_node": 0,
+            "queue_name": null,
+            "group_size": 5
+        }
+    }
+}

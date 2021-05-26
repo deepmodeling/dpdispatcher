@@ -173,7 +173,7 @@ class SSHContext (object):
                 ):
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
-        self.job_uuid = None
+        # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
         # self.job_uuid = job_uuid
         # if job_uuid:
@@ -230,7 +230,7 @@ class SSHContext (object):
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
 
-        self.job_uuid = submission.submission_hash
+        # self.job_uuid = submission.submission_hash
         print('debug:SSHContext.bind_submission', 
             submission.submission_hash,
             self.local_root, self.remote_root)
@@ -310,13 +310,13 @@ class SSHContext (object):
             if retry < 3:
                 # sleep 60 s
                 dlog.warning("Get error code %d in calling %s through ssh with job: %s . message: %s" %
-                        (exit_status, cmd, self.job_uuid, stderr.read().decode('utf-8')))
+                        (exit_status, cmd, self.submission.submission_hash, stderr.read().decode('utf-8')))
                 dlog.warning("Sleep 60 s and retry the command...")
                 time.sleep(60)
                 return self.block_checkcall(cmd, asynchronously=asynchronously, retry=retry+1)
             print('debug:self.remote_root, cmd', self.remote_root, cmd)
             raise RuntimeError("Get error code %d in calling %s through ssh with job: %s . message: %s" %
-                               (exit_status, cmd, self.job_uuid, stderr.read().decode('utf-8')))
+                               (exit_status, cmd, self.submission.submission_hash, stderr.read().decode('utf-8')))
         return stdin, stdout, stderr    
 
     def block_call(self, 
@@ -389,7 +389,7 @@ class SSHContext (object):
     def _put_files(self,
                    files,
                    dereference = True) :
-        of = self.job_uuid + '.tgz'
+        of = self.submission.submission_hash + '.tgz'
         # local tar
         cwd = os.getcwd()
         os.chdir(self.local_root)
@@ -419,7 +419,7 @@ class SSHContext (object):
 
     def _get_files(self, 
                    files) :
-        of = self.job_uuid + '.tar.gz'
+        of = self.submission.submission_hash + '.tar.gz'
         # remote tar
         # If the number of files are large, we may get "Argument list too long" error.
         # Thus, we may run tar commands for serveral times and tar only 100 files for
@@ -429,7 +429,7 @@ class SSHContext (object):
         if ntar <= 1:
             self.block_checkcall('tar czf %s %s' % (of, " ".join(files)))
         else:
-            of_tar = self.job_uuid + '.tar'
+            of_tar = self.submission.submission_hash + '.tar'
             for ii in range(ntar):
                 ff = files[per_nfile * ii : per_nfile * (ii+1)]
                 if ii == 0:

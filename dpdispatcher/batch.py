@@ -25,8 +25,7 @@ cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
   {command_env} {command} {log_err_part}
-  if test $? -ne 0; then touch {task_tag_finished}; fi
-  touch {task_tag_finished}
+  if test $? -eq 0; then touch {task_tag_finished}; fi
 fi &
 """
 
@@ -155,6 +154,10 @@ class Batch(object):
             resources.task_in_para = 0
             if resources.strategy['if_cuda_multi_devices'] is True:
                 resources.gpu_in_use += 1
+                if resources.gpu_in_use % resources.gpu_per_node == 0:
+                    return "wait \n"
+                else:
+                    return ""
             return "wait \n"
         return ""
 

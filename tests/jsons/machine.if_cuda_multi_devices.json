@@ -1,0 +1,21 @@
+{
+    "batch":{
+        "batch_type": "shell",
+        "context_type": "local",
+        "local_root" : "test_if_cuda_multi_devices/",
+        "remote_root" : "tmp_if_cuda_multi_devices/",
+        "hostname": "39.106.xx.xxx",
+        "username": "user1"
+    },
+    "resources":{
+        "number_node": 1,
+        "cpu_per_node": 4,
+        "gpu_per_node": 4,
+        "queue_name": "GPU_2080Ti",
+        "group_size": 16,
+        "para_deg": 2,
+        "strategy": {
+            "if_cuda_multi_devices": true
+        }
+    }
+}

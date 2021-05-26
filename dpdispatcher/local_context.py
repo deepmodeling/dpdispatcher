@@ -327,7 +327,7 @@ class LocalContext(object) :
         code = proc.returncode
         if code != 0:
             os.chdir(cwd)        
-            raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.job_uuid))
+            raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.submission.submission_hash))
         os.chdir(cwd)        
         return None, stdout, stderr
         

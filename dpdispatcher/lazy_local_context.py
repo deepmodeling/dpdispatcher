@@ -28,7 +28,7 @@ class LazyLocalContext(object) :
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(local_root)
-        self.job_uuid = None
+        # self.job_uuid = None
         self.submission = None
         # if job_uuid:
         #    self.job_uuid=job_uuid
@@ -93,7 +93,7 @@ class LazyLocalContext(object) :
         code = proc.returncode
         if code != 0:
             os.chdir(cwd)        
-            raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.job_uuid))
+            raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.submission.submission_hash))
         os.chdir(cwd)        
         return None, stdout, stderr
         
