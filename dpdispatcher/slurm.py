@@ -45,7 +45,7 @@ class Slurm(Batch):
     def default_resources(self, resources) :
         pass
     
-    def check_status(self, job):
+    def check_status(self, job, retry=0):
         job_id = job.job_id
         if job_id == '' :
             return JobStatus.unsubmitted
@@ -59,6 +59,11 @@ class Slurm(Batch):
                 else :
                     return JobStatus.terminated
             else :
+                # retry 3 times
+                if retry < 3:
+                    # rest 60s
+                    time.sleep(60)
+                    return self.check_status(job_id, retry=retry+1)
                 raise RuntimeError\
                     ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
         status_line = stdout.read().decode('utf-8').split ('\n')[-2]
