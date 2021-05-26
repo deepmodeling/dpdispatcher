@@ -155,6 +155,10 @@ class Batch(object):
             resources.task_in_para = 0
             if resources.strategy['if_cuda_multi_devices'] is True:
                 resources.gpu_in_use += 1
+                if resources.gpu_in_use % resources.gpu_per_node == 0:
+                    return "wait \n"
+                else:
+                    return ""
             return "wait \n"
         return ""
 
