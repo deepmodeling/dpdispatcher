@@ -48,24 +48,3 @@ class BaseContext(object):
     def check_finish(self, proc):
         raise NotImplementedError('abstract method')
 
-#%%
-class A(object):
-    pass
-
-class B(object):
-    pass
-
-class C(object):
-    pass
-
-
-cd = {
-    A.__name__:A,
-    B.__name__:B,
-    C.__name__:C
-}
-
-
-# %%
-cd['A']
-# %%
