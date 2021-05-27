@@ -1,3 +1,4 @@
+from dpdispatcher.base_context import BaseContext
 import os,shutil,uuid,hashlib
 import subprocess as sp
 from glob import glob
@@ -39,7 +40,7 @@ def _identical_files(fname0, fname1) :
     return code0 == code1
 
 
-class LocalContext(object) :
+class LocalContext(BaseContext) :
     def __init__(self,
                 local_root,
                 remote_root

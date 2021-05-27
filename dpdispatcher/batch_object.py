@@ -16,47 +16,47 @@ from dpdispatcher.submission import Resources
 from typing_extensions import TypedDict
 from os import PathLike
 
-class BatchObject(object):
-    def __new__(self, jdata):
-        context_type = jdata.get('context_type', 'lazy_local')
-        batch_type = jdata['batch_type']
-        context = None
-        batch = None
-        if context_type == 'local':
-            context = LocalContext.from_jdata(jdata=jdata)
-        elif context_type == 'lazy_local':
-            context = LazyLocalContext.from_jdata(jdata=jdata)
-        elif context_type == 'ssh':
-            context = SSHContext.from_jdata(jdata=jdata)
-        elif context_type == 'dp_cloud_server':
-            context = DpCloudServerContext.from_jdata(jdata=jdata)
-        else:
-            raise RuntimeError(f"unknown context_type:{context_type}")
+# class BatchObject(object):
+#     def __new__(self, jdata):
+#         context_type = jdata.get('context_type', 'lazy_local')
+#         batch_type = jdata['batch_type']
+#         context = None
+#         batch = None
+#         if context_type == 'local':
+#             context = LocalContext.from_jdata(jdata=jdata)
+#         elif context_type == 'lazy_local':
+#             context = LazyLocalContext.from_jdata(jdata=jdata)
+#         elif context_type == 'ssh':
+#             context = SSHContext.from_jdata(jdata=jdata)
+#         elif context_type == 'dp_cloud_server':
+#             context = DpCloudServerContext.from_jdata(jdata=jdata)
+#         else:
+#             raise RuntimeError(f"unknown context_type:{context_type}")
 
-        if batch_type == 'pbs':
-            batch = PBS(context=context)
-        elif batch_type == 'lsf':
-            batch = LSF(context=context)
-        elif batch_type == 'slurm':
-            batch = Slurm(context=context)
-        elif batch_type == 'shell':
-            batch = Shell(context=context)
-        elif batch_type == 'dp_cloud_server':
-            input_data = jdata.get('input_data')
-            batch = DpCloudServer(context=context, input_data=input_data)
-        else:
-            raise RuntimeError(f"unknown batch_type:{batch_type}")
-        return batch
+#         if batch_type == 'pbs':
+#             batch = PBS(context=context)
+#         elif batch_type == 'lsf':
+#             batch = LSF(context=context)
+#         elif batch_type == 'slurm':
+#             batch = Slurm(context=context)
+#         elif batch_type == 'shell':
+#             batch = Shell(context=context)
+#         elif batch_type == 'dp_cloud_server':
+#             input_data = jdata.get('input_data')
+#             batch = DpCloudServer(context=context, input_data=input_data)
+#         else:
+#             raise RuntimeError(f"unknown batch_type:{batch_type}")
+#         return batch
 
 class MachineDict(TypedDict):
     batch : dict
     resources : dict
 
 # FilePathStr = PathLike[str]
-class MachineConfig(TypedDict):
-    machine_config_json : PathLike
-    batch_name : str
-    resources_name : str
+# class MachineConfig(TypedDict):
+#     machine_config_json : PathLike
+#     batch_name : str
+#     resources_name : str
 
 class Machine(object):
     def __init__(
@@ -71,12 +71,12 @@ class Machine(object):
     def load_from_machine_dict(cls, machine_dict):
         batch_dict = machine_dict['batch']
         resources_dict = machine_dict['resources']
-        batch = BatchObject(jdata=batch_dict)
+        batch = Batch.load_from_batch_dict(batch_dict=batch_dict)
         # if resources_dict is not None: 
         resources = Resources(**resources_dict)
         # else:
         #     resources = None
-        machine = cls(batch=batch,resources=resources)
+        machine = cls(batch=batch, resources=resources)
         return machine
 
     @classmethod

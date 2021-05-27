@@ -9,9 +9,8 @@ from .context import PBS
 from .context import JobStatus
 from .context import LazyLocalContext, LocalContext, SSHContext
 from .context import Submission, Job, Task, Resources
-from .context import BatchObject, Machine
-from .context import PBS, LSF, Slurm, Shell
 from .context import Machine
+from .context import PBS, LSF, Slurm, Shell
 from .sample_class import SampleClass
 
 

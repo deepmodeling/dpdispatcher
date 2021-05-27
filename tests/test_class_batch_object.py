@@ -9,7 +9,8 @@ from .context import PBS
 from .context import JobStatus
 from .context import LazyLocalContext, LocalContext, SSHContext
 from .context import Submission, Job, Task, Resources
-from .context import BatchObject, Machine
+from .context import Machine
+from .context import Batch
 from .context import PBS, LSF, Slurm, Shell
 from .sample_class import SampleClass
 
@@ -21,26 +22,26 @@ class TestBatchObject(unittest.TestCase):
         self.maxDiff = None
     
     def test_lazy_local(self):
-        jdata = {
+        batch_dict = {
             'batch_type': 'pbs',
             'context_type': 'lazy_local',
             'local_root':'./'
         }
-        batch = BatchObject(
-            jdata=jdata
+        batch = Batch.load_from_batch_dict(
+            batch_dict=batch_dict
         )
         # pylint: disable=maybe-no-member
         self.assertIsInstance(batch.context, LazyLocalContext)
 
     def test_local(self):
-        jdata = {
+        batch_dict = {
             'batch_type': 'pbs',
             'context_type': 'local',
             'local_root': './',
             'remote_root': './'
         }
-        batch = BatchObject(
-            jdata=jdata
+        batch = Batch.load_from_batch_dict(
+            batch_dict=batch_dict
         )
         # pylint: disable=maybe-no-member
         self.assertIsInstance(batch.context, LocalContext)
@@ -60,59 +61,59 @@ class TestBatchObject(unittest.TestCase):
         # )
         # self.assertIsInstance(batch.context, SSHContext)
     def test_key_err(self):
-        jdata = {}
+        # pass
+        batch_dict = {}
         with self.assertRaises(KeyError):
-            BatchObject(jdata=jdata)
-        
+            Batch.load_from_batch_dict(batch_dict=batch_dict)
+
     def test_context_err(self):
-        jdata = {
+        batch_dict = {
             'context_type' : 'foo',
             'batch_type' : 'pbs'
         }
         with self.assertRaises(RuntimeError):
-            BatchObject(jdata=jdata)
-        
+            Batch.load_from_batch_dict(batch_dict=batch_dict)
 
     def test_pbs(self):
-        jdata = {
+        batch_dict = {
             'batch_type': 'pbs',
             'context_type': 'lazy_local',
             'local_root':'./'
         }
-        batch = BatchObject(
-            jdata=jdata
+        batch = Batch.load_from_batch_dict(
+            batch_dict=batch_dict
         )
         self.assertIsInstance(batch, PBS)
 
     def test_lsf(self):
-        jdata = {
+        batch_dict = {
             'batch_type': 'lsf',
             'context_type': 'lazy_local',
             'local_root':'./'
         }
-        batch = BatchObject(
-            jdata=jdata
+        batch = Batch.load_from_batch_dict(
+            batch_dict=batch_dict
         )
         self.assertIsInstance(batch, LSF)
 
     def test_slurm(self):
-        jdata = {
+        batch_dict = {
             'batch_type': 'slurm',
             'context_type': 'lazy_local',
             'local_root':'./'
         }
-        batch = BatchObject(
-            jdata=jdata
+        batch = Batch.load_from_batch_dict(
+            batch_dict=batch_dict
         )
         self.assertIsInstance(batch, Slurm)
 
     def test_shell(self):
-        jdata = {
+        batch_dict = {
             'batch_type': 'shell',
             'context_type': 'lazy_local',
             'local_root':'./'
         }
-        batch = BatchObject(
-            jdata=jdata
+        batch = Batch.load_from_batch_dict(
+            batch_dict=batch_dict
         )
         self.assertIsInstance(batch, Shell)

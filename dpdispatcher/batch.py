@@ -3,7 +3,7 @@ import os,sys,time,random,uuid
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-
+from dpdispatcher.base_context import BaseContext
 
 script_template="""\
 {script_header}
@@ -40,6 +40,7 @@ touch {job_tag_finished}
 
 
 class Batch(object):
+    subclasses_dict = {}
     def __init__ (self,
                 context):
         self.context = context
@@ -48,6 +49,21 @@ class Batch(object):
         # self.finish_tag_name = '%s_job_tag_finished' % self.context.job_uuid
         # self.sub_script_name = '%s.sub' % self.context.job_uuid
         # self.job_id_name = '%s_job_id' % self.context.job_uuid
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.subclasses_dict[cls.__name__]=cls
+        # cls.subclasses.append(cls)
+
+    @classmethod
+    def load_from_batch_dict(cls, batch_dict):
+        batch_type = batch_dict['batch_type']
+        print("debug777:batch_class", cls.subclasses_dict, batch_type)
+        batch_class = cls.subclasses_dict[batch_type]
+        context = BaseContext.load_from_context_dict(batch_dict)
+        batch = batch_class(context=context)
+        
+        return batch
 
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        

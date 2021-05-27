@@ -1,3 +1,4 @@
+from dpdispatcher.base_context import BaseContext
 import os,shutil,uuid
 import subprocess as sp
 from glob import glob
@@ -18,7 +19,7 @@ class SPRetObj(object) :
             ret.append(aa+'\n')
         return ret
 
-class LazyLocalContext(object) :
+class LazyLocalContext(BaseContext) :
     def __init__ (self,
                 local_root,
                 ):

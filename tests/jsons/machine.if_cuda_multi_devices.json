@@ -1,7 +1,7 @@
 {
     "batch":{
-        "batch_type": "shell",
-        "context_type": "local",
+        "batch_type": "Shell",
+        "context_type": "LocalContext",
         "local_root" : "test_if_cuda_multi_devices/",
         "remote_root" : "tmp_if_cuda_multi_devices/",
         "hostname": "39.106.xx.xxx",

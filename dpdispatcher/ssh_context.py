@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from dpdispatcher.base_context import BaseContext
 import os, sys, paramiko, json, uuid, tarfile, time, stat, shutil
 from glob import glob
 from dpdispatcher import dlog
@@ -165,7 +166,7 @@ class SSHSession (object) :
         return self._sftp
 
 
-class SSHContext (object):
+class SSHContext (BaseContext):
     def __init__ (self,
                 local_root,
                 ssh_session,
