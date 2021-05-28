@@ -85,6 +85,7 @@ batch.json
         "timeout": 10
     }
 }
+```
 
 resources.json
 ```json
