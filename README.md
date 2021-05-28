@@ -48,27 +48,23 @@ dpdispatcher is maintained by deepmodeling's developers now and welcome other pe
 
 
 ```python3
-
 batch = Batch.load_from_json('batch.json')
 
 resources = Resources.load_from_json('resources.json')
 
-## get_batch_and_resources_from_machine_json()
-
+## get_batch_and_resources_from_machine_json('machine.json')
 
 task0 = Task.load_from_json('task.json')
 
 task1 = Task(command='cat example.txt', task_work_path='dir1/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
-
 task2 = Task(command='cat example.txt', task_work_path='dir2/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
-
 task3 = Task(command='cat example.txt', task_work_path='dir3/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
-
 task4 = Task(command='cat example.txt', task_work_path='dir4/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
 
 task_list = [task0, task1, task2, task3, task4]
-
-submission = Submission(work_base='parent_dir/', resources=resources, forward_common_files=['graph.pb'], backward_common_files=[], batch=batch, task_list=task_list)
+submission = Submission(work_base='parent_dir/', resources=resources, 
+    forward_common_files=['graph.pb'], backward_common_files=[], 
+    batch=batch, task_list=task_list)
 
 ## submission.register_task_list(task_list=task_list)
 
@@ -81,8 +77,8 @@ batch.json
     "batch_type": "Slurm",
     "context_type": "SSHContext",
     "local_root" : "./lammps_md_tasks_dir",
-    "remote_root": "~/dpdispatcher",
-    "work_profile": {
+    "remote_root": "~/dpdispatcher_work_dir",
+    "remote_profile": {
         "hostname": "39.106.xx.xxx",
         "username": "user1",
         "port": 22,
