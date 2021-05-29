@@ -49,7 +49,6 @@ dpdispatcher is maintained by deepmodeling's developers now and welcome other pe
 
 ```python3
 machine = Machine.load_from_json('machine.json')
-
 resources = Resources.load_from_json('resources.json')
 
 ## with open('hpc.json', 'r') as f:
@@ -57,7 +56,6 @@ resources = Resources.load_from_json('resources.json')
 
 ## machine = Machine.load_from_dict(hpc_dict['machine'])
 ## resources = Resources.load_from_dict(hpc_dict['resources'])
-
 
 task0 = Task.load_from_json('task.json')
 
@@ -70,7 +68,7 @@ task_list = [task0, task1, task2, task3, task4]
 
 submission = Submission(work_base='lammps_md_300K_5GPa/',
     machine=machine, 
-    resources=resources,
+    resources=reasources,
     task_list=task_list,
     forward_common_files=['graph.pb'], 
     backward_common_files=[]
@@ -88,10 +86,12 @@ machine.json
     "context_type": "SSHContext",
     "local_root" : "/home/user123/workplace/22_new_project/",
     "remote_root": "~/dpdispatcher_work_dir/",
-    "hostname": "39.106.xx.xxx",
-    "username": "user1",
-    "port": 22,
-    "timeout": 10
+    "remote_profile":{
+        "hostname": "39.106.xx.xxx",
+        "username": "user1",
+        "port": 22,
+        "timeout": 10
+    }
 }
 ```
 
