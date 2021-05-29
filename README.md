@@ -48,11 +48,16 @@ dpdispatcher is maintained by deepmodeling's developers now and welcome other pe
 
 
 ```python3
-batch = Batch.load_from_json('batch.json')
+machine = Machine.load_from_json('machine.json')
 
 resources = Resources.load_from_json('resources.json')
 
-## get_batch_and_resources_from_machine_json('machine.json')
+## with open('hpc.json', 'r') as f:
+##     hpc_dict = json.load(f)
+
+## machine = Machine.load_from_dict(hpc_dict['machine'])
+## resources = Resources.load_from_dict(hpc_dict['resources'])
+
 
 task0 = Task.load_from_json('task.json')
 
@@ -62,28 +67,31 @@ task3 = Task(command='cat example.txt', task_work_path='dir3/', forward_files=['
 task4 = Task(command='cat example.txt', task_work_path='dir4/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
 
 task_list = [task0, task1, task2, task3, task4]
-submission = Submission(work_base='parent_dir/', resources=resources, 
-    forward_common_files=['graph.pb'], backward_common_files=[], 
-    batch=batch, task_list=task_list)
+
+submission = Submission(work_base='lammps_md_300K_5GPa/',
+    machine=machine, 
+    resources=resources,
+    task_list=task_list,
+    forward_common_files=['graph.pb'], 
+    backward_common_files=[]
+)
 
 ## submission.register_task_list(task_list=task_list)
 
 submission.run_submission(clean=False)
 ```
 
-batch.json
+machine.json
 ```json
 {
-    "batch_type": "Slurm",
+    "machine_type": "Slurm",
     "context_type": "SSHContext",
     "local_root" : "/home/user123/workplace/22_new_project/",
-    "remote_root": "~/dpdispatcher_work_dir",
-    "remote_profile": {
-        "hostname": "39.106.xx.xxx",
-        "username": "user1",
-        "port": 22,
-        "timeout": 10
-    }
+    "remote_root": "~/dpdispatcher_work_dir/",
+    "hostname": "39.106.xx.xxx",
+    "username": "user1",
+    "port": 22,
+    "timeout": 10
 }
 ```
 
