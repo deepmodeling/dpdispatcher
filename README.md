@@ -51,11 +51,11 @@ dpdispatcher is maintained by deepmodeling's developers now and welcome other pe
 machine = Machine.load_from_json('machine.json')
 resources = Resources.load_from_json('resources.json')
 
-## with open('hpc.json', 'r') as f:
-##     hpc_dict = json.load(f)
+## with open('compute.json', 'r') as f:
+##     compute_dict = json.load(f)
 
-## machine = Machine.load_from_dict(hpc_dict['machine'])
-## resources = Resources.load_from_dict(hpc_dict['resources'])
+## machine = Machine.load_from_dict(compute_dict['machine'])
+## resources = Resources.load_from_dict(compute_dict['resources'])
 
 task0 = Task.load_from_json('task.json')
 
