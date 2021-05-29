@@ -76,7 +76,7 @@ batch.json
 {
     "batch_type": "Slurm",
     "context_type": "SSHContext",
-    "local_root" : "./lammps_md_tasks_dir",
+    "local_root" : "/home/user123/workplace/22_new_project/",
     "remote_root": "~/dpdispatcher_work_dir",
     "remote_profile": {
         "hostname": "39.106.xx.xxx",
