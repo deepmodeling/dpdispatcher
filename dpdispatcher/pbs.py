@@ -2,7 +2,7 @@ import os,sys,time,random,uuid
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-from dpdispatcher.batch import Batch
+from dpdispatcher.machine import Machine
 
 
 pbs_script_header_template="""
@@ -12,7 +12,7 @@ pbs_script_header_template="""
 {queue_name_line}
 """
 
-class PBS(Batch):
+class PBS(Machine):
     def gen_script(self, job):
         pbs_script = super(PBS, self).gen_script(job)
         return pbs_script

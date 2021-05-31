@@ -1,7 +1,7 @@
 import os, getpass, time
 from abc import ABC
 
-from dpdispatcher.batch import Batch
+from dpdispatcher.machine import Machine
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.submission import Resources
 
@@ -105,7 +105,7 @@ default_lsf_bsub_dict = {
 #         self.lsf_bsub_dict = lsf_bsub_dict
 
 
-class LSF(Batch, ABC):
+class LSF(Machine):
     """
     LSF batch
     """

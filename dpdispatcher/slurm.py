@@ -1,10 +1,10 @@
+from dpdispatcher.machine import Machine
 import os,sys,time,random,uuid
 from collections import defaultdict
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 # from dpdispatcher.submission import Resources
-from dpdispatcher.batch import Batch
 
 slurm_script_header_template="""\
 #!/bin/bash -l
@@ -14,7 +14,7 @@ slurm_script_header_template="""\
 {slurm_partition_line}
 """
 
-class Slurm(Batch):
+class Slurm(Machine):
     def gen_script(self, job):
         slurm_script = super(Slurm, self).gen_script(job)
         return slurm_script

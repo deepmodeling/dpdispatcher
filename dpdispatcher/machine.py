@@ -56,14 +56,13 @@ class Machine(object):
         # cls.subclasses.append(cls)
 
     @classmethod
-    def load_from_batch_dict(cls, batch_dict):
-        batch_type = batch_dict['batch_type']
-        print("debug777:batch_class", cls.subclasses_dict, batch_type)
-        batch_class = cls.subclasses_dict[batch_type]
-        context = BaseContext.load_from_context_dict(batch_dict)
-        batch = batch_class(context=context)
-        
-        return batch
+    def load_from_dict(cls, machine_dict):
+        batch_type = machine_dict['batch_type']
+        # print("debug777:batch_class", cls.subclasses_dict, batch_type)
+        machine_class = cls.subclasses_dict[batch_type]
+        context = BaseContext.load_from_dict(machine_dict)
+        machine = machine_class(context=context)
+        return machine
 
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        

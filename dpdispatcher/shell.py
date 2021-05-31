@@ -3,13 +3,13 @@ import psutil
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-from dpdispatcher.batch import Batch
+from dpdispatcher.machine import Machine
 
 shell_script_header_template="""
 #!/bin/bash -l
 """
 
-class Shell(Batch):
+class Shell(Machine):
     def gen_script(self, job):
         shell_script = super(Shell, self).gen_script(job)
         return shell_script
