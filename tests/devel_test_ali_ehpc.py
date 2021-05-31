@@ -1,14 +1,16 @@
-import sys, os
-from sample_class import SampleClass
+import sys, os, json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
-
-from dpdispatcher.local_context import LocalSession
-from dpdispatcher.local_context import LocalContext
-from dpdispatcher.lazy_local_context import LazyLocalContext
+# from .sample_class import SampleClass
+# from .context import Machine
+# from .context import Resources
+# from dpdispatcher.local_context import LocalSession
+# from dpdispatcher.local_context import LocalContext
+# from dpdispatcher.lazy_local_context import LazyLocalContext
 
 from dpdispatcher.submission import Submission, Job, Task, Resources
-from dpdispatcher.batch import Batch
-from dpdispatcher.pbs import PBS
+from dpdispatcher.machine import Machine
+from tests.sample_class import SampleClass
+# from dpdispatcher.pbs import PBS
 
 # local_session = LocalSession({'work_path':'test_work_path/'})
 # local_context = LocalContext(local_root='test_pbs_dir/', work_profile=local_session)
@@ -24,11 +26,19 @@ from dpdispatcher.pbs import PBS
 
 submission = SampleClass.get_sample_submission()
 # pbs = SampleClass.get_sample_pbs_local_context()
-slurm = SampleClass.get_sample_slurm_local_context()
-submission.bind_batch(batch=slurm)
+# slurm = SampleClass.get_sample_slurm_local_context()
+
+with open('jsons/compute_ali_ehpc.json', 'r') as f:
+    compute_dict = json.load(f)
+
+machine = Machine.load_from_dict(compute_dict['machine'])
+resources = Resources.load_from_dict(compute_dict['resources'])
+
+submission.resouces = resources
+submission.bind_machine(machine=machine)
 # submission.run_submission()
 # submission.run_submission(exit_on_submit=True)
-submission.run_submission(exit_on_submit=False)
+submission.run_submission()
 
 
 # resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=True) 

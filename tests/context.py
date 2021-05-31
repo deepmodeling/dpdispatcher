@@ -15,7 +15,10 @@ from dpdispatcher.pbs import PBS
 from dpdispatcher.slurm import Slurm
 from dpdispatcher.shell import Shell
 from dpdispatcher.lsf import LSF
+
 from dpdispatcher.local_context import _identical_files
+from dpdispatcher.dp_cloud_server import DpCloudServer
+from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
 from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.machine import Machine
 

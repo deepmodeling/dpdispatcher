@@ -396,7 +396,7 @@ class SSHContext(BaseContext):
         try:
            self.sftp.put(from_f, to_f)
         except FileNotFoundError:
-           raise FileNotFoundError("from %s to %s @ %s : %s Error!"%(from_f, self.username, self.hostname, to_f))
+           raise FileNotFoundError("from %s to %s @ %s : %s Error!"%(from_f, self.ssh_session.username, self.ssh_session.hostname, to_f))
         # remote extract
         self.block_checkcall('tar xf %s' % of)
         # clean up

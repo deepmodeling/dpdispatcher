@@ -19,7 +19,7 @@ class SampleClass(object):
         resources = Resources(number_node=1,
             cpu_per_node=4, 
             gpu_per_node=1,
-            queue_name="V100_8_32",
+            queue_name="T4_4_15",
             group_size=2,
             custom_flags=[],
             strategy={'if_cuda_multi_devices': False},
@@ -33,7 +33,7 @@ class SampleClass(object):
         resources_dict={'number_node': 1, 
             'cpu_per_node':4, 
             'gpu_per_node':1, 
-            'queue_name':'V100_8_32', 
+            'queue_name':'T4_4_15', 
             'group_size':2,
             'custom_flags':[],
             'strategy':{'if_cuda_multi_devices': False}, 
@@ -42,7 +42,6 @@ class SampleClass(object):
             'kwargs': {}
         }
         return resources_dict
-
 
     @classmethod
     def get_sample_task(cls):
@@ -121,7 +120,3 @@ class SampleClass(object):
             remote_root='tmp_slurm_dir/')
         slurm = Slurm(context=local_context)
         return slurm
-
-
-
-

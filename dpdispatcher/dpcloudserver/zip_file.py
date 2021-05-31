@@ -1,4 +1,5 @@
 import os, glob
+from posixpath import realpath
 from zipfile import ZipFile
 
 def zip_file_list(root_path, zip_filename, file_list=[]):
@@ -7,8 +8,9 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
     for f in file_list:
         matched_files = os.path.join(root_path, f)
         for ii in glob.glob(matched_files):
+            realpath = os.path.realpath(ii)
             arcname = os.path.relpath(ii, start=root_path)
-        zip_obj.write(ii, arcname)
+        zip_obj.write(realpath, arcname)
     zip_obj.close()
     return out_zip_file
 

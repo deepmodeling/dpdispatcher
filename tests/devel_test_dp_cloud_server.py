@@ -2,7 +2,7 @@ import sys, os, json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
 from dpdispatcher.submission import Submission, Job, Task, Resources
 # from dpdispatcher.batch_object import BatchObject
-from dpdispatcher.batch_object import Machine
+from dpdispatcher.machine import Machine
 from dpdispatcher.dp_cloud_server import DpCloudServer
 from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
 # from dpdispatcher.slurm import SlurmResources, Slurm
@@ -31,20 +31,24 @@ from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
 # dp_cloud_server = DpCloudServer(context=dp_cloud_server_context)
 # with open('test_dp_cloud_server.json', 'r') as f:
 #     jdata = json.load(f)
+with open('jsons/compute.dp_cloud_server.json', 'r') as f:
+    compute_dict = json.load(f)
 
-machine = Machine.load_from_json_file('jsons/machine_dp_cloud_server.private.json')
-dp_cloud_server = machine.batch
-resources = machine.resources
-# resources = Resources()
+machine = Machine.load_from_dict(compute_dict['machine'])
+resources = Resources.load_from_dict(compute_dict['resources'])
 
-submission = Submission(work_base='0_md/', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=[])
 task1 = Task(command='lmp    -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
 task2 = Task(command='lmp -i input.lammps', task_work_path='bct-2/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
 task3 = Task(command='lmp   -i input.lammps', task_work_path='bct-3/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
 task4 = Task(command='lmp -i input.lammps', task_work_path='bct-4/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
-submission.register_task_list([task1, task2, task3, task4, ])
-submission.generate_jobs()
-submission.bind_batch(batch=dp_cloud_server)
+task_list = [task1, task2, task3, task4, ]
 
+submission = Submission(work_base='0_md/', 
+    machine=machine,
+    resources=resources,
+    forward_common_files=['graph.pb'],
+    backward_common_files=[],
+    task_list=task_list
+)
 
 submission.run_submission()
