@@ -9,6 +9,5 @@
         "log.lammps"
     ],
     "outlog": "log",
-    "errlog": "err",
-    "task_need_resources": {}
+    "errlog": "err"
 }

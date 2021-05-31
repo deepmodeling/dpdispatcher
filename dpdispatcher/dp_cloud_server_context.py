@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 #%%
+from dpdispatcher import dp_cloud_server
+from dpdispatcher.base_context import BaseContext
 import os, sys, paramiko, json, uuid, tarfile, time, stat, shutil
 from glob import glob
 # from dpdispatcher import dlog
@@ -16,36 +18,38 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 ENDPOINT = 'http://oss-cn-shenzhen.aliyuncs.com'
 BUCKET_NAME = 'dpcloudserver'
 
-class DpCloudServerContext(object):
+class DpCloudServerContext(BaseContext):
     def __init__ (self,
-        # remote_root,
         local_root,
-        username,
-        password
+        remote_root=None,
+        remote_profile={},
     ):
         # self.remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
-        # self.local_root = local_root
-        self.username = username
-        self.password = password
+        self.remote_profile = remote_profile
+        username = remote_profile['username']
+        password = remote_profile['password']
 
-        api.login(username=self.username, password=self.password)
+        # self.local_root = local_root
+        # self.username = username
+        # self.password = password
+
+        api.login(username=username, password=password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
     @classmethod
-    def from_jdata(cls, jdata):
-        local_root = jdata['local_root']
-        username = jdata['username']
-        password = jdata['password']
+    def load_from_dict(cls, context_dict):
+        local_root = context_dict['local_root']
+        remote_root = context_dict.get('remote_root', None)
+        remote_profile = context_dict.get('remote_profile', {})
 
-        dp_cloud_server_context = DpCloudServerContext(
+        dp_cloud_server_context = cls(
             local_root=local_root,
-            username=username,
-            password=password
-            )
+            remote_root=remote_root,
+            remote_profile=remote_profile
+        )
         return dp_cloud_server_context
-    
 
     def bind_submission(self, submission):
         self.submission = submission
@@ -57,7 +61,7 @@ class DpCloudServerContext(object):
 
         self.submission_hash = submission.submission_hash
 
-        self.batch = submission.batch
+        self.machine = submission.machine
     
 
         # def zip_files(self, submission):
@@ -74,7 +78,7 @@ class DpCloudServerContext(object):
 
         for job in submission.belonging_jobs:
             print('debug---upload')
-            self.batch.gen_local_script(job)
+            self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
             oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
             zip_task_file = os.path.join(self.local_root, zip_filename)

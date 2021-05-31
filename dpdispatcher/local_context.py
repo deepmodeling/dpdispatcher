@@ -1,3 +1,4 @@
+from dpdispatcher.base_context import BaseContext
 import os,shutil,uuid,hashlib
 import subprocess as sp
 from glob import glob
@@ -39,21 +40,24 @@ def _identical_files(fname0, fname1) :
     return code0 == code1
 
 
-class LocalContext(object) :
+class LocalContext(BaseContext) :
     def __init__(self,
                 local_root,
-                remote_root
-                ) :
+                remote_root,
+                remote_profile={}
+                ):
         """
-        work_profile:
         local_root:
+        remote_root:
+        remote_profile:
         """
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(remote_root)
+        self.remote_profile = remote_profile
         # self.work_profile = work_profile
         # self.job_uuid = job_uuid
-        self.submission = None
+        # self.submission = None
         # if job_uuid:
         #    self.job_uuid = job_uuid
         # else:
@@ -65,16 +69,17 @@ class LocalContext(object) :
         # os.makedirs(self.remote_root, exist_ok = True)
     
     @classmethod
-    def from_jdata(cls, jdata):
-        local_root = jdata['local_root']
-        remote_root = jdata['remote_root']
+    def load_from_dict(cls, context_dict):
+        local_root = context_dict['local_root']
+        remote_root = context_dict['remote_root']
+        remote_profile = context_dict.get('remote_profile', {})
         instance = cls(
             local_root=local_root,
-            remote_root=remote_root
+            remote_root=remote_root,
+            remote_profile=remote_profile
         )
         return instance
-        # pass
-        
+
     def get_job_root(self) :
         return self.remote_root
     

@@ -1,9 +1,9 @@
 
-import os,sys,time,random,uuid
+import os,sys,time,random,uuid,json
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-
+from dpdispatcher.base_context import BaseContext
 
 script_template="""\
 {script_header}
@@ -39,7 +39,8 @@ touch {job_tag_finished}
 """
 
 
-class Batch(object):
+class Machine(object):
+    subclasses_dict = {}
     def __init__ (self,
                 context):
         self.context = context
@@ -48,6 +49,27 @@ class Batch(object):
         # self.finish_tag_name = '%s_job_tag_finished' % self.context.job_uuid
         # self.sub_script_name = '%s.sub' % self.context.job_uuid
         # self.job_id_name = '%s_job_id' % self.context.job_uuid
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.subclasses_dict[cls.__name__]=cls
+        # cls.subclasses.append(cls)
+
+    @classmethod
+    def load_from_json(cls, json_path):
+        with open(json_path, 'r') as f:
+            machine_dict = json.load(f)
+        machine = cls.load_from_dict(machine_dict=machine_dict)
+        return machine
+
+    @classmethod
+    def load_from_dict(cls, machine_dict):
+        batch_type = machine_dict['batch_type']
+        # print("debug777:batch_class", cls.subclasses_dict, batch_type)
+        machine_class = cls.subclasses_dict[batch_type]
+        context = BaseContext.load_from_dict(machine_dict)
+        machine = machine_class(context=context)
+        return machine
 
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        

@@ -2,39 +2,27 @@ import os,sys,time,random,uuid
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-from dpdispatcher.batch import Batch
+from dpdispatcher.machine import Machine
 from dpdispatcher.shell import Shell
 from dpdispatcher.dpcloudserver import api
 from dpdispatcher.dpcloudserver.config import API_HOST, ALI_OSS_BUCKET_URL
 
-# input_data = {
-#         'job_type': 'indicate',
-#         'log_file': 'dp_cloud_server.log',
-#         'command': '',
-#         'backward_files': [],
-#         'job_name': 'dpdispatcher_job',
-#         'machine': {
-#             'platform': 'ali',
-#             'resources': {
-#                 'gpu_type': '1 * NVIDIA P100',
-#                 'cpu_num': 4,
-#                 'mem_limit': 28,
-#                 'time_limit': '2:00:00',
-#                 'image_name': 'yfb-deepmd-kit-1.2.4-cuda10'
-#             }
-#         },
-#         'job_resources': ''
-#     }
+shell_script_header_template="""
+#!/bin/bash -l
+"""
 
-class DpCloudServer(Shell):
-    def __init__(self, context, input_data):
+class DpCloudServer(Machine):
+    def __init__(self, context):
         self.context = context
-        self.input_data = input_data
+        self.input_data = context.remote_profile['input_data'].copy()
 
-    # @classmethod
-    # def from_jdata(cls, jdata):
-        
-    #     pass
+    def gen_script(self, job):
+        shell_script = super(DpCloudServer, self).gen_script(job)
+        return shell_script
+
+    def gen_script_header(self, job):
+        shell_script_header = shell_script_header_template
+        return shell_script_header
 
     def gen_local_script(self, job):
         script_str = self.gen_script(job) 
@@ -52,7 +40,7 @@ class DpCloudServer(Shell):
         oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
         job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
         # job_resources = ALI_STS_ENDPOINT + '/' + oss_task_zip
-        print(897, job_resources)
+        # print(897, job_resources)
         # oss_task_zip = 'indicate'
         # oss_path = 
 

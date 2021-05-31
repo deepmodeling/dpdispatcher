@@ -1,0 +1,38 @@
+{
+    "machine":{
+        "batch_type": "DpCloudServer",
+        "context_type": "DpCloudServerContext",
+        "local_root" : "./test_context_dir/",
+        "remote_profile":{
+            "username": "user1234",
+            "password": "",
+            "input_data":{
+                "job_type": "indicate",
+                "log_file": "dp_cloud_server.log",
+                "command": "",
+                "backward_files": [],
+                "job_name": "dpdispatcher_20210531_job",
+                "machine": {
+                    "platform": "ali",
+                    "resources": {
+                        "gpu_type": "1 * NVIDIA P100",
+                        "cpu_num": 4,
+                        "mem_limit": 28,
+                        "disk_size": 100,
+                        "region": "cn-beijing",
+                        "time_limit": "2:00:00",
+                        "image_name": "yfb-deepmd-kit-1.2.4-cuda10"
+                        }
+                    },
+                "job_resources": null
+            }
+        }
+    },
+    "resources": {
+        "number_node": 1,
+        "cpu_per_node": 4,
+        "gpu_per_node": 1,
+        "queue_name": "GPU",
+        "group_size": 5
+    }
+}

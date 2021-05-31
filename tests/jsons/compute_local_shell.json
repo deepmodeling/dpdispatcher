@@ -1,0 +1,15 @@
+{
+    "machine":{
+        "batch_type": "Shell",
+        "context_type": "LocalContext",
+        "local_root": "./test_shell_trival_dir",
+        "remote_root": "./tmp_shell_trival_dir"
+    },
+    "resources":{
+        "number_node": 1,
+        "cpu_per_node": 4,
+        "gpu_per_node": 0,
+        "queue_name": "CPU",
+        "group_size": 2
+    }
+}

@@ -44,50 +44,81 @@ dpdispatcher is maintained by deepmodeling's developers now and welcome other pe
 
 ​
 
-## ussage example
+## example
 
 
 ```python3
+machine = Machine.load_from_json('machine.json')
+resources = Resources.load_from_json('resources.json')
 
-machine = Machine.load_from_json_file(json_path='jsons/machine_local_shell.json')
-submission = Submission(work_base='parent_dir/', resources=machine.resources,  forward_common_files=['graph.pb'], backward_common_files=[])
+## with open('compute.json', 'r') as f:
+##     compute_dict = json.load(f)
+
+## machine = Machine.load_from_dict(compute_dict['machine'])
+## resources = Resources.load_from_dict(compute_dict['resources'])
+
+task0 = Task.load_from_json('task.json')
 
 task1 = Task(command='cat example.txt', task_work_path='dir1/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
-
 task2 = Task(command='cat example.txt', task_work_path='dir2/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
-
 task3 = Task(command='cat example.txt', task_work_path='dir3/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
-
 task4 = Task(command='cat example.txt', task_work_path='dir4/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
 
-submission.register_task_list([task1, task2, task3, task4, ])
-submission.generate_jobs()
-submission.bind_batch(batch=machine.batch)
+task_list = [task0, task1, task2, task3, task4]
+
+submission = Submission(work_base='lammps_md_300K_5GPa/',
+    machine=machine, 
+    resources=reasources,
+    task_list=task_list,
+    forward_common_files=['graph.pb'], 
+    backward_common_files=[]
+)
+
+## submission.register_task_list(task_list=task_list)
+
 submission.run_submission(clean=False)
 ```
 
-
-the machine_local_shell.json looks like:
-(more machine examples, see: tests/jsons/*json)
-
-
-tests/jsons/machine_local_shell.json
-
-
+machine.json
 ```json
 {
-    "batch":{
-        "batch_type": "shell",
-        "context_type": "local",
-        "local_root" : "./test_shell_trival_dir",
-        "remote_root" : "./tmp_shell_trival_dir"
-    },
-    "resources":{
-        "number_node": 1,
-        "cpu_per_node": 4,
-        "gpu_per_node": 0,
-        "queue_name": "CPU",
-        "group_size": 2
+    "machine_type": "Slurm",
+    "context_type": "SSHContext",
+    "local_root" : "/home/user123/workplace/22_new_project/",
+    "remote_root": "~/dpdispatcher_work_dir/",
+    "remote_profile":{
+        "hostname": "39.106.xx.xxx",
+        "username": "user1",
+        "port": 22,
+        "timeout": 10
     }
+}
+```
+
+resources.json
+```json
+{
+    "number_node": 1,
+    "cpu_per_node": 4,
+    "gpu_per_node": 1,
+    "queue_name": "GPUV100",
+    "group_size": 5
+}
+```
+
+task.json
+```json
+{
+    "command": "lmp -i input.lammps",
+    "task_work_path": "bct-0/",
+    "forward_files": [
+        "conf.lmp",
+        "input.lammps"
+    ],
+    "backward_files": [
+        "log.lammps"
+    ],
+    "outlog": "log",
+    "errlog": "err",
 }
 ```

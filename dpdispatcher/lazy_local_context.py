@@ -1,3 +1,4 @@
+from dpdispatcher.base_context import BaseContext
 import os,shutil,uuid
 import subprocess as sp
 from glob import glob
@@ -18,28 +19,37 @@ class SPRetObj(object) :
             ret.append(aa+'\n')
         return ret
 
-class LazyLocalContext(object) :
+class LazyLocalContext(BaseContext) :
     def __init__ (self,
                 local_root,
+                remote_root=None,
+                remote_profile={}
                 ):
         """
         local_root:
+        remote_root:
+        remote_profile:
         """
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(local_root)
+        self.remote_profile = remote_profile
         # self.job_uuid = None
-        self.submission = None
+        # self.submission = None
         # if job_uuid:
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
 
     @classmethod
-    def from_jdata(cls, jdata):
-        local_root = jdata['local_root']
+    def load_from_dict(cls, context_dict):
+        local_root = context_dict['local_root']
+        remote_root = context_dict.get('remote_root', None)
+        remote_profile = context_dict.get('remote_profile', {})
         instance = cls(
-            local_root=local_root
+            local_root=local_root,
+            remote_root=remote_root,
+            remote_profile=remote_profile
         )
         return instance
 
