@@ -39,7 +39,7 @@ touch {job_tag_finished}
 """
 
 
-class Batch(object):
+class Machine(object):
     subclasses_dict = {}
     def __init__ (self,
                 context):
