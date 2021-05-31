@@ -18,33 +18,35 @@ BUCKET_NAME = 'dpcloudserver'
 
 class DpCloudServerContext(object):
     def __init__ (self,
-        # remote_root,
         local_root,
-        username,
-        password
+        remote_root=None,
+        remote_profile={},
     ):
         # self.remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
-        # self.local_root = local_root
-        self.username = username
-        self.password = password
+        username = remote_profile['username']
+        password = remote_profile['password']
 
-        api.login(username=self.username, password=self.password)
+        # self.local_root = local_root
+        # self.username = username
+        # self.password = password
+
+        api.login(username=username, password=password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
-    @classmethod
-    def from_jdata(cls, jdata):
-        local_root = jdata['local_root']
-        username = jdata['username']
-        password = jdata['password']
+    # @classmethod
+    # def from_jdata(cls, jdata):
+    #     local_root = jdata['local_root']
+    #     username = jdata['username']
+    #     password = jdata['password']
 
-        dp_cloud_server_context = DpCloudServerContext(
-            local_root=local_root,
-            username=username,
-            password=password
-            )
-        return dp_cloud_server_context
+    #     dp_cloud_server_context = DpCloudServerContext(
+    #         local_root=local_root,
+    #         username=username,
+    #         password=password
+    #         )
+    #     return dp_cloud_server_context
     
 
     def bind_submission(self, submission):

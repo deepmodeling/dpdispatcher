@@ -43,18 +43,21 @@ def _identical_files(fname0, fname1) :
 class LocalContext(BaseContext) :
     def __init__(self,
                 local_root,
-                remote_root
-                ) :
+                remote_root,
+                remote_profile={}
+                ):
         """
-        work_profile:
         local_root:
+        remote_root:
+        remote_profile:
         """
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(remote_root)
+        self,remote_profile = remote_profile
         # self.work_profile = work_profile
         # self.job_uuid = job_uuid
-        self.submission = None
+        # self.submission = None
         # if job_uuid:
         #    self.job_uuid = job_uuid
         # else:
@@ -65,15 +68,15 @@ class LocalContext(BaseContext) :
 
         # os.makedirs(self.remote_root, exist_ok = True)
     
-    @classmethod
-    def from_jdata(cls, jdata):
-        local_root = jdata['local_root']
-        remote_root = jdata['remote_root']
-        instance = cls(
-            local_root=local_root,
-            remote_root=remote_root
-        )
-        return instance
+    # @classmethod
+    # def from_jdata(cls, jdata):
+    #     local_root = jdata['local_root']
+    #     remote_root = jdata['remote_root']
+    #     instance = cls(
+    #         local_root=local_root,
+    #         remote_root=remote_root
+    #     )
+    #     return instance
         # pass
         
     def get_job_root(self) :

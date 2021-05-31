@@ -27,10 +27,10 @@ class Submission(object):
     """
     def __init__(self,
                 work_base,
+                batch=None,
                 resources=None,
                 forward_common_files=[],
                 backward_common_files=[],
-                batch=None,
                 *,
                 task_list=[]):
         # self.submission_list = submission_list
@@ -644,6 +644,13 @@ class Resources(object):
                         para_deg=resources_dict['para_deg'],
                         source_list=resources_dict['source_list'],
                         **resources_dict['kwargs'])
+        return resources
+
+    @classmethod
+    def load_from_json(cls, json_file):
+        with open(json_file, 'r') as f:
+            resources_dict = json.load(f)
+        resources = cls.deserialize(resources_dict=resources_dict)
         return resources
 
         # if 'slurm_sbatch_dict' in resources_dict:

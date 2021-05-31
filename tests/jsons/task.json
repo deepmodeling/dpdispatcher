@@ -10,5 +10,4 @@
     ],
     "outlog": "log",
     "errlog": "err",
-    "task_need_resources": {}
 }

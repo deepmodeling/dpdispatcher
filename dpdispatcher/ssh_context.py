@@ -166,9 +166,11 @@ class SSHSession (object) :
         return self._sftp
 
 
-class SSHContext (BaseContext):
+class SSHContext(BaseContext):
     def __init__ (self,
                 local_root,
+                remote_root,
+                remote_profile,
                 ssh_session,
                 clean_asynchronously=False,
                 ):
