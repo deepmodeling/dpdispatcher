@@ -41,13 +41,17 @@ class LazyLocalContext(BaseContext) :
         # else:
         #    self.job_uuid = str(uuid.uuid4())
 
-    # @classmethod
-    # def from_jdata(cls, jdata):
-    #     local_root = jdata['local_root']
-    #     instance = cls(
-    #         local_root=local_root
-    #     )
-    #     return instance
+    @classmethod
+    def load_from_dict(cls, context_dict):
+        local_root = context_dict['local_root']
+        remote_root = context_dict.get('remote_root', None)
+        remote_profile = context_dict.get('remote_profile', {})
+        instance = cls(
+            local_root=local_root,
+            remote_root=remote_root,
+            remote_profile=remote_profile
+        )
+        return instance
 
     def bind_submission(self, submission):
         self.submission = submission

@@ -13,11 +13,11 @@ class BaseContext(object):
         cls.subclasses_dict[cls.__name__]=cls
 
     @classmethod
-    def load_from_context_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict):
         context_type = context_dict['context_type']
         print("debug778:context_type", cls.subclasses_dict, context_type)
         context_class = cls.subclasses_dict[context_type]
-        context = context_class.from_jdata(context_dict)
+        context = context_class.load_from_dict(context_dict)
         return context
 
     def bind_submission(self, submission):

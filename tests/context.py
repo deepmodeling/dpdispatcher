@@ -17,8 +17,7 @@ from dpdispatcher.shell import Shell
 from dpdispatcher.lsf import LSF
 from dpdispatcher.local_context import _identical_files
 from dpdispatcher.submission import Submission, Job, Task, Resources
-from dpdispatcher.batch_object import Machine
-from dpdispatcher.batch import Batch
+from dpdispatcher.machine import Machine
 
 def setUpModule():
     os.chdir(os.path.abspath(os.path.dirname(__file__)))

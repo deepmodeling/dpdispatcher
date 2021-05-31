@@ -54,7 +54,7 @@ class LocalContext(BaseContext) :
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(remote_root)
-        self,remote_profile = remote_profile
+        self.remote_profile = remote_profile
         # self.work_profile = work_profile
         # self.job_uuid = job_uuid
         # self.submission = None
@@ -68,17 +68,18 @@ class LocalContext(BaseContext) :
 
         # os.makedirs(self.remote_root, exist_ok = True)
     
-    # @classmethod
-    # def from_jdata(cls, jdata):
-    #     local_root = jdata['local_root']
-    #     remote_root = jdata['remote_root']
-    #     instance = cls(
-    #         local_root=local_root,
-    #         remote_root=remote_root
-    #     )
-    #     return instance
-        # pass
-        
+    @classmethod
+    def load_from_dict(cls, context_dict):
+        local_root = context_dict['local_root']
+        remote_root = context_dict['remote_root']
+        remote_profile = context_dict.get('remote_profile', {})
+        instance = cls(
+            local_root=local_root,
+            remote_root=remote_root,
+            remote_profile=remote_profile
+        )
+        return instance
+
     def get_job_root(self) :
         return self.remote_root
     

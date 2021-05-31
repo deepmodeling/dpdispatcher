@@ -7,36 +7,9 @@ from glob import glob
 from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
 
-class SSHSession (object) :
-    # def bk__init__ (self, jdata) :
-    #     self.remote_profile = jdata
-    #     # with open(remote_profile) as fp :
-    #     #     self.remote_profile = json.load(fp)
-    #     self.remote_host = self.remote_profile['hostname']
-    #     self.remote_uname = self.remote_profile['username']
-    #     self.remote_port = self.remote_profile.get('port', 22)
-    #     self.remote_password = self.remote_profile.get('password', None)
-    #     self.local_key_filename = self.remote_profile.get('key_filename', None)
-    #     self.remote_timeout = self.remote_profile.get('timeout', None)
-    #     self.local_key_passphrase = self.remote_profile.get('passphrase', None)
-    #     self.remote_workpath = self.remote_profile['work_path']
-    #     self.ssh = None
-    #     self._setup_ssh(hostname=self.remote_host,
-    #                     port=self.remote_port,
-    #                     username=self.remote_uname,
-    #                     password=self.remote_password,
-    #                     key_filename=self.local_key_filename,
-    #                     timeout=self.remote_timeout,
-    #                     passphrase=self.local_key_passphrase)
-    
-    # def __init__(self, machine):
-    #     self.machine = machine
-    #     self.ssh=None
-    #     self._setup_ssh()
-    
+class SSHSession (object):
     def __init__(self,
                 hostname,
-                remote_root,
                 username,
                 password=None,
                 port=22,
@@ -45,7 +18,6 @@ class SSHSession (object) :
                 timeout=10):
 
         self.hostname = hostname
-        self.remote_root = remote_root
         self.username = username
         self.password = password
         self.port = port
@@ -137,8 +109,8 @@ class SSHSession (object) :
     def get_ssh_client(self) :
         return self.ssh
 
-    def get_session_root(self) :
-        return self.remote_root
+    # def get_session_root(self) :
+    #     return self.remote_root
 
     def close(self) :
         self.ssh.close()
@@ -171,7 +143,6 @@ class SSHContext(BaseContext):
                 local_root,
                 remote_root,
                 remote_profile,
-                ssh_session,
                 clean_asynchronously=False,
                 ):
         assert(type(local_root) == str)
@@ -183,8 +154,9 @@ class SSHContext(BaseContext):
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
-        self.temp_remote_root = os.path.join(ssh_session.get_session_root())
-        self.ssh_session = ssh_session
+        self.ssh_session = SSHSession(**remote_profile)
+        # self.temp_remote_root = os.path.join(self.ssh_session.get_session_root())
+        self.temp_remote_root = remote_root
         self.ssh_session.ensure_alive()
         try:
             self.sftp.mkdir(self.temp_remote_root)
@@ -192,25 +164,36 @@ class SSHContext(BaseContext):
             pass
 
     @classmethod
-    def from_jdata(cls, jdata):
+    def load_from_dict(cls, context_dict):
         # instance = cls()
-        input = dict(
-            hostname = jdata['hostname'],
-            remote_root = jdata['remote_root'],
-            username = jdata['username'],
-            password = jdata.get('password', None),
-            port = jdata.get('port', 22),
-            key_filename = jdata.get('key_filename', None),
-            passphrase = jdata.get('passphrase', None),
-            timeout = jdata.get('timeout', 10),
-        )
-        local_root = jdata['local_root']
-        ssh_session = SSHSession(**input)
-        ssh_context = SSHContext(
+        # input = dict(
+        #     hostname = jdata['hostname'],
+        #     remote_root = jdata['remote_root'],
+        #     username = jdata['username'],
+        #     password = jdata.get('password', None),
+        #     port = jdata.get('port', 22),
+        #     key_filename = jdata.get('key_filename', None),
+        #     passphrase = jdata.get('passphrase', None),
+        #     timeout = jdata.get('timeout', 10),
+        # )
+        local_root = context_dict['local_root']
+        remote_root = context_dict['remote_root']
+        remote_profile = context_dict['remote_profile']
+        clean_asynchronously = context_dict.get('clean_asynchronously', False)
+
+        ssh_context = cls(
             local_root=local_root,
-            ssh_session=ssh_session,
-            clean_asynchronously=jdata.get('clean_asynchronously', False),
-            )
+            remote_root=remote_root,
+            remote_profile=remote_profile,
+            clean_asynchronously=clean_asynchronously
+        )
+        # local_root = jdata['local_root']
+        # ssh_session = SSHSession(**input)
+        # ssh_context = SSHContext(
+        #     local_root=local_root,
+        #     ssh_session=ssh_session,
+        #     clean_asynchronously=jdata.get('clean_asynchronously', False),
+        #     )
         return ssh_context
     
     @property

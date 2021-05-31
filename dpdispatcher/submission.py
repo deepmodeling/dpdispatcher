@@ -21,13 +21,13 @@ class Submission(object):
         the common files to be uploaded to other computers before the jobs begin
     backward_common_files: list
         the common files to be downloaded from other computers after the jobs finish
-    batch : Batch
-        Batch class object (for example, PBS, Slurm, Shell) to execute the jobs.
-        The batch can still be bound after the instantiation with the bind_submission method.
+    machine : machine
+        machine class object (for example, PBS, Slurm, Shell) to execute the jobs.
+        The machine can still be bound after the instantiation with the bind_submission method.
     """
     def __init__(self,
                 work_base,
-                batch=None,
+                machine=None,
                 resources=None,
                 forward_common_files=[],
                 backward_common_files=[],
@@ -47,7 +47,7 @@ class Submission(object):
         self.belonging_tasks = task_list.copy()
         self.belonging_jobs = list()
 
-        self.bind_batch(batch)
+        self.bind_machine(machine)
 
     def __repr__(self):
         return json.dumps(self.serialize(), indent=4)
@@ -61,7 +61,7 @@ class Submission(object):
         return self.serialize(if_static=True) == other.serialize(if_static=True)
 
     @classmethod
-    def deserialize(cls, submission_dict, batch=None):
+    def deserialize(cls, submission_dict, machine=None):
         """convert the submission_dict to a Submission class object
 
         Parameters
@@ -80,7 +80,7 @@ class Submission(object):
             backward_common_files=submission_dict['backward_common_files'])
         submission.belonging_jobs = [Job.deserialize(job_dict=job_dict) for job_dict in submission_dict['belonging_jobs']]
         submission.submission_hash = submission.get_hash()
-        submission.bind_batch(batch=batch)
+        submission.bind_machine(machine=machine)
         return submission
 
     def serialize(self, if_static=False):
@@ -120,20 +120,20 @@ class Submission(object):
     def get_hash(self):
         return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest()
 
-    def bind_batch(self, batch):
-        """bind this submission to a batch. update the batch's context remote_root and local_root.
+    def bind_machine(self, machine):
+        """bind this submission to a machine. update the machine's context remote_root and local_root.
 
         Parameters
         ----------
-        batch : Batch
-            the batch to bind with
+        machine : Machine
+            the machine to bind with
         """
         self.submission_hash = self.get_hash()
-        self.batch = batch
+        self.machine = machine
         for job in self.belonging_jobs:
-            job.batch = batch
-        if batch is not None:
-            self.batch.context.bind_submission(self)
+            job.machine = machine
+        if machine is not None:
+            self.machine.context.bind_submission(self)
         return self
 
     def run_submission(self, *, exit_on_submit=False, clean=True):
@@ -160,7 +160,7 @@ class Submission(object):
             if exit_on_submit is True:
                 print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
                 print(f"submission succeeded: {self.submission_hash}")
-                print(f"at {self.batch.context.remote_root}")
+                print(f"at {self.machine.context.remote_root}")
                 print("exit_on_submit")
                 print('>>>>>>dpdispatcher>>>>>>SuccessSubmit>>>>>>exit 0>>>>>>')
                 return self.serialize()
@@ -270,57 +270,57 @@ class Submission(object):
 
         for ii in random_task_index_ll:
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
-            job = Job(job_task_list=job_task_list, batch=self.batch, resources=copy.deepcopy(self.resources))
+            job = Job(job_task_list=job_task_list, machine=self.machine, resources=copy.deepcopy(self.resources))
             # print('generate_jobs', ii, job)
             self.belonging_jobs.append(job)
 
-        if self.batch is not None:
-            self.bind_batch(self.batch)
+        if self.machine is not None:
+            self.bind_machine(self.machine)
 
         self.submission_hash = self.get_hash()
 
     def upload_jobs(self):
-        self.batch.context.upload(self)
+        self.machine.context.upload(self)
 
     def download_jobs(self):
-        self.batch.context.download(self)
+        self.machine.context.download(self)
         # for job in self.belonging_jobs:
         #     job.tag_finished()
-        # self.batch.context.write_file(self.batch.finish_tag_name, write_str="")
+        # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")
 
     def clean_jobs(self):
-        self.batch.context.clean()
+        self.machine.context.clean()
 
     def submission_to_json(self):
         # print('~~~~,~~~', self.serialize())
         self.get_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
-        self.batch.context.write_file(submission_file_name, write_str=write_str)
+        self.machine.context.write_file(submission_file_name, write_str=write_str)
 
     @classmethod
     def submission_from_json(cls, json_file_name='submission.json'):
         with open(json_file_name, 'r') as f:
             submission_dict = json.load(f)
-        # submission_dict = batch.context.read_file(json_file_name)
-        submission = cls.deserialize(submission_dict=submission_dict, batch=None)
+        # submission_dict = machine.context.read_file(json_file_name)
+        submission = cls.deserialize(submission_dict=submission_dict, machine=None)
         return submission
 
     # def check_if_recover()
 
     def try_recover_from_json(self):
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
-        if_recover = self.batch.context.check_file_exists(submission_file_name)
+        if_recover = self.machine.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
         if if_recover :
-            submission_dict_str = self.batch.context.read_file(fname=submission_file_name)
+            submission_dict_str = self.machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
             submission = Submission.deserialize(submission_dict=submission_dict)
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
-                self.bind_batch(batch=self.batch)
-                self = submission.bind_batch(batch=self.batch)
+                self.bind_machine(machine=self.machine)
+                self = submission.bind_machine(machine=self.machine)
             else:
                 print(self.serialize())
                 print(submission.serialize())
@@ -413,19 +413,19 @@ class Job(object):
         the tasks belong to the job
     resources : Resources
         the machine resources. Passed from Submission when instantiating.
-    batch : Batch
-        Batch object to execute the job. Passed from Submission when instantiating.
+    machine : machine
+        machine object to execute the job. Passed from Submission when instantiating.
     """
     def __init__(self,
                 job_task_list,
                 *,
                 resources,
-                batch=None,
+                machine=None,
                 ):
         self.job_task_list = job_task_list
         # self.job_work_base = job_work_base
         self.resources = resources
-        self.batch = batch
+        self.machine = machine
 
         self.job_state = None # JobStatus.unsubmitted
         self.job_id = ""
@@ -447,7 +447,7 @@ class Job(object):
         return self.serialize(if_static=True) == other.serialize(if_static=True)
 
     @classmethod
-    def deserialize(cls, job_dict, batch=None):
+    def deserialize(cls, job_dict, machine=None):
         """convert the  job_dict to a Submission class object
 
         Parameters
@@ -467,7 +467,7 @@ class Job(object):
         job_task_list = [Task.deserialize(task_dict) for task_dict in job_dict[job_hash]['job_task_list']]
         job = Job(job_task_list=job_task_list,
             resources=Resources.deserialize(resources_dict=job_dict[job_hash]['resources']),
-            batch=batch)
+            machine=machine)
 
         # job.job_runtime_info=job_dict[job_hash]['job_runtime_info']
         job.job_state = job_dict[job_hash]['job_state']
@@ -483,8 +483,8 @@ class Job(object):
         -----
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
-        print('debug:self.batch',self.batch)
-        job_state = self.batch.check_status(self)
+        print('debug:self.machine',self.machine)
+        job_state = self.machine.check_status(self)
         self.job_state = job_state
 
     def handle_unexpected_job_state(self):
@@ -542,14 +542,14 @@ class Job(object):
         self.job_id = job_id
 
     def submit_job(self):
-        job_id = self.batch.do_submit(self)
+        job_id = self.machine.do_submit(self)
         self.register_job_id(job_id)
         self.job_state = JobStatus.waiting
 
     def job_to_json(self):
         # print('~~~~,~~~', self.serialize())
         write_str = json.dumps(self.serialize(), indent=2, default=str)
-        self.batch.context.write_file(self.job_hash + '_job.json', write_str=write_str)
+        self.machine.context.write_file(self.job_hash + '_job.json', write_str=write_str)
 
 
 class Resources(object):
@@ -653,42 +653,8 @@ class Resources(object):
         resources = cls.deserialize(resources_dict=resources_dict)
         return resources
 
-        # if 'slurm_sbatch_dict' in resources_dict:
-        #     resources = cls.deserialize(resources_dict=resources_dict['resources'])
-        #     slurm_sbatch_dict = resources_dict['slurm_sbatch_dict']
-        #     return SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
-        # else:
-        #     resources = cls(**resources_dict)
-        # return resources
-
-# class Machine(object):
-#     """Machaine represents the information of the computer in the web or 'localhost'
-
-#     Parameters
-#     ----------
-#     hostname : str
-#         the ip of the machine, or 'localhost' to run on the localhost
-#     remote_root : path-like str
-#         the dir where dpdispatcher uploads the data and task files.
-#     username : str
-#         dpdispatcher will initialize a ssh connection ssh -p port 'username@hostname'
-#     password : str
-#         password of user username. This can be None.
-#         Note: You can use linux 'ssh-copy-id' command to ssh connect without password.
-#     port : int
-#         ssh connection port. In most linux systems, the default value is 22.
-#     """
-#     def __init__(self,
-#                 hostname,
-#                 remote_root,
-#                 username,
-#                 password=None,
-#                 port=22):
-#         self.hostname = hostname
-#         self.remote_root = remote_root
-#         self.username = username
-#         self.password = password
-#         self.port = port
-
+    @classmethod
+    def load_from_dict(cls, resource_dict):
+        return cls(**resource_dict)
 
 # %%
