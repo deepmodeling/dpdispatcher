@@ -18,7 +18,7 @@ from .context import Machine
 class TestMachineDispatch(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
-    
+
     def test_lazy_local(self):
         machine_dict = {
             'batch_type': 'PBS',
