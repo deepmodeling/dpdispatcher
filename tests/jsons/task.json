@@ -9,5 +9,5 @@
         "log.lammps"
     ],
     "outlog": "log",
-    "errlog": "err",
+    "errlog": "err"
 }
