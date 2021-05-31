@@ -1,11 +1,10 @@
 {
-    "batch":{
+    "machine":{
         "batch_type": "Shell",
         "context_type": "LocalContext",
         "local_root" : "test_if_cuda_multi_devices/",
         "remote_root" : "tmp_if_cuda_multi_devices/",
-        "hostname": "39.106.xx.xxx",
-        "username": "user1"
+        "remote_profile":{}
     },
     "resources":{
         "number_node": 1,

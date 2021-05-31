@@ -1,5 +1,5 @@
 
-import os,sys,time,random,uuid
+import os,sys,time,random,uuid,json
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
@@ -54,6 +54,13 @@ class Machine(object):
         super().__init_subclass__(**kwargs)
         cls.subclasses_dict[cls.__name__]=cls
         # cls.subclasses.append(cls)
+
+    @classmethod
+    def load_from_json(cls, json_path):
+        with open(json_path, 'r') as f:
+            machine_dict = json.load(f)
+        machine = cls.load_from_dict(machine_dict=machine_dict)
+        return machine
 
     @classmethod
     def load_from_dict(cls, machine_dict):

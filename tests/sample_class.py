@@ -71,7 +71,8 @@ class SampleClass(object):
     def get_sample_empty_submission(cls):
         resources = cls.get_sample_resources()
         # print(task_list)
-        empty_submission = Submission(work_base='0_md/', 
+        empty_submission = Submission(work_base='0_md/',
+            machine=None,
             resources=resources, 
             forward_common_files=['graph.pb'], 
             backward_common_files=[])

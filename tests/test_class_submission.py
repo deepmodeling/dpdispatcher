@@ -15,9 +15,9 @@ class TestSubmission(unittest.TestCase):
         self.maxDiff = None
         pbs = SampleClass.get_sample_pbs_local_context()
         self.submission = SampleClass.get_sample_submission()
-        self.submission.bind_batch(batch=pbs)
+        self.submission.bind_machine(machine=pbs)
 
-       #  self.submission2 = Submission.submission_from_json('jsons/submission.json')
+        #  self.submission2 = Submission.submission_from_json('jsons/submission.json')
         # self.submission2 = Submission.submission_from_json('jsons/submission.json')
     
     def test_serialize_deserialize(self):
@@ -26,10 +26,10 @@ class TestSubmission(unittest.TestCase):
     def test_get_hash(self):
         pass
 
-    def test_bind_batch(self):
-        self.assertIsNotNone(self.submission.batch.context.submission)
+    def test_bind_machine(self):
+        self.assertIsNotNone(self.submission.machine.context.submission)
         for job in self.submission.belonging_jobs:
-            self.assertIsNotNone(job.batch)
+            self.assertIsNotNone(job.machine)
 
     def test_get_submision_state(self):
         pass
