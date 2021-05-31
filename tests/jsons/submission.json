@@ -4,7 +4,7 @@
         "number_node": 1,
         "cpu_per_node": 4,
         "gpu_per_node": 1,
-        "queue_name": "V100_8_32",
+        "queue_name": "T4_4_15",
         "group_size": 2,
         "custom_flags": [],
         "strategy": {
@@ -20,7 +20,7 @@
     "backward_common_files": [],
     "belonging_jobs": [
         {
-            "4e3e8c88e576aa6fc104ec9445e0ee2303e77c9d": {
+            "934d9fc3afcc40a1ffadb09954fce2eaf7745ca9": {
                 "job_task_list": [
                     {
                         "command": "lmp -i input.lammps",
@@ -53,7 +53,7 @@
                     "number_node": 1,
                     "cpu_per_node": 4,
                     "gpu_per_node": 1,
-                    "queue_name": "V100_8_32",
+                    "queue_name": "T4_4_15",
                     "group_size": 2,
                     "custom_flags": [],
                     "strategy": {
@@ -69,7 +69,7 @@
             }
         },
         {
-            "8dba64434a52c3fafdde65fa82e8ae74b42786d7": {
+            "5e7449b46128e4043d0476c30c0eeb75aeabdec0": {
                 "job_task_list": [
                     {
                         "command": "lmp -i input.lammps",
@@ -102,7 +102,7 @@
                     "number_node": 1,
                     "cpu_per_node": 4,
                     "gpu_per_node": 1,
-                    "queue_name": "V100_8_32",
+                    "queue_name": "T4_4_15",
                     "group_size": 2,
                     "custom_flags": [],
                     "strategy": {
