@@ -24,7 +24,7 @@ cd $REMOTE_ROOT
 cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
-  {command_env} {command} {log_err_part}
+  {command_env} ( {command} ) {log_err_part}
   if test $? -eq 0; then touch {task_tag_finished}; fi
 fi &
 """
