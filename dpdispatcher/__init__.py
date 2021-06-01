@@ -10,7 +10,8 @@ dlog.setLevel(logging.INFO)
 # dlogf = logging.FileHandler(os.getcwd()+os.sep+SHORT_CMD+'.log')
 # dlogf = logging.FileHandler('./'+os.sep+SHORT_CMD+'.log')
 # dlogf = logging.FileHandler(os.path.join(os.environ['HOME'], SHORT_CMD+'.log'))
-dlogf = logging.FileHandler(os.path.join(os.path.expanduser('~'), SHORT_CMD+'.log'))
+# dlogf = logging.FileHandler(os.path.join(os.path.expanduser('~'), SHORT_CMD+'.log'))
+dlogf = logging.FileHandler(os.path.join("/tmp/", SHORT_CMD+'.log'))
 dlogf_formatter=logging.Formatter('%(asctime)s - %(levelname)s : %(message)s')
 # dlogf_formatter=logging.Formatter('%(asctime)s - %(name)s - [%(filename)s:%(funcName)s - %(lineno)d ] - %(levelname)s \n %(message)s')
 dlogf.setFormatter(dlogf_formatter)
@@ -28,10 +29,23 @@ try:
 except ImportError:
     __date__ = 'unkown'
 
-from .submission import Submission
-from .submission import Task
-from .submission import Job
-from .submission import Resources
+try:
+    from .submission import Submission
+    from .submission import Task
+    from .submission import Job
+    from .submission import Resources
+    from .slurm import Slurm
+    from .pbs import PBS
+    from .shell import Shell
+    from .lsf import LSF
+    from .dp_cloud_server import DpCloudServer
+
+    from .lazy_local_context import LazyLocalContext
+    from .local_context import LocalContext
+    from .ssh_context import SSHContext
+except ImportError:
+    pass
+
 
 def info():
     """
