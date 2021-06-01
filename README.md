@@ -79,6 +79,21 @@ submission = Submission(work_base='lammps_md_300K_5GPa/',
 submission.run_submission(clean=False)
 ```
 
+example resources for GPU2080Ti
+```python3
+resources = Resources(number_node=1,
+    cpu_per_node=8, 
+    gpu_per_node=2,
+    queue_name="GPU2080TI",
+    group_size=12,
+    custom_flags=["#SBATCH --mem=32G", ],
+    strategy={'if_cuda_multi_devices': true},
+    para_deg=3,
+    source_list=["~/deepmd.env"],
+)
+```
+
+
 machine.json
 ```json
 {
