@@ -292,17 +292,17 @@ class SSHContext(BaseContext):
             cmd = "nohup %s >/dev/null &" % cmd
         stdin, stdout, stderr = self.ssh_session.exec_command(('cd %s ;' % self.remote_root) + cmd)
         exit_status = stdout.channel.recv_exit_status() 
-        if exit_status != 0:
-            if retry < 3:
-                print('debug:self.block_checkall, retry', self.remote_root, cmd)
-                # sleep 60 s
-                dlog.warning("Get error code %d in calling %s through ssh with job: %s . message: %s" %
-                        (exit_status, cmd, self.submission.submission_hash, stderr.read().decode('utf-8')))
-                dlog.warning("Sleep 60 s and retry the command...")
-                time.sleep(20)
-                return self.block_checkcall(cmd, asynchronously=asynchronously, retry=retry+1)
-            raise RuntimeError("Get error code %d in calling %s through ssh with job: %s . message: %s" %
-                               (exit_status, cmd, self.submission.submission_hash, stderr.read().decode('utf-8')))
+        # if exit_status != 0:
+        #     if retry < 3:
+        #         print('debug:self.block_checkall, retry', self.remote_root, cmd)
+        #         # sleep 60 s
+        #         dlog.warning("Get error code %d in calling %s through ssh with job: %s . message: %s" %
+        #                 (exit_status, cmd, self.submission.submission_hash, stderr.read().decode('utf-8')))
+        #         dlog.warning("Sleep 60 s and retry the command...")
+        #         time.sleep(20)
+        #         return self.block_checkcall(cmd, asynchronously=asynchronously, retry=retry+1)
+        #     raise RuntimeError("Get error code %d in calling %s through ssh with job: %s . message: %s" %
+        #                        (exit_status, cmd, self.submission.submission_hash, stderr.read().decode('utf-8')))
         return stdin, stdout, stderr    
 
     def block_call(self, 
