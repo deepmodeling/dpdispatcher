@@ -86,7 +86,11 @@ resources = Resources(number_node=1,
     gpu_per_node=2,
     queue_name="GPU2080TI",
     group_size=12,
-    custom_flags=["#SBATCH --mem=32G", ],
+    custom_flags=[
+        "#SBATCH --mem=32G", 
+    ##     "#SBATCH --account=deepmodeling"
+    ##     "#SBATCH --cluster=gpucluster"
+    ],
     strategy={'if_cuda_multi_devices': true},
     para_deg=3,
     source_list=["~/deepmd.env"],

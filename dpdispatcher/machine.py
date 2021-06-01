@@ -128,7 +128,7 @@ class Machine(object):
         source_files_part = ""
         source_list = job.resources.source_list
         for ii in source_list:
-            line = f"source {ii}\n"
+            line = "{ source %s \n }" % ii
             source_files_part += line
 
         script_env = script_env_template.format(
