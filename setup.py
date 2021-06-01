@@ -17,7 +17,7 @@ today = datetime.date.today().strftime("%b-%d-%Y")
 with open(path.join(NAME, '_date.py'), 'w') as fp :
     fp.write('date = \'%s\'' % today)
 
-install_requires=['monty>2.0.0', 'paramiko', 'psutil', 'typing_extensions', 'oss2', 'psutil']
+install_requires=['monty>2.0.0', 'paramiko', 'psutil', 'typing_extensions', 'oss2']
 
 setuptools.setup(
     name=NAME,
