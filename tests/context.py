@@ -21,6 +21,7 @@ from dpdispatcher.dp_cloud_server import DpCloudServer
 from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
 from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.machine import Machine
+import dargs
 
 def setUpModule():
     os.chdir(os.path.abspath(os.path.dirname(__file__)))

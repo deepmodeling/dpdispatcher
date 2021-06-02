@@ -11,7 +11,8 @@ from .context import LazyLocalContext, LocalContext, SSHContext
 from .context import Submission, Job, Task, Resources
 from .context import LSF, Slurm, PBS, Shell
 from .context import Machine
-
+from .context import dargs
+from dargs.dargs import ArgumentKeyError
 
 # print('in', SampleClass.get_sample_empty_submission())
 
@@ -69,7 +70,8 @@ class TestMachineDispatch(unittest.TestCase):
             'batch_type': 'PBS',
             'context_type': 'foo'
         }
-        with self.assertRaises(KeyError):
+        # with self.assertRaises(KeyError):
+        with self.assertRaises(ArgumentKeyError):
             Machine.load_from_dict(machine_dict=machine_dict)
 
     def test_pbs(self):

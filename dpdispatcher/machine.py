@@ -1,5 +1,8 @@
 
 import os,sys,time,random,uuid,json
+from typing import Optional
+import dargs
+from dargs import dargs, Argument
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
@@ -38,8 +41,15 @@ wait
 touch {job_tag_finished}
 """
 
-
 class Machine(object):
+    """A machine is used to handle the connection with remote machines.
+
+    Parameters
+    ----------
+    context : SubClass derived from BaseContext
+        The context is used to mainatin the connection with remote machine.
+    """
+
     subclasses_dict = {}
     def __init__ (self,
                 context):
@@ -64,6 +74,16 @@ class Machine(object):
 
     @classmethod
     def load_from_dict(cls, machine_dict):
+        machine_args = [
+            Argument("batch_type", str, optional=False),
+            Argument("context_type", str, optional=False),
+            Argument("local_root", str, optional=False),
+            Argument("remote_root", str, optional=True),
+            Argument("remote_profile", dict, optional=True),
+        ]
+        machine_format = Argument("machine_dict", dict, machine_args)
+        machine_format.check_value(machine_dict)
+
         batch_type = machine_dict['batch_type']
         # print("debug777:batch_class", cls.subclasses_dict, batch_type)
         try:
@@ -202,5 +222,3 @@ class Machine(object):
             # for ii in list_CUDA_VISIBLE_DEVICES:
             #     command_env+="{ii},".format(ii=ii) 
         return command_env
-
-
