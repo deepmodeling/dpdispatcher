@@ -43,6 +43,7 @@ try:
     from .lazy_local_context import LazyLocalContext
     from .local_context import LocalContext
     from .ssh_context import SSHContext
+    from .dp_cloud_server_context import DpCloudServerContext
 except ImportError:
     pass
 

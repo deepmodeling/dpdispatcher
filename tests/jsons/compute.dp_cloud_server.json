@@ -4,14 +4,14 @@
         "context_type": "DpCloudServerContext",
         "local_root" : "./test_context_dir/",
         "remote_profile":{
-            "username": "user1234",
-            "password": "",
+            "username": "yfb222333",
+            "password": "yfb222333",
             "input_data":{
                 "job_type": "indicate",
                 "log_file": "dp_cloud_server.log",
                 "command": "",
                 "backward_files": [],
-                "job_name": "dpdispatcher_20210531_job",
+                "job_name": "dpgen_20210630_job",
                 "machine": {
                     "platform": "ali",
                     "resources": {

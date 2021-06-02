@@ -66,7 +66,11 @@ class Machine(object):
     def load_from_dict(cls, machine_dict):
         batch_type = machine_dict['batch_type']
         # print("debug777:batch_class", cls.subclasses_dict, batch_type)
-        machine_class = cls.subclasses_dict[batch_type]
+        try:
+            machine_class = cls.subclasses_dict[batch_type]
+        except KeyError as e:
+            print('debug:batch_type;subclasses_dict', batch_type, cls.subclasses_dict)
+            raise e
         context = BaseContext.load_from_dict(machine_dict)
         machine = machine_class(context=context)
         return machine
