@@ -17,7 +17,7 @@ tests/graph_real.pb
 \#*
 iter.*
 tests/test_shell_trival_dir/parent_dir/dir?/out.txt
-tests/jsons/machine_dp_cloud_server.private.json
+tests/jsons/compute.dp_cloud_server.json
 # out.txt
 topol.tpr
 mdout.mdp
