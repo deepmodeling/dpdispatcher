@@ -15,9 +15,18 @@ dpdispatcher will monitor (poke) until these jobs finish and download the result
 
 
 ### the set of abstraction provided by dpdispatcher.
-It defines `Task` class, which represents a command to be run on HPC and essential files need by the command.
-It defines `Job` class, which represents a job on the HPC system. dpdispatcher will generate `job`s' submitting scripts used by HPC systems automatically with the `Task` and `Submission`
-It define a `Submission` class, which represents a collection of jobs defined by the HPC system and there may be common used files between them. dpdispatcher will actually submit the jobs in them when a `submission` execute `run_submission` method and poke until the jobs in them finish and return.  
+`Task` class, which represents a command to be run on batch job system, as well as the essential files need by the command.
+
+`Submission` class, which represents a collection of jobs defined by the HPC system.
+And there may be common files to be uploaded by them.
+dpdispatcher will create and submit these jobs when a `submission` instance execute `run_submission` method.
+This method will poke until the jobs finish and return.  
+
+`Job` class, a class used by `Submission` class, which represents a job on the HPC system. 
+`Submission` will generate `job`s' submitting scripts used by HPC systems automatically with the `Task` and `Resources`
+
+`Resources` class, which represents the computing resources for each job  within a `submission`.
+
 ​
 
 ## How to contribute 
