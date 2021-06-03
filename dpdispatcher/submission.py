@@ -671,21 +671,47 @@ class Resources(object):
 
     @classmethod
     def load_from_dict(cls, resources_dict):
-        resources_args = [
-            Argument("number_node", int, optional=False),
-            Argument("cpu_per_node", int, optional=False),
-            Argument("gpu_per_node", int, optional=False),
-            Argument("queue_name", str, optional=False),
-            Argument("group_size", int, optional=False),
-
-            Argument("custom_flags", str, optional=True),
-            Argument("strategy", dict, optional=True),
-            Argument("para_deg", int, optional=True),
-            Argument("source_list", list, optional=True),
-            Argument("kwargs", dict, optional=True)
-        ]
-        resources_format = Argument("resources_dict", dict, resources_args)
-        resources_format.check_value(resources_dict)
+        
         return cls(**resources_dict)
 
+    @classmethod
+    def dargs_check(cls, resources_dict={}, if_gen_docs=False):
+        doc_number_node = 'The number of node need for each `job`'
+        doc_cpu_per_node = 'cpu numbers of each node.'
+        doc_gpu_per_node = 'gpu numbers of each node.'
+        doc_queue_name = 'The queue name of batch job scheduler system.'
+        doc_group_size = 'The number of `tasks` in a `job`.'
+        doc_custom_flags = 'The extra lines pass to job submitting script header'
+        doc_strategy = 'strategies we use to generation job submitting scripts.'
+        doc_para_deg = 'Decide how many tasks will be run in parallel.'
+        doc_source_list = 'The env file to be sourced before the command execution.'
+        doc_kwargs = 'extra key-value pair'
+
+        resources_args = [
+            Argument("number_node", int, optional=False, doc=doc_number_node),
+            Argument("cpu_per_node", int, optional=False, doc=doc_cpu_per_node),
+            Argument("gpu_per_node", int, optional=False, doc=doc_gpu_per_node),
+            Argument("queue_name", str, optional=False, doc=doc_queue_name),
+            Argument("group_size", int, optional=False, doc=doc_group_size),
+
+            Argument("custom_flags", str, optional=True, doc=doc_custom_flags),
+            Argument("strategy", dict, optional=True, doc=doc_strategy),
+            Argument("para_deg", int, optional=True, doc=doc_para_deg),
+            Argument("source_list", list, optional=True, doc=doc_source_list),
+            Argument("kwargs", dict, optional=True, doc=doc_kwargs)
+        ]
+
+        resources_format = Argument("resources_dict", dict, resources_args)
+
+        if if_gen_docs:
+            ptr = resources_format.gen_doc()
+            return ptr
+        else:
+            resources_format.check_value(resources_dict)
+            return True
+
+
+# %%
+
+# Resources.dargs_check(if_gen_docs=True)
 # %%

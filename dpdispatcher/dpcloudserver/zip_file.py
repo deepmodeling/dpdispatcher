@@ -16,6 +16,8 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
         for ii in glob.glob(matched_files):
             # print('debug: matched_files:ii', ii)
             if os.path.isdir(ii):
+                arcname = os.path.relpath(ii, start=root_path)
+                zip_obj.write(ii, arcname)
                 for root, dirs, files in os.walk(ii):
                     for file in files:
                         filename = os.path.join(root, file)

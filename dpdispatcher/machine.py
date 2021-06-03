@@ -73,16 +73,32 @@ class Machine(object):
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict):
+    def dargs_check(cls, machine_dict={}, if_gen_docs=False):
+        doc_batch_type = 'The batch job system type. Option: Slurm, PBS, LSF, Shell, DpCloudServer'
+        doc_context_type = 'The connection used to remote machine. Option: LocalContext, LazyLocalContext, SSHContext， DpCloudServerContext'
+        doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
+        doc_remote_root = 'The dir where the tasks are executed on the remote machine.'
+        doc_remote_profile = 'The information used to maintain the connection with remote machine.'
+
         machine_args = [
-            Argument("batch_type", str, optional=False),
-            Argument("context_type", str, optional=False),
-            Argument("local_root", str, optional=False),
-            Argument("remote_root", str, optional=True),
-            Argument("remote_profile", dict, optional=True),
+            Argument("batch_type", str, optional=False, doc=doc_batch_type),
+            Argument("context_type", str, optional=False, doc=doc_context_type),
+            Argument("local_root", str, optional=False, doc=doc_local_root),
+            Argument("remote_root", str, optional=True, doc=doc_remote_root),
+            Argument("remote_profile", dict, optional=True, doc=doc_remote_profile),
         ]
         machine_format = Argument("machine_dict", dict, machine_args)
-        machine_format.check_value(machine_dict)
+        if if_gen_docs:
+            ptr = machine_format.gen_doc()
+            return ptr
+        else:
+            machine_format.check_value(machine_dict)
+            return True
+
+
+    @classmethod
+    def load_from_dict(cls, machine_dict):
+        
 
         batch_type = machine_dict['batch_type']
         # print("debug777:batch_class", cls.subclasses_dict, batch_type)
@@ -222,3 +238,4 @@ class Machine(object):
             # for ii in list_CUDA_VISIBLE_DEVICES:
             #     command_env+="{ii},".format(ii=ii) 
         return command_env
+
