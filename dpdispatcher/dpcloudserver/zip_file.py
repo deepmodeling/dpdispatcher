@@ -1,16 +1,30 @@
 import os, glob
 from posixpath import realpath
 from zipfile import ZipFile
+import shutil
+
+# def zip_file_list(root_path, zip_filename, file_list=[]):
+#     shutil.make_archive(base_name=zip_filename,
+#         root_dir=root_path,)
 
 def zip_file_list(root_path, zip_filename, file_list=[]):
     out_zip_file = os.path.join(root_path, zip_filename)
+    # print('debug: file_list', file_list)
     zip_obj = ZipFile(out_zip_file, 'w')
     for f in file_list:
         matched_files = os.path.join(root_path, f)
         for ii in glob.glob(matched_files):
-            realpath = os.path.realpath(ii)
-            arcname = os.path.relpath(ii, start=root_path)
-        zip_obj.write(realpath, arcname)
+            # print('debug: matched_files:ii', ii)
+            if os.path.isdir(ii):
+                for root, dirs, files in os.walk(ii):
+                    for file in files:
+                        filename = os.path.join(root, file)
+                        arcname = os.path.relpath(filename, start=root_path)
+                        # print('debug: filename:arcname:root_path', filename, arcname, root_path)
+                        zip_obj.write(filename, arcname)
+            else:
+                arcname = os.path.relpath(ii, start=root_path)
+                zip_obj.write(ii, arcname)
     zip_obj.close()
     return out_zip_file
 
