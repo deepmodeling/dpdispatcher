@@ -5,23 +5,7 @@ DPDispatcher API
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: dpdispatcher.ALI
-   :members:
-   :undoc-members:
-
-.. automodule:: dpdispatcher.AWS
-   :members:
-   :undoc-members:
-
-.. automodule:: dpdispatcher.Batch
-   :members:
-   :undoc-members:
-
-.. automodule:: dpdispatcher.Dispatcher
-   :members:
-   :undoc-members:
-
-.. automodule:: dpdispatcher.DispatcherList
+.. automodule:: dpdispatcher
    :members:
    :undoc-members:
 
@@ -29,30 +13,79 @@ DPDispatcher API
    :members:
    :undoc-members:
 
-.. automodule:: dpdispatcher.LSF
+.. automodule:: dpdispatcher.base_context
    :members:
    :undoc-members:
 
-.. automodule:: dpdispatcher.LazyLocalContext
+.. automodule:: dpdispatcher.dp_cloud_server
    :members:
    :undoc-members:
 
-.. automodule:: dpdispatcher.LocalContext
+.. automodule:: dpdispatcher.dp_cloud_server_context
    :members:
    :undoc-members:
 
-.. automodule:: dpdispatcher.PBS
+.. automodule:: dpdispatcher.dpdisp
    :members:
    :undoc-members:
 
-.. automodule:: dpdispatcher.SSHContext
+.. automodule:: dpdispatcher.lazy_local_context
    :members:
    :undoc-members:
 
-.. automodule:: dpdispatcher.Shell
+.. automodule:: dpdispatcher.local_context
    :members:
    :undoc-members:
 
-.. automodule:: dpdispatcher.Slurm
+.. automodule:: dpdispatcher.lsf
    :members:
    :undoc-members:
+
+.. automodule:: dpdispatcher.machine
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.pbs
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.shell
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.slurm
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.ssh_context
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.submission
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.dpcloudserver
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.dpcloudserver.api
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.dpcloudserver.config
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.dpcloudserver.retcode
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.dpcloudserver.temp_test
+   :members:
+   :undoc-members:
+
+.. automodule:: dpdispatcher.dpcloudserver.zip_file
+   :members:
+   :undoc-members:
+
