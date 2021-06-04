@@ -138,6 +138,28 @@ class SSHSession (object):
             self._sftp = self.ssh.open_sftp()
         return self._sftp
 
+    @staticmethod
+    def arginfo():
+        doc_hostname = 'hostname or ip of ssh connection.'
+        doc_username = 'username of target linux system'
+        doc_password = 'password of linux system'
+        doc_port = 'ssh connection port.'
+        doc_key_filename = 'key_filename used by ssh connection'
+        doc_passphrase = 'passphrase used by ssh connection'
+        doc_timeout = 'timeout of ssh connection'
+
+        ssh_remote_profile_args = [
+            Argument("hostname", str, optional=False, doc=doc_hostname),
+            Argument("username", str, optional=False, doc=doc_username),
+            Argument("password", str, optional=True, doc=doc_password),
+            Argument("port", int, optional=True, default=22, doc=doc_port),
+            Argument("key_filename", [str, None], optional=True, default=None, doc=doc_key_filename),
+            Argument("passphrase", [str, None], optional=True, default=None, doc=doc_passphrase),
+            Argument("timeout", int, optional=True, default=10, doc=doc_timeout)
+        ]
+        ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
+        return ssh_remote_profile_format
+        
 
 class SSHContext(BaseContext):
     def __init__ (self,
@@ -196,28 +218,6 @@ class SSHContext(BaseContext):
         #     clean_asynchronously=jdata.get('clean_asynchronously', False),
         #     )
         return ssh_context
-
-    @staticmethod
-    def get_remote_profile_arginfo():
-        doc_hostname = 'hostname or ip of ssh connection.'
-        doc_username = 'username of target linux system'
-        doc_password = 'password of linux system'
-        doc_port = 'ssh connection port.'
-        doc_key_filename = 'key_filename used by ssh connection'
-        doc_passphrase = 'passphrase used by ssh connection'
-        doc_timeout = 'timeout of ssh connection'
-
-        ssh_remote_profile_args = [
-            Argument("hostname", str, optional=False, doc=doc_hostname),
-            Argument("username", str, optional=False, doc=doc_username),
-            Argument("password", str, optional=True, doc=doc_password),
-            Argument("port", int, optional=True, default=22, doc=doc_port),
-            Argument("key_filename", [str, None], optional=True, default=None, doc=doc_key_filename),
-            Argument("passphrase", [str, None], optional=True, default=None, doc=doc_passphrase),
-            Argument("timeout", int, optional=True, default=10, doc=doc_timeout)
-        ]
-        ssh_remote_profile_format = Argument("SSHContext.remote_profile", dict, ssh_remote_profile_args)
-        return ssh_remote_profile_format
 
     @property
     def ssh(self):

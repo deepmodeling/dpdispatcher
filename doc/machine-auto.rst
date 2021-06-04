@@ -24,55 +24,52 @@ machine:
         | type: ``str``, optional
         | argument path: ``machine/remote_root``
 
-        The dir where the tasks are executed on the remote machine.
+        The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local.
 
     remote_profile: 
-        | type: ``dict``, optional
+        | type: ``dict``
         | argument path: ``machine/remote_profile``
 
-        The information used to maintain the connection with remote machine. see subclass introduction
-SSHContext.remote_profile: 
-    | type: ``dict``
-    | argument path: ``SSHContext.remote_profile``
+        The information used to maintain the connection with remote machine. Only needed when context is ssh.
 
-    hostname: 
-        | type: ``str``
-        | argument path: ``SSHContext.remote_profile/hostname``
+        hostname: 
+            | type: ``str``
+            | argument path: ``machine/remote_profile/hostname``
 
-        hostname or ip of ssh connection.
+            hostname or ip of ssh connection.
 
-    username: 
-        | type: ``str``
-        | argument path: ``SSHContext.remote_profile/username``
+        username: 
+            | type: ``str``
+            | argument path: ``machine/remote_profile/username``
 
-        username of target linux system
+            username of target linux system
 
-    password: 
-        | type: ``str``, optional
-        | argument path: ``SSHContext.remote_profile/password``
+        password: 
+            | type: ``str``, optional
+            | argument path: ``machine/remote_profile/password``
 
-        password of linux system
+            password of linux system
 
-    port: 
-        | type: ``int``, optional, default: ``22``
-        | argument path: ``SSHContext.remote_profile/port``
+        port: 
+            | type: ``int``, optional, default: ``22``
+            | argument path: ``machine/remote_profile/port``
 
-        ssh connection port.
+            ssh connection port.
 
-    key_filename: 
-        | type: ``NoneType`` | ``str``, optional, default: ``None``
-        | argument path: ``SSHContext.remote_profile/key_filename``
+        key_filename: 
+            | type: ``str`` | ``NoneType``, optional, default: ``None``
+            | argument path: ``machine/remote_profile/key_filename``
 
-        key_filename used by ssh connection
+            key_filename used by ssh connection
 
-    passphrase: 
-        | type: ``NoneType`` | ``str``, optional, default: ``None``
-        | argument path: ``SSHContext.remote_profile/passphrase``
+        passphrase: 
+            | type: ``str`` | ``NoneType``, optional, default: ``None``
+            | argument path: ``machine/remote_profile/passphrase``
 
-        passphrase used by ssh connection
+            passphrase used by ssh connection
 
-    timeout: 
-        | type: ``int``, optional, default: ``10``
-        | argument path: ``SSHContext.remote_profile/timeout``
+        timeout: 
+            | type: ``int``, optional, default: ``10``
+            | argument path: ``machine/remote_profile/timeout``
 
-        timeout of ssh connection
+            timeout of ssh connection
