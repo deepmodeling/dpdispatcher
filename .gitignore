@@ -44,3 +44,4 @@ dbconfig.json
 */_date.py
 *.egg
 *.egg-info
+venv/*

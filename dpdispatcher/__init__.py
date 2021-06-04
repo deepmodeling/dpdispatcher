@@ -29,18 +29,21 @@ try:
 except ImportError:
     __date__ = 'unkown'
 
-from .submission import Submission
-from .submission import Task
-from .submission import Job
-from .submission import Resources
-from .slurm import Slurm
-from .pbs import PBS
-from .shell import Shell
-from .lsf import LSF
+try:
+    from .submission import Submission
+    from .submission import Task
+    from .submission import Job
+    from .submission import Resources
+    from .slurm import Slurm
+    from .pbs import PBS
+    from .shell import Shell
+    from .lsf import LSF
 
-from .lazy_local_context import LazyLocalContext
-from .local_context import LocalContext
-from .ssh_context import SSHContext
+    from .lazy_local_context import LazyLocalContext
+    from .local_context import LocalContext
+    from .ssh_context import SSHContext
+except:
+    print("Dependency not satisfied. Unable to import main classes.")
 
 try:
     from .dp_cloud_server import DpCloudServer
