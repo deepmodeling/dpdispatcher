@@ -506,7 +506,7 @@ class Job(object):
             print("job: {job_hash} terminated; restarting job".format(job_hash=self.job_hash))
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
-            # self.fail_count += 1
+            self.fail_count += 1
             self.submit_job()
             self.get_job_state()
 
@@ -552,8 +552,11 @@ class Job(object):
 
     def submit_job(self):
         job_id = self.machine.do_submit(self)
-        self.register_job_id(job_id)
-        self.job_state = JobStatus.waiting
+        if job_id:
+            self.register_job_id(job_id)
+            self.job_state = JobStatus.waiting
+        else:
+            self.job_state = JobStatus.unsubmitted
 
     def job_to_json(self):
         # print('~~~~,~~~', self.serialize())

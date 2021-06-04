@@ -29,14 +29,31 @@ class Slurm(Machine):
         slurm_script_header = slurm_script_header_template.format(**script_header_dict)
         return slurm_script_header
 
-    def do_submit(self, job):
+    def do_submit(self, job, retry=3):
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + '_job_id'
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
-        stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'sbatch', script_file_name))
+        ret, stdin, stdout, stderr = self.context.checkcall('cd %s && %s %s' % (self.context.remote_root, 'sbatch', script_file_name))
+        if ret != 0:
+            err_str = stderr.read().decode('utf-8')
+            if "Socket timed out on send/recv operation" in err_str:
+                # server network error, retry 3 times
+                if retry < 3:
+                    dlog.warning("Get error code %d in submitting through ssh with job: %s . message: %s" %
+                        (ret, job.job_hash, err_str))
+                    dlog.warning("Sleep 60 s and retry submitting...")
+                    # rest 60s
+                    time.sleep(60)
+                    return self.do_submit(job, retry=retry+1)
+            elif "Job violates accounting/QOS policy" in err_str:
+                # job number exceeds, skip the submitting
+                return
+            else:
+                raise RuntimeError\
+                    ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
         subret = (stdout.readlines())
         job_id = subret[0].split()[-1]
         self.context.write_file(job_id_name, job_id)        
@@ -58,12 +75,16 @@ class Slurm(Machine):
                     return JobStatus.finished
                 else :
                     return JobStatus.terminated
-            else :
+            elif "Socket timed out on send/recv operation" in err_str:
                 # retry 3 times
                 if retry < 3:
+                    dlog.warning("Get error code %d in checking status through ssh with job: %s . message: %s" %
+                        (ret, job.job_hash, err_str))
+                    dlog.warning("Sleep 60 s and retry checking...")
                     # rest 60s
                     time.sleep(60)
                     return self.check_status(job_id, retry=retry+1)
+            else:
                 raise RuntimeError\
                     ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
         status_line = stdout.read().decode('utf-8').split ('\n')[-2]
