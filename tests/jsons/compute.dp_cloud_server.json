@@ -5,13 +5,13 @@
         "local_root" : "./test_context_dir/",
         "remote_profile":{
             "username": "yfb222333",
-            "password": "yfb222333",
+            "password": "",
             "input_data":{
                 "job_type": "indicate",
                 "log_file": "dp_cloud_server.log",
                 "command": "",
                 "backward_files": [],
-                "job_name": "dpgen_20210630_job",
+                "job_name": "dpgen_20210604_job",
                 "machine": {
                     "platform": "ali",
                     "resources": {
