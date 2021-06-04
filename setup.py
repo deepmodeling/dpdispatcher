@@ -17,7 +17,7 @@ today = datetime.date.today().strftime("%b-%d-%Y")
 with open(path.join(NAME, '_date.py'), 'w') as fp :
     fp.write('date = \'%s\'' % today)
 
-install_requires=['monty>2.0.0', 'paramiko', 'psutil', 'typing_extensions', 'oss2', 'dargs']
+install_requires=['paramiko', 'psutil', 'dargs']
 
 setuptools.setup(
     name=NAME,
@@ -29,16 +29,18 @@ setuptools.setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     url="",
-    python_requires="~=3.6",
+    python_requires="~=3.7",
     packages=['dpdispatcher', 'dpdispatcher/dpcloudserver'],
     classifiers=[
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     ],
     keywords='deep potential generator active learning deepmd-kit',
     install_requires=install_requires,    
     extras_require={
         'docs': ['sphinx', 'recommonmark', 'sphinx_rtd_theme'],
+        "cloudserver": ["oss2"],
+        ":python_version<'3.7'": ["typing_extensions"],
     },
         entry_points={
           'console_scripts': [
