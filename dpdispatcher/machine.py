@@ -1,4 +1,5 @@
 
+from dpdispatcher.ssh_context import SSHSession
 import os,sys,time,random,uuid,json
 from typing import Optional
 import dargs
@@ -51,6 +52,19 @@ class Machine(object):
     """
 
     subclasses_dict = {}
+
+    # def __new__(cls, batch_type, context_type, local_root='./', remote_root=None, remote_profile={}):
+    #     if cls is Machine:
+    #         # instance = object.__new__(batch_type, context_type, local_root, remote_root, remote_profile)
+    #         subcls = cls.subclasses_dict[cls.__name__]
+    #         instance = subcls.__new__(batch_type, context_type, local_root, remote_root, remote_profile)
+    #     else:
+    #         instance = object.__new__(cls)
+    #     return instance
+
+    # def __init__(self, batch_type, context_type, local_root='./', remote_root=None, remote_profile={}):
+    #     pass
+
     def __init__ (self,
                 context):
         self.context = context
@@ -73,19 +87,41 @@ class Machine(object):
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict):
-        machine_args = [
-            Argument("batch_type", str, optional=False),
-            Argument("context_type", str, optional=False),
-            Argument("local_root", str, optional=False),
-            Argument("remote_root", str, optional=True),
-            Argument("remote_profile", dict, optional=True),
-        ]
-        machine_format = Argument("machine_dict", dict, machine_args)
-        machine_format.check_value(machine_dict)
+    def get_arginfo(cls):
+        doc_batch_type = 'The batch job system type. Option: Slurm, PBS, LSF, Shell, DpCloudServer'
+        doc_context_type = 'The connection used to remote machine. Option: LocalContext, LazyLocalContext, SSHContext， DpCloudServerContext'
+        doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
+        doc_remote_root = 'The dir where the tasks are executed on the remote machine.'
+        doc_remote_profile = 'The information used to maintain the connection with remote machine. see subclass introduction'
 
+        machine_args = [
+            Argument("batch_type", str, optional=False, doc=doc_batch_type),
+            Argument("context_type", str, optional=False, doc=doc_context_type),
+            Argument("local_root", str, optional=False, doc=doc_local_root, default='./'),
+            Argument("remote_root", str, optional=True, doc=doc_remote_root),
+            Argument("remote_profile", dict, optional=True, doc=doc_remote_profile, default={}),
+        ]
+
+        machine_format = Argument("machine", dict, machine_args)
+        return machine_format
+
+    @classmethod
+    def dargs_check(cls, machine_dict={}):
+        machine_format = cls.get_arginfo()
+        check_return = machine_format.check_value(machine_dict)
+        return check_return
+
+    @classmethod
+    def dargs_gen_doc(cls):
+        machine_format = cls.get_arginfo()
+        ptr = machine_format.gen_doc()
+        ssh_remote_profile_format = BaseContext.subclasses_dict['SSHContext'].get_remote_profile_arginfo()
+        ptr += ssh_remote_profile_format.gen_doc()
+        return ptr
+
+    @classmethod
+    def load_from_dict(cls, machine_dict):
         batch_type = machine_dict['batch_type']
-        # print("debug777:batch_class", cls.subclasses_dict, batch_type)
         try:
             machine_class = cls.subclasses_dict[batch_type]
         except KeyError as e:
@@ -222,3 +258,4 @@ class Machine(object):
             # for ii in list_CUDA_VISIBLE_DEVICES:
             #     command_env+="{ii},".format(ii=ii) 
         return command_env
+

@@ -62,7 +62,7 @@ class TestMachineDispatch(unittest.TestCase):
     def test_key_err(self):
         # pass
         machine_dict = {}
-        with self.assertRaises(ArgumentKeyError):
+        with self.assertRaises(KeyError):
             Machine.load_from_dict(machine_dict=machine_dict)
 
     def test_context_err(self):
@@ -71,7 +71,7 @@ class TestMachineDispatch(unittest.TestCase):
             'context_type': 'foo'
         }
         # with self.assertRaises(KeyError):
-        with self.assertRaises(ArgumentKeyError):
+        with self.assertRaises(KeyError):
             Machine.load_from_dict(machine_dict=machine_dict)
 
     def test_pbs(self):

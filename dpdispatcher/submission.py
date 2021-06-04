@@ -5,7 +5,7 @@ from typing import SupportsRound
 
 from dargs.dargs import Argument
 from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher import dlog
+from dpdispatcher import dlog, machine
 from hashlib import sha1
 # from dpdispatcher.slurm import SlurmResources
 #%%
@@ -674,21 +674,56 @@ class Resources(object):
 
     @classmethod
     def load_from_dict(cls, resources_dict):
-        resources_args = [
-            Argument("number_node", int, optional=False),
-            Argument("cpu_per_node", int, optional=False),
-            Argument("gpu_per_node", int, optional=False),
-            Argument("queue_name", str, optional=False),
-            Argument("group_size", int, optional=False),
-
-            Argument("custom_flags", str, optional=True),
-            Argument("strategy", dict, optional=True),
-            Argument("para_deg", int, optional=True),
-            Argument("source_list", list, optional=True),
-            Argument("kwargs", dict, optional=True)
-        ]
-        resources_format = Argument("resources_dict", dict, resources_args)
-        resources_format.check_value(resources_dict)
+        
         return cls(**resources_dict)
 
+    @classmethod
+    def get_arginfo(cls):
+        doc_number_node = 'The number of node need for each `job`'
+        doc_cpu_per_node = 'cpu numbers of each node assigned to each job. Not the maximum number available in each node'
+        doc_gpu_per_node = 'gpu numbers of each node assigned to each job. Not the maximum number available in each node'
+        doc_queue_name = 'The queue name of batch job scheduler system.'
+        doc_group_size = 'The number of `tasks` in a `job`.'
+        doc_custom_flags = 'The extra lines pass to job submitting script header'
+        doc_para_deg = 'Decide how many tasks will be run in parallel.'
+        doc_source_list = 'The env file to be sourced before the command execution.'
+        doc_kwargs = 'extra key-value pair'
+
+        strategy_args = [
+            Argument("if_cuda_multi_devices", bool, optional=True, default=True)
+        ]
+        doc_strategy = 'strategies we use to generation job submitting scripts.'
+        strategy_format = Argument("strategy", dict, strategy_args, optional=True, default=default_strategy, doc=doc_strategy)
+
+        resources_args = [
+            Argument("number_node", int, optional=False, doc=doc_number_node),
+            Argument("cpu_per_node", int, optional=False, doc=doc_cpu_per_node),
+            Argument("gpu_per_node", int, optional=False, doc=doc_gpu_per_node),
+            Argument("queue_name", str, optional=False, doc=doc_queue_name),
+            Argument("group_size", int, optional=False, doc=doc_group_size),
+
+            Argument("custom_flags", str, optional=True, doc=doc_custom_flags),
+            # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
+            strategy_format,
+            Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
+            Argument("source_list", list, optional=True, doc=doc_source_list, default=[]),
+        ]
+        resources_format = Argument("resources_dict", dict, resources_args)
+        return resources_format
+
+    @classmethod
+    def dargs_check(cls, resources_dict={}):
+        resources_format = cls.get_arginfo()
+        check_return = resources_format.check_value(resources_dict)
+        return check_return
+
+    @classmethod
+    def dargs_gen_doc(cls):
+        resources_format = cls.get_arginfo()
+        ptr = resources_format.gen_doc()
+        return ptr
+
+# %%
+
+# Resources.dargs_check(if_gen_docs=True)
 # %%
