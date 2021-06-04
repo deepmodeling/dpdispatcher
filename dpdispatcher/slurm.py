@@ -29,7 +29,7 @@ class Slurm(Machine):
         slurm_script_header = slurm_script_header_template.format(**script_header_dict)
         return slurm_script_header
 
-    def do_submit(self, job, retry=3):
+    def do_submit(self, job, retry=0, max_retry=3):
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + '_job_id'
@@ -41,13 +41,13 @@ class Slurm(Machine):
             err_str = stderr.read().decode('utf-8')
             if "Socket timed out on send/recv operation" in err_str:
                 # server network error, retry 3 times
-                if retry < 3:
+                if retry < max_retry:
                     dlog.warning("Get error code %d in submitting through ssh with job: %s . message: %s" %
                         (ret, job.job_hash, err_str))
                     dlog.warning("Sleep 60 s and retry submitting...")
                     # rest 60s
                     time.sleep(60)
-                    return self.do_submit(job, retry=retry+1)
+                    return self.do_submit(job, retry=retry+1, max_retry=max_retry)
             elif "Job violates accounting/QOS policy" in err_str:
                 # job number exceeds, skip the submitting
                 return
@@ -62,7 +62,7 @@ class Slurm(Machine):
     def default_resources(self, resources) :
         pass
     
-    def check_status(self, job, retry=0):
+    def check_status(self, job, retry=0, max_retry=3):
         job_id = job.job_id
         if job_id == '' :
             return JobStatus.unsubmitted
@@ -77,13 +77,13 @@ class Slurm(Machine):
                     return JobStatus.terminated
             elif "Socket timed out on send/recv operation" in err_str:
                 # retry 3 times
-                if retry < 3:
+                if retry < max_retry:
                     dlog.warning("Get error code %d in checking status through ssh with job: %s . message: %s" %
                         (ret, job.job_hash, err_str))
                     dlog.warning("Sleep 60 s and retry checking...")
                     # rest 60s
                     time.sleep(60)
-                    return self.check_status(job_id, retry=retry+1)
+                    return self.check_status(job_id, retry=retry+1, max_retry=max_retry)
             else:
                 raise RuntimeError\
                     ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
