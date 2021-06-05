@@ -6,8 +6,19 @@ DPDispatcher will monitor (poke) until these jobs finish and download the result
 
 For more information, check the [documentation](https://dpdispatcher.readthedocs.io/).
 
+## Installation
 
-# Contributing
+DPDispatcher can installed by `pip`:
+
+```bash
+pip install dpdispatcher
+```
+
+## Usage
+
+See [Getting Started](https://dpdispatcher.readthedocs.io/en/latest/getting-started.html) for usage.
+
+## Contributing
 
 DPDispatcher is maintained by Deep Modeling's developers and welcome other people.
 See [Contributing Guide](CONTRIBUTING.md) to become a contributor! 🤓
