@@ -18,8 +18,8 @@
 # -- Project information -----------------------------------------------------
 
 project = 'DPDispatcher'
-copyright = '2020, Deep Potential'
-author = 'Deep Potential'
+copyright = '2020, Deep Modeling'
+author = 'Deep Modeling'
 
 
 # -- General configuration ---------------------------------------------------
