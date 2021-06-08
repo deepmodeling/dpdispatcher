@@ -51,7 +51,7 @@ class TestShellTrival(unittest.TestCase):
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         shutil.rmtree('tmp_shell_trival_dir/')
 
 

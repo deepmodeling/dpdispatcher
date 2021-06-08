@@ -8,12 +8,12 @@ from dpdispatcher.machine import Machine
 
 
 # %%
-resources_dargs_doc = Resources.dargs_gen_doc()
+resources_dargs_doc = Resources.arginfo().gen_doc()
 with open('../doc/resources-auto.rst', 'w') as f:
     # print(resources_dargs_doc)
     f.write(resources_dargs_doc)
 
-machine_dargs_doc = Machine.dargs_gen_doc()
+machine_dargs_doc = Machine.arginfo().gen_doc()
 with open('../doc/machine-auto.rst', 'w') as f:
     f.write(machine_dargs_doc)
 # %%

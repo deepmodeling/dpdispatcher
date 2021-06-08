@@ -42,11 +42,11 @@ class DPTest(unittest.TestCase):
     BUCKET_NAME = 'dpcloudserver'
 
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         print('execute', sys._getframe().f_code.co_name)
        
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         print('execute', sys._getframe().f_code.co_name)
 
     def setUp(self):

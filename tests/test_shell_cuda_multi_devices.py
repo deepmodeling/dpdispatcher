@@ -9,11 +9,11 @@ from .context import Machine
 
 import unittest
 
-class TestShellTrival(unittest.TestCase):
+class TestShellCudaMultiDevices(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    def test_shell_trival(self):
+    def test_shell_cuda_multi_devices(self):
         with open('jsons/compute.if_cuda_multi_devices.json', 'r') as f:
             compute_dict = json.load(f)
         machine = Machine.load_from_dict(compute_dict['machine'])
@@ -33,13 +33,15 @@ class TestShellTrival(unittest.TestCase):
         )
         submission.run_submission(clean=False)
 
-        for ii in ['out.txt', 'test.txt']:
+        for ii in ['test.txt']:
             f1 = os.path.join('test_if_cuda_multi_devices/', 'test_dir/', ii)
             f2 = os.path.join('tmp_if_cuda_multi_devices/', submission.submission_hash, ii)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
+        self.assertTrue(os.path.isfile('test_if_cuda_multi_devices/test_dir/out.txt'))
+
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         # pass
         shutil.rmtree('tmp_if_cuda_multi_devices/')
 

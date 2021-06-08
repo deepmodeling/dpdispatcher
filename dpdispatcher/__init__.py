@@ -38,11 +38,15 @@ try:
     from .pbs import PBS
     from .shell import Shell
     from .lsf import LSF
-    from .dp_cloud_server import DpCloudServer
 
     from .lazy_local_context import LazyLocalContext
     from .local_context import LocalContext
     from .ssh_context import SSHContext
+except:
+    print("Dependency not satisfied. Unable to import main classes.")
+
+try:
+    from .dp_cloud_server import DpCloudServer
     from .dp_cloud_server_context import DpCloudServerContext
 except ImportError:
     pass
@@ -60,7 +64,7 @@ def info():
     print('')
     print('Dependency')
     print('------------')
-    for modui in ['monty', 'paramiko' ]:
+    for modui in ['psutil', 'paramiko', 'dargs', 'oss2']:
         try:
             mm = __import__(modui)
             print('%10s %10s   %s' % (modui, mm.__version__, mm.__path__[0]))

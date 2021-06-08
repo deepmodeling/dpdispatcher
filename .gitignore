@@ -16,8 +16,7 @@ tests/graph_real.pb
 *.pyc
 \#*
 iter.*
-tests/test_shell_trival_dir/parent_dir/dir?/out.txt
-# tests/jsons/compute.dp_cloud_server.json ## git update-index --assume-unchanged tests/jsons/compute.dp_cloud_server.json
+
 # out.txt
 topol.tpr
 mdout.mdp
@@ -45,3 +44,4 @@ dbconfig.json
 */_date.py
 *.egg
 *.egg-info
+venv/*

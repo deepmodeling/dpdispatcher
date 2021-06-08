@@ -87,39 +87,6 @@ class Machine(object):
         return machine
 
     @classmethod
-    def get_arginfo(cls):
-        doc_batch_type = 'The batch job system type. Option: Slurm, PBS, LSF, Shell, DpCloudServer'
-        doc_context_type = 'The connection used to remote machine. Option: LocalContext, LazyLocalContext, SSHContext， DpCloudServerContext'
-        doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
-        doc_remote_root = 'The dir where the tasks are executed on the remote machine.'
-        doc_remote_profile = 'The information used to maintain the connection with remote machine. see subclass introduction'
-
-        machine_args = [
-            Argument("batch_type", str, optional=False, doc=doc_batch_type),
-            Argument("context_type", str, optional=False, doc=doc_context_type),
-            Argument("local_root", str, optional=False, doc=doc_local_root, default='./'),
-            Argument("remote_root", str, optional=True, doc=doc_remote_root),
-            Argument("remote_profile", dict, optional=True, doc=doc_remote_profile, default={}),
-        ]
-
-        machine_format = Argument("machine", dict, machine_args)
-        return machine_format
-
-    @classmethod
-    def dargs_check(cls, machine_dict={}):
-        machine_format = cls.get_arginfo()
-        check_return = machine_format.check_value(machine_dict)
-        return check_return
-
-    @classmethod
-    def dargs_gen_doc(cls):
-        machine_format = cls.get_arginfo()
-        ptr = machine_format.gen_doc()
-        ssh_remote_profile_format = BaseContext.subclasses_dict['SSHContext'].get_remote_profile_arginfo()
-        ptr += ssh_remote_profile_format.gen_doc()
-        return ptr
-
-    @classmethod
     def load_from_dict(cls, machine_dict):
         batch_type = machine_dict['batch_type']
         try:
@@ -259,3 +226,26 @@ class Machine(object):
             #     command_env+="{ii},".format(ii=ii) 
         return command_env
 
+    @staticmethod
+    def arginfo():
+        # TODO: change the possible value of batch and context types after we refactor the code
+        doc_batch_type = 'The batch job system type. Option: Slurm, PBS, LSF, Shell, DpCloudServer'
+        doc_context_type = 'The connection used to remote machine. Option: LocalContext, LazyLocalContext, SSHContext， DpCloudServerContext'
+        doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
+        doc_remote_root = 'The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local.'
+        doc_remote_profile = 'The information used to maintain the connection with remote machine. Only needed when context is ssh.'
+
+        remote_profile_format = SSHSession.arginfo()
+        remote_profile_format.name = "remote_profile"
+        remote_profile_format.doc = doc_remote_profile
+        machine_args = [
+            Argument("batch_type", str, optional=False, doc=doc_batch_type),
+            Argument("context_type", str, optional=False, doc=doc_context_type),
+            # TODO: add default to local_root and remote_root after refactor the code
+            Argument("local_root", str, optional=False, doc=doc_local_root),
+            Argument("remote_root", str, optional=True, doc=doc_remote_root),
+            remote_profile_format,
+        ]
+
+        machine_format = Argument("machine", dict, machine_args)
+        return machine_format
