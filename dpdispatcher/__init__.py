@@ -38,6 +38,7 @@ try:
     from .pbs import PBS
     from .shell import Shell
     from .lsf import LSF
+    from .machine import Machine
 
     from .lazy_local_context import LazyLocalContext
     from .local_context import LocalContext
