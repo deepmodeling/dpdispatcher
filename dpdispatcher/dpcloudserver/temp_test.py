@@ -32,11 +32,8 @@ class DPTest(unittest.TestCase):
         'job_resources': 'http://dpcloudserver.oss-cn-shenzhen.aliyuncs.com/dpcloudserver/indicate/a657ff49722839f1ee54edeb3e9b1beb0ee5cc0e/a657ff49722839f1ee54edeb3e9b1beb0ee5cc0e.zip'
     }
 
-    # username = 'test'
-    # password = 'test1234!'
-
-    username = 'yfb222333'
-    password = 'yfb222333'
+    username = ''
+    password = ''
 
     ENDPOINT = 'http://oss-cn-shenzhen.aliyuncs.com'
     BUCKET_NAME = 'dpcloudserver'
