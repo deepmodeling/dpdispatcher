@@ -702,7 +702,7 @@ class Resources(object):
             Argument("queue_name", str, optional=False, doc=doc_queue_name),
             Argument("group_size", int, optional=False, doc=doc_group_size),
 
-            Argument("custom_flags", str, optional=True, doc=doc_custom_flags),
+            Argument("custom_flags", list, optional=True, doc=doc_custom_flags),
             # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
             strategy_format,
             Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
