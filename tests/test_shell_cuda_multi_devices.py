@@ -14,10 +14,10 @@ class TestShellCudaMultiDevices(unittest.TestCase):
         self.maxDiff = None
 
     def test_shell_cuda_multi_devices(self):
-        with open('jsons/compute.if_cuda_multi_devices.json', 'r') as f:
-            compute_dict = json.load(f)
-        machine = Machine.load_from_dict(compute_dict['machine'])
-        resources = Resources.load_from_dict(compute_dict['resources'])
+        with open('jsons/machine_if_cuda_multi_devices.json', 'r') as f:
+            machine_dict = json.load(f)
+        machine = Machine.load_from_dict(machine_dict['machine'])
+        resources = Resources.load_from_dict(machine_dict['resources'])
 
         task_list = []
         for ii in range(16):

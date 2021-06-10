@@ -16,6 +16,7 @@ from .context import Submission, Job, Task, Resources
 class SampleClass(object):
     @classmethod
     def get_sample_resources(cls):
+        
         resources = Resources(number_node=1,
             cpu_per_node=4, 
             gpu_per_node=1,
@@ -24,7 +25,10 @@ class SampleClass(object):
             custom_flags=[],
             strategy={'if_cuda_multi_devices': False},
             para_deg=1,
+            module_unload_list=[],
+            module_list=[],
             source_list=[],
+            envs={}
         )
         return resources
     
@@ -38,7 +42,10 @@ class SampleClass(object):
             'custom_flags':[],
             'strategy':{'if_cuda_multi_devices': False}, 
             'para_deg':1,
+            'module_unload_list':[],
+            'module_list':[],
             'source_list':[],
+            'envs':{},
             'kwargs': {}
         }
         return resources_dict

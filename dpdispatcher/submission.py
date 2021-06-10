@@ -603,7 +603,10 @@ class Resources(object):
                 custom_flags=[],
                 strategy=default_strategy,
                 para_deg=1,
+                module_unload_list=[],
+                module_list=[],
                 source_list=[],
+                envs={},
                 **kwargs):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
@@ -615,7 +618,10 @@ class Resources(object):
         self.custom_flags = custom_flags
         self.strategy = strategy
         self.para_deg = para_deg
+        self.module_unload_list = module_unload_list
+        self.module_list = module_list
         self.source_list = source_list
+        self.envs = envs
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
         self.kwargs = kwargs
@@ -646,7 +652,10 @@ class Resources(object):
         resources_dict['custom_flags'] = self.custom_flags
         resources_dict['strategy'] = self.strategy
         resources_dict['para_deg'] = self.para_deg
+        resources_dict['module_unload_list'] = self.module_unload_list
+        resources_dict['module_list'] = self.module_list
         resources_dict['source_list'] = self.source_list
+        resources_dict['envs'] = self.envs
         resources_dict['kwargs'] = self.kwargs
         return resources_dict
 
@@ -661,7 +670,10 @@ class Resources(object):
                         custom_flags=resources_dict['custom_flags'],
                         strategy=resources_dict['strategy'],
                         para_deg=resources_dict['para_deg'],
+                        module_unload_list=resources_dict['module_unload_list'],
+                        module_list=resources_dict['module_list'],
                         source_list=resources_dict['source_list'],
+                        envs=resources_dict['envs'],
                         **resources_dict['kwargs'])
         return resources
 
@@ -687,6 +699,9 @@ class Resources(object):
         doc_custom_flags = 'The extra lines pass to job submitting script header'
         doc_para_deg = 'Decide how many tasks will be run in parallel.'
         doc_source_list = 'The env file to be sourced before the command execution.'
+        doc_module_unload_list = 'The modules to be unloaded on HPC system before submitting jobs'
+        doc_module_list = 'The modules to be loaded on HPC system before submitting jobs'
+        doc_envs = 'The environment variables to be exported on before submitting jobs'
         # doc_kwargs = 'extra key-value pair'
 
         strategy_args = [
@@ -707,6 +722,9 @@ class Resources(object):
             strategy_format,
             Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
             Argument("source_list", list, optional=True, doc=doc_source_list, default=[]),
+            Argument("module_unload_list", list, optional=True, doc=doc_module_unload_list, default=[]),
+            Argument("module_list", list, optional=True, doc=doc_module_list, default=[]),
+            Argument("envs", dict, optional=True, doc=doc_envs, default={}),
         ]
         resources_format = Argument("resources", dict, resources_args)
         return resources_format
