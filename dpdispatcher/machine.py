@@ -258,6 +258,7 @@ class Machine(object):
         doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
         doc_remote_root = 'The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local.'
         doc_remote_profile = 'The information used to maintain the connection with remote machine. Only needed when context is ssh.'
+        doc_clean_asynchronously = 'Clean the remote directory asynchronously after the job finishes.'
 
         remote_profile_format = SSHSession.arginfo()
         remote_profile_format.name = "remote_profile"
@@ -269,6 +270,7 @@ class Machine(object):
             Argument("local_root", str, optional=False, doc=doc_local_root),
             Argument("remote_root", str, optional=True, doc=doc_remote_root),
             remote_profile_format,
+            Argument("clean_asynchronously", bool, optional=True, default=False, doc=doc_clean_asynchronously),
         ]
 
         machine_format = Argument("machine", dict, machine_args)
