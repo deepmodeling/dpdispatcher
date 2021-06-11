@@ -20,6 +20,7 @@ script_template="""\
 script_env_template="""
 export REMOTE_ROOT={remote_root}
 test $? -ne 0 && exit 1
+
 {module_unload_part}
 {module_load_part}
 {source_files_part}
@@ -169,7 +170,7 @@ class Machine(object):
         
         source_list = job.resources.source_list
         for ii in source_list:
-            line = "{ source %s } \n" % ii
+            line = "{ source %s; } \n" % ii
             source_files_part += line
 
         export_envs_part = ""
