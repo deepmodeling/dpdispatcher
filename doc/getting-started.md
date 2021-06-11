@@ -82,20 +82,27 @@ and `task.json` is
     "errlog": "err",
 }
 ```
-
 You may also submit mutiple GPU jobs:
-```python
-resources = Resources(number_node=1,
-    cpu_per_node=8, 
+complex example
+```python3
+resources = Resources(
+    number_node=1,
+    cpu_per_node=4,
     gpu_per_node=2,
-    queue_name="GPU2080TI",
-    group_size=12,
-    custom_flags=[
-        "#SBATCH --mem=32G",
-    ],
-    strategy={'if_cuda_multi_devices': true},
-    para_deg=3,
-    source_list=["~/deepmd.env"],
+    queue_name="GPU_2080Ti",
+    group_size=4,
+    custom_flags=["#SBATCH --nice=100", "#SBATCH --time=24:00:00"],
+    strategy={
+        # used when you want to add CUDA_VISIBLE_DIVECES automatically
+        "if_cuda_multi_devices": True 
+    },
+    para_deg=1,
+    module_unload_list=["singularity"],
+    module_list=["singularity/3.0.0"],
+    source_list=["./slurm_test.env"],
+    # envs will generate a line below
+    # export DP_DISPATCHER_EXPORT=test_foo_bar_baz
+    envs={"DP_DISPATCHER_EXPORT": "test_foo_bar_baz"},
 )
 ```
 
