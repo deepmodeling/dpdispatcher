@@ -54,6 +54,7 @@ class Shell(Machine):
 
         if_job_exists = psutil.pid_exists(pid=job_id)
         if self.check_finish_tag(job=job):
+            dlog.info(f"job: {job.job_hash} {job.job_id} finished")
             return JobStatus.finished
 
         if if_job_exists:

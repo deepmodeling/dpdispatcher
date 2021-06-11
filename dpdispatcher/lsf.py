@@ -245,6 +245,7 @@ class LSF(Machine):
             return JobStatus.running
         elif status_word in ["DONE", "EXIT"]:
             if self.check_finish_tag(job):
+                dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                 return JobStatus.finished
             else:
                 return JobStatus.terminated

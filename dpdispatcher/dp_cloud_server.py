@@ -64,14 +64,14 @@ class DpCloudServer(Machine):
     def check_status(self, job):
         if job.job_id == '':
             return JobStatus.unsubmitted
-        print('debug: check_status', job)
+        dlog.debug('debug: check_status', job)
         dp_job_status = api.get_tasks(job.job_id)[0]["status"]
         job_state = self.map_dp_job_state(dp_job_status)
         return job_state
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
-        print('check if job finished: ',job.job_id, job_tag_finished)
+        dlog.info('check if job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
         # return
         # pass

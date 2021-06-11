@@ -5,7 +5,7 @@ from typing import SupportsRound
 
 from dargs.dargs import Argument
 from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher import dlog, machine
+from dpdispatcher import dlog
 from hashlib import sha1
 # from dpdispatcher.slurm import SlurmResources
 #%%
@@ -155,10 +155,10 @@ class Submission(object):
             self.generate_jobs()
         self.try_recover_from_json()
         if self.check_all_finished():
-            print('debug:check_all_finished: True')
+            dlog.info('info:check_all_finished: True')
             pass
         else:
-            print('debug:check_all_finished: False')
+            dlog.info('info:check_all_finished: False')
             self.upload_jobs()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
@@ -214,7 +214,7 @@ class Submission(object):
         """
         for job in self.belonging_jobs:
             job.get_job_state()
-            print('debug:get_submission_state: job: ', job.job_hash, job.job_id, job.job_state)
+            dlog.debug(f"debug:get_submission_state: job: {job.job_hash}, {job.job_id}, {repr(job.job_state)}")
         # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):
@@ -492,7 +492,7 @@ class Job(object):
         -----
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
-        print('debug:self.machine',self.machine)
+        dlog.debug("debug:self.machine:{self.machine}")
         job_state = self.machine.check_status(self)
         self.job_state = job_state
 
@@ -503,7 +503,7 @@ class Job(object):
             raise RuntimeError("job_state for job {job} is unknown".format(job=self))
 
         if job_state == JobStatus.terminated:
-            print("job: {job_hash} terminated; restarting job".format(job_hash=self.job_hash))
+            dlog.info(f"job: {self.job_hash} terminated; restarting job")
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
@@ -511,11 +511,13 @@ class Job(object):
             self.get_job_state()
 
         if job_state == JobStatus.unsubmitted:
+            dlog.info(f"job: {self.job_hash} unsubmitted; submit it")
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             # self.fail_count += 1
             self.submit_job()
-            print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+
+            # print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             # self.get_job_state()
 
     def get_hash(self):

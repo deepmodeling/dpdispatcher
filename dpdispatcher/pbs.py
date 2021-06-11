@@ -71,7 +71,8 @@ class PBS(Machine):
         elif    status_word in ["R"] :
             return JobStatus.running
         elif    status_word in ["C", "E", "K", "F"] :
-            if self.check_finish_tag(job) :
+            if self.check_finish_tag(job):
+                dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                 return JobStatus.finished
             else :
                 return JobStatus.terminated
