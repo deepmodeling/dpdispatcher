@@ -11,8 +11,7 @@ slurm_script_header_template="""\
 {slurm_nodes_line}
 {slurm_ntasks_per_node_line}
 {slurm_number_gpu_line}
-{slurm_partition_line}
-"""
+{slurm_partition_line}"""
 
 class Slurm(Machine):
     def gen_script(self, job):

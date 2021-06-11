@@ -1,5 +1,5 @@
 {
-    "934d9fc3afcc40a1ffadb09954fce2eaf7745ca9": {
+    "bc1a7297489e921034ced5036cb23ef9daf7b681": {
         "job_task_list": [
             {
                 "command": "lmp -i input.lammps",
@@ -39,7 +39,10 @@
                 "if_cuda_multi_devices": false
             },
             "para_deg": 1,
+            "module_unload_list": [],
+            "module_list": [],
             "source_list": [],
+            "envs": {},
             "kwargs": {}
         },
         "job_state": null,

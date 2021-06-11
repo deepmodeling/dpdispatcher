@@ -20,7 +20,10 @@ script_template="""\
 script_env_template="""
 export REMOTE_ROOT={remote_root}
 test $? -ne 0 && exit 1
+{module_unload_part}
+{module_load_part}
 {source_files_part}
+{export_envs_part}
 """
 
 script_command_template="""
@@ -153,14 +156,34 @@ class Machine(object):
 
     def gen_script_env(self, job):
         source_files_part = ""
+
+        module_unload_part = ""
+        module_unload_list = job.resources.module_unload_list
+        for ii in module_unload_list:
+            module_unload_part += f"module unload {ii}\n"
+
+        module_load_part = ""
+        module_list = job.resources.module_list
+        for ii in module_list:
+            module_load_part += f"module load {ii}\n"
+        
         source_list = job.resources.source_list
         for ii in source_list:
-            line = "{ source %s \n }" % ii
+            line = "{ source %s } \n" % ii
             source_files_part += line
+
+        export_envs_part = ""
+        envs = job.resources.envs
+        for k,v in envs.items():
+            export_envs_part += f"export {k}={v}\n"
 
         script_env = script_env_template.format(
             remote_root=self.context.remote_root,
-            source_files_part=source_files_part)
+            module_unload_part=module_unload_part,
+            module_load_part=module_load_part,
+            source_files_part=source_files_part,
+            export_envs_part=export_envs_part,
+        )
         return script_env
 
     def gen_script_command(self, job):

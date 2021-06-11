@@ -11,7 +11,10 @@
             "if_cuda_multi_devices": false
         },
         "para_deg": 1,
+        "module_unload_list": [],
+        "module_list": [],
         "source_list": [],
+        "envs": {},
         "kwargs": {}
     },
     "forward_common_files": [
@@ -20,7 +23,7 @@
     "backward_common_files": [],
     "belonging_jobs": [
         {
-            "934d9fc3afcc40a1ffadb09954fce2eaf7745ca9": {
+            "bc1a7297489e921034ced5036cb23ef9daf7b681": {
                 "job_task_list": [
                     {
                         "command": "lmp -i input.lammps",
@@ -60,7 +63,10 @@
                         "if_cuda_multi_devices": false
                     },
                     "para_deg": 1,
+                    "module_unload_list": [],
+                    "module_list": [],
                     "source_list": [],
+                    "envs": {},
                     "kwargs": {}
                 },
                 "job_state": null,
@@ -69,7 +75,7 @@
             }
         },
         {
-            "5e7449b46128e4043d0476c30c0eeb75aeabdec0": {
+            "743cfe7b9112c69b242a7e851b6300e3e720beb5": {
                 "job_task_list": [
                     {
                         "command": "lmp -i input.lammps",
@@ -109,7 +115,10 @@
                         "if_cuda_multi_devices": false
                     },
                     "para_deg": 1,
+                    "module_unload_list": [],
+                    "module_list": [],
                     "source_list": [],
+                    "envs": {},
                     "kwargs": {}
                 },
                 "job_state": null,

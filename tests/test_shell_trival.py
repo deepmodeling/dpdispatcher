@@ -13,8 +13,6 @@ import unittest
 import json
 
 
-
-
 class TestShellTrival(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
@@ -24,11 +22,11 @@ class TestShellTrival(unittest.TestCase):
         # }
     
     def test_shell_trival(self):
-        with open('jsons/compute_local_shell.json', 'r') as f:
-            compute_dict = json.load(f)
+        with open('jsons/machine_local_shell.json', 'r') as f:
+            machine_dict = json.load(f)
 
-        machine = Machine.load_from_dict(compute_dict['machine'])
-        resources = Resources.load_from_dict(compute_dict['resources'])
+        machine = Machine.load_from_dict(machine_dict['machine'])
+        resources = Resources.load_from_dict(machine_dict['resources'])
 
         task1 = Task(command='cat example.txt', task_work_path='dir1/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
         task2 = Task(command='cat example.txt', task_work_path='dir2/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
