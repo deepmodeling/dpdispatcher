@@ -13,8 +13,6 @@ import unittest
 import json
 
 
-
-
 class TestShellTrival(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None

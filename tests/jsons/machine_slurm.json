@@ -1,0 +1,29 @@
+{
+    "machine":{
+        "batch_type": "Slurm",
+        "context_type": "SSHContext",
+        "local_root": "./test_context_dir",
+        "remote_root": "/home/fengbo/work_path_dpdispatcher_test",
+        "remote_profile": {
+            "hostname": "xxx.200.xxx.59",
+            "username": "fengbo"
+        }
+    },
+    "resources":{
+        "number_node": 1,
+        "cpu_per_node": 4,
+        "gpu_per_node": 2,
+        "queue_name": "GPU_2080Ti",
+        "group_size": 4,
+        "custom_flags": ["#SBATCH --nice=100", "#SBATCH --time=24:00:00"],
+        "strategy": {
+            "if_cuda_multi_devices": true
+        },
+        "para_deg": 2,
+        "module_unload_list": ["singularity"],
+        "module_list": ["singularity/3.0.0"],
+        "source_list": ["./slurm_test.env"],
+        "envs": {"DP_DISPATCHER_EXPORT": "test_foo_bar_baz"},
+        "kwargs": {}
+    }
+}
