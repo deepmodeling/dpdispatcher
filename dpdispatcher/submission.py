@@ -47,8 +47,6 @@ class Submission(object):
         self.backward_common_files = backward_common_files
 
         self.submission_hash = None
-        # print('Submission.__init__:task_list', task_list)
-        # print('empty_list:', [])
         # warning: can not remote .copy() or there will be bugs
         # self.belonging_tasks = task_list
         self.belonging_tasks = task_list.copy()
@@ -63,8 +61,6 @@ class Submission(object):
         """When check whether the two submission are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
-        # print('submission.__eq__()  self', self.serialize(if_static=True))
-        # print('submission.__eq__() other', other.serialize(if_static=True))
         return self.serialize(if_static=True) == other.serialize(if_static=True)
 
     @classmethod
@@ -109,7 +105,6 @@ class Submission(object):
         submission_dict['forward_common_files'] = self.forward_common_files
         submission_dict['backward_common_files'] = self.backward_common_files
         submission_dict['belonging_jobs'] = [ job.serialize(if_static=if_static) for job in self.belonging_jobs]
-        # print('&&&&&&&&', submission_dict['belonging_jobs'] )
         return submission_dict
 
     def register_task(self, task):
@@ -117,7 +112,6 @@ class Submission(object):
             raise RuntimeError("Not allowed to register tasks after generating jobs."
                     "submission hash error {self}".format(self))
         self.belonging_tasks.append(task)
-        # self.belonging_tasks = task
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
@@ -241,8 +235,6 @@ class Submission(object):
         This method will not handle unexpected job state in the submission.
         """
         self.get_submission_state()
-        # print('debug:***', [job.job_state for job in self.belonging_jobs])
-        # print('debug:***', [job for job in self.belonging_jobs])
         if any( (job.job_state in  [JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
             self.submission_to_json()
         if any( (job.job_state in  [JobStatus.running,
@@ -278,7 +270,6 @@ class Submission(object):
         for ii in random_task_index_ll:
             job_task_list = [ self.belonging_tasks[jj] for jj in ii ]
             job = Job(job_task_list=job_task_list, machine=self.machine, resources=copy.deepcopy(self.resources))
-            # print('generate_jobs', ii, job)
             self.belonging_jobs.append(job)
 
         if self.machine is not None:
@@ -299,7 +290,6 @@ class Submission(object):
         self.machine.context.clean()
 
     def submission_to_json(self):
-        # print('~~~~,~~~', self.serialize())
         self.get_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
@@ -516,8 +506,7 @@ class Job(object):
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             # self.fail_count += 1
             self.submit_job()
-
-            # print("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+            dlog.info("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             # self.get_job_state()
 
     def get_hash(self):
@@ -561,7 +550,6 @@ class Job(object):
             self.job_state = JobStatus.unsubmitted
 
     def job_to_json(self):
-        # print('~~~~,~~~', self.serialize())
         write_str = json.dumps(self.serialize(), indent=2, default=str)
         self.machine.context.write_file(self.job_hash + '_job.json', write_str=write_str)
 
@@ -704,7 +692,6 @@ class Resources(object):
         doc_module_unload_list = 'The modules to be unloaded on HPC system before submitting jobs'
         doc_module_list = 'The modules to be loaded on HPC system before submitting jobs'
         doc_envs = 'The environment variables to be exported on before submitting jobs'
-        # doc_kwargs = 'extra key-value pair'
 
         strategy_args = [
             Argument("if_cuda_multi_devices", bool, optional=True, default=True)

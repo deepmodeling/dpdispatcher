@@ -36,7 +36,7 @@ def post(url, params):
                 timeout=HTTP_TIME_OUT,
                 headers=headers
                 )
-    print(url,'>>>', params, '<<<', ret.text)
+    # print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")

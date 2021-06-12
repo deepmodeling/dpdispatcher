@@ -26,7 +26,7 @@ class Shell(Machine):
         proc = self.context.call('cd %s && exec bash %s' % (self.context.remote_root, script_file_name))
 
         job_id = int(proc.pid)
-        print('shell.do_submit.job_id', job_id)
+        # print('shell.do_submit.job_id', job_id)
         self.context.write_file(job_id_name, str(job_id))
         return job_id
 
@@ -47,7 +47,7 @@ class Shell(Machine):
     
     def check_status(self, job):
         job_id = job.job_id
-        print('shell.check_status.job_id', job_id)
+        # print('shell.check_status.job_id', job_id)
         job_state = JobStatus.unknown
         if job_id == "" :
             return JobStatus.unsubmitted
@@ -107,5 +107,5 @@ class Shell(Machine):
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
-        print('job finished: ',job.job_id, job_tag_finished)
+        # print('job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)

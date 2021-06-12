@@ -24,15 +24,10 @@ class DpCloudServerContext(BaseContext):
         remote_root=None,
         remote_profile={},
     ):
-        # self.remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
         username = remote_profile['username']
         password = remote_profile['password']
-
-        # self.local_root = local_root
-        # self.username = username
-        # self.password = password
 
         api.login(username=username, password=password)
 
@@ -54,10 +49,7 @@ class DpCloudServerContext(BaseContext):
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        print('bind_submission:self.local_root', self.local_root)
         self.remote_root = '$(pwd)'
-        # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
-        # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base)
 
         self.submission_hash = submission.submission_hash
 
@@ -77,7 +69,6 @@ class DpCloudServerContext(BaseContext):
         # zip_path = self.local_root
 
         for job in submission.belonging_jobs:
-            print('debug---upload')
             self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
             oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
@@ -106,24 +97,13 @@ class DpCloudServerContext(BaseContext):
         # api.upload(self.oss_task_dir, zip_task_file)
 
     def download(self, submission):
-        print('debug:download;')
         for job in submission.belonging_jobs:
             result_filename = job.job_hash + '_back.zip'
             oss_result_zip = 'indicate/' + job.job_hash + '/' + result_filename
             target_result_zip = os.path.join(self.local_root, result_filename)
-            # zip_task_file = os.path.join(self.local_root, zip_filename)
             api.download(oss_result_zip, target_result_zip, ENDPOINT, BUCKET_NAME)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
         return True
-
-        # zip_filename = submission.submission_hash + '_back.zip'
-        # oss_result_zip = 'indicate/' + submission.submission_hash + '/' + zip_filename
-        # oss_result_zip = 
-        # for task in self.submission.belonging_tasks:
-        # save_path = os.path.join(self.local_root, zip_filename)
-        # download_return = 
-        # api.download(oss_path, "out.zip", )
-        # pass
 
     def write_file(self, fname, write_str):
         result = self.write_home_file(fname, write_str)

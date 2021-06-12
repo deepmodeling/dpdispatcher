@@ -27,7 +27,6 @@ class DpCloudServer(Machine):
     def gen_local_script(self, job):
         script_str = self.gen_script(job) 
         script_file_name = job.script_file_name
-        # job_id_name = job.job_hash + '_job_id'
         self.context.write_local_file(
             fname=script_file_name, 
             write_str=script_str
@@ -39,17 +38,12 @@ class DpCloudServer(Machine):
         zip_filename = job.job_hash + '.zip'
         oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
         job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
-        # job_resources = ALI_STS_ENDPOINT + '/' + oss_task_zip
-        # print(897, job_resources)
-        # oss_task_zip = 'indicate'
-        # oss_path = 
 
         input_data = self.input_data.copy()
 
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
 
-        print(898, input_data)
 
         job_id = api.job_create(
             job_type=input_data['job_type'],
