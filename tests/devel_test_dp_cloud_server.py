@@ -31,7 +31,7 @@ from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
 # dp_cloud_server = DpCloudServer(context=dp_cloud_server_context)
 # with open('test_dp_cloud_server.json', 'r') as f:
 #     jdata = json.load(f)
-with open('jsons/compute.dp_cloud_server.json', 'r') as f:
+with open('jsons/machine_dp_cloud_server.json', 'r') as f:
     compute_dict = json.load(f)
 
 machine = Machine.load_from_dict(compute_dict['machine'])

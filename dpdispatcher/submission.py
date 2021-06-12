@@ -220,12 +220,14 @@ class Submission(object):
         for job in self.belonging_jobs:
             job.handle_unexpected_job_state()
 
-    def submit_submission(self):
-        """submit the job belonging to the submission.
-        """
-        for job in self.belonging_jobs:
-            job.submit_job()
-        self.get_submission_state()
+    # not used here, submit job is in handle_unexpected_submission_state.
+
+    # def submit_submission(self):
+    #     """submit the job belonging to the submission.
+    #     """
+    #     for job in self.belonging_jobs:
+    #         job.submit_job()
+    #     self.get_submission_state()
 
     def check_all_finished(self):
         """check whether all the jobs in the submission.
@@ -290,7 +292,7 @@ class Submission(object):
         self.machine.context.clean()
 
     def submission_to_json(self):
-        self.get_submission_state()
+        # self.get_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
         self.machine.context.write_file(submission_file_name, write_str=write_str)
@@ -482,7 +484,7 @@ class Job(object):
         -----
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
-        dlog.debug("debug:self.machine:{self.machine}")
+        dlog.debug(f"debug:query database; self.job_hash:{self.job_hash}; self.job_id:{self.job_id}")
         job_state = self.machine.check_status(self)
         self.job_state = job_state
 

@@ -50,7 +50,7 @@ def login(username, password):
             '/account/login',
             {"username": username, "password": password}
             )
-    dlog.debug("debug: login ret:{ret}")
+    dlog.debug(f"debug: login ret:{ret}")
     token = ret['token']
 
 
@@ -58,7 +58,7 @@ def _get_oss_bucket(endpoint, bucket_name):
     #  res = get("/tools/sts_token", {})
     res = get("/data/get_sts_token", {})
     # print('debug>>>>>>>>>>>>>', res)
-    dlog.debug("debug: _get_oss_bucket: res:{res}")
+    dlog.debug(f"debug: _get_oss_bucket: res:{res}")
     auth = oss2.StsAuth(
                 res['AccessKeyId'],
                 res['AccessKeySecret'],
@@ -75,7 +75,7 @@ def download(oss_file, save_file, endpoint, bucket_name):
 
 
 def upload(oss_task_zip, zip_task_file, endpoint, bucket_name):
-    dlog.debug("debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
+    dlog.debug(f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
     bucket = _get_oss_bucket(endpoint, bucket_name)
     total_size = os.path.getsize(zip_task_file)
     part_size = determine_part_size(total_size, preferred_size=1000 * 1024)
