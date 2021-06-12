@@ -29,10 +29,10 @@ setuptools.setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     url="",
-    python_requires="~=3.7",
+    python_requires="~=3.6",
     packages=['dpdispatcher', 'dpdispatcher/dpcloudserver'],
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     ],
     keywords='deep potential generator active learning deepmd-kit',
