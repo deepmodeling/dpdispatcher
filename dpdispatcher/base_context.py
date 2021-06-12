@@ -19,7 +19,7 @@ class BaseContext(object):
         try:
             context_class = cls.subclasses_dict[context_type]
         except KeyError as e:
-            dlog.error("KeyError:context_type; context_type:{context_type}; cls.subclasses_dict:{cls.subclasses_dict}")
+            dlog.error(f"KeyError:context_type; context_type:{context_type}; cls.subclasses_dict:{cls.subclasses_dict}")
             raise e
         context = context_class.load_from_dict(context_dict)
         return context
