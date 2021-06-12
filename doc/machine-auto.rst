@@ -73,3 +73,9 @@ machine:
             | argument path: ``machine/remote_profile/timeout``
 
             timeout of ssh connection
+
+    clean_asynchronously: 
+        | type: ``bool``, optional, default: ``False``
+        | argument path: ``machine/clean_asynchronously``
+
+        Clean the remote directory asynchronously after the job finishes.
