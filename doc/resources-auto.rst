@@ -33,7 +33,7 @@ resources:
         The number of `tasks` in a `job`.
 
     custom_flags: 
-        | type: ``str``, optional
+        | type: ``list``, optional
         | argument path: ``resources/custom_flags``
 
         The extra lines pass to job submitting script header
@@ -59,3 +59,21 @@ resources:
         | argument path: ``resources/source_list``
 
         The env file to be sourced before the command execution.
+
+    module_unload_list: 
+        | type: ``list``, optional, default: ``[]``
+        | argument path: ``resources/module_unload_list``
+
+        The modules to be unloaded on HPC system before submitting jobs
+
+    module_list: 
+        | type: ``list``, optional, default: ``[]``
+        | argument path: ``resources/module_list``
+
+        The modules to be loaded on HPC system before submitting jobs
+
+    envs: 
+        | type: ``dict``, optional, default: ``{}``
+        | argument path: ``resources/envs``
+
+        The environment variables to be exported on before submitting jobs
