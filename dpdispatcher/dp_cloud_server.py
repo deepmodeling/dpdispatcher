@@ -27,7 +27,6 @@ class DpCloudServer(Machine):
     def gen_local_script(self, job):
         script_str = self.gen_script(job) 
         script_file_name = job.script_file_name
-        # job_id_name = job.job_hash + '_job_id'
         self.context.write_local_file(
             fname=script_file_name, 
             write_str=script_str
@@ -39,17 +38,12 @@ class DpCloudServer(Machine):
         zip_filename = job.job_hash + '.zip'
         oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
         job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
-        # job_resources = ALI_STS_ENDPOINT + '/' + oss_task_zip
-        # print(897, job_resources)
-        # oss_task_zip = 'indicate'
-        # oss_path = 
 
         input_data = self.input_data.copy()
 
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
 
-        print(898, input_data)
 
         job_id = api.job_create(
             job_type=input_data['job_type'],
@@ -64,14 +58,14 @@ class DpCloudServer(Machine):
     def check_status(self, job):
         if job.job_id == '':
             return JobStatus.unsubmitted
-        print('debug: check_status', job)
+        dlog.debug(f"debug: check_status; job.job_id:{job.job_id}; job.job_hash:{job.job_hash}")
         dp_job_status = api.get_tasks(job.job_id)[0]["status"]
         job_state = self.map_dp_job_state(dp_job_status)
         return job_state
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
-        print('check if job finished: ',job.job_id, job_tag_finished)
+        dlog.info('check if job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
         # return
         # pass

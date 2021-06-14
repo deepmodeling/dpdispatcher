@@ -101,7 +101,8 @@ class Slurm(Machine):
         elif status_word in ["CG"] :
             return JobStatus.completing
         elif status_word in ["C","E","K","BF","CA","CD","F","NF","PR","SE","ST","TO"] :
-            if self.check_finish_tag(job) :
+            if self.check_finish_tag(job):
+                dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                 return JobStatus.finished
             else :
                 return JobStatus.terminated
@@ -110,5 +111,4 @@ class Slurm(Machine):
         
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
-        print('job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)

@@ -87,8 +87,8 @@ class LocalContext(BaseContext) :
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(self.temp_remote_root, submission.submission_hash)
-        print('debug:LocalContext.bind_submission', submission.submission_hash,
-            self.local_root, self.remote_root)
+        # print('debug:LocalContext.bind_submission', submission.submission_hash,
+        #     self.local_root, self.remote_root)
 
         # os.makedirs(self.remote_root, exist_ok = True)
         # self.job_uuid = submission.submission_hash
@@ -189,7 +189,6 @@ class LocalContext(BaseContext) :
             for jj in flist :
                 rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
-                # print('debug:', rfile, lfile)
                 if not os.path.realpath(rfile) == os.path.realpath(lfile) :
                     if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
                         if check_exists :
@@ -254,7 +253,7 @@ class LocalContext(BaseContext) :
                     # trivial case, download happily
                     shutil.move(rfile, lfile)
                 elif (os.path.exists(rfile)) and (os.path.exists(lfile)) :
-                    print('both exist,', rfile, lfile)
+                    dlog.info(f"both exist rfile:{rfile}; lfile:{lfile}")
                     # both exists, replace!
                     dlog.info('find existing %s, replacing by %s' % (lfile, rfile))
                     if os.path.isdir(lfile):
@@ -364,9 +363,6 @@ class LocalContext(BaseContext) :
         return ret
 
     def check_file_exists(self, fname):
-        # print('1324', fname)
-        # print('%%%', os.path.join(self.remote_root, fname))
-        # print('$$$', os.path.isfile(os.path.join(self.remote_root, fname)))
         return os.path.isfile(os.path.join(self.remote_root, fname))
         
     def call(self, cmd) :

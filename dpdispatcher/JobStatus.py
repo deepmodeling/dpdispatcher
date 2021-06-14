@@ -7,4 +7,6 @@ class JobStatus(IntEnum) :
     finished = 5
     completing = 6
     unknown = 100
+#     def __str__(self):
+#         return repr(self)
 

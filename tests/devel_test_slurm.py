@@ -41,4 +41,4 @@ task2 = Task(command='lmp -i input.lammps', task_work_path='bct-2/', forward_fil
 task3 = Task(command='lmp -i input.lammps', task_work_path='bct-3/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
 task4 = Task(command='lmp -i input.lammps', task_work_path='bct-4/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'])
 submission.register_task_list([task1, task2, task3, task4, ])
-submission.run_submission(clean=False)
+submission.run_submission(clean=True)

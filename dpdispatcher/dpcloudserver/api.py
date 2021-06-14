@@ -6,6 +6,7 @@ from oss2 import SizedFileAdapter, determine_part_size
 from oss2.models import PartInfo
 import requests
 from urllib.parse import urljoin
+from dpdispatcher import dlog
 
 from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
@@ -19,7 +20,7 @@ def get(url, params):
                 timeout=HTTP_TIME_OUT,
                 headers=headers
                 )
-    print(url,'>>>', params, '<<<', ret.text)
+    # print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
@@ -35,7 +36,7 @@ def post(url, params):
                 timeout=HTTP_TIME_OUT,
                 headers=headers
                 )
-    print(url,'>>>', params, '<<<', ret.text)
+    # print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
@@ -49,14 +50,15 @@ def login(username, password):
             '/account/login',
             {"username": username, "password": password}
             )
-    print('debug181', ret)
+    dlog.debug(f"debug: login ret:{ret}")
     token = ret['token']
 
 
 def _get_oss_bucket(endpoint, bucket_name):
     #  res = get("/tools/sts_token", {})
     res = get("/data/get_sts_token", {})
-    print('debug>>>>>>>>>>>>>', res)
+    # print('debug>>>>>>>>>>>>>', res)
+    dlog.debug(f"debug: _get_oss_bucket: res:{res}")
     auth = oss2.StsAuth(
                 res['AccessKeyId'],
                 res['AccessKeySecret'],
@@ -67,13 +69,13 @@ def _get_oss_bucket(endpoint, bucket_name):
 
 def download(oss_file, save_file, endpoint, bucket_name):
     bucket = _get_oss_bucket(endpoint, bucket_name)
-    print('bucket', bucket)
+    dlog.debug(f"debug: download: oss_file:{oss_file}; save_file:{save_file}")
     bucket.get_object_to_file(oss_file, save_file)
     return save_file
 
 
 def upload(oss_task_zip, zip_task_file, endpoint, bucket_name):
-    print('debug111:upload,', oss_task_zip, zip_task_file)
+    dlog.debug(f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
     bucket = _get_oss_bucket(endpoint, bucket_name)
     total_size = os.path.getsize(zip_task_file)
     part_size = determine_part_size(total_size, preferred_size=1000 * 1024)
@@ -89,7 +91,7 @@ def upload(oss_task_zip, zip_task_file, endpoint, bucket_name):
             offset += num_to_upload
             part_number += 1
     result = bucket.complete_multipart_upload(oss_task_zip, upload_id, parts)
-    print('debug:upload_result:', result, dir())
+    # print('debug:upload_result:', result, dir())
     return True
 
 
