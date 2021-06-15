@@ -56,7 +56,7 @@ class Slurm(Machine):
         subret = (stdout.readlines())
         # Submitted batch job 293859 on cluster faculty
         assert subret[0].startswith('Submitted'), f"Error when submiitting job to slurm system.subret:{subret}"
-        job_id = int(subret[0].split()[3])
+        job_id = str(int(subret[0].split()[3]))
         self.context.write_file(job_id_name, job_id)        
         return job_id
 
