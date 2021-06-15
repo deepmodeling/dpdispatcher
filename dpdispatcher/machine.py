@@ -96,7 +96,7 @@ class Machine(object):
         try:
             machine_class = cls.subclasses_dict[batch_type]
         except KeyError as e:
-            dlong.error(f"KeyError:batch_type; cls.subclasses_dict:{cls.subclasses_dict}; batch_type:{batch_type};")
+            dlog.error(f"KeyError:batch_type; cls.subclasses_dict:{cls.subclasses_dict}; batch_type:{batch_type};")
             raise e
         context = BaseContext.load_from_dict(machine_dict)
         machine = machine_class(context=context)
