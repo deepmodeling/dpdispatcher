@@ -37,9 +37,6 @@ class LSF(Machine, ABC):
         }
         gpu_usage_flag = resources.kwargs['kwargs'].get('gpu_usage', False)
         gpu_new_syntax_flag = resources.kwargs['kwargs'].get('gpu_new_syntax', False)
-        print(gpu_usage_flag)
-        print(gpu_new_syntax_flag)
-        print(resources.kwargs)
         if gpu_usage_flag is True:
             if gpu_new_syntax_flag is True:
                 script_header_dict['lsf_number_gpu_line'] = "#BSUB -gpu 'num={gpu_per_node}:mode=shared:" \
