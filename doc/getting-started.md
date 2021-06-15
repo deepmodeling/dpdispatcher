@@ -113,4 +113,4 @@ resources = Resources(
 )
 ```
 
-The details of parameters can be found in [Machine Parameters](machine).
+The details of parameters can be found in [Machine Parameters](machine), [Resources Parameters](resources), and [Task Parameters](task).
