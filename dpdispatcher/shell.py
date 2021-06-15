@@ -1,5 +1,4 @@
 import os,sys,time,random,uuid
-from typing_extensions import runtime
 import psutil
 
 from dpdispatcher.JobStatus import JobStatus
