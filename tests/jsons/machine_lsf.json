@@ -5,8 +5,8 @@
         "local_root": "./test_lsf_dir",
         "remote_root": "/data/home/ypliu/dptasks",
         "remote_profile": {
-            "hostname": "121.192.191.103",
-            "port": 22104,
+            "hostname": "123.45.78.99",
+            "port": 56789,
             "username": "ypliu"
         }
     },
@@ -23,7 +23,7 @@
         "strategy": {
             "if_cuda_multi_devices": false
         },
-        "para_deg": 2,
+        "para_deg": 1,
         "module_unload_list": [],
         "module_list": [
             "use.own",
