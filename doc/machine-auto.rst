@@ -57,13 +57,13 @@ machine:
             ssh connection port.
 
         key_filename: 
-            | type: ``str`` | ``NoneType``, optional, default: ``None``
+            | type: ``NoneType`` | ``str``, optional, default: ``None``
             | argument path: ``machine/remote_profile/key_filename``
 
             key_filename used by ssh connection
 
         passphrase: 
-            | type: ``str`` | ``NoneType``, optional, default: ``None``
+            | type: ``NoneType`` | ``str``, optional, default: ``None``
             | argument path: ``machine/remote_profile/passphrase``
 
             passphrase used by ssh connection
