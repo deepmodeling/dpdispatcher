@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 #%%
-from dpdispatcher import dp_cloud_server
 from dpdispatcher.base_context import BaseContext
-import os, sys, paramiko, json, uuid, tarfile, time, stat, shutil
-from glob import glob
+import os
 # from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
 from .dpcloudserver import api

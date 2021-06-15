@@ -1,11 +1,8 @@
-import os,sys,time,random,uuid
-
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.machine import Machine
-from dpdispatcher.shell import Shell
 from dpdispatcher.dpcloudserver import api
-from dpdispatcher.dpcloudserver.config import API_HOST, ALI_OSS_BUCKET_URL
+from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 
 shell_script_header_template="""
 #!/bin/bash -l
@@ -70,7 +67,7 @@ class DpCloudServer(Machine):
         # return
         # pass
 
-    def check_if_recover(self):
+    def check_if_recover(self, submission):
         return False
         # pass
 
