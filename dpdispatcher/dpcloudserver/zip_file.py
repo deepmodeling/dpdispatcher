@@ -1,7 +1,5 @@
 import os, glob
-from posixpath import realpath
 from zipfile import ZipFile
-import shutil
 
 # def zip_file_list(root_path, zip_filename, file_list=[]):
 #     shutil.make_archive(base_name=zip_filename,

@@ -1,7 +1,6 @@
 
 # %%
-import os,sys,time,random,uuid,json,copy
-from typing import SupportsRound
+import time,random,uuid,json,copy
 
 from dargs.dargs import Argument
 from dpdispatcher.JobStatus import JobStatus
@@ -110,13 +109,13 @@ class Submission(object):
     def register_task(self, task):
         if self.belonging_jobs:
             raise RuntimeError("Not allowed to register tasks after generating jobs."
-                    "submission hash error {self}".format(self))
+                    "submission hash error {self}".format(self=self))
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
             raise RuntimeError("Not allowed to register tasks after generating jobs."
-                    "submission hash error {self}".format(self))
+                    "submission hash error {self}".format(self=self))
         self.belonging_tasks.extend(task_list)
     def get_hash(self):
         return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest()
@@ -150,7 +149,6 @@ class Submission(object):
         self.try_recover_from_json()
         if self.check_all_finished():
             dlog.info('info:check_all_finished: True')
-            pass
         else:
             dlog.info('info:check_all_finished: False')
             self.upload_jobs()
@@ -516,7 +514,7 @@ class Job(object):
             raise RuntimeError("job_state for job {job} is unknown".format(job=self))
 
         if job_state == JobStatus.terminated:
-            dlog.info(f"job: {self.job_hash} terminated; restarting job")
+            dlog.info(f"job: {self.job_hash} {self.job_id} terminated; restarting job")
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1

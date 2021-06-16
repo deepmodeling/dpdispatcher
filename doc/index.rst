@@ -19,6 +19,7 @@ DPDispatcher will monitor (poke) until these jobs finish and download the result
    getting-started
    machine
    resources
+   task
    api
 
 
