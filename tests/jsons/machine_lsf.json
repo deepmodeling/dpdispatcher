@@ -1,0 +1,42 @@
+{
+    "machine":{
+        "batch_type": "LSF",
+        "context_type": "SSHContext",
+        "local_root": "./test_lsf_dir",
+        "remote_root": "/data/home/ypliu/dptasks",
+        "remote_profile": {
+            "hostname": "123.45.78.99",
+            "port": 56789,
+            "username": "ypliu"
+        }
+    },
+    "resources":{
+        "number_node": 1,
+        "cpu_per_node": 4,
+        "gpu_per_node": 1,
+        "queue_name": "gpu",
+        "group_size": 4,
+        "custom_flags": [
+            "#BSUB -R \"select[hname != g005]\"",
+            "#BSUB -W 24:00"
+        ],
+        "strategy": {
+            "if_cuda_multi_devices": false
+        },
+        "para_deg": 1,
+        "module_unload_list": [],
+        "module_list": [
+            "use.own",
+            "deepmd/1.3"
+        ],
+        "source_list": [
+            "/data/home/ypliu/scripts/avail_gpu.sh",
+            "/data/home/ypliu/dprun/tf_envs.sh"
+        ],
+        "envs": {"DP_DISPATCHER_EXPORT": "test_foo_bar_baz"},
+        "kwargs": {
+            "gpu_usage": false,
+            "gpu_new_syntax": false
+        }
+    }
+}
