@@ -144,8 +144,9 @@ class SSHSession (object):
         doc_username = 'username of target linux system'
         doc_password = 'password of linux system'
         doc_port = 'ssh connection port.'
-        doc_key_filename = 'key_filename used by ssh connection'
-        doc_passphrase = 'passphrase used by ssh connection'
+        doc_key_filename = 'key filename used by ssh connection. If left None, find key in ~/.ssh or ' \
+                           'use password for login'
+        doc_passphrase = 'passphrase of key used by ssh connection'
         doc_timeout = 'timeout of ssh connection'
 
         ssh_remote_profile_args = [
