@@ -47,7 +47,7 @@ try:
     from .lazy_local_context import LazyLocalContext
     from .local_context import LocalContext
     from .ssh_context import SSHContext
-except:
+except ImportError:
     print("Dependency not satisfied. Unable to import main classes.")
 
 try:

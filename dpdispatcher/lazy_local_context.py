@@ -1,8 +1,6 @@
 from dpdispatcher.base_context import BaseContext
-import os,shutil,uuid
+import os
 import subprocess as sp
-from glob import glob
-from dpdispatcher import dlog
 
 class SPRetObj(object) :
     def __init__ (self,
@@ -162,7 +160,7 @@ class LazyLocalContext(BaseContext) :
                 o, e = proc.communicate()
                 stdout = SPRetObj(o)
                 stderr = SPRetObj(e)
-            except:
+            except sp.SubprocessError:
                 stdout = None
                 stderr = None
         return ret, stdout, stderr
