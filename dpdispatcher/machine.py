@@ -15,6 +15,7 @@ script_template="""\
 """
 
 script_env_template="""
+export FLAG_TASK_FAIL=0
 export REMOTE_ROOT={remote_root}
 test $? -ne 0 && exit 1
 
@@ -30,7 +31,7 @@ cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
   {command_env} ( {command} ) {log_err_part}
-  if test $? -eq 0; then touch {task_tag_finished}; fi
+  if test $? -eq 0; then touch {task_tag_finished}; else FLAG_TASK_FAIL=1;fi
 fi &
 """
 
@@ -39,8 +40,7 @@ cd $REMOTE_ROOT
 test $? -ne 0 && exit 1
 
 wait
-
-touch {job_tag_finished}
+if test $FLAG_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1;fi
 """
 
 class Machine(object):
