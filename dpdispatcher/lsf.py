@@ -1,5 +1,4 @@
 import os, getpass, time
-from abc import ABC
 
 from dpdispatcher.machine import Machine
 from dpdispatcher import dlog
@@ -17,10 +16,11 @@ lsf_script_header_template = """\
 """
 
 
-class LSF(Machine, ABC):
+class LSF(Machine):
     """
     LSF batch
     """
+
     def gen_script(self, job):
         lsf_script = super(LSF, self).gen_script(job)
         return lsf_script
@@ -65,8 +65,14 @@ class LSF(Machine, ABC):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    # TODO: add default resources
+    # TODO: derive abstract methods
     def default_resources(self, resources):
+        pass
+
+    def sub_script_cmd(self, res):
+        pass
+
+    def sub_script_head(self, res):
         pass
 
     def check_status(self, job):
