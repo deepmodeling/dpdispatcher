@@ -514,7 +514,7 @@ class Job(object):
             raise RuntimeError("job_state for job {job} is unknown".format(job=self))
 
         if job_state == JobStatus.terminated:
-            dlog.info(f"job: {self.job_hash} terminated; restarting job")
+            dlog.info(f"job: {self.job_hash} {self.job_id} terminated; restarting job")
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1

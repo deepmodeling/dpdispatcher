@@ -23,10 +23,10 @@ class Shell(Machine):
         script_file_name = job.script_file_name
         job_id_name = job.job_hash + '_job_id'
         self.context.write_file(fname=script_file_name, write_str=script_str)
-        proc = self.context.call('cd %s && exec bash %s' % (self.context.remote_root, script_file_name))
-
+        proc = self.context.call('cd %s && exec bash %s &' % (self.context.remote_root, script_file_name) )
+        proc.wait()
+        # proc.kill()
         job_id = int(proc.pid)
-        # print('shell.do_submit.job_id', job_id)
         self.context.write_file(job_id_name, str(job_id))
         return job_id
 
