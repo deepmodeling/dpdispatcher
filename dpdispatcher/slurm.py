@@ -1,6 +1,5 @@
 from dpdispatcher.machine import Machine
-import os,sys,time,random,uuid
-from collections import defaultdict
+import time
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog

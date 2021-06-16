@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from dpdispatcher.base_context import BaseContext
-import os, sys, paramiko, json, uuid, tarfile, time, stat, shutil
+import os, paramiko, tarfile, time
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
@@ -66,7 +66,7 @@ class SSHSession (object):
             time.sleep(sleep_time)
 
     def _check_alive(self):
-        if self.ssh == None:
+        if self.ssh is None:
             return False
         try :
             transport = self.ssh.get_transport()
@@ -96,7 +96,7 @@ class SSHSession (object):
     def _setup_ssh(self):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
-        self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
         self.ssh.connect(hostname=self.hostname, port=self.port,
                         username=self.username, password=self.password,
                         key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase)
@@ -380,7 +380,7 @@ class SSHContext(BaseContext):
 
     def kill(self, cmd_pipes) :
         raise RuntimeError('dose not work! we do not know how to kill proc through paramiko.SSHClient')
-        self.block_checkcall('kill -15 %s' % cmd_pipes['pid'])
+        #self.block_checkcall('kill -15 %s' % cmd_pipes['pid'])
 
 
     def _rmtree(self, remotepath, verbose = False):
