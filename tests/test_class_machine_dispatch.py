@@ -31,6 +31,28 @@ class TestMachineDispatch(unittest.TestCase):
         )
         # pylint: disable=maybe-no-member
         self.assertIsInstance(machine.context, LazyLocalContext)
+    
+    def test_lower_case(self):
+        machine_dict = {
+            'batch_type': 'pbs',
+            'context_type': 'lazylocalcontext',
+            'local_root':'./'
+        }
+        machine = Machine.load_from_dict(
+            machine_dict=machine_dict
+        )
+        self.assertIsInstance(machine.context, LazyLocalContext)
+
+    def test_no_ending_context(self):
+        machine_dict = {
+            'batch_type': 'PBS',
+            'context_type': 'lazylocal',
+            'local_root':'./'
+        }
+        machine = Machine.load_from_dict(
+            machine_dict=machine_dict
+        )
+        self.assertIsInstance(machine.context, LazyLocalContext)
 
     def test_local(self):
         machine_dict = {

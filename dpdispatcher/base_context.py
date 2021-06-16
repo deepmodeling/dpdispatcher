@@ -8,6 +8,9 @@ class BaseContext(object):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.subclasses_dict[cls.__name__]=cls
+        cls.subclasses_dict[cls.__name__.lower()]=cls
+        cls.subclasses_dict[cls.__name__.replace("Context", "")]=cls
+        cls.subclasses_dict[cls.__name__.lower().replace("context", "")]=cls
 
     @classmethod
     def load_from_dict(cls, context_dict):
