@@ -78,6 +78,7 @@ class Machine(object):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.subclasses_dict[cls.__name__]=cls
+        cls.subclasses_dict[cls.__name__.lower()]=cls
         # cls.subclasses.append(cls)
 
     @classmethod
