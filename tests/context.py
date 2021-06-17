@@ -15,6 +15,7 @@ from dpdispatcher.pbs import PBS
 from dpdispatcher.slurm import Slurm
 from dpdispatcher.shell import Shell
 from dpdispatcher.lsf import LSF
+from dpdispatcher.base_context import BaseContext
 
 from dpdispatcher.local_context import _identical_files
 try:

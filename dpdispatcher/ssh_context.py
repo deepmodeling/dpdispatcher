@@ -168,6 +168,8 @@ class SSHContext(BaseContext):
                 remote_root,
                 remote_profile,
                 clean_asynchronously=False,
+                *args,
+                **kwargs,
                 ):
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
