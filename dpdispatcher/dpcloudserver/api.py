@@ -90,9 +90,10 @@ def upload(oss_task_zip, zip_task_file, endpoint, bucket_name):
             parts.append(PartInfo(part_number, result.etag))
             offset += num_to_upload
             part_number += 1
+    # result = bucket.complete_multipart_upload(oss_task_zip, upload_id, parts)
     result = bucket.complete_multipart_upload(oss_task_zip, upload_id, parts)
     # print('debug:upload_result:', result, dir())
-    return True
+    return result
 
 
 def job_create(job_type, oss_path, input_data):

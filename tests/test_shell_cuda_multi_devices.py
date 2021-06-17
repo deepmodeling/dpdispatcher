@@ -21,7 +21,13 @@ class TestShellCudaMultiDevices(unittest.TestCase):
 
         task_list = []
         for ii in range(16):
-            task = Task(command=f"echo dpdispatcher_unittest_{ii}", task_work_path='./', forward_files=[], backward_files=[], outlog='out.txt')
+            task = Task(
+                command=f"echo dpdispatcher_unittest_{ii}",
+                task_work_path='./',
+                forward_files=[],
+                backward_files=[],
+                outlog='out.txt'
+            )
             task_list.append(task)
 
         submission = Submission(work_base='test_dir/',
@@ -42,8 +48,8 @@ class TestShellCudaMultiDevices(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # pass
         shutil.rmtree('tmp_if_cuda_multi_devices/')
+        # pass
 
 
 

@@ -1,8 +1,9 @@
 from dpdispatcher.base_context import BaseContext
-import os,shutil,uuid,hashlib
+import os,shutil,hashlib
 import subprocess as sp
 from glob import glob
 from dpdispatcher import dlog
+from subprocess import TimeoutExpired
 
 # class LocalSession (object) :
 #     def __init__ (self, jdata) :
@@ -382,12 +383,12 @@ class LocalContext(BaseContext) :
         ret = proc.poll()
         if ret is None:
             return None, None, None
-        else :
+        else:
             try:
                 o, e = proc.communicate()
                 stdout = SPRetObj(o)
                 stderr = SPRetObj(e)
-            except:
+            except TimeoutExpired:
                 stdout = None
                 stderr = None
         return ret, stdout, stderr

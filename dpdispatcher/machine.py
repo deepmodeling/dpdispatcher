@@ -15,7 +15,8 @@ script_template="""\
 """
 
 script_env_template="""
-export REMOTE_ROOT={remote_root}
+echo 0 > {flag_job_task_fail}
+REMOTE_ROOT={remote_root}
 test $? -ne 0 && exit 1
 
 {module_unload_part}
@@ -30,7 +31,7 @@ cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
   {command_env} ( {command} ) {log_err_part}
-  if test $? -eq 0; then touch {task_tag_finished}; fi
+  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > {flag_job_task_fail};fi
 fi &
 """
 
@@ -39,8 +40,8 @@ cd $REMOTE_ROOT
 test $? -ne 0 && exit 1
 
 wait
-
-touch {job_tag_finished}
+FLAG_JOB_TASK_FAIL=$(cat {flag_job_task_fail})
+if test $FLAG_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1;fi
 """
 
 class Machine(object):
@@ -176,7 +177,10 @@ class Machine(object):
         for k,v in envs.items():
             export_envs_part += f"export {k}={v}\n"
 
+        flag_job_task_fail = job.job_hash + '_flag_job_task_fail'
+
         script_env = script_env_template.format(
+            flag_job_task_fail=flag_job_task_fail,
             remote_root=self.context.remote_root,
             module_unload_part=module_unload_part,
             module_load_part=module_load_part,
@@ -201,8 +205,13 @@ class Machine(object):
             if task.errlog is not None:
                 log_err_part += f"2>>{task.errlog} "
 
-            single_script_command = script_command_template.format(command_env=command_env, 
-                task_work_path=task.task_work_path, command=task.command, task_tag_finished=task_tag_finished,
+            flag_job_task_fail = job.job_hash + '_flag_job_task_fail'
+            single_script_command = script_command_template.format(
+                flag_job_task_fail=flag_job_task_fail,
+                command_env=command_env,
+                task_work_path=task.task_work_path,
+                command=task.command,
+                task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part)
             script_command += single_script_command
 
@@ -211,7 +220,11 @@ class Machine(object):
 
     def gen_script_end(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
-        script_end = script_end_template.format(job_tag_finished=job_tag_finished)
+        flag_job_task_fail = job.job_hash + '_flag_job_task_fail'
+        script_end = script_end_template.format(
+            job_tag_finished=job_tag_finished,
+            flag_job_task_fail=flag_job_task_fail
+        )
         return script_end
 
     def gen_script_wait(self, resources):
