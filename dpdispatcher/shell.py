@@ -1,4 +1,3 @@
-import os,sys,time,random,uuid
 import psutil
 
 from dpdispatcher.JobStatus import JobStatus
@@ -48,7 +47,7 @@ class Shell(Machine):
     def check_status(self, job):
         job_id = job.job_id
         # print('shell.check_status.job_id', job_id)
-        job_state = JobStatus.unknown
+        # job_state = JobStatus.unknown
         if job_id == "" :
             return JobStatus.unsubmitted
 
@@ -61,7 +60,7 @@ class Shell(Machine):
             return JobStatus.running
         else:
             return JobStatus.terminated
-        return job_state
+        # return job_state
     
     # def check_status(self, job):
     #     job_id = job.job_id

@@ -317,7 +317,7 @@ class Submission(object):
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.bind_machine(machine=self.machine)
-                self = submission.bind_machine(machine=self.machine)
+                # self = submission.bind_machine(machine=self.machine)
             else:
                 print(self.serialize())
                 print(submission.serialize())
