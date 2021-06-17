@@ -48,8 +48,8 @@ class TestShellCudaMultiDevices(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        pass
-        # shutil.rmtree('tmp_if_cuda_multi_devices/')
+        shutil.rmtree('tmp_if_cuda_multi_devices/')
+        # pass
 
 
 
