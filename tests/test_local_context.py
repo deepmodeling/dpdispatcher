@@ -129,7 +129,7 @@ class TestLocalContext(unittest.TestCase):
 
         proc = self.local_context.call('sleep 0.12')
         self.assertFalse(self.local_context.check_finish(proc))
-        time.sleep(0.04)
+        time.sleep(0.06)
         self.assertFalse(self.local_context.check_finish(proc))
         time.sleep(0.10)
         self.assertTrue(self.local_context.check_finish(proc))
