@@ -15,8 +15,8 @@ script_template="""\
 """
 
 script_env_template="""
-export FLAG_TASK_FAIL=0
-export REMOTE_ROOT={remote_root}
+FLAG_TASK_FAIL=0
+REMOTE_ROOT={remote_root}
 test $? -ne 0 && exit 1
 
 {module_unload_part}
