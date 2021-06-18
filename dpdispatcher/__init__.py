@@ -3,8 +3,6 @@ import os, sys
 
 
 ROOT_PATH=__path__[0]
-NAME="dpdispatcher"
-SHORT_CMD="dpdisp"
 dlog = logging.getLogger(__name__)
 dlog.setLevel(logging.INFO)
 dlogf = logging.FileHandler(os.getcwd()+os.sep+SHORT_CMD+'.log')

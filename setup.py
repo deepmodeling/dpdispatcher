@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from os import path
-from  dpdispatcher import NAME,SHORT_CMD
 import setuptools, datetime
 
 readme_file = path.join(path.dirname(path.abspath(__file__)), 'README.md')
+NAME="dpdispatcher"
+SHORT_CMD="dpdisp"
+
 try:
     from m2r import parse_from_file
     readme = parse_from_file(readme_file)
