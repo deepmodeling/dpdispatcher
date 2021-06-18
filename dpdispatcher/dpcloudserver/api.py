@@ -1,9 +1,12 @@
 
 import os
 import json
-import oss2
-from oss2 import SizedFileAdapter, determine_part_size
-from oss2.models import PartInfo
+try:
+    import oss2
+    from oss2 import SizedFileAdapter, determine_part_size
+    from oss2.models import PartInfo
+except ImportError:
+    pass
 import requests
 from urllib.parse import urljoin
 from dpdispatcher import dlog
