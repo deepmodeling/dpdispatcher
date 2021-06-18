@@ -21,7 +21,9 @@ class LazyLocalContext(BaseContext) :
     def __init__ (self,
                 local_root,
                 remote_root=None,
-                remote_profile={}
+                remote_profile={},
+                *args,
+                **kwargs,
                 ):
         """
         local_root:

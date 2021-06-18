@@ -21,6 +21,8 @@ class DpCloudServerContext(BaseContext):
         local_root,
         remote_root=None,
         remote_profile={},
+        *args,
+        **kwargs,
     ):
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile

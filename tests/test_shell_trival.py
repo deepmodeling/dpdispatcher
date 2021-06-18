@@ -25,8 +25,8 @@ class TestShellTrival(unittest.TestCase):
         with open('jsons/machine_local_shell.json', 'r') as f:
             machine_dict = json.load(f)
 
-        machine = Machine.load_from_dict(machine_dict['machine'])
-        resources = Resources.load_from_dict(machine_dict['resources'])
+        machine = Machine(**machine_dict['machine'])
+        resources = Resources(**machine_dict['resources'])
 
         task1 = Task(command='cat example.txt', task_work_path='dir1/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
         task2 = Task(command='cat example.txt', task_work_path='dir2/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')

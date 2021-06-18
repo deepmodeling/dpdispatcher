@@ -2,8 +2,13 @@ from dpdispatcher import dlog
 
 class BaseContext(object):
     subclasses_dict = {}
-    def __init__(self):
-        raise NotImplementedError('abstract method')
+    def __new__(cls, *args, **kwargs):
+        if cls is BaseContext:
+            subcls = cls.subclasses_dict[kwargs['context_type']]
+            instance = subcls.__new__(subcls, *args, **kwargs)
+        else:
+            instance = object.__new__(cls)
+        return instance
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

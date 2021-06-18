@@ -55,21 +55,41 @@ class Machine(object):
 
     subclasses_dict = {}
 
-    # def __new__(cls, batch_type, context_type, local_root='./', remote_root=None, remote_profile={}):
-    #     if cls is Machine:
-    #         # instance = object.__new__(batch_type, context_type, local_root, remote_root, remote_profile)
-    #         subcls = cls.subclasses_dict[cls.__name__]
-    #         instance = subcls.__new__(batch_type, context_type, local_root, remote_root, remote_profile)
-    #     else:
-    #         instance = object.__new__(cls)
-    #     return instance
+    def __new__(cls, *args, **kwargs):
+        if cls is Machine:
+            subcls = cls.subclasses_dict[kwargs['batch_type']]
+            instance = subcls.__new__(subcls, *args, **kwargs)
+        else:
+            instance = object.__new__(cls)
+        return instance
 
-    # def __init__(self, batch_type, context_type, local_root='./', remote_root=None, remote_profile={}):
-    #     pass
+    def __init__(self,
+        batch_type=None,
+        context_type=None,
+        local_root=None,
+        remote_root=None,
+        remote_profile={},
+        *,
+        context=None
+    ):
+        if context is None:
+            assert isinstance(self, self.__class__.subclasses_dict[batch_type])
+            context = BaseContext(
+                context_type=context_type,
+                local_root=local_root,
+                remote_root=remote_root,
+                remote_profile=remote_profile
+            )
+        else:
+            pass
+        self.bind_context(context=context)
 
-    def __init__ (self,
-                context):
+    def bind_context(self, context):
         self.context = context
+
+    # def __init__ (self,
+    #             context):
+    #     self.context = context
         # self.uuid_names = uuid_names
         # self.upload_tag_name = '%s_job_tag_upload' % self.context.job_uuid
         # self.finish_tag_name = '%s_job_tag_finished' % self.context.job_uuid

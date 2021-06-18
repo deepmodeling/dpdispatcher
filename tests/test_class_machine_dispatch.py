@@ -1,24 +1,64 @@
 import os,sys,json,glob,shutil,uuid,time
+from socket import gaierror
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 __package__ = 'tests'
 from .context import LocalContext
+from .context import BaseContext
 from .context import PBS
 from .context import JobStatus
 from .context import LazyLocalContext, LocalContext, SSHContext
-from .context import Submission, Job, Task, Resources
 from .context import LSF, Slurm, PBS, Shell
 from .context import Machine
 from .context import dargs
 from dargs.dargs import ArgumentKeyError
 
-# print('in', SampleClass.get_sample_empty_submission())
-
 class TestMachineDispatch(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
+
+    def test_init_machine_pbs_lazy_local(self):
+        machine_dict = {
+            'batch_type': 'PBS',
+            'context_type': 'LazyLocalContext',
+            'local_root':'./'
+        }
+
+        machine = Machine(
+            **machine_dict
+        )
+        self.assertIsInstance(machine, PBS)
+        self.assertIsInstance(machine.context, LazyLocalContext)
+
+    def test_init_machine_shell_local(self):
+        machine_dict = {
+            'batch_type': 'Shell',
+            'context_type': 'LocalContext',
+            'local_root':'./',
+            'remote_root':'/tmp',
+        }
+
+        shell = Shell(
+            **machine_dict
+        )
+        self.assertIsInstance(shell, Shell)
+        self.assertIsInstance(shell.context, LocalContext)
+
+    def test_init_machine_slurm_ssh(self):
+        machine_dict = {
+            'batch_type': 'Slurm',
+            'context_type': 'SSHContext',
+            'local_root':'./',
+            'remote_root':'/tmp/dpdispatcher',
+            'remote_profile':{'hostname':'39.106.xx.xx','username':'test1234'}
+        }
+
+        with self.assertRaises(gaierror):
+            Machine(
+                **machine_dict
+            )
 
     def test_lazy_local(self):
         machine_dict = {
@@ -139,3 +179,42 @@ class TestMachineDispatch(unittest.TestCase):
             machine_dict=machine_dict
         )
         self.assertIsInstance(machine, Shell)
+
+class TestContextDispatch(unittest.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+
+    def test_init_lazy_local(self):
+        context_dict = {
+            'context_type': 'LazyLocalContext',
+            'local_root':'./',
+        }
+
+        context = BaseContext(
+            **context_dict
+        )
+        self.assertIsInstance(context, LazyLocalContext)
+
+    def test_subclass_init_local(self):
+        context_dict = {
+            'context_type': 'LocalContext',
+            'local_root':'./',
+            'remote_root':'/tmp'
+        }
+
+        context = LocalContext(
+            **context_dict
+        )
+        self.assertIsInstance(context, LocalContext)
+
+    def test_init_local(self):
+        context_dict = {
+            'context_type': 'LocalContext',
+            'local_root':'./',
+            'remote_root':'/tmp'
+        }
+
+        context = BaseContext(
+            **context_dict
+        )
+        self.assertIsInstance(context, LocalContext)
