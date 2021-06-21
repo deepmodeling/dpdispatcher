@@ -3,11 +3,9 @@ import os, sys
 
 
 ROOT_PATH=__path__[0]
-NAME="dpdispatcher"
-SHORT_CMD="dpdisp"
 dlog = logging.getLogger(__name__)
 dlog.setLevel(logging.INFO)
-dlogf = logging.FileHandler(os.getcwd()+os.sep+SHORT_CMD+'.log')
+dlogf = logging.FileHandler(os.getcwd()+os.sep+'dpdispatcher'+'.log')
 # dlogf = logging.FileHandler('./'+os.sep+SHORT_CMD+'.log')
 # dlogf = logging.FileHandler(os.path.join(os.environ['HOME'], SHORT_CMD+'.log'))
 # dlogf = logging.FileHandler(os.path.join(os.path.expanduser('~'), SHORT_CMD+'.log'))
@@ -33,29 +31,21 @@ try:
 except ImportError:
     __date__ = 'unkown'
 
-try:
-    from .submission import Submission
-    from .submission import Task
-    from .submission import Job
-    from .submission import Resources
-    from .slurm import Slurm
-    from .pbs import PBS
-    from .shell import Shell
-    from .lsf import LSF
-    from .machine import Machine
+from .submission import Submission
+from .submission import Task
+from .submission import Job
+from .submission import Resources
+from .slurm import Slurm
+from .pbs import PBS
+from .shell import Shell
+from .lsf import LSF
+from .dp_cloud_server import DpCloudServer
+from .machine import Machine
 
-    from .lazy_local_context import LazyLocalContext
-    from .local_context import LocalContext
-    from .ssh_context import SSHContext
-except ImportError:
-    print("Dependency not satisfied. Unable to import main classes.")
-
-try:
-    from .dp_cloud_server import DpCloudServer
-    from .dp_cloud_server_context import DpCloudServerContext
-except ImportError:
-    pass
-
+from .lazy_local_context import LazyLocalContext
+from .local_context import LocalContext
+from .ssh_context import SSHContext
+from .dp_cloud_server_context import DpCloudServerContext
 
 def info():
     """
