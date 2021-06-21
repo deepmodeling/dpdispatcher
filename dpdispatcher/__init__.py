@@ -5,7 +5,7 @@ import os, sys
 ROOT_PATH=__path__[0]
 dlog = logging.getLogger(__name__)
 dlog.setLevel(logging.INFO)
-dlogf = logging.FileHandler(os.getcwd()+os.sep+SHORT_CMD+'.log')
+dlogf = logging.FileHandler(os.getcwd()+os.sep+'dpdispatcher'+'.log')
 # dlogf = logging.FileHandler('./'+os.sep+SHORT_CMD+'.log')
 # dlogf = logging.FileHandler(os.path.join(os.environ['HOME'], SHORT_CMD+'.log'))
 # dlogf = logging.FileHandler(os.path.join(os.path.expanduser('~'), SHORT_CMD+'.log'))
