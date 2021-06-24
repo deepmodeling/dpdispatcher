@@ -56,7 +56,10 @@ class DpCloudServer(Machine):
         if job.job_id == '':
             return JobStatus.unsubmitted
         dlog.debug(f"debug: check_status; job.job_id:{job.job_id}; job.job_hash:{job.job_hash}")
-        dp_job_status = api.get_tasks(job.job_id)[0]["status"]
+        try:
+            dp_job_status = api.get_tasks(job.job_id)[0]["status"]
+        except IndexError as e:
+            raise RuntimeError(f"cannot find job information in dpcloudserver's database for job {job.job_id}")
         job_state = self.map_dp_job_state(dp_job_status)
         return job_state
 
