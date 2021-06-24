@@ -99,7 +99,9 @@ class SSHSession (object):
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
         self.ssh.connect(hostname=self.hostname, port=self.port,
                         username=self.username, password=self.password,
-                        key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase)
+                        key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
+                        compress=True,
+                        )
         assert(self.ssh.get_transport().is_active())
         transport = self.ssh.get_transport()
         transport.set_keepalive(60)
@@ -259,7 +261,6 @@ class SSHContext(BaseContext):
                submission,
                # local_up_files,
                dereference = True) :
-        self.ssh_session.ensure_alive()
         cwd = os.getcwd()
         os.chdir(self.local_root) 
         file_list = []
@@ -413,6 +414,7 @@ class SSHContext(BaseContext):
                 tar.add(ii)
         os.chdir(cwd)
 
+        self.ssh_session.ensure_alive()
         try:
             self.sftp.mkdir(self.remote_root)
         except OSError: 

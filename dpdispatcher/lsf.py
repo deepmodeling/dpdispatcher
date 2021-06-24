@@ -1,6 +1,3 @@
-import os, getpass, time
-
-
 from dpdispatcher.machine import Machine
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
