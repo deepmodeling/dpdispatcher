@@ -266,7 +266,8 @@ class SSHContext(BaseContext):
         file_list = []
         
       #   for ii in job_dirs :
-        for task in submission.belonging_tasks :
+        for task in submission.belonging_tasks:
+            file_list.append(task.task_work_path)
             for jj in task.forward_files :
                 # file_list.append(os.path.join(ii, jj))        
                 file_list.append(os.path.join(task.task_work_path, jj))        
