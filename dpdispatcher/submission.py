@@ -215,8 +215,12 @@ class Submission(object):
         If the job state is terminated (killed unexpectly), resubmit the job.
         If the job state is unknown, raise an error.
         """
-        for job in self.belonging_jobs:
-            job.handle_unexpected_job_state()
+        try:
+            for job in self.belonging_jobs:
+                job.handle_unexpected_job_state()
+        except Exception as e:
+            self.submission_to_json()
+            raise e
 
     # not used here, submitting job is in handle_unexpected_submission_state.
 
