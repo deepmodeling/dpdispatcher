@@ -264,10 +264,11 @@ class SSHContext(BaseContext):
         cwd = os.getcwd()
         os.chdir(self.local_root) 
         file_list = []
+        directory_list = []
         
       #   for ii in job_dirs :
         for task in submission.belonging_tasks:
-            file_list.append(task.task_work_path)
+            directory_list.append(task.task_work_path)
             for jj in task.forward_files :
                 # file_list.append(os.path.join(ii, jj))        
                 file_list.append(os.path.join(task.task_work_path, jj))        
@@ -275,7 +276,7 @@ class SSHContext(BaseContext):
         #     file_list.append(ii)
         file_list.extend(submission.forward_common_files)
 
-        self._put_files(file_list, dereference = dereference)
+        self._put_files(file_list, dereference = dereference, directories=directory_list)
         os.chdir(cwd)
 
     def download(self, 
@@ -403,7 +404,23 @@ class SSHContext(BaseContext):
 
     def _put_files(self,
                    files,
-                   dereference = True) :
+                   dereference = True,
+                   directories = None,
+                   ) :
+        """Upload files to server.
+
+        Parameters
+        ----------
+        files: list
+            uploaded files
+        dereference: bool, default: True
+            If dereference is False, add symbolic and hard links to the archive.
+            If it is True, add the content of the target files to the archive.
+            This has no effect on systems that do not support symbolic links.
+        directories: list, default: None
+            uploaded directories non-recursively. Use `files` for uploading
+            recursively
+        """
         of = self.submission.submission_hash + '.tgz'
         # local tar
         cwd = os.getcwd()
@@ -413,6 +430,9 @@ class SSHContext(BaseContext):
         with tarfile.open(of, "w:gz", dereference = dereference) as tar:
             for ii in files :
                 tar.add(ii)
+            if directories is not None:
+                for ii in directories:
+                    tar.add(ii, recursive=False)
         os.chdir(cwd)
 
         self.ssh_session.ensure_alive()
