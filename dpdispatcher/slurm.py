@@ -22,7 +22,11 @@ class Slurm(Machine):
         script_header_dict = {}
         script_header_dict['slurm_nodes_line']="#SBATCH --nodes {number_node}".format(number_node=resources.number_node)
         script_header_dict['slurm_ntasks_per_node_line']="#SBATCH --ntasks-per-node {cpu_per_node}".format(cpu_per_node=resources.cpu_per_node)
-        script_header_dict['slurm_number_gpu_line']="#SBATCH --gres=gpu:{gpu_per_node}".format(gpu_per_node=resources.gpu_per_node)
+        custom_gpu_line = resources.kwargs['kwargs'].get("custom_gpu_line", None)
+        if not custom_gpu_line:
+            script_header_dict['slurm_number_gpu_line'] = "#SBATCH --gres=gpu:{gpu_per_node}".format(gpu_per_node=resources.gpu_per_node)
+        else:
+            script_header_dict['slurm_number_gpu_line'] = custom_gpu_line
         script_header_dict['slurm_partition_line']="#SBATCH --partition {queue_name}".format(queue_name=resources.queue_name)
         slurm_script_header = slurm_script_header_template.format(**script_header_dict)
         return slurm_script_header
