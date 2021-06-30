@@ -15,8 +15,8 @@ script_template="""\
 """
 
 script_env_template="""
-echo 0 > {flag_job_task_fail}
 REMOTE_ROOT={remote_root}
+echo 0 > $REMOTE_ROOT/{flag_job_task_fail}
 test $? -ne 0 && exit 1
 
 {module_unload_part}
@@ -31,7 +31,7 @@ cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
   {command_env} ( {command} ) {log_err_part}
-  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > {flag_job_task_fail};fi
+  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > $REMOTE_ROOT/{flag_job_task_fail};fi
 fi &
 """
 
