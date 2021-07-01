@@ -87,7 +87,7 @@ class Slurm(Machine):
                     dlog.warning("Sleep 60 s and retry checking...")
                     # rest 60s
                     time.sleep(60)
-                    return self.check_status(job_id, retry=retry+1, max_retry=max_retry)
+                    return self.check_status(job, retry=retry+1, max_retry=max_retry)
             else:
                 raise RuntimeError("status command squeue fails to execute."
                     "job_id:%s \n error message:%s\n return code %d\n" % (job_id, err_str, ret))
