@@ -114,7 +114,7 @@ class SSHSession (object):
     def get_ssh_client(self) :
         return self.ssh
 
-    # def get_session_root(self) :
+    # def get_session_root(self):
     #     return self.remote_root
 
     def close(self) :
@@ -177,6 +177,9 @@ class SSHContext(BaseContext):
                 ):
         assert(type(local_root) == str)
         self.temp_local_root = os.path.abspath(local_root)
+        assert os.path.isabs(remote_root), f"remote_root must be a abspath"
+        self.temp_remote_root = remote_root
+
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
         # self.job_uuid = job_uuid
@@ -186,7 +189,6 @@ class SSHContext(BaseContext):
         #    self.job_uuid = str(uuid.uuid4())
         self.ssh_session = SSHSession(**remote_profile)
         # self.temp_remote_root = os.path.join(self.ssh_session.get_session_root())
-        self.temp_remote_root = remote_root
         self.ssh_session.ensure_alive()
         try:
             self.sftp.mkdir(self.temp_remote_root)
@@ -263,6 +265,15 @@ class SSHContext(BaseContext):
                submission,
                # local_up_files,
                dereference = True) :
+        print('debug^^^^^^^^^^^^^^^^^', self.remote_root)
+        # remote_cwd = 
+        self.ssh_session.sftp.chdir(self.temp_remote_root)
+        try:
+            self.ssh_session.sftp.mkdir(os.path.basename(self.remote_root))
+        except OSError:
+            pass
+        self.ssh_session.sftp.chdir(None)
+
         cwd = os.getcwd()
         os.chdir(self.local_root) 
         file_list = []
