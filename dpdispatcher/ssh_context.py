@@ -7,7 +7,6 @@ from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
 import pathlib
-import subprocess as sp
 # from dpdispatcher.submission import Machine
 
 class SSHSession (object):
