@@ -29,9 +29,7 @@ class Shell(Machine):
             self.context.write_file(job_id_name, str(job_id))
             return job_id
         else:
-            job_id = int(proc["stdout"].readline())
-            self.context.write_file(job_id_name, str(job_id))
-            return job_id
+            return "#N/A#"
         # proc.kill()
 
 

@@ -379,8 +379,8 @@ class SSHContext(BaseContext):
         return ret        
         
     def call(self, cmd):
-        # stdin, stdout, stderr = self.ssh_session.exec_command(cmd)
-        stdin, stdout, stderr = self.ssh.exec_command('echo $$; ' + cmd)
+        stdin, stdout, stderr = self.ssh_session.exec_command(cmd)
+        # stdin, stdout, stderr = self.ssh.exec_command('echo $$; exec ' + cmd)
         # pid = stdout.readline().strip()
         # print(pid)
         return {'stdin':stdin, 'stdout':stdout, 'stderr':stderr}
