@@ -23,15 +23,11 @@ class Shell(Machine):
         job_id_name = job.job_hash + '_job_id'
         self.context.write_file(fname=script_file_name, write_str=script_str)
         proc = self.context.call('cd %s && exec bash %s &' % (self.context.remote_root, script_file_name) )
-        if not isinstance(proc,dict):
-            proc.wait()
-            job_id = int(proc.pid)
-            self.context.write_file(job_id_name, str(job_id))
-            return job_id
-        else:
-            return "#N/A#"
+        proc.wait()
         # proc.kill()
-
+        job_id = int(proc.pid)
+        self.context.write_file(job_id_name, str(job_id))
+        return job_id
 
         # script_file_name = job.script_file_name
         # script_str = self.gen_script(job)
