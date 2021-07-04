@@ -6,6 +6,7 @@ import os, paramiko, tarfile, time
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
+import pathlib
 # from dpdispatcher.submission import Machine
 
 class SSHSession (object):
@@ -242,9 +243,9 @@ class SSHContext(BaseContext):
 
     def bind_submission(self, submission):
         self.submission = submission
-        self.local_root = os.path.join(self.temp_local_root, submission.work_base)
+        self.local_root = pathlib.PurePath(os.path.join(self.temp_local_root, submission.work_base)).as_posix()
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
-        self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash)
+        self.remote_root = pathlib.PurePath(os.path.join(self.temp_remote_root, self.submission.submission_hash)).as_posix()
 
         # self.job_uuid = submission.submission_hash
         # dlog.debug("debug:SSHContext.bind_submission"
@@ -359,19 +360,19 @@ class SSHContext(BaseContext):
 
     def write_file(self, fname, write_str):
         self.ssh_session.ensure_alive()
-        with self.sftp.open(os.path.join(self.remote_root, fname), 'w') as fp :
+        with self.sftp.open(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(), 'w') as fp :
             fp.write(write_str)
 
     def read_file(self, fname):
         self.ssh_session.ensure_alive()
-        with self.sftp.open(os.path.join(self.remote_root, fname), 'r') as fp:
+        with self.sftp.open(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(), 'r') as fp:
             ret = fp.read().decode('utf-8')
         return ret
 
     def check_file_exists(self, fname):
         self.ssh_session.ensure_alive()
         try:
-            self.sftp.stat(os.path.join(self.remote_root, fname)) 
+            self.sftp.stat(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix())
             ret = True
         except IOError:
             ret = False
@@ -452,8 +453,8 @@ class SSHContext(BaseContext):
         except OSError: 
             pass
         # trans
-        from_f = os.path.join(self.local_root, of)
-        to_f = os.path.join(self.remote_root, of)
+        from_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
+        to_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         try:
            self.sftp.put(from_f, to_f)
         except FileNotFoundError:
@@ -491,8 +492,8 @@ class SSHContext(BaseContext):
             # -f, --force force overwrite of output file and compress links
             self.block_checkcall('gzip -f %s' % of_tar)
         # trans
-        from_f = os.path.join(self.remote_root, of)
-        to_f = os.path.join(self.local_root, of)
+        from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
+        to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         if os.path.isfile(to_f) :
             os.remove(to_f)
         self.sftp.get(from_f, to_f)
