@@ -205,6 +205,9 @@ class Submission(object):
         this method will not handle unexpected (like resubmit terminated) job state in the submission.
         """
         for job in self.belonging_jobs:
+            if job.job_state == JobStatus.finished:
+                # finished job will be finished for ever, skip
+                continue
             job.get_job_state()
             dlog.debug(f"debug:get_submission_state: job: {job.job_hash}, {job.job_id}, {repr(job.job_state)}")
         # self.submission_to_json()
