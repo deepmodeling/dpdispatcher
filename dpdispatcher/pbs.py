@@ -82,4 +82,35 @@ class PBS(Machine):
         return self.context.check_file_exists(job_tag_finished)
 
 
-
+class Torque(PBS):
+    def check_status(self, job):
+        job_id = job.job_id
+        if job_id == "" :
+            return JobStatus.unsubmitted
+        ret, stdin, stdout, stderr\
+            = self.context.block_call ("qstat -l " + job_id)
+        err_str = stderr.read().decode('utf-8')
+        if (ret != 0) :
+            if str("qstat: Unknown Job Id") in err_str or str("Job has finished") in err_str:
+                if self.check_finish_tag(job=job) :
+                    return JobStatus.finished
+                else :
+                    return JobStatus.terminated
+            else :
+                raise RuntimeError ("status command qstat fails to execute. erro info: %s return code %d"
+                                    % (err_str, ret))
+        status_line = stdout.read().decode('utf-8').split ('\n')[-2]
+        status_word = status_line.split ()[-2]        
+        # dlog.info (status_word)
+        if status_word in ["Q","H"] :
+            return JobStatus.waiting
+        elif    status_word in ["R"] :
+            return JobStatus.running
+        elif    status_word in ["C", "E", "K", "F"] :
+            if self.check_finish_tag(job):
+                dlog.info(f"job: {job.job_hash} {job.job_id} finished")
+                return JobStatus.finished
+            else :
+                return JobStatus.terminated
+        else :
+            return JobStatus.unknown

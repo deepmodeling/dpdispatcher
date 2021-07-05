@@ -37,6 +37,7 @@ from .submission import Job
 from .submission import Resources
 from .slurm import Slurm
 from .pbs import PBS
+from .pbs import Torque
 from .shell import Shell
 from .lsf import LSF
 from .dp_cloud_server import DpCloudServer

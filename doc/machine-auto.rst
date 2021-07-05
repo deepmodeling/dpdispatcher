@@ -6,7 +6,7 @@ machine:
         | type: ``str``
         | argument path: ``machine/batch_type``
 
-        The batch job system type. Option: Slurm, PBS, LSF, Shell, DpCloudServer
+        The batch job system type. Option: Slurm, PBS (for OpenPBS only), Torque (for Torque version of pbs), LSF, Shell, DpCloudServer
 
     context_type: 
         | type: ``str``
