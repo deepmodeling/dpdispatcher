@@ -21,8 +21,9 @@ class Shell(Machine):
         script_str = self.gen_script(job) 
         script_file_name = job.script_file_name
         job_id_name = job.job_hash + '_job_id'
+        output_name = job.job_hash + '.out'
         self.context.write_file(fname=script_file_name, write_str=script_str)
-        ret, stdin, stdout, stderr = self.context.block_call('cd %s && echo $$ && exec bash %s &' % (self.context.remote_root, script_file_name) )
+        ret, stdin, stdout, stderr = self.context.block_call('cd %s && { nohup bash %s 1>>%s 2>>%s & } && echo $!' % (self.context.remote_root, script_file_name, output_name, output_name) )
         if ret != 0:
             err_str = stderr.read().decode('utf-8')
             raise RuntimeError\
