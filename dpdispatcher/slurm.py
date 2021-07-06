@@ -53,9 +53,8 @@ class Slurm(Machine):
             elif "Job violates accounting/QOS policy" in err_str:
                 # job number exceeds, skip the submitting
                 return ''
-            else:
-                raise RuntimeError\
-                    ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
+            raise RuntimeError\
+                ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
         subret = (stdout.readlines())
         # Submitted batch job 293859 on cluster faculty
         assert subret[0].startswith('Submitted'), f"Error when submiitting job to slurm system.subret:{subret}"
@@ -88,9 +87,8 @@ class Slurm(Machine):
                     # rest 60s
                     time.sleep(60)
                     return self.check_status(job, retry=retry+1, max_retry=max_retry)
-            else:
-                raise RuntimeError("status command squeue fails to execute."
-                    "job_id:%s \n error message:%s\n return code %d\n" % (job_id, err_str, ret))
+            raise RuntimeError("status command squeue fails to execute."
+                "job_id:%s \n error message:%s\n return code %d\n" % (job_id, err_str, ret))
         status_line = stdout.read().decode('utf-8').split ('\n')[-2]
         status_word = status_line.split ()[-1]
         if not (len(status_line.split()) == 2 and status_word.isupper()): 
