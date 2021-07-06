@@ -689,14 +689,15 @@ class Resources(object):
                         queue_name=resources_dict['queue_name'],
                         group_size=resources_dict['group_size'],
 
-                        custom_flags=resources_dict['custom_flags'],
-                        strategy=resources_dict['strategy'],
-                        para_deg=resources_dict['para_deg'],
-                        module_unload_list=resources_dict['module_unload_list'],
-                        module_list=resources_dict['module_list'],
-                        source_list=resources_dict['source_list'],
-                        envs=resources_dict['envs'],
-                        **resources_dict['kwargs'])
+                        custom_flags=resources_dict.get('custom_flags', []),
+                        strategy=resources_dict.get('strategy', default_strategy),
+                        para_deg=resources_dict.get('para_deg', 1),
+                        module_unload_list=resources_dict.get('module_unload_list', []),
+                        module_list=resources_dict.get('module_list', []),
+                        source_list=resources_dict.get('source_list', []),
+                        envs=resources_dict.get('envs', {}),
+                        **resources_dict.get('kwargs', {})
+                        )
         return resources
 
     @classmethod
@@ -708,8 +709,7 @@ class Resources(object):
 
     @classmethod
     def load_from_dict(cls, resources_dict):
-        
-        return cls(**resources_dict)
+        return cls.deserialize(resources_dict=resources_dict)
 
     @staticmethod
     def arginfo():
