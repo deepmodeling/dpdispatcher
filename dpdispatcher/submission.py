@@ -708,8 +708,7 @@ class Resources(object):
 
     @classmethod
     def load_from_dict(cls, resources_dict):
-        
-        return cls(**resources_dict)
+        return cls.deserialize(resources_dict=resources_dict)
 
     @staticmethod
     def arginfo():
