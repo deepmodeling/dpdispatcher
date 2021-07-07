@@ -44,6 +44,6 @@ class TestSlurmScriptGeneration(unittest.TestCase):
             #!/bin/bash -l
             #SBATCH --nodes 1
             #SBATCH --ntasks-per-node 4
-            #SBATCH --gres=gpu:2080Ti:4
+            #SBATCH --gres=gpu:2080Ti:2
             #SBATCH --partition GPU_2080Ti""")
         self.assertEqual(str, benchmark_str)
