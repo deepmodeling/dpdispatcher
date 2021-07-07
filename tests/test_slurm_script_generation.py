@@ -19,7 +19,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         self.maxDiff = None
 
     def test_shell_trival(self):
-        with open('jsons/machine_slurm.json', 'r') as f:
+        with open('jsons/machine_lazy_local_slurm.json', 'r') as f:
             machine_dict = json.load(f)
 
         machine = Machine(**machine_dict['machine'])
