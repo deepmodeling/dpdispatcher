@@ -646,7 +646,7 @@ class Resources(object):
         self.envs = envs
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
-        self.kwargs = kwargs
+        self.kwargs = kwargs.get('kwargs', kwargs)
 
         self.gpu_in_use = 0
         self.task_in_para = 0
