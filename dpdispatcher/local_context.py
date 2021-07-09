@@ -124,7 +124,17 @@ class LocalContext(BaseContext) :
             remote_job = os.path.join(self.remote_root, ii.task_work_path)
             os.makedirs(remote_job, exist_ok = True)
             os.chdir(remote_job)
-            for jj in ii.forward_files :
+
+            file_list = []
+            for kk in ii.forward_files:
+                abs_file_list = glob(os.path.join(local_job, kk))
+                if not abs_file_list:
+                    os.chdir(cwd)
+                    raise RuntimeError('cannot find upload file ' + os.path.join(local_job, kk))
+                rel_file_list = [os.path.relpath(ii, start=local_job) for ii in abs_file_list]
+                file_list.extend(rel_file_list)
+
+            for jj in file_list:
                 if not os.path.exists(os.path.join(local_job, jj)):
                     os.chdir(cwd)
                     raise RuntimeError('cannot find upload file ' + os.path.join(local_job, jj))
@@ -139,7 +149,17 @@ class LocalContext(BaseContext) :
         remote_job = self.remote_root
         # os.makedirs(remote_job, exist_ok = True)
         os.chdir(remote_job)
-        for jj in submission.forward_common_files :
+
+        file_list = []
+        for kk in submission.forward_common_files:
+            abs_file_list = glob(os.path.join(local_job, kk))
+            if not abs_file_list:
+                os.chdir(cwd)
+                raise RuntimeError('cannot find upload file ' + os.path.join(local_job, kk))
+            rel_file_list = [os.path.relpath(ii, start=local_job) for ii in abs_file_list]
+            file_list.extend(rel_file_list)
+
+        for jj in file_list:
             if not os.path.exists(os.path.join(local_job, jj)):
                 os.chdir(cwd)
                 raise RuntimeError('cannot find upload file ' + os.path.join(local_job, jj))
