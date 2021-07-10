@@ -75,6 +75,7 @@ class Slurm(Machine):
             err_str = stderr.read().decode('utf-8')
             if str("Invalid job id specified") in err_str :
                 if self.check_finish_tag(job) :
+                    dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                     return JobStatus.finished
                 else :
                     return JobStatus.terminated
