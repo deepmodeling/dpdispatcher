@@ -157,35 +157,18 @@ class Submission(object):
         time.sleep(1)
         while not self.check_all_finished():
             if exit_on_submit is True:
-                print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
-                print(f"submission succeeded: {self.submission_hash}")
-                print(f"at {self.machine.context.remote_root}")
-                print("exit_on_submit")
-                print('>>>>>>dpdispatcher>>>>>>SuccessSubmit>>>>>>exit 0>>>>>>')
+                dlog.info(f"submission succeeded: {self.submission_hash}")
+                dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
             try:
                 time.sleep(40)
-            except KeyboardInterrupt as e:
+            except (Exception, KeyboardInterrupt, SystemExit) as e:
                 self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<KeyboardInterrupt<<<<<<exit 1<<<<<<')
-                print('submission: ', self.submission_hash)
-                print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>KeyboardInterrupt>>>>>>exit 1>>>>>>')
-                exit(1)
-            except SystemExit as e:
-                self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<SystemExit<<<<<<exit 2<<<<<<')
-                print('submission: ', self.submission_hash)
-                print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>SystemExit>>>>>>exit 2>>>>>>')
-                exit(2)
-            except Exception as e:
-                self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<{e}<<<<<<exit 3<<<<<<'.format(e=e))
-                print('submission: ', self.submission_hash)
-                print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>{e}>>>>>>exit 3>>>>>>'.format(e=e))
-                exit(3)
+                dlog.exception(e)
+                dlog.info(f"submission exit: {self.submission_hash}")
+                dlog.info(f"at {self.machine.context.remote_root}")
+                dlog.debug(self.serialize())
+                raise e
             else:
                 self.handle_unexpected_submission_state()
             finally:
