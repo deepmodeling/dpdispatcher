@@ -3,11 +3,13 @@
 
 from dpdispatcher.base_context import BaseContext
 import os, paramiko, tarfile, time
+import uuid
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
 import pathlib
 # from dpdispatcher.submission import Machine
+from dpdispatcher.utils import get_sha256
 
 class SSHSession (object):
     def __init__(self,
@@ -264,7 +266,7 @@ class SSHContext(BaseContext):
                submission,
                # local_up_files,
                dereference = True) :
-        print('debug^^^^^^^^^^^^^^^^^', self.remote_root)
+        dlog.info(f'remote path: {self.remote_root}')
         # remote_cwd = 
         self.ssh_session.sftp.chdir(self.temp_remote_root)
         try:
@@ -287,6 +289,25 @@ class SSHContext(BaseContext):
         # for ii in submission.forward_common_files:
         #     file_list.append(ii)
         file_list.extend(submission.forward_common_files)
+
+        # check if the same file exists on the remote file
+        # generate local sha256 file
+        sha256_list = []
+        for jj in file_list:
+            sha256 = get_sha256(jj)
+            jj_rel = pathlib.PurePath(os.path.relpath(jj, self.local_root)).as_posix()
+            sha256_list.append(f"{sha256}  {jj_rel}")
+        # write to remote
+        sha256_file = os.path.join(self.remote_root, ".tmp.sha256." + str(uuid.uuid4()))
+        self.write_file(sha256_file, "\n".join(sha256_list))
+        # check sha256
+        # `:` means pass: https://stackoverflow.com/a/2421592/9567349
+        _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
+        self.sftp.remove(sha256_file)
+        # regenerate file list
+        file_list = []
+        for ii in stdout:
+            file_list.append(ii.split(":")[0])
 
         self._put_files(file_list, dereference = dereference, directories=directory_list)
         os.chdir(cwd)
