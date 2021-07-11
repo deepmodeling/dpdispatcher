@@ -260,6 +260,19 @@ class SSHContext(BaseContext):
         # sftp.close()
         # except:
         #     pass
+
+    def _walk_directory(self, files, work_path, file_list, directory_list):
+        """Convert input path to list of files and directories."""
+        for jj in files :
+            file_name = os.path.join(work_path, jj)
+            if os.path.isfile(file_name):
+                file_list.append(file_name)
+            elif os.path.isdir(file_name):
+                for root, dirs, files in os.walk(file_name, topdown=False):
+                    if not files:
+                        directory_list.append(root)
+                    for name in files:
+                        file_list.append(os.path.join(root, name))
         
     def upload(self,
                # job_dirs,
@@ -279,16 +292,10 @@ class SSHContext(BaseContext):
         os.chdir(self.local_root) 
         file_list = []
         directory_list = []
-        
-      #   for ii in job_dirs :
         for task in submission.belonging_tasks:
             directory_list.append(task.task_work_path)
-            for jj in task.forward_files :
-                # file_list.append(os.path.join(ii, jj))        
-                file_list.append(os.path.join(task.task_work_path, jj))        
-        # for ii in submission.forward_common_files:
-        #     file_list.append(ii)
-        file_list.extend(submission.forward_common_files)
+            self._walk_directory(task.forward_files, task.task_work_path, file_list, directory_list)
+        self._walk_directory(submission.forward_common_files, task.task_work_path, file_list, directory_list)
 
         # check if the same file exists on the remote file
         # generate local sha256 file
