@@ -62,6 +62,9 @@ class Submission(object):
         """
         return self.serialize(if_static=True) == other.serialize(if_static=True)
 
+    def __getitem__(self, key):
+        return self.serialize()[key]
+
     @classmethod
     def deserialize(cls, submission_dict, machine=None):
         """convert the submission_dict to a Submission class object
@@ -364,6 +367,8 @@ class Task(object):
     def __eq__(self, other):
         return self.serialize() == other.serialize()
 
+    def __getitem__(self, key):
+        return self.serialize()[key]
 
     def get_hash(self):
         return sha1(str(self.serialize()).encode('utf-8')).hexdigest()
@@ -682,6 +687,9 @@ class Resources(object):
                         **resources_dict.get('kwargs', {})
                         )
         return resources
+
+    def __getitem__(self, key):
+        return self.serialize()[key]
 
     @classmethod
     def load_from_json(cls, json_file):
