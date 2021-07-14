@@ -273,8 +273,8 @@ class SSHContext(BaseContext):
                         directory_list.append(root)
                     for name in files:
                         file_list.append(os.path.join(root, name))
-            elif glob(os.path.join(work_path, jj)):
-                abs_file_list = glob(os.path.join(work_path, jj))
+            elif glob(file_name):
+                abs_file_list = glob(file_name)
                 rel_file_list = [os.path.relpath(ii, start=self.local_root) for ii in abs_file_list]
                 self._walk_directory(rel_file_list, work_path, file_list, directory_list)
             else:
