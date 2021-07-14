@@ -3,11 +3,13 @@
 
 from dpdispatcher.base_context import BaseContext
 import os, paramiko, tarfile, time
+import uuid
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
 import pathlib
 # from dpdispatcher.submission import Machine
+from dpdispatcher.utils import get_sha256
 
 class SSHSession (object):
     def __init__(self,
@@ -258,13 +260,26 @@ class SSHContext(BaseContext):
         # sftp.close()
         # except:
         #     pass
+
+    def _walk_directory(self, files, work_path, file_list, directory_list):
+        """Convert input path to list of files and directories."""
+        for jj in files :
+            file_name = os.path.join(work_path, jj)
+            if os.path.isfile(file_name):
+                file_list.append(file_name)
+            elif os.path.isdir(file_name):
+                for root, dirs, files in os.walk(file_name, topdown=False):
+                    if not files:
+                        directory_list.append(root)
+                    for name in files:
+                        file_list.append(os.path.join(root, name))
         
     def upload(self,
                # job_dirs,
                submission,
                # local_up_files,
                dereference = True) :
-        print('debug^^^^^^^^^^^^^^^^^', self.remote_root)
+        dlog.info(f'remote path: {self.remote_root}')
         # remote_cwd = 
         self.ssh_session.sftp.chdir(self.temp_remote_root)
         try:
@@ -277,21 +292,30 @@ class SSHContext(BaseContext):
         os.chdir(self.local_root) 
         file_list = []
         directory_list = []
-        
-      #   for ii in job_dirs :
         for task in submission.belonging_tasks:
             directory_list.append(task.task_work_path)
-            for jj in task.forward_files :
-                abs_file_list = glob(os.path.join(self.local_root, task.task_work_path, jj))
-                if not abs_file_list:
-                    os.chdir(cwd)
-                    raise RuntimeError('cannot find upload file')
-                rel_file_list = [os.path.relpath(ii, start=self.local_root) for ii in abs_file_list]
-                # file_list.append(os.path.join(ii, jj))        
-                file_list.extend(rel_file_list)
-        # for ii in submission.forward_common_files:
         #     file_list.append(ii)
-        file_list.extend(submission.forward_common_files)
+            self._walk_directory(task.forward_files, task.task_work_path, file_list, directory_list)
+        self._walk_directory(submission.forward_common_files, task.task_work_path, file_list, directory_list)
+
+        # check if the same file exists on the remote file
+        # generate local sha256 file
+        sha256_list = []
+        for jj in file_list:
+            sha256 = get_sha256(jj)
+            jj_rel = pathlib.PurePath(os.path.relpath(jj, self.local_root)).as_posix()
+            sha256_list.append(f"{sha256}  {jj_rel}")
+        # write to remote
+        sha256_file = os.path.join(self.remote_root, ".tmp.sha256." + str(uuid.uuid4()))
+        self.write_file(sha256_file, "\n".join(sha256_list))
+        # check sha256
+        # `:` means pass: https://stackoverflow.com/a/2421592/9567349
+        _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
+        self.sftp.remove(sha256_file)
+        # regenerate file list
+        file_list = []
+        for ii in stdout:
+            file_list.append(ii.split(":")[0])
 
         self._put_files(file_list, dereference = dereference, directories=directory_list)
         os.chdir(cwd)
