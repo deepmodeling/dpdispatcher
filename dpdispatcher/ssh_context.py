@@ -296,7 +296,7 @@ class SSHContext(BaseContext):
             directory_list.append(task.task_work_path)
         #     file_list.append(ii)
             self._walk_directory(task.forward_files, task.task_work_path, file_list, directory_list)
-        self._walk_directory(submission.forward_common_files, task.task_work_path, file_list, directory_list)
+        self._walk_directory(submission.forward_common_files, self.local_root, file_list, directory_list)
 
         # check if the same file exists on the remote file
         # generate local sha256 file

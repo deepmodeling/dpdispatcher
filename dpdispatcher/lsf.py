@@ -33,13 +33,19 @@ class LSF(Machine):
             'lsf_partition_line': "#BSUB -q {queue_name}".format(
                 queue_name=resources.queue_name)
         }
-        gpu_usage_flag = resources.kwargs['kwargs'].get('gpu_usage', False)
-        gpu_new_syntax_flag = resources.kwargs['kwargs'].get('gpu_new_syntax', False)
+        gpu_usage_flag = resources.kwargs.get('gpu_usage', False)
+        gpu_new_syntax_flag = resources.kwargs.get('gpu_new_syntax', False)
+        gpu_exclusive_flag = resources.kwargs.get('gpu_exclusive', True)
         if gpu_usage_flag is True:
             if gpu_new_syntax_flag is True:
-                script_header_dict['lsf_number_gpu_line'] = "#BSUB -gpu 'num={gpu_per_node}:mode=shared:" \
-                                                            "j_exclusive=yes'".format(
-                    gpu_per_node=resources.gpu_per_node)
+                if gpu_exclusive_flag is True:
+                    script_header_dict['lsf_number_gpu_line'] = "#BSUB -gpu 'num={gpu_per_node}:mode=shared:" \
+                                                                "j_exclusive=yes'".format(
+                        gpu_per_node=resources.gpu_per_node)
+                else:
+                    script_header_dict['lsf_number_gpu_line'] = "#BSUB -gpu 'num={gpu_per_node}:mode=shared:" \
+                                                                "j_exclusive=no'".format(
+                        gpu_per_node=resources.gpu_per_node)
             else:
                 script_header_dict['lsf_number_gpu_line'] = '#BSUB -R "select[ngpus >0] rusage[' \
                                                             'ngpus_excl_p={gpu_per_node}]"'.format(
