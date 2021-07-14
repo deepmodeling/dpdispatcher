@@ -282,8 +282,13 @@ class SSHContext(BaseContext):
         for task in submission.belonging_tasks:
             directory_list.append(task.task_work_path)
             for jj in task.forward_files :
+                abs_file_list = glob(os.path.join(self.local_root, task.task_work_path, jj))
+                if not abs_file_list:
+                    os.chdir(cwd)
+                    raise RuntimeError('cannot find upload file')
+                rel_file_list = [os.path.relpath(ii, start=self.local_root) for ii in abs_file_list]
                 # file_list.append(os.path.join(ii, jj))        
-                file_list.append(os.path.join(task.task_work_path, jj))        
+                file_list.extend(rel_file_list)
         # for ii in submission.forward_common_files:
         #     file_list.append(ii)
         file_list.extend(submission.forward_common_files)
