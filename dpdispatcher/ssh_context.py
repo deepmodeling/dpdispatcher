@@ -273,7 +273,13 @@ class SSHContext(BaseContext):
                         directory_list.append(root)
                     for name in files:
                         file_list.append(os.path.join(root, name))
-        
+            elif glob(os.path.join(work_path, jj)):
+                abs_file_list = glob(os.path.join(work_path, jj))
+                rel_file_list = [os.path.relpath(ii, start=self.local_root) for ii in abs_file_list]
+                file_list.extend(rel_file_list)
+            else:
+                raise RuntimeError('cannot find upload file')
+
     def upload(self,
                # job_dirs,
                submission,
