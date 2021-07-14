@@ -276,9 +276,9 @@ class SSHContext(BaseContext):
             elif glob(os.path.join(work_path, jj)):
                 abs_file_list = glob(os.path.join(work_path, jj))
                 rel_file_list = [os.path.relpath(ii, start=self.local_root) for ii in abs_file_list]
-                file_list.extend(rel_file_list)
+                self._walk_directory(rel_file_list, work_path, file_list, directory_list)
             else:
-                raise RuntimeError('cannot find upload file')
+                raise RuntimeError(f'cannot find upload file {work_path} {jj}')
 
     def upload(self,
                # job_dirs,
