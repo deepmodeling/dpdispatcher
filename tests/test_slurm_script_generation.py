@@ -42,6 +42,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         str = machine.gen_script_header(submission.belonging_jobs[0])
         benchmark_str = textwrap.dedent("""\
             #!/bin/bash -l
+            #SBATCH --parsable
             #SBATCH --nodes 1
             #SBATCH --ntasks-per-node 4
             #SBATCH --gres=gpu:2080Ti:2
