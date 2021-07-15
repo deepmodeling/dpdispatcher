@@ -7,6 +7,7 @@ from dpdispatcher import dlog
 
 slurm_script_header_template="""\
 #!/bin/bash -l
+#SBATCH --parsable
 {slurm_nodes_line}
 {slurm_ntasks_per_node_line}
 {slurm_number_gpu_line}
@@ -56,9 +57,10 @@ class Slurm(Machine):
             raise RuntimeError\
                 ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
         subret = (stdout.readlines())
-        # Submitted batch job 293859 on cluster faculty
-        assert subret[0].startswith('Submitted'), f"Error when submiitting job to slurm system.subret:{subret}"
-        job_id = str(int(subret[0].split()[3]))
+        # --parsable
+        # Outputs only the job id number and the cluster name if present.
+        # The values are separated by a semicolon. Errors will still be displayed.
+        job_id = subret[0].split(";")[0].strip()
         self.context.write_file(job_id_name, job_id)        
         return job_id
 
