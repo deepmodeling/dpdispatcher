@@ -274,8 +274,9 @@ class SSHContext(BaseContext):
                     for name in files:
                         file_list.append(os.path.join(root, name))
             elif glob(file_name):
+                # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
                 abs_file_list = glob(file_name)
-                rel_file_list = [os.path.relpath(ii, start=self.local_root) for ii in abs_file_list]
+                rel_file_list = [os.path.relpath(ii, start=work_path) for ii in abs_file_list]
                 self._walk_directory(rel_file_list, work_path, file_list, directory_list)
             else:
                 raise RuntimeError(f'cannot find upload file {work_path} {jj}')
