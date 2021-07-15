@@ -327,6 +327,9 @@ class SSHContext(BaseContext):
             file_list = []
             for ii in stdout:
                 file_list.append(ii.split(":")[0])
+        else:
+            # convert to relative path to local_root
+            file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
 
         self._put_files(file_list, dereference = dereference, directories=directory_list)
         os.chdir(cwd)
