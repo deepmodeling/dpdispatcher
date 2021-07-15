@@ -518,7 +518,12 @@ class Job(object):
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
             self.submit_job()
+            dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             self.get_job_state()
+            dlog.info("job:{job_hash} job_id:{job_id} after re-submitting; the state now is {job_state}".format(
+                job_hash=self.job_hash,
+                job_id=self.job_id,
+                job_state=self.job_state))
 
         if job_state == JobStatus.unsubmitted:
             dlog.info(f"job: {self.job_hash} unsubmitted; submit it")

@@ -3,6 +3,7 @@ from dpdispatcher import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.dpcloudserver import api
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
+import time
 
 shell_script_header_template="""
 #!/bin/bash -l
@@ -61,8 +62,8 @@ class DpCloudServer(Machine):
         try:
             dp_job_status = check_return[0]["status"]
         except IndexError as e:
-            dlog.error(f"cannot find job information in check_return. check_return:{check_return}; retry one more time after 20 seconds")
-            time.sleep(20)
+            dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
+            time.sleep(60)
             retry_return = api.get_tasks(job.job_id)
             try:
                 dp_job_status = retry_return[0]["status"]
