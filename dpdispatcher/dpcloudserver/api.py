@@ -47,11 +47,11 @@ def post(url, params):
     return ret['data']
 
 
-def login(username, password):
+def login(email, password):
     global token
     ret = post(
             '/account/login',
-            {"username": username, "password": password}
+            {"email": email, "password": password}
             )
     dlog.debug(f"debug: login ret:{ret}")
     token = ret['token']

@@ -26,10 +26,10 @@ class DpCloudServerContext(BaseContext):
     ):
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
-        username = remote_profile['username']
+        email = remote_profile['email']
         password = remote_profile['password']
 
-        api.login(username=username, password=password)
+        api.login(email=email, password=password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
