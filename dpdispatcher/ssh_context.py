@@ -289,10 +289,12 @@ class SSHContext(BaseContext):
         dlog.info(f'remote path: {self.remote_root}')
         # remote_cwd = 
         self.ssh_session.sftp.chdir(self.temp_remote_root)
+        recover = False
         try:
             self.ssh_session.sftp.mkdir(os.path.basename(self.remote_root))
         except OSError:
-            pass
+            # mkdir failed meaning it exists, thus the job is recovered
+            recover = True
         self.ssh_session.sftp.chdir(None)
 
         cwd = os.getcwd()
@@ -306,23 +308,28 @@ class SSHContext(BaseContext):
         self._walk_directory(submission.forward_common_files, self.local_root, file_list, directory_list)
 
         # check if the same file exists on the remote file
-        # generate local sha256 file
-        sha256_list = []
-        for jj in file_list:
-            sha256 = get_sha256(jj)
-            jj_rel = pathlib.PurePath(os.path.relpath(jj, self.local_root)).as_posix()
-            sha256_list.append(f"{sha256}  {jj_rel}")
-        # write to remote
-        sha256_file = os.path.join(self.remote_root, ".tmp.sha256." + str(uuid.uuid4()))
-        self.write_file(sha256_file, "\n".join(sha256_list))
-        # check sha256
-        # `:` means pass: https://stackoverflow.com/a/2421592/9567349
-        _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
-        self.sftp.remove(sha256_file)
-        # regenerate file list
-        file_list = []
-        for ii in stdout:
-            file_list.append(ii.split(":")[0])
+        # only check sha256 when the job is recovered
+        if recover:
+            # generate local sha256 file
+            sha256_list = []
+            for jj in file_list:
+                sha256 = get_sha256(jj)
+                jj_rel = pathlib.PurePath(os.path.relpath(jj, self.local_root)).as_posix()
+                sha256_list.append(f"{sha256}  {jj_rel}")
+            # write to remote
+            sha256_file = os.path.join(self.remote_root, ".tmp.sha256." + str(uuid.uuid4()))
+            self.write_file(sha256_file, "\n".join(sha256_list))
+            # check sha256
+            # `:` means pass: https://stackoverflow.com/a/2421592/9567349
+            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
+            self.sftp.remove(sha256_file)
+            # regenerate file list
+            file_list = []
+            for ii in stdout:
+                file_list.append(ii.split(":")[0])
+        else:
+            # convert to relative path to local_root
+            file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
 
         self._put_files(file_list, dereference = dereference, directories=directory_list)
         os.chdir(cwd)
