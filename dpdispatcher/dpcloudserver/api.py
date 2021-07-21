@@ -99,14 +99,15 @@ def upload(oss_task_zip, zip_task_file, endpoint, bucket_name):
     return result
 
 
-def job_create(job_type, oss_path, input_data):
-    ret = post(
-            '/data/insert_job',
-            {
+def job_create(job_type, oss_path, input_data, program_id=None):
+    post_data = {
                 'job_type': job_type,
                 'oss_path': oss_path,
                 'input_data': input_data,
-            })
+            }
+    if program_id is not None:
+        post_data["program_id"] = program_id
+    ret = post('/data/insert_job', post_data)
     return ret['job_id']
 
 
