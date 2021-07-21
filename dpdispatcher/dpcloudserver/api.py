@@ -47,11 +47,18 @@ def post(url, params):
     return ret['data']
 
 
-def login(email, password):
+def login(password, email=None, username=None):
     global token
+    post_data = {"password": password}
+    if email is None and username is None:
+        raise ValueError(f"Error: can not find username or email from remote_profile")
+    if email is not None:
+        post_data['email'] = email
+    if username is not None:
+        post_data['username'] = username
     ret = post(
             '/account/login',
-            {"email": email, "password": password}
+            post_data
             )
     dlog.debug(f"debug: login ret:{ret}")
     token = ret['token']
