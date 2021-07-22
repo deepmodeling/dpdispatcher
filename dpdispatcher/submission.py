@@ -40,6 +40,7 @@ class Submission(object):
                 *,
                 task_list=[]):
         # self.submission_list = submission_list
+        self.local_root = None
         self.work_base = work_base
         self.resources = resources
         self.forward_common_files= forward_common_files
@@ -88,7 +89,7 @@ class Submission(object):
         submission.bind_machine(machine=machine)
         return submission
 
-    def serialize(self, if_static=False):
+    def serialize(self, if_static=False, if_none_local_root=False):
         """convert the Submission class instance to a dictionary.
 
         Parameters
@@ -102,6 +103,10 @@ class Submission(object):
             the dictionary converted from the Submission class instance
         """
         submission_dict = {}
+        if if_none_local_root:
+            submission_dict['local_root'] = None
+        else:
+            submission_dict['local_root'] = self.local_root
         submission_dict['work_base'] = self.work_base
         submission_dict['resources'] = self.resources.serialize()
         submission_dict['forward_common_files'] = self.forward_common_files
@@ -137,6 +142,7 @@ class Submission(object):
             job.machine = machine
         if machine is not None:
             self.machine.context.bind_submission(self)
+            self.local_root = machine.context.temp_local_root
         return self
 
     def run_submission(self, *, exit_on_submit=False, clean=True):
@@ -164,7 +170,7 @@ class Submission(object):
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
             try:
-                time.sleep(40)
+                time.sleep(30)
             except (Exception, KeyboardInterrupt, SystemExit) as e:
                 self.submission_to_json()
                 dlog.exception(e)
