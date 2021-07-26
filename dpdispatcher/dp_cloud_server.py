@@ -46,7 +46,8 @@ class DpCloudServer(Machine):
         job_id = api.job_create(
             job_type=input_data['job_type'],
             oss_path=input_data['job_resources'],
-            input_data=input_data
+            input_data=input_data,
+            program_id=self.context.remote_profile.get('program_id', None)
         )
 
         job.job_id = job_id
