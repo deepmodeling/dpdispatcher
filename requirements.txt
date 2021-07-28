@@ -1,4 +1,4 @@
 paramiko
 psutil
-dargs
+dargs>=0.2.6
 oss2
