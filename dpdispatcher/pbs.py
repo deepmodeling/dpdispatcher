@@ -38,7 +38,10 @@ class PBS(Machine):
         stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (script_file_dir, 'qsub', script_file_name))
         subret = (stdout.readlines())
         job_id = subret[0].split()[0]
-        self.context.write_file(job_id_name, job_id)        
+        self.context.write_file(job_id_name, job_id)
+
+        # Save output and error logs for later use
+        job.out_err = [stdout, stderr]
         return job_id
 
 

@@ -61,7 +61,10 @@ class Slurm(Machine):
         # Outputs only the job id number and the cluster name if present.
         # The values are separated by a semicolon. Errors will still be displayed.
         job_id = subret[0].split(";")[0].strip()
-        self.context.write_file(job_id_name, job_id)        
+        self.context.write_file(job_id_name, job_id)
+
+        # Save output and error logs for later use
+        job.out_err = [stdout, stderr]       
         return job_id
 
     def default_resources(self, resources) :

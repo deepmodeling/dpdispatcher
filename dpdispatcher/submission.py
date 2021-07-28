@@ -460,6 +460,7 @@ class Job(object):
         # self.job_hash = self.get_hash()
         self.job_hash = self.get_hash()
         self.script_file_name = self.job_hash+ '.sub'
+        self.out_err = None
 
 
     def __repr__(self):
@@ -519,7 +520,11 @@ class Job(object):
             raise RuntimeError("job_state for job {job} is unknown".format(job=self))
 
         if job_state == JobStatus.terminated:
-            dlog.info(f"job: {self.job_hash} {self.job_id} terminated; restarting job")
+            dlog.info(f"job: {self.job_hash} {self.job_id} terminated unexpectedly")
+            # Before resubmitting job, print the output and error logs for user's information.
+            dlog.info(f"out log: {self.out_err[0]}")
+            dlog.info(f"err log: {self.out_err[1]}")
+            dlog.info("restarting job")
             if self.fail_count > 3:
                 raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
