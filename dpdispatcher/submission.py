@@ -318,6 +318,7 @@ class Submission(object):
             submission_dict_str = self.machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
             submission = Submission.deserialize(submission_dict=submission_dict)
+            submission.bind_machine(machine=self.machine)
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.bind_machine(machine=self.machine)
