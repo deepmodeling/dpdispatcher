@@ -89,4 +89,16 @@ class TestSubmission(unittest.TestCase):
 
     def test_try_recover_from_json(self):
         pass
+
+    def test_repr(self):
+        submission_repr = repr(self.submission)
+        j = json.dumps(self.submission.serialize(), indent=4)
+        self.assertEqual(submission_repr, j)
         # self.submission_to_json()
+
+    def test_clean(self):
+        pass
+
+    def test_try_recover_from_json(self):
+        pass
+        # self.submission.try_recover_from_json

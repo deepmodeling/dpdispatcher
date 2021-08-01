@@ -215,7 +215,12 @@ class Submission(object):
                 job.handle_unexpected_job_state()
         except Exception as e:
             self.submission_to_json()
-            raise e
+            raise RuntimeError(
+                f"Meet errors will handle unexpected submission state.\n"
+                f"Debug information: remote_root=={self.remote_root}.\n"
+                f"Debug information: submission_hash=={self.submission_hash}.\n"
+                f"Please check the dirs and scripts in remote_root"
+            ) from e
 
     # not used here, submitting job is in handle_unexpected_submission_state.
 
@@ -520,23 +525,23 @@ class Job(object):
             raise RuntimeError("job_state for job {job} is unknown".format(job=self))
 
         if job_state == JobStatus.terminated:
-            dlog.info(f"job: {self.job_hash} {self.job_id} terminated; restarting job")
-            if self.fail_count > 3:
-                raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
+            dlog.info(f"job: {self.job_hash} {self.job_id} terminated;"
+                f"fail_cout is {self.fail_count}; resubmitting job")
+            if ( self.fail_count ) > 0 and ( self.fail_count % 3 == 0 ) :
+                raise RuntimeError(f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}")
             self.submit_job()
             dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             self.get_job_state()
             dlog.info("job:{job_hash} job_id:{job_id} after re-submitting; the state now is {job_state}".format(
                 job_hash=self.job_hash,
                 job_id=self.job_id,
-                job_state=self.job_state))
+                job_state=JobStatus(self.job_state)))
 
         if job_state == JobStatus.unsubmitted:
             dlog.info(f"job: {self.job_hash} unsubmitted; submit it")
-            if self.fail_count > 3:
-                raise RuntimeError("job:job {job} failed 3 times".format(job=self))
-            # self.fail_count += 1
+            # if self.fail_count > 3:
+            #     raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.submit_job()
             dlog.info("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             # self.get_job_state()
