@@ -12,13 +12,13 @@ class TestSSHContext(unittest.TestCase):
         self.tmp_local_root = 'test_context_dir/'
         self.tmp_remote_root = 'tmp_ssh_context_dir/'
 
-        self.username = getpass.getuser
-        try:
-            self.ssh_session = SSHSession(
-                hostname='localhost',
-                username=self.username)
-        except NoValidConnectionsError:
-            self.skipTest("skip ssh tests due to ssh connection errors")
+        self.username = getpass.getuser()
+        # try:
+        #     self.ssh_session = SSHSession(
+        #         hostname='localhost',
+        #         username=self.username)
+        # except NoValidConnectionsError:
+        #     self.skipTest("skip ssh tests due to ssh connection errors")
 
     def test_ssh_session(self):
         pass

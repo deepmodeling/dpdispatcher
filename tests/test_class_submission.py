@@ -51,9 +51,9 @@ class TestSubmission(unittest.TestCase):
         pass
 
     @patch('dpdispatcher.Submission.submission_to_json')
-    @patch('dpdispatcher.Submission.get_submission_state')
-    def test_check_all_finished(self, patch_get_submission_state, patch_submission_to_json):
-        patch_get_submission_state = MagicMock(return_value=None)
+    @patch('dpdispatcher.Submission.update_submission_state')
+    def test_check_all_finished(self, patch_update_submission_state, patch_submission_to_json):
+        patch_update_submission_state = MagicMock(return_value=None)
         patch_submission_to_json = MagicMock(return_value=None)
 
         self.submission.belonging_jobs[0].job_state = JobStatus.running

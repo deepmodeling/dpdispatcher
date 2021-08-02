@@ -73,6 +73,16 @@ class TestShellTrival(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             submission.run_submission()
 
+    def test_shell_recover(self):
+        with open('jsons/machine_lazylocal_shell.json', 'r') as f:
+            machine_dict = json.load(f)
+
+        machine = Machine(**machine_dict['machine'])
+        resources = Resources(**machine_dict['resources'])
+
+        pass
+
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree('tmp_shell_trival_dir/')
