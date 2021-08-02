@@ -14,9 +14,10 @@ class TestSSHContext(unittest.TestCase):
 
         self.username = getpass.getuser()
         # try:
-        #     self.ssh_session = SSHSession(
-        #         hostname='localhost',
-        #         username=self.username)
+        self.ssh_session = SSHSession(
+            hostname='localhost',
+            username=self.username
+        )
         # except NoValidConnectionsError:
         #     self.skipTest("skip ssh tests due to ssh connection errors")
 
