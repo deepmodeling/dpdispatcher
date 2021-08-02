@@ -48,6 +48,31 @@ class TestShellTrival(unittest.TestCase):
             f2 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'out.txt')
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
+    def test_shell_fail(self):
+        with open('jsons/machine_local_shell.json', 'r') as f:
+            machine_dict = json.load(f)
+
+        machine = Machine(**machine_dict['machine'])
+        resources = Resources(**machine_dict['resources'])
+
+        task = Task(command='cat mock_fail_task.txt && exit 1',
+            task_work_path='./',
+            forward_files=[], 
+            backward_files=['out.txt'],
+            outlog='out.txt')
+
+        task_list = [task,]
+
+        submission = Submission(work_base='fail_dir/',
+            machine=machine,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            task_list=task_list
+        )
+        with self.assertRaises(RuntimeError):
+            submission.run_submission()
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree('tmp_shell_trival_dir/')
