@@ -1,5 +1,5 @@
 {% set name = "dpdispatcher" %}
-{% set version = "0.3.29" %}
+{% set version = "0.3.31" %}
 
 package:
   name: {{ name|lower }}
@@ -16,6 +16,7 @@ build:
 
 requirements:
   host:
+    - git
     - python >=3.6
     - pip
     - setuptools_scm
