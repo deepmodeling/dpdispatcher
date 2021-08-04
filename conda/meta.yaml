@@ -2,11 +2,10 @@
 
 package:
   name: {{ name|lower }}
-  version: {{ environ.get('GIT_DESCRIBE_TAG') }}
+  version: {{ environ.get('GIT_DESCRIBE_TAG', 'latest') }}
 
 source:
-  path: ../
-  # git_url: https://github.com/deepmodeling/dpdispatcher
+  git_url: https://github.com/deepmodeling/dpdispatcher
   # git_rev: {{ version }}
 
 build:
