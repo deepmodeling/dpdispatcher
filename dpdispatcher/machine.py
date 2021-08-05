@@ -284,7 +284,7 @@ class Machine(object):
     @staticmethod
     def arginfo():
         # TODO: change the possible value of batch and context types after we refactor the code
-        doc_batch_type = 'The batch job system type. Option: Slurm, PBS, LSF, Shell, DpCloudServer'
+        doc_batch_type = 'The batch job system type. Option: Slurm, PBS (for OpenPBS only), Torque (for Torque version of pbs), LSF, Shell, DpCloudServer'
         doc_context_type = 'The connection used to remote machine. Option: LocalContext, LazyLocalContext, SSHContext， DpCloudServerContext'
         doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
         doc_remote_root = 'The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local.'
