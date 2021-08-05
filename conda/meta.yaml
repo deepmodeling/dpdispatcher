@@ -1,8 +1,9 @@
 {% set name = "dpdispatcher" %}
+{% set version = environ.get('GIT_DESCRIBE_TAG').lstrip('v') %}
 
 package:
   name: {{ name|lower }}
-  version: {{ environ.get('GIT_DESCRIBE_TAG', 'latest') }}
+  version: {{ version }}
 
 source:
   git_url: https://github.com/deepmodeling/dpdispatcher
@@ -10,7 +11,7 @@ source:
 
 build:
   number: 0
-  linux-64: python
+  noarch: python
   script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
