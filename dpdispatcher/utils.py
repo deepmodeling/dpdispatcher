@@ -61,4 +61,4 @@ def generate_totp(secret: str, period: int=30, token_length: int=6) -> int:
     pos = ob & 15
     base = struct.unpack('>I', digest[pos:pos + 4])[0] & 0x7fffffff
     token = base % (10**token_length)
-    return "%0d" % token
+    return str(token).zfill(token_length)
