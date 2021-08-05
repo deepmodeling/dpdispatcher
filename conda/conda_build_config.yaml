@@ -1,0 +1,5 @@
+channel_sources:
+  - defaults
+channel_targets:
+  - deepmodeling
+target_platform: linux-64
