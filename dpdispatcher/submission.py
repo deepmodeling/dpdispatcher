@@ -40,6 +40,7 @@ class Submission(object):
                 *,
                 task_list=[]):
         # self.submission_list = submission_list
+        self.local_root = None
         self.work_base = work_base
         self.resources = resources
         self.forward_common_files= forward_common_files
@@ -61,6 +62,9 @@ class Submission(object):
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
         return self.serialize(if_static=True) == other.serialize(if_static=True)
+
+    def __getitem__(self, key):
+        return self.serialize()[key]
 
     @classmethod
     def deserialize(cls, submission_dict, machine=None):
@@ -85,7 +89,7 @@ class Submission(object):
         submission.bind_machine(machine=machine)
         return submission
 
-    def serialize(self, if_static=False):
+    def serialize(self, if_static=False, if_none_local_root=False):
         """convert the Submission class instance to a dictionary.
 
         Parameters
@@ -99,6 +103,10 @@ class Submission(object):
             the dictionary converted from the Submission class instance
         """
         submission_dict = {}
+        if if_none_local_root:
+            submission_dict['local_root'] = None
+        else:
+            submission_dict['local_root'] = self.local_root
         submission_dict['work_base'] = self.work_base
         submission_dict['resources'] = self.resources.serialize()
         submission_dict['forward_common_files'] = self.forward_common_files
@@ -134,6 +142,7 @@ class Submission(object):
             job.machine = machine
         if machine is not None:
             self.machine.context.bind_submission(self)
+            self.local_root = machine.context.temp_local_root
         return self
 
     def run_submission(self, *, exit_on_submit=False, clean=True):
@@ -157,35 +166,18 @@ class Submission(object):
         time.sleep(1)
         while not self.check_all_finished():
             if exit_on_submit is True:
-                print('<<<<<<dpdispatcher<<<<<<SuccessSubmit<<<<<<exit 0<<<<<<')
-                print(f"submission succeeded: {self.submission_hash}")
-                print(f"at {self.machine.context.remote_root}")
-                print("exit_on_submit")
-                print('>>>>>>dpdispatcher>>>>>>SuccessSubmit>>>>>>exit 0>>>>>>')
+                dlog.info(f"submission succeeded: {self.submission_hash}")
+                dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
             try:
-                time.sleep(40)
-            except KeyboardInterrupt as e:
+                time.sleep(30)
+            except (Exception, KeyboardInterrupt, SystemExit) as e:
                 self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<KeyboardInterrupt<<<<<<exit 1<<<<<<')
-                print('submission: ', self.submission_hash)
-                print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>KeyboardInterrupt>>>>>>exit 1>>>>>>')
-                exit(1)
-            except SystemExit as e:
-                self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<SystemExit<<<<<<exit 2<<<<<<')
-                print('submission: ', self.submission_hash)
-                print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>SystemExit>>>>>>exit 2>>>>>>')
-                exit(2)
-            except Exception as e:
-                self.submission_to_json()
-                print('<<<<<<dpdispatcher<<<<<<{e}<<<<<<exit 3<<<<<<'.format(e=e))
-                print('submission: ', self.submission_hash)
-                print(self.serialize())
-                print('>>>>>>dpdispatcher>>>>>>{e}>>>>>>exit 3>>>>>>'.format(e=e))
-                exit(3)
+                dlog.exception(e)
+                dlog.info(f"submission exit: {self.submission_hash}")
+                dlog.info(f"at {self.machine.context.remote_root}")
+                dlog.debug(self.serialize())
+                raise e
             else:
                 self.handle_unexpected_submission_state()
             finally:
@@ -223,7 +215,12 @@ class Submission(object):
                 job.handle_unexpected_job_state()
         except Exception as e:
             self.submission_to_json()
-            raise e
+            raise RuntimeError(
+                f"Meet errors will handle unexpected submission state.\n"
+                f"Debug information: remote_root=={self.remote_root}.\n"
+                f"Debug information: submission_hash=={self.submission_hash}.\n"
+                f"Please check the dirs and scripts in remote_root"
+            ) from e
 
     # not used here, submitting job is in handle_unexpected_submission_state.
 
@@ -321,6 +318,7 @@ class Submission(object):
             submission_dict_str = self.machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
             submission = Submission.deserialize(submission_dict=submission_dict)
+            submission.bind_machine(machine=self.machine)
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.bind_machine(machine=self.machine)
@@ -381,6 +379,8 @@ class Task(object):
     def __eq__(self, other):
         return self.serialize() == other.serialize()
 
+    def __getitem__(self, key):
+        return self.serialize()[key]
 
     def get_hash(self):
         return sha1(str(self.serialize()).encode('utf-8')).hexdigest()
@@ -525,18 +525,23 @@ class Job(object):
             raise RuntimeError("job_state for job {job} is unknown".format(job=self))
 
         if job_state == JobStatus.terminated:
-            dlog.info(f"job: {self.job_hash} {self.job_id} terminated; restarting job")
-            if self.fail_count > 3:
-                raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.fail_count += 1
+            dlog.info(f"job: {self.job_hash} {self.job_id} terminated;"
+                f"fail_cout is {self.fail_count}; resubmitting job")
+            if ( self.fail_count ) > 0 and ( self.fail_count % 3 == 0 ) :
+                raise RuntimeError(f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}")
             self.submit_job()
+            dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             self.get_job_state()
+            dlog.info("job:{job_hash} job_id:{job_id} after re-submitting; the state now is {job_state}".format(
+                job_hash=self.job_hash,
+                job_id=self.job_id,
+                job_state=JobStatus(self.job_state)))
 
         if job_state == JobStatus.unsubmitted:
             dlog.info(f"job: {self.job_hash} unsubmitted; submit it")
-            if self.fail_count > 3:
-                raise RuntimeError("job:job {job} failed 3 times".format(job=self))
-            # self.fail_count += 1
+            # if self.fail_count > 3:
+            #     raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.submit_job()
             dlog.info("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
             # self.get_job_state()
@@ -646,7 +651,7 @@ class Resources(object):
         self.envs = envs
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
-        self.kwargs = kwargs
+        self.kwargs = kwargs.get('kwargs', kwargs)
 
         self.gpu_in_use = 0
         self.task_in_para = 0
@@ -689,15 +694,19 @@ class Resources(object):
                         queue_name=resources_dict['queue_name'],
                         group_size=resources_dict['group_size'],
 
-                        custom_flags=resources_dict['custom_flags'],
-                        strategy=resources_dict['strategy'],
-                        para_deg=resources_dict['para_deg'],
-                        module_unload_list=resources_dict['module_unload_list'],
-                        module_list=resources_dict['module_list'],
-                        source_list=resources_dict['source_list'],
-                        envs=resources_dict['envs'],
-                        **resources_dict['kwargs'])
+                        custom_flags=resources_dict.get('custom_flags', []),
+                        strategy=resources_dict.get('strategy', default_strategy),
+                        para_deg=resources_dict.get('para_deg', 1),
+                        module_unload_list=resources_dict.get('module_unload_list', []),
+                        module_list=resources_dict.get('module_list', []),
+                        source_list=resources_dict.get('source_list', []),
+                        envs=resources_dict.get('envs', {}),
+                        **resources_dict.get('kwargs', {})
+                        )
         return resources
+
+    def __getitem__(self, key):
+        return self.serialize()[key]
 
     @classmethod
     def load_from_json(cls, json_file):
@@ -708,8 +717,7 @@ class Resources(object):
 
     @classmethod
     def load_from_dict(cls, resources_dict):
-        
-        return cls(**resources_dict)
+        return cls.deserialize(resources_dict=resources_dict)
 
     @staticmethod
     def arginfo():

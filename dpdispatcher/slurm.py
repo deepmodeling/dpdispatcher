@@ -7,6 +7,7 @@ from dpdispatcher import dlog
 
 slurm_script_header_template="""\
 #!/bin/bash -l
+#SBATCH --parsable
 {slurm_nodes_line}
 {slurm_ntasks_per_node_line}
 {slurm_number_gpu_line}
@@ -53,13 +54,13 @@ class Slurm(Machine):
             elif "Job violates accounting/QOS policy" in err_str:
                 # job number exceeds, skip the submitting
                 return ''
-            else:
-                raise RuntimeError\
-                    ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
+            raise RuntimeError\
+                ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
         subret = (stdout.readlines())
-        # Submitted batch job 293859 on cluster faculty
-        assert subret[0].startswith('Submitted'), f"Error when submiitting job to slurm system.subret:{subret}"
-        job_id = str(int(subret[0].split()[3]))
+        # --parsable
+        # Outputs only the job id number and the cluster name if present.
+        # The values are separated by a semicolon. Errors will still be displayed.
+        job_id = subret[0].split(";")[0].strip()
         self.context.write_file(job_id_name, job_id)        
         return job_id
 
@@ -76,6 +77,7 @@ class Slurm(Machine):
             err_str = stderr.read().decode('utf-8')
             if str("Invalid job id specified") in err_str :
                 if self.check_finish_tag(job) :
+                    dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                     return JobStatus.finished
                 else :
                     return JobStatus.terminated
@@ -88,9 +90,8 @@ class Slurm(Machine):
                     # rest 60s
                     time.sleep(60)
                     return self.check_status(job, retry=retry+1, max_retry=max_retry)
-            else:
-                raise RuntimeError("status command squeue fails to execute."
-                    "job_id:%s \n error message:%s\n return code %d\n" % (job_id, err_str, ret))
+            raise RuntimeError("status command squeue fails to execute."
+                "job_id:%s \n error message:%s\n return code %d\n" % (job_id, err_str, ret))
         status_line = stdout.read().decode('utf-8').split ('\n')[-2]
         status_word = status_line.split ()[-1]
         if not (len(status_line.split()) == 2 and status_word.isupper()): 

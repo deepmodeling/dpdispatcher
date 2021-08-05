@@ -3,6 +3,7 @@ from dpdispatcher import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.dpcloudserver import api
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
+import time
 
 shell_script_header_template="""
 #!/bin/bash -l
@@ -45,7 +46,8 @@ class DpCloudServer(Machine):
         job_id = api.job_create(
             job_type=input_data['job_type'],
             oss_path=input_data['job_resources'],
-            input_data=input_data
+            input_data=input_data,
+            program_id=self.context.remote_profile.get('program_id', None)
         )
 
         job.job_id = job_id
@@ -56,10 +58,19 @@ class DpCloudServer(Machine):
         if job.job_id == '':
             return JobStatus.unsubmitted
         dlog.debug(f"debug: check_status; job.job_id:{job.job_id}; job.job_hash:{job.job_hash}")
+
+        check_return = api.get_tasks(job.job_id)
         try:
-            dp_job_status = api.get_tasks(job.job_id)[0]["status"]
+            dp_job_status = check_return[0]["status"]
         except IndexError as e:
-            raise RuntimeError(f"cannot find job information in dpcloudserver's database for job {job.job_id}")
+            dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
+            time.sleep(60)
+            retry_return = api.get_tasks(job.job_id)
+            try:
+                dp_job_status = retry_return[0]["status"]
+            except IndexError as e:
+                raise RuntimeError(f"cannot find job information in dpcloudserver's database for job {job.job_id} {check_return} {retry_return}")
+
         job_state = self.map_dp_job_state(dp_job_status)
         return job_state
 

@@ -13,7 +13,7 @@ from .sample_class import SampleClass
 
 
 class TestTask(unittest.TestCase) :
-    def setUp(self) :
+    def setUp(self):
         self.task = SampleClass.get_sample_task()
         self.task_dict = SampleClass.get_sample_task_dict()
 
@@ -33,3 +33,7 @@ class TestTask(unittest.TestCase) :
         self.assertTrue(task_json_dict, self.task_dict)
         self.assertTrue(task_json_dict, self.task.serialize())
             
+    def test_repr(self):
+        task_repr = repr(self.task)
+        print("debug:", task_repr, self.task_dict)
+        self.assertEqual(task_repr, str(self.task_dict))

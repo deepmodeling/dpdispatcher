@@ -3,11 +3,13 @@
 
 from dpdispatcher.base_context import BaseContext
 import os, paramiko, tarfile, time
+import uuid
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
 import pathlib
 # from dpdispatcher.submission import Machine
+from dpdispatcher.utils import get_sha256, generate_totp
 
 class SSHSession (object):
     def __init__(self,
@@ -17,7 +19,9 @@ class SSHSession (object):
                 port=22,
                 key_filename=None,
                 passphrase=None,
-                timeout=10):
+                timeout=10,
+                totp_secret=None,
+                ):
 
         self.hostname = hostname
         self.username = username
@@ -26,6 +30,7 @@ class SSHSession (object):
         self.key_filename = key_filename
         self.passphrase = passphrase
         self.timeout = timeout
+        self.totp_secret = totp_secret
         self.ssh = None
         self._setup_ssh()
 
@@ -98,6 +103,8 @@ class SSHSession (object):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
+        if self.totp_secret and self.password is None:
+            self.password = generate_totp(self.totp_secret)
         self.ssh.connect(hostname=self.hostname, port=self.port,
                         username=self.username, password=self.password,
                         key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
@@ -151,6 +158,8 @@ class SSHSession (object):
                            'use password for login'
         doc_passphrase = 'passphrase of key used by ssh connection'
         doc_timeout = 'timeout of ssh connection'
+        doc_totp_secret = 'Time-based one time password secret. It should be a base32-encoded string' \
+                          ' extracted from the 2D code.'
 
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
@@ -159,7 +168,8 @@ class SSHSession (object):
             Argument("port", int, optional=True, default=22, doc=doc_port),
             Argument("key_filename", [str, None], optional=True, default=None, doc=doc_key_filename),
             Argument("passphrase", [str, None], optional=True, default=None, doc=doc_passphrase),
-            Argument("timeout", int, optional=True, default=10, doc=doc_timeout)
+            Argument("timeout", int, optional=True, default=10, doc=doc_timeout),
+            Argument("totp_secret", str, optional=True, default=None, doc=doc_totp_secret),
         ]
         ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
         return ssh_remote_profile_format
@@ -258,35 +268,76 @@ class SSHContext(BaseContext):
         # sftp.close()
         # except:
         #     pass
-        
+
+    def _walk_directory(self, files, work_path, file_list, directory_list):
+        """Convert input path to list of files and directories."""
+        for jj in files :
+            file_name = os.path.join(work_path, jj)
+            if os.path.isfile(file_name):
+                file_list.append(file_name)
+            elif os.path.isdir(file_name):
+                for root, dirs, files in os.walk(file_name, topdown=False):
+                    if not files:
+                        directory_list.append(root)
+                    for name in files:
+                        file_list.append(os.path.join(root, name))
+            elif glob(file_name):
+                # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
+                abs_file_list = glob(file_name)
+                rel_file_list = [os.path.relpath(ii, start=work_path) for ii in abs_file_list]
+                self._walk_directory(rel_file_list, work_path, file_list, directory_list)
+            else:
+                raise RuntimeError(f'cannot find upload file {work_path} {jj}')
+
     def upload(self,
                # job_dirs,
                submission,
                # local_up_files,
                dereference = True) :
-        print('debug^^^^^^^^^^^^^^^^^', self.remote_root)
+        dlog.info(f'remote path: {self.remote_root}')
         # remote_cwd = 
         self.ssh_session.sftp.chdir(self.temp_remote_root)
+        recover = False
         try:
             self.ssh_session.sftp.mkdir(os.path.basename(self.remote_root))
         except OSError:
-            pass
+            # mkdir failed meaning it exists, thus the job is recovered
+            recover = True
         self.ssh_session.sftp.chdir(None)
 
         cwd = os.getcwd()
         os.chdir(self.local_root) 
         file_list = []
         directory_list = []
-        
-      #   for ii in job_dirs :
         for task in submission.belonging_tasks:
             directory_list.append(task.task_work_path)
-            for jj in task.forward_files :
-                # file_list.append(os.path.join(ii, jj))        
-                file_list.append(os.path.join(task.task_work_path, jj))        
-        # for ii in submission.forward_common_files:
         #     file_list.append(ii)
-        file_list.extend(submission.forward_common_files)
+            self._walk_directory(task.forward_files, task.task_work_path, file_list, directory_list)
+        self._walk_directory(submission.forward_common_files, self.local_root, file_list, directory_list)
+
+        # check if the same file exists on the remote file
+        # only check sha256 when the job is recovered
+        if recover:
+            # generate local sha256 file
+            sha256_list = []
+            for jj in file_list:
+                sha256 = get_sha256(jj)
+                jj_rel = pathlib.PurePath(os.path.relpath(jj, self.local_root)).as_posix()
+                sha256_list.append(f"{sha256}  {jj_rel}")
+            # write to remote
+            sha256_file = os.path.join(self.remote_root, ".tmp.sha256." + str(uuid.uuid4()))
+            self.write_file(sha256_file, "\n".join(sha256_list))
+            # check sha256
+            # `:` means pass: https://stackoverflow.com/a/2421592/9567349
+            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
+            self.sftp.remove(sha256_file)
+            # regenerate file list
+            file_list = []
+            for ii in stdout:
+                file_list.append(ii.split(":")[0])
+        else:
+            # convert to relative path to local_root
+            file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
 
         self._put_files(file_list, dereference = dereference, directories=directory_list)
         os.chdir(cwd)
