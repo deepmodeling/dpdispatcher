@@ -6,7 +6,7 @@ machine:
         | type: ``str``
         | argument path: ``machine/batch_type``
 
-        The batch job system type. Option: Slurm, PBS (for OpenPBS only), Torque (for Torque version of pbs), LSF, Shell, DpCloudServer
+        The batch job system type. Option: Slurm, PBS, LSF, Shell, DpCloudServer
 
     context_type: 
         | type: ``str``
@@ -57,22 +57,28 @@ machine:
             ssh connection port.
 
         key_filename: 
-            | type: ``NoneType`` | ``str``, optional, default: ``None``
+            | type: ``str`` | ``NoneType``, optional, default: ``None``
             | argument path: ``machine/remote_profile/key_filename``
 
-            key_filename used by ssh connection
+            key filename used by ssh connection. If left None, find key in ~/.ssh or use password for login
 
         passphrase: 
-            | type: ``NoneType`` | ``str``, optional, default: ``None``
+            | type: ``str`` | ``NoneType``, optional, default: ``None``
             | argument path: ``machine/remote_profile/passphrase``
 
-            passphrase used by ssh connection
+            passphrase of key used by ssh connection
 
         timeout: 
             | type: ``int``, optional, default: ``10``
             | argument path: ``machine/remote_profile/timeout``
 
             timeout of ssh connection
+
+        totp_secret: 
+            | type: ``str`` | ``NoneType``, optional, default: ``None``
+            | argument path: ``machine/remote_profile/totp_secret``
+
+            Time-based one time password secret. It should be a base32-encoded string extracted from the 2D code.
 
     clean_asynchronously: 
         | type: ``bool``, optional, default: ``False``

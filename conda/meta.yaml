@@ -1,0 +1,49 @@
+{% set name = "dpdispatcher" %}
+{% set version = environ.get('GIT_DESCRIBE_TAG').lstrip('v') %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/deepmodeling/dpdispatcher
+  # git_rev: {{ version }}
+
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install --no-deps --ignore-installed .
+
+requirements:
+  build:
+    - git
+  host:
+    - git
+    - python >=3.6
+    - pip
+    - setuptools_scm
+    - dargs
+    - paramiko
+    - requests
+
+  run:
+    - python >=3.6
+    - dargs
+    - paramiko
+    - requests
+
+test:
+  imports:
+    - dpdispatcher
+
+about:
+  home: https://github.com/deepmodeling/dpdispatcher
+  license: LGPL-3.0
+  license_family: LGPL
+  license_file: LICENSE
+  doc_url: https://github.com/deepmodeling/dpdispatcher
+  dev_url: https://github.com/deepmodeling/dpdispatcher
+
+extra:
+  recipe-maintainers:
+    - felix5572

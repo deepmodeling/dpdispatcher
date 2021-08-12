@@ -27,13 +27,13 @@ task:
         The files to be download to local_root in task_work_path after the task finished
 
     outlog: 
-        | type: ``NoneType`` | ``str``
+        | type: ``str`` | ``NoneType``
         | argument path: ``task/outlog``
 
         The out log file name. redirect from stdout
 
     errlog: 
-        | type: ``NoneType`` | ``str``
+        | type: ``str`` | ``NoneType``
         | argument path: ``task/errlog``
 
         The err log file name. redirect from stderr

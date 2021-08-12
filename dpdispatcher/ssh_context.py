@@ -9,7 +9,7 @@ from dpdispatcher import dlog
 from dargs.dargs import Argument
 import pathlib
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import get_sha256
+from dpdispatcher.utils import get_sha256, generate_totp
 
 class SSHSession (object):
     def __init__(self,
@@ -19,7 +19,9 @@ class SSHSession (object):
                 port=22,
                 key_filename=None,
                 passphrase=None,
-                timeout=10):
+                timeout=10,
+                totp_secret=None,
+                ):
 
         self.hostname = hostname
         self.username = username
@@ -28,6 +30,7 @@ class SSHSession (object):
         self.key_filename = key_filename
         self.passphrase = passphrase
         self.timeout = timeout
+        self.totp_secret = totp_secret
         self.ssh = None
         self._setup_ssh()
 
@@ -100,6 +103,8 @@ class SSHSession (object):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
+        if self.totp_secret and self.password is None:
+            self.password = generate_totp(self.totp_secret)
         self.ssh.connect(hostname=self.hostname, port=self.port,
                         username=self.username, password=self.password,
                         key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
@@ -153,6 +158,8 @@ class SSHSession (object):
                            'use password for login'
         doc_passphrase = 'passphrase of key used by ssh connection'
         doc_timeout = 'timeout of ssh connection'
+        doc_totp_secret = 'Time-based one time password secret. It should be a base32-encoded string' \
+                          ' extracted from the 2D code.'
 
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
@@ -161,7 +168,8 @@ class SSHSession (object):
             Argument("port", int, optional=True, default=22, doc=doc_port),
             Argument("key_filename", [str, None], optional=True, default=None, doc=doc_key_filename),
             Argument("passphrase", [str, None], optional=True, default=None, doc=doc_passphrase),
-            Argument("timeout", int, optional=True, default=10, doc=doc_timeout)
+            Argument("timeout", int, optional=True, default=10, doc=doc_timeout),
+            Argument("totp_secret", str, optional=True, default=None, doc=doc_totp_secret),
         ]
         ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
         return ssh_remote_profile_format
