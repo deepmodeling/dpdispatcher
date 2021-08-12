@@ -18,7 +18,7 @@ class TestSSHContext(unittest.TestCase):
         try:
             cls.machine = Machine.load_from_dict(mdata['machine'])
         except SSHException:
-            cls.skipTest("SSHException cannot connect")
+            raise unittest.SkipTest("SSHException ssh cannot connect")
         cls.submission = SampleClass.get_sample_submission()
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
