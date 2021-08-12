@@ -156,6 +156,7 @@ class Submission(object):
         if not self.belonging_jobs:
             self.generate_jobs()
         self.try_recover_from_json()
+        self.update_submission_state()
         if self.check_all_finished():
             dlog.info('info:check_all_finished: True')
         else:
@@ -163,7 +164,11 @@ class Submission(object):
             self.upload_jobs()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
-        time.sleep(1)
+            time.sleep(1)
+            self.update_submission_state()
+            self.check_all_finished()
+            self.handle_unexpected_submission_state()
+
         while not self.check_all_finished():
             if exit_on_submit is True:
                 dlog.info(f"submission succeeded: {self.submission_hash}")
@@ -179,6 +184,7 @@ class Submission(object):
                 dlog.debug(self.serialize())
                 raise e
             else:
+                self.update_submission_state()
                 self.handle_unexpected_submission_state()
             finally:
                 pass
@@ -189,7 +195,7 @@ class Submission(object):
             self.clean_jobs()
         return self.serialize()
 
-    def get_submission_state(self):
+    def update_submission_state(self):
         """check whether all the jobs in the submission.
 
         Notes
@@ -201,7 +207,7 @@ class Submission(object):
                 # finished job will be finished for ever, skip
                 continue
             job.get_job_state()
-            dlog.debug(f"debug:get_submission_state: job: {job.job_hash}, {job.job_id}, {repr(job.job_state)}")
+            dlog.debug(f"debug:update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}")
         # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):
@@ -217,9 +223,10 @@ class Submission(object):
             self.submission_to_json()
             raise RuntimeError(
                 f"Meet errors will handle unexpected submission state.\n"
-                f"Debug information: remote_root=={self.remote_root}.\n"
+                f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
                 f"Please check the dirs and scripts in remote_root"
+                f"The job information mentioned above may help"
             ) from e
 
     # not used here, submitting job is in handle_unexpected_submission_state.
@@ -231,6 +238,8 @@ class Submission(object):
     #         job.submit_job()
     #     self.get_submission_state()
 
+    # def update_submi
+
     def check_all_finished(self):
         """check whether all the jobs in the submission.
 
@@ -238,7 +247,7 @@ class Submission(object):
         -----
         This method will not handle unexpected job state in the submission.
         """
-        self.get_submission_state()
+        # self.update_submission_state()
         if any( (job.job_state in  [JobStatus.terminated, JobStatus.unknown] ) for job in self.belonging_jobs):
             self.submission_to_json()
         if any( (job.job_state in  [JobStatus.running,
@@ -294,7 +303,7 @@ class Submission(object):
         self.machine.context.clean()
 
     def submission_to_json(self):
-        # self.get_submission_state()
+        # self.update_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = "{submission_hash}.json".format(submission_hash=self.submission_hash)
         self.machine.context.write_file(submission_file_name, write_str=write_str)
@@ -532,11 +541,10 @@ class Job(object):
                 raise RuntimeError(f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}")
             self.submit_job()
             dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+            time.sleep(0.2)
             self.get_job_state()
-            dlog.info("job:{job_hash} job_id:{job_id} after re-submitting; the state now is {job_state}".format(
-                job_hash=self.job_hash,
-                job_id=self.job_id,
-                job_state=JobStatus(self.job_state)))
+            dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
+            self.handle_unexpected_job_state()
 
         if job_state == JobStatus.unsubmitted:
             dlog.info(f"job: {self.job_hash} unsubmitted; submit it")
@@ -758,3 +766,5 @@ class Resources(object):
         resources_format = Argument("resources", dict, resources_args)
         return resources_format
 
+
+# %%
