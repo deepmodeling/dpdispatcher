@@ -10,15 +10,16 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
+import os
+import sys
+from datetime import date
 # sys.path.insert(0, os.path.abspath('.'))
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'DPDispatcher'
-copyright = '2020, Deep Modeling'
+copyright = '2020-%d, Deep Modeling' % date.today().year
 author = 'Deep Modeling'
 
 
@@ -30,6 +31,9 @@ author = 'Deep Modeling'
 extensions = [
     'recommonmark',
     "sphinx_rtd_theme",
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
+    'numpydoc',
     'sphinx.ext.autosummary'
 ]
 
@@ -58,3 +62,18 @@ html_css_files = []
 autodoc_default_flags = ['members']
 autosummary_generate = True
 master_doc = 'index'
+
+def run_apidoc(_):
+    from sphinx.ext.apidoc import main
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    module = os.path.join(cur_dir, "..", "dpdispatcher")
+    main(['-M', '--tocfile', 'api', '-H', 'DPDispatcher API', '-o', os.path.join(cur_dir, "api"), module, '--force'])
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
+
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/", None),
+}
