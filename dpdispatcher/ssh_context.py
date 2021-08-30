@@ -282,6 +282,7 @@ class SSHContext(BaseContext):
                     for name in files:
                         file_list.append(os.path.join(root, name))
             elif glob(file_name):
+                print(file_name)
                 # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
                 abs_file_list = glob(file_name)
                 rel_file_list = [os.path.relpath(ii, start=work_path) for ii in abs_file_list]
@@ -526,18 +527,18 @@ class SSHContext(BaseContext):
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
-            self.block_checkcall('tar czf %s %s' % (of, " ".join(files)))
+            self.block_checkcall('tar czfh %s %s' % (of, " ".join(files)))
         else:
             of_tar = self.submission.submission_hash + '.tar'
             for ii in range(ntar):
                 ff = files[per_nfile * ii : per_nfile * (ii+1)]
                 if ii == 0:
                     # tar cf for the first time
-                    self.block_checkcall('tar cf %s %s' % (of_tar, " ".join(ff)))
+                    self.block_checkcall('tar cfh %s %s' % (of_tar, " ".join(ff)))
                 else:
                     # append using tar rf
                     # -r, --append append files to the end of an archive
-                    self.block_checkcall('tar rf %s %s' % (of_tar, " ".join(ff)))
+                    self.block_checkcall('tar rfh %s %s' % (of_tar, " ".join(ff)))
             # compress the tar file using gzip, and will get a tar.gz file
             # overwrite considering dpgen may stop and restart
             # -f, --force force overwrite of output file and compress links
