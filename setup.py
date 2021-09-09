@@ -40,7 +40,7 @@ setuptools.setup(
     keywords='deep potential generator active learning deepmd-kit',
     install_requires=install_requires,    
     extras_require={
-        'docs': ['sphinx', 'recommonmark', 'sphinx_rtd_theme'],
+        'docs': ['sphinx', 'recommonmark', 'sphinx_rtd_theme>=1.0.0rc1', 'numpydoc'],
         "cloudserver": ["oss2"],
         ":python_version<'3.7'": ["typing_extensions"],
     },
