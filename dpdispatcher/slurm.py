@@ -42,7 +42,7 @@ class Slurm(Machine):
         ret, stdin, stdout, stderr = self.context.block_call('cd %s && %s %s' % (self.context.remote_root, 'sbatch', script_file_name))
         if ret != 0:
             err_str = stderr.read().decode('utf-8')
-            if "Socket timed out on send/recv operation" in err_str:
+            if "Socket timed out on send/recv operation" in err_str or "Unable to contact slurm controller" in err_str:
                 # server network error, retry 3 times
                 if retry < max_retry:
                     dlog.warning("Get error code %d in submitting through ssh with job: %s . message: %s" %
@@ -81,7 +81,7 @@ class Slurm(Machine):
                     return JobStatus.finished
                 else :
                     return JobStatus.terminated
-            elif "Socket timed out on send/recv operation" in err_str:
+            elif "Socket timed out on send/recv operation" in err_str or "Unable to contact slurm controller" in err_str:
                 # retry 3 times
                 if retry < max_retry:
                     dlog.warning("Get error code %d in checking status through ssh with job: %s . message: %s" %
