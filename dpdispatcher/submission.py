@@ -395,6 +395,13 @@ class Task(object):
         return sha1(str(self.serialize()).encode('utf-8')).hexdigest()
 
     @classmethod
+    def load_from_json(cls, json_file):
+        with open(json_file, 'r') as f:
+            task_dict = json.load(f)
+        task = cls.deserialize(task_dict=task_dict)
+        return task
+
+    @classmethod
     def deserialize(cls, task_dict):
         """convert the task_dict to a Task class object
 
