@@ -14,6 +14,7 @@ from dpdispatcher import dlog
 from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
 token = ''
+group_id = None
 def get(url, params):
     global token
     headers = {'Authorization': "jwt " + token}
@@ -107,6 +108,9 @@ def upload(oss_task_zip, zip_task_file, endpoint, bucket_name):
 
 
 def job_create(job_type, oss_path, input_data, program_id=None):
+    api_version = input_data.get('api_version',1)
+    if api_version == 2:
+        return job_create_v2(job_type,oss_path,input_data, program_id=program_id)
     post_data = {
                 'job_type': job_type,
                 'oss_path': oss_path,
@@ -117,6 +121,49 @@ def job_create(job_type, oss_path, input_data, program_id=None):
     ret = post('/data/insert_job', post_data)
     return ret['job_id']
 
+
+def job_create_v2(job_type, oss_path, input_data, program_id=None):
+    global group_id
+    post_data = {
+                'job_type': job_type,
+                'oss_path': oss_path,
+            }
+    if program_id is not None:
+        post_data["program_id"] = program_id
+    if input_data.get('job_group_id') is not None:
+        post_data["job_group_id"] = input_data.get('job_group_id')
+    elif input_data.get('grouped') is not None and input_data.get('grouped'):
+        if group_id is not None:
+            post_data["job_group_id"] = group_id
+    if input_data.get('job_name') is not None:
+        post_data["job_name"] = input_data.get('job_name')
+    if input_data.get('image_name') is not None:
+        post_data["image_name"] = input_data.get('image_name')
+    if input_data.get('disk_size') is not None:
+        post_data["disk_size"] = input_data.get('disk_size')
+    if input_data.get('scass_type') is not None:
+        post_data["scass_type"] = input_data.get('scass_type')
+    if input_data.get('scass_type') is not None:
+        post_data["scass_type"] = input_data.get('scass_type')
+    if input_data.get('instance_group_id') is not None:
+        post_data["instance_group_id"] = input_data.get('instance_group_id')
+    if input_data.get('command') is not None:
+        post_data["cmd"] = input_data.get('command')
+    if input_data.get('log_file') is not None:
+        post_data["log_file"] = input_data.get('log_file')
+    if input_data.get('backward_files') is not None:
+        post_data["out_files"] = input_data.get('backward_files')
+    if input_data.get('platform') is not None:
+        post_data["platform"] = input_data.get('platform')
+    if input_data.get('region') is not None:
+        post_data["region"] = input_data.get('region')
+    if input_data.get('zone') is not None:
+        post_data["zone"] = input_data.get('zone')
+    if input_data.get('on_demand') is not None:
+        post_data["on_demand"] = input_data.get('on_demand')
+    ret = post('/data/v2/insert_job', post_data)
+    group_id = ret.get('job_group_id')
+    return ret['job_id']
 
 def get_jobs(page=1, per_page=10):
     ret = get(
