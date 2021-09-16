@@ -15,6 +15,7 @@ from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
 token = ''
 group_id = None
+
 def get(url, params):
     global token
     headers = {'Authorization': "jwt " + token}
@@ -108,9 +109,6 @@ def upload(oss_task_zip, zip_task_file, endpoint, bucket_name):
 
 
 def job_create(job_type, oss_path, input_data, program_id=None):
-    api_version = input_data.get('api_version',1)
-    if api_version == 2:
-        return job_create_v2(job_type,oss_path,input_data, program_id=program_id)
     post_data = {
                 'job_type': job_type,
                 'oss_path': oss_path,
@@ -137,12 +135,12 @@ def job_create_v2(job_type, oss_path, input_data, program_id=None):
             post_data["job_group_id"] = group_id
     if input_data.get('job_name') is not None:
         post_data["job_name"] = input_data.get('job_name')
+    if input_data.get('rerun') is not None:
+        post_data["rerun"] = input_data.get('rerun')
     if input_data.get('image_name') is not None:
         post_data["image_name"] = input_data.get('image_name')
     if input_data.get('disk_size') is not None:
         post_data["disk_size"] = input_data.get('disk_size')
-    if input_data.get('scass_type') is not None:
-        post_data["scass_type"] = input_data.get('scass_type')
     if input_data.get('scass_type') is not None:
         post_data["scass_type"] = input_data.get('scass_type')
     if input_data.get('instance_group_id') is not None:
@@ -163,7 +161,7 @@ def job_create_v2(job_type, oss_path, input_data, program_id=None):
         post_data["on_demand"] = input_data.get('on_demand')
     ret = post('/data/v2/insert_job', post_data)
     group_id = ret.get('job_group_id')
-    return ret['job_id']
+    return ret['job_id'], group_id
 
 def get_jobs(page=1, per_page=10):
     ret = get(
@@ -185,6 +183,20 @@ def get_tasks(job_id, page=1, per_page=10):
         }
     )
     return ret['items']
+
+
+def get_tasks_v2(job_id, group_id, page=1, per_page=10):
+    ret = get(
+        f'data/job/{group_id}/tasks',
+        {
+            'page': page,
+            'per_page': per_page,
+        }
+    )
+    for each in ret['items']:
+        if job_id == each["task_id"]:
+            return [each]
+    return []
 
 #%%
 
