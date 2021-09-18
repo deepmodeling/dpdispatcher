@@ -14,7 +14,6 @@ from dpdispatcher import dlog
 from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
 token = ''
-group_id = None
 
 def get(url, params):
     global token
@@ -120,8 +119,7 @@ def job_create(job_type, oss_path, input_data, program_id=None):
     return ret['job_id']
 
 
-def job_create_v2(job_type, oss_path, input_data, program_id=None):
-    global group_id
+def job_create_v2(job_type, oss_path, input_data, program_id=None, group_id=None):
     post_data = {
                 'job_type': job_type,
                 'oss_path': oss_path,
@@ -130,8 +128,7 @@ def job_create_v2(job_type, oss_path, input_data, program_id=None):
         post_data["program_id"] = program_id
     if input_data.get('job_group_id') is not None:
         post_data["job_group_id"] = input_data.get('job_group_id')
-    elif input_data.get('grouped') is not None and input_data.get('grouped'):
-        if group_id is not None:
+    if group_id is not None:
             post_data["job_group_id"] = group_id
     if input_data.get('job_name') is not None:
         post_data["job_name"] = input_data.get('job_name')
@@ -196,6 +193,8 @@ def get_tasks_v2(job_id, group_id, page=1, per_page=10):
     for each in ret['items']:
         if job_id == each["task_id"]:
             return [each]
+    if len(ret['items']) != 0:
+        return get_tasks_v2(job_id, group_id, page=2)
     return []
 
 #%%

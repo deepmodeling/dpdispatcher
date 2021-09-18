@@ -14,6 +14,8 @@ class DpCloudServer(Machine):
         self.context = context
         self.input_data = context.remote_profile['input_data'].copy()
         self.api_version = self.input_data.get('api_version', 1)
+        self.grouped = self.input_data.get('grouped', False)
+        self.group_id = None
 
     def gen_script(self, job):
         shell_script = super(DpCloudServer, self).gen_script(job)
@@ -24,10 +26,10 @@ class DpCloudServer(Machine):
         return shell_script_header
 
     def gen_local_script(self, job):
-        script_str = self.gen_script(job) 
+        script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         self.context.write_local_file(
-            fname=script_file_name, 
+            fname=script_file_name,
             write_str=script_str
         )
         return script_file_name
@@ -49,9 +51,11 @@ class DpCloudServer(Machine):
                 job_type=input_data['job_type'],
                 oss_path=input_data['job_resources'],
                 input_data=input_data,
-                program_id=self.context.remote_profile.get('program_id', None)
+                program_id=self.context.remote_profile.get('program_id', None),
+                group_id=self.group_id
             )
-            self.input_data['job_group_id'] = group_id
+            if self.grouped:
+                self.group_id = group_id
             job.job_id = str(job_id) + ':job_group_id' + str(group_id)
             job_id = job.job_id
         else:
@@ -68,26 +72,29 @@ class DpCloudServer(Machine):
         if job.job_id == '':
             return JobStatus.unsubmitted
         job_id = job.job_id
-        if type(job.job_id) is str and ':job_group_id' in job.job_id:
+        group_id = None
+        if isinstance(job.job_id,str) and ':job_group_id' in job.job_id:
+            group_id = None
             ids = job.job_id.split(":job_group_id")
-            job.job_id ,self.input_data["job_group_id"] = int(ids[0]), int(ids[1])
+            job_id, group_id = int(ids[0]), int(ids[1])
+            if self.input_data.get('grouped') and 'job_group_id' not in self.input_data:
+                self.group_id = group_id
             self.api_version = 2
-            job_id = job.job_id
-        dlog.debug(f"debug: check_status; job.job_id:{job.job_id}; job.job_hash:{job.job_hash}")
+        dlog.debug(f"debug: check_status; job.job_id:{job_id}; job.job_hash:{job.job_hash}")
         check_return = None
+        # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
         if self.api_version == 2:
-            check_return = api.get_tasks_v2(job_id,self.input_data.get('job_group_id'))
+            check_return = api.get_tasks_v2(job_id,group_id)
         else:
             check_return = api.get_tasks(job_id)
         try:
             dp_job_status = check_return[0]["status"]
         except IndexError as e:
-            dlog.error(f"cannot find job information in check_return. job {job_id}. check_return:{check_return}; retry one more time after 60 seconds")
+            dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
             time.sleep(60)
             retry_return = None
-            retry_return = api.get_tasks(job_id)
             if self.api_version == 2:
-                retry_return = api.get_tasks_v2(job_id,self.input_data.get('job_group_id'))
+                retry_return = api.get_tasks_v2(job_id,group_id)
             else:
                 retry_return = api.get_tasks(job_id)
             try:
