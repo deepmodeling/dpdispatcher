@@ -56,7 +56,7 @@ class DpCloudServer(Machine):
             )
             if self.grouped:
                 self.group_id = group_id
-            job.job_id = str(job_id) + ':job_group_id' + str(group_id)
+            job.job_id = str(job_id) + ':job_group_id:' + str(group_id)
             job_id = job.job_id
         else:
             job_id = api.job_create(
@@ -73,11 +73,11 @@ class DpCloudServer(Machine):
             return JobStatus.unsubmitted
         job_id = job.job_id
         group_id = None
-        if isinstance(job.job_id,str) and ':job_group_id' in job.job_id:
+        if isinstance(job.job_id, str) and ':job_group_id:' in job.job_id:
             group_id = None
-            ids = job.job_id.split(":job_group_id")
+            ids = job.job_id.split(":job_group_id:")
             job_id, group_id = int(ids[0]), int(ids[1])
-            if self.input_data.get('grouped') and 'job_group_id' not in self.input_data:
+            if self.input_data.get('grouped') and ':job_group_id:' not in self.input_data:
                 self.group_id = group_id
             self.api_version = 2
         dlog.debug(f"debug: check_status; job.job_id:{job_id}; job.job_hash:{job.job_hash}")
