@@ -194,7 +194,7 @@ def get_tasks_v2(job_id, group_id, page=1, per_page=10):
         if job_id == each["task_id"]:
             return [each]
     if len(ret['items']) != 0:
-        return get_tasks_v2(job_id, group_id, page=2)
+        return get_tasks_v2(job_id, group_id, page=page+1)
     return []
 
 #%%
