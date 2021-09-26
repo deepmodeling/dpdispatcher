@@ -13,6 +13,9 @@ class DpCloudServer(Machine):
     def __init__(self, context):
         self.context = context
         self.input_data = context.remote_profile['input_data'].copy()
+        self.api_version = self.input_data.get('api_version', 1)
+        self.grouped = self.input_data.get('grouped', False)
+        self.group_id = None
 
     def gen_script(self, job):
         shell_script = super(DpCloudServer, self).gen_script(job)
@@ -23,10 +26,10 @@ class DpCloudServer(Machine):
         return shell_script_header
 
     def gen_local_script(self, job):
-        script_str = self.gen_script(job) 
+        script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         self.context.write_local_file(
-            fname=script_file_name, 
+            fname=script_file_name,
             write_str=script_str
         )
         return script_file_name
@@ -42,30 +45,58 @@ class DpCloudServer(Machine):
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
 
-
-        job_id = api.job_create(
-            job_type=input_data['job_type'],
-            oss_path=input_data['job_resources'],
-            input_data=input_data,
-            program_id=self.context.remote_profile.get('program_id', None)
-        )
-
-        job.job_id = job_id
+        job_id = None
+        if self.api_version == 2:
+            job_id, group_id = api.job_create_v2(
+                job_type=input_data['job_type'],
+                oss_path=input_data['job_resources'],
+                input_data=input_data,
+                program_id=self.context.remote_profile.get('program_id', None),
+                group_id=self.group_id
+            )
+            if self.grouped:
+                self.group_id = group_id
+            job.job_id = str(job_id) + ':job_group_id:' + str(group_id)
+            job_id = job.job_id
+        else:
+            job_id = api.job_create(
+                job_type=input_data['job_type'],
+                oss_path=input_data['job_resources'],
+                input_data=input_data,
+                program_id=self.context.remote_profile.get('program_id', None)
+            )
         job.job_state = JobStatus.waiting
         return job_id
 
     def check_status(self, job):
         if job.job_id == '':
             return JobStatus.unsubmitted
-        dlog.debug(f"debug: check_status; job.job_id:{job.job_id}; job.job_hash:{job.job_hash}")
-
-        check_return = api.get_tasks(job.job_id)
+        job_id = job.job_id
+        group_id = None
+        if isinstance(job.job_id, str) and ':job_group_id:' in job.job_id:
+            group_id = None
+            ids = job.job_id.split(":job_group_id:")
+            job_id, group_id = int(ids[0]), int(ids[1])
+            if self.input_data.get('grouped') and ':job_group_id:' not in self.input_data:
+                self.group_id = group_id
+            self.api_version = 2
+        dlog.debug(f"debug: check_status; job.job_id:{job_id}; job.job_hash:{job.job_hash}")
+        check_return = None
+        # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
+        if self.api_version == 2:
+            check_return = api.get_tasks_v2(job_id,group_id)
+        else:
+            check_return = api.get_tasks(job_id)
         try:
             dp_job_status = check_return[0]["status"]
         except IndexError as e:
             dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
             time.sleep(60)
-            retry_return = api.get_tasks(job.job_id)
+            retry_return = None
+            if self.api_version == 2:
+                retry_return = api.get_tasks_v2(job_id,group_id)
+            else:
+                retry_return = api.get_tasks(job_id)
             try:
                 dp_job_status = retry_return[0]["status"]
             except IndexError as e:
@@ -91,8 +122,13 @@ class DpCloudServer(Machine):
             -1:JobStatus.terminated,
             0:JobStatus.waiting,
             1:JobStatus.running,
-            2:JobStatus.finished
+            2:JobStatus.finished,
+            3:JobStatus.waiting,
+            4:JobStatus.running,
+            5:JobStatus.terminated
         }
+        if status not in map_dict:
+            return JobStatus.unknown
         return map_dict[status]
 
 
