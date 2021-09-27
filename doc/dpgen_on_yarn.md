@@ -140,3 +140,36 @@ hadoop fs -put -f uuid_download.tar.gz /root/uuid/sys-0001-0015
 ## 标记该job顺利执行成功
 hadoop fs -touchz /root/uuid/uuid_tag_finished
 ```
+machine.json中 fp 配置样例如下，需要声明 batch_type 为 `DistributedShell`，context_type 为 `HDFSContext`:
+
+```
+  "fp": [
+    {
+      "command": "mpirun -n 32 vasp_std",
+      "machine": {
+        "batch_type": "DistributedShell",
+        "context_type": "HDFSContext",
+        "local_root": "./",
+        "remote_root": "hdfs://path/to/remote/root"
+      },
+      "resources": {
+        "number_node": 1,
+        "cpu_per_node": 32,
+        "gpu_per_node": 0,
+        "queue_name": "root.oryx_bigbang",
+        "group_size": 1,
+        "source_list": ["/opt/intel/oneapi/setvars.sh"],
+        "kwargs": {
+          "img_name": "",
+          "mem_limit": 32,
+          "yarn_path": "/path/to/yarn/jars"
+        },
+        "envs" : {
+          "HADOOP_HOME" : "${HADOOP_HOME:/path/to/hadoop/bin}",
+          "CLASSPATH": "`${HADOOP_HOME}/bin/hadoop classpath --glob`",
+          "PATH": "${HADOOP_HOME}/bin:${PATH}"}
+        }
+      }
+    }
+  ]
+```
