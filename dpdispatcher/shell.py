@@ -1,4 +1,4 @@
-import psutil
+#import psutil
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
@@ -21,17 +21,16 @@ class Shell(Machine):
         script_str = self.gen_script(job) 
         script_file_name = job.script_file_name
         job_id_name = job.job_hash + '_job_id'
+        output_name = job.job_hash + '.out'
         self.context.write_file(fname=script_file_name, write_str=script_str)
-        proc = self.context.call('cd %s && exec bash %s &' % (self.context.remote_root, script_file_name) )
-        if not isinstance(proc,dict):
-            proc.wait()
-            job_id = int(proc.pid)
-            self.context.write_file(job_id_name, str(job_id))
-            return job_id
-        else:
-            return "#N/A#"
-        # proc.kill()
-
+        ret, stdin, stdout, stderr = self.context.block_call('cd %s && { nohup bash %s 1>>%s 2>>%s & } && echo $!' % (self.context.remote_root, script_file_name, output_name, output_name) )
+        if ret != 0:
+            err_str = stderr.read().decode('utf-8')
+            raise RuntimeError\
+                    ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
+        job_id = int(stdout.read().decode('utf-8').strip())
+        self.context.write_file(job_id_name, str(job_id))
+        return job_id
 
         # script_file_name = job.script_file_name
         # script_str = self.gen_script(job)
@@ -55,7 +54,13 @@ class Shell(Machine):
         if job_id == "" :
             return JobStatus.unsubmitted
 
-        if_job_exists = psutil.pid_exists(pid=job_id)
+        ret, stdin, stdout, stderr = self.context.block_call(f"if ps -p {job_id} > /dev/null; then echo 1; fi")
+        if ret != 0:
+            err_str = stderr.read().decode('utf-8')
+            raise RuntimeError\
+                    ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
+        
+        if_job_exists = bool(stdout.read().decode('utf-8').strip())
         if self.check_finish_tag(job=job):
             dlog.info(f"job: {job.job_hash} {job.job_id} finished")
             return JobStatus.finished

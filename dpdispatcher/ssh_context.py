@@ -271,7 +271,6 @@ class SSHContext(BaseContext):
 
     def _walk_directory(self, files, work_path, file_list, directory_list):
         """Convert input path to list of files and directories."""
-
         for jj in files :
             file_name = os.path.join(work_path, jj)
             if os.path.isfile(file_name):
@@ -288,15 +287,7 @@ class SSHContext(BaseContext):
                 rel_file_list = [os.path.relpath(ii, start=work_path) for ii in abs_file_list]
                 self._walk_directory(rel_file_list, work_path, file_list, directory_list)
             else:
-                try:
-                    # pure_abs_path = os.path.join(os.getcwd().replace(f'{self.submission.work_base}', ''), work_path)
-                    relative_path = work_path.replace(f'{self.submission.work_base}', '')
-                    file_name = os.path.join(relative_path, jj)
-                    if os.path.isfile(file_name):
-                        raise RuntimeError
-                except:
-                        raise RuntimeError(f'cannot find upload file {work_path} {jj}')
-
+                raise RuntimeError(f'cannot find upload file {work_path} {jj}')
 
     def upload(self,
                # job_dirs,
@@ -346,13 +337,10 @@ class SSHContext(BaseContext):
                 file_list.append(ii.split(":")[0])
         else:
             # convert to relative path to local_root
-            file_list = [os.path.relpath(jj, self.local_root) for jj in file_list]
-
+            file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
 
         self._put_files(file_list, dereference = dereference, directories=directory_list)
         os.chdir(cwd)
-
-
 
     def download(self, 
                  submission,
@@ -401,13 +389,11 @@ class SSHContext(BaseContext):
         asynchronously: bool, optional, default=False
             Run command asynchronously. If True, `nohup` will be used to run the command.
         """
-
-
         self.ssh_session.ensure_alive()
         if asynchronously:
             cmd = "nohup %s >/dev/null &" % cmd
         stdin, stdout, stderr = self.ssh_session.exec_command(('cd %s ;' % self.remote_root) + cmd)
-        exit_status = stdout.channel.recv_exit_status()
+        exit_status = stdout.channel.recv_exit_status() 
         if exit_status != 0:
             raise RuntimeError("Get error code %d in calling %s through ssh with job: %s . message: %s" %
                               (exit_status, cmd, self.submission.submission_hash, stderr.read().decode('utf-8')))
@@ -540,10 +526,6 @@ class SSHContext(BaseContext):
         # each time.
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
-
-        if '\\' in files[0]:
-            files = [file.replace('\\', '/') for file in files]
-
         if ntar <= 1:
             self.block_checkcall('tar czfh %s %s' % (of, " ".join(files)))
         else:

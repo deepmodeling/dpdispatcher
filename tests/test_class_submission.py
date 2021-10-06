@@ -21,7 +21,8 @@ class TestSubmission(unittest.TestCase):
         # self.submission2 = Submission.submission_from_json('jsons/submission.json')
     
     def test_serialize_deserialize(self):
-        self.assertEqual(self.submission, Submission.deserialize(submission_dict=self.submission.serialize()))
+        self.assertEqual(self.submission.serialize(if_none_local_root=True), 
+            Submission.deserialize(submission_dict=self.submission.serialize(if_none_local_root=True)).serialize(if_none_local_root=True))
 
     def test_get_hash(self):
         pass
@@ -50,9 +51,9 @@ class TestSubmission(unittest.TestCase):
         pass
 
     @patch('dpdispatcher.Submission.submission_to_json')
-    @patch('dpdispatcher.Submission.get_submission_state')
-    def test_check_all_finished(self, patch_get_submission_state, patch_submission_to_json):
-        patch_get_submission_state = MagicMock(return_value=None)
+    @patch('dpdispatcher.Submission.update_submission_state')
+    def test_check_all_finished(self, patch_update_submission_state, patch_submission_to_json):
+        patch_update_submission_state = MagicMock(return_value=None)
         patch_submission_to_json = MagicMock(return_value=None)
 
         self.submission.belonging_jobs[0].job_state = JobStatus.running
@@ -79,7 +80,7 @@ class TestSubmission(unittest.TestCase):
         submission2 = Submission.submission_from_json('jsons/submission.json')
         # print('<<<<<<<', self.submission)
         # print('>>>>>>>', submission2)
-        self.assertEqual(self.submission.serialize(), submission2.serialize())
+        self.assertEqual(self.submission.serialize(if_none_local_root=True), submission2.serialize())
 
     def test_submission_json(self):
         with open('jsons/submission.json') as f:
@@ -88,4 +89,16 @@ class TestSubmission(unittest.TestCase):
 
     def test_try_recover_from_json(self):
         pass
+
+    def test_repr(self):
+        submission_repr = repr(self.submission)
+        j = json.dumps(self.submission.serialize(), indent=4)
+        self.assertEqual(submission_repr, j)
         # self.submission_to_json()
+
+    def test_clean(self):
+        pass
+
+    def test_try_recover_from_json(self):
+        pass
+        # self.submission.try_recover_from_json

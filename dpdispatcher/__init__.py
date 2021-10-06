@@ -1,11 +1,17 @@
 import logging
 import os, sys
-
+import warnings
 
 ROOT_PATH=__path__[0]
 dlog = logging.getLogger(__name__)
+dlog.propagate = False
 dlog.setLevel(logging.INFO)
-dlogf = logging.FileHandler(os.getcwd()+os.sep+'dpdispatcher'+'.log')
+try:
+    dlogf = logging.FileHandler(os.getcwd()+os.sep+'dpdispatcher'+'.log')
+except PermissionError:
+    warnings.warn(f"dpdispatcher.log meet permission error. redirect the log to ~/dpdispatcher.log")
+    dlogf = logging.FileHandler(os.path.join(os.path.expanduser('~'),'dpdispatcher.log'))
+
 # dlogf = logging.FileHandler('./'+os.sep+SHORT_CMD+'.log')
 # dlogf = logging.FileHandler(os.path.join(os.environ['HOME'], SHORT_CMD+'.log'))
 # dlogf = logging.FileHandler(os.path.join(os.path.expanduser('~'), SHORT_CMD+'.log'))
@@ -37,6 +43,7 @@ from .submission import Job
 from .submission import Resources
 from .slurm import Slurm
 from .pbs import PBS
+from .pbs import Torque
 from .shell import Shell
 from .lsf import LSF
 from .dp_cloud_server import DpCloudServer

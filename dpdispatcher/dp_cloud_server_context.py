@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-#%%
+# %%
 from dpdispatcher.base_context import BaseContext
 import os
 # from dpdispatcher import dlog
@@ -26,10 +26,11 @@ class DpCloudServerContext(BaseContext):
     ):
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
-        username = remote_profile['username']
+        email = remote_profile.get("email", None)
+        username = remote_profile.get('username', None)
         password = remote_profile['password']
 
-        api.login(username=username, password=password)
+        api.login(username=username, email=email, password=password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
@@ -54,7 +55,6 @@ class DpCloudServerContext(BaseContext):
         self.submission_hash = submission.submission_hash
 
         self.machine = submission.machine
-    
 
         # def zip_files(self, submission):
         #     file_uuid = uuid.uuid1().hex
@@ -90,7 +90,6 @@ class DpCloudServerContext(BaseContext):
                 zip_task_file,
                 file_list=upload_file_list
             )
-
             result = api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
         return result
         # return oss_task_zip
