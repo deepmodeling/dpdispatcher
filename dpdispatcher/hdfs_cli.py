@@ -133,3 +133,21 @@ class HDFS(object):
         except Exception as e:
             raise RuntimeError('Cannot read text from uri[{}]'
                                'cmd [{}] on unexpected error[{}]'.format(uri, cmd, repr(e)))
+
+    @staticmethod
+    def move(from_uri, to_uri):
+        cmd = 'hadoop fs -mv {furi} {turi}'.format(furi=from_uri, turi=to_uri)
+        try:
+            ret, out, err = run_cmd_with_all_output(cmd)
+            if ret == 0:
+                return True
+            else:
+                raise RuntimeError('Cannot move from_uri[{}] to '
+                                   'to_uri[{}] with cmd[{}]; '
+                                   'ret[{}] output[{}] stderr[{}]'.format(from_uri, to_uri,
+                                                                          cmd, ret, out, err))
+        except Exception as e:
+            raise RuntimeError('Cannot move from_uri[{}] to '
+                               'to_uri[{}] with cmd[{}] '
+                               'on unexpected error[{}]'.format(from_uri, to_uri,
+                                                                cmd, repr(e)))
