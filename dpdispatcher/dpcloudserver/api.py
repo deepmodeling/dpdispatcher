@@ -14,9 +14,9 @@ from dpdispatcher import dlog
 from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
 token = ''
-
+login_data = None
 def get(url, params):
-    global token
+    global token, login_data
     headers = {'Authorization': "jwt " + token}
     ret = requests.get(
                 urljoin(API_HOST, url),
@@ -26,13 +26,17 @@ def get(url, params):
                 )
     # print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
+    if ret['code'] == RETCODE.TOKENINVALID:
+        if login_data is not None:
+            refresh_token(login_data)
+            ret = post(url, params)
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
 
     return ret['data']
 
 def post(url, params):
-    global token
+    global token, login_data
     headers = {'Authorization': "jwt " + token}
     ret = requests.post(
                 urljoin(API_HOST, url),
@@ -42,6 +46,10 @@ def post(url, params):
                 )
     # print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
+    if ret['code'] == RETCODE.TOKENINVALID:
+        if login_data is not None:
+            refresh_token(login_data)
+            ret = post(url, params)
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
 
@@ -49,7 +57,7 @@ def post(url, params):
 
 
 def login(password, email=None, username=None):
-    global token
+    global token, login_data
     post_data = {"password": password}
     if email is None and username is None:
         raise ValueError(f"Error: can not find username or email from remote_profile")
@@ -57,10 +65,15 @@ def login(password, email=None, username=None):
         post_data['email'] = email
     if username is not None:
         post_data['username'] = username
+    refresh_token(post_data)
+
+
+def refresh_token(post_data):
+    global token
     ret = post(
-            '/account/login',
-            post_data
-            )
+        '/account/login',
+        post_data
+    )
     dlog.debug(f"debug: login ret:{ret}")
     token = ret['token']
 
