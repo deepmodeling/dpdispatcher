@@ -100,10 +100,12 @@ class DistributedShell(Machine):
 
     def do_submit(self, job):
         """ submit th job to yarn using distributed shell
+
         Parameters
         ----------
         job : Job class instance
             job to be submitted
+
         Returns
         -------
         job_id: string
