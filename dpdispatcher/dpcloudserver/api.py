@@ -15,7 +15,9 @@ from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
 token = ''
 login_data = None
-def get(url, params):
+
+
+def get(url, params, retry=0):
     global token, login_data
     headers = {'Authorization': "jwt " + token}
     ret = requests.get(
@@ -26,16 +28,19 @@ def get(url, params):
                 )
     # print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
-    if ret['code'] == RETCODE.TOKENINVALID:
+    if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
+        dlog.debug("debug: token expire, refresh token")
         if login_data is not None:
             refresh_token(login_data)
-            ret = post(url, params)
+            ret = get(url, params, retry=retry+1)
+            return ret
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
 
     return ret['data']
 
-def post(url, params):
+
+def post(url, params, retry=0):
     global token, login_data
     headers = {'Authorization': "jwt " + token}
     ret = requests.post(
@@ -46,10 +51,12 @@ def post(url, params):
                 )
     # print(url,'>>>', params, '<<<', ret.text)
     ret = json.loads(ret.text)
-    if ret['code'] == RETCODE.TOKENINVALID:
+    if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
+        dlog.debug("debug: token expire, refresh token")
         if login_data is not None:
             refresh_token(login_data)
-            ret = post(url, params)
+            ret = post(url, params, retry=retry+1)
+            return ret
     if ret['code'] != RETCODE.OK:
         raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
 
@@ -57,7 +64,7 @@ def post(url, params):
 
 
 def login(password, email=None, username=None):
-    global token, login_data
+    global login_data
     post_data = {"password": password}
     if email is None and username is None:
         raise ValueError(f"Error: can not find username or email from remote_profile")
@@ -65,17 +72,23 @@ def login(password, email=None, username=None):
         post_data['email'] = email
     if username is not None:
         post_data['username'] = username
+    login_data = post_data
     refresh_token(post_data)
 
 
 def refresh_token(post_data):
     global token
-    ret = post(
-        '/account/login',
-        post_data
-    )
+    url = '/account/login'
+    ret = requests.post(
+                urljoin(API_HOST, url),
+                json=post_data,
+                timeout=HTTP_TIME_OUT,
+                )
     dlog.debug(f"debug: login ret:{ret}")
-    token = ret['token']
+    ret = json.loads(ret.text)
+    if ret['code'] != RETCODE.OK:
+        raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
+    token = ret['data']['token']
 
 
 def _get_oss_bucket(endpoint, bucket_name):
@@ -145,14 +158,12 @@ def job_create_v2(job_type, oss_path, input_data, program_id=None, group_id=None
         post_data["cmd"] = input_data.get('command')
     if input_data.get('backward_files') is not None:
         post_data["out_files"] = input_data.get('backward_files')
-    input_keys = ['job_group_id', 'job_name', 'rerun', 'image_name', 'disk_size', 'scass_type',
-                  'instance_group_id', 'log_file', 'platform', 'region', 'zone', 'on_demand']
-    for key in input_keys:
-        if key in input_data:
-            post_data[key] = input_data[key]
+    for k, v in input_data.items():
+        post_data[k] = v
     ret = post('/data/v2/insert_job', post_data)
     group_id = ret.get('job_group_id')
     return ret['job_id'], group_id
+
 
 def get_jobs(page=1, per_page=10):
     ret = get(
