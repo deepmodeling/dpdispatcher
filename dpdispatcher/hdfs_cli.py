@@ -28,7 +28,7 @@ class HDFS(object):
                                     uri, cmd, ret, out, err))
         except Exception as e:
             raise RuntimeError('Cannot check existence of hdfs uri[{}] '
-                               'with cmd[{}] on unexpected error[{}]'.format(uri, cmd, repr(e)))
+                               'with cmd[{}]'.format(uri, cmd)) from e
 
     @staticmethod
     def remove(uri):
@@ -48,7 +48,7 @@ class HDFS(object):
                                     uri, cmd, ret, out, err))
         except Exception as e:
             raise RuntimeError('Cannot remove hdfs uri[{}] '
-                               'with cmd[{}] on unexpected error[{}]'.format(uri, cmd, repr(e)))
+                               'with cmd[{}]'.format(uri, cmd)) from e
 
     @staticmethod
     def mkdir(uri):
@@ -67,7 +67,7 @@ class HDFS(object):
                                     uri, cmd, ret, out, err))
         except Exception as e:
             raise RuntimeError('Cannot mkdir of hdfs uri[{}] '
-                               'with cmd[{}] on unexpected error[{}]'.format(uri, cmd, repr(e)))
+                               'with cmd[{}]'.format(uri, cmd)) from e
 
 
 
@@ -92,12 +92,11 @@ class HDFS(object):
                                    'ret[{}] output[{}] stderr[{}]'.format(local_path, to_uri,
                                                                           cmd, ret, out, err))
         except Exception as e:
-            raise RuntimeError('Cannot copy local[{}] to remote[{}] with cmd[{}] '
-                               'on error[{}]'.format(local_path, to_uri, cmd, repr(e)))
+            raise RuntimeError('Cannot copy local[{}] to remote[{}] with cmd[{}]'
+                               .format(local_path, to_uri, cmd)) from e
 
     @staticmethod
     def copy_to_local(from_uri, local_path):
-        from six import string_types
         remote = ''
         if isinstance(from_uri, string_types):
             remote = from_uri
@@ -115,8 +114,8 @@ class HDFS(object):
                                    'ret[{}] output[{}] stderr[{}]'.format(from_uri, local_path,
                                                                           cmd, ret, out, err))
         except Exception as e:
-            raise RuntimeError('Cannot copy remote[{}] to local[{}] with cmd[{}] '
-                               'on error[{}]'.format(from_uri, local_path, cmd, repr(e)))
+            raise RuntimeError('Cannot copy remote[{}] to local[{}] with cmd[{}]'
+                               .format(from_uri, local_path, cmd)) from e
 
 
 
@@ -132,7 +131,7 @@ class HDFS(object):
                                    'cmd [{}] ret[{}] output[{}] stderr[{}]'.format(uri, cmd, ret, out, err))
         except Exception as e:
             raise RuntimeError('Cannot read text from uri[{}]'
-                               'cmd [{}] on unexpected error[{}]'.format(uri, cmd, repr(e)))
+                               'cmd [{}]'.format(uri, cmd)) from e
 
     @staticmethod
     def move(from_uri, to_uri):
@@ -148,6 +147,4 @@ class HDFS(object):
                                                                           cmd, ret, out, err))
         except Exception as e:
             raise RuntimeError('Cannot move from_uri[{}] to '
-                               'to_uri[{}] with cmd[{}] '
-                               'on unexpected error[{}]'.format(from_uri, to_uri,
-                                                                cmd, repr(e)))
+                               'to_uri[{}] with cmd[{}]'.format(from_uri, to_uri, cmd)) from e

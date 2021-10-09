@@ -36,7 +36,7 @@ class HDFSContext(BaseContext) :
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        self.remote_root = self.temp_remote_root + '/' + submission.submission_hash
+        self.remote_root = os.path.join(self.temp_remote_root, submission.submission_hash)
 
         HDFS.mkdir(self.remote_root)
 
@@ -70,6 +70,7 @@ class HDFSContext(BaseContext) :
         ----------
         submission : Submission class instance
             represents a collection of tasks, such as forward file names
+
         Returns
         -------
         none
@@ -112,6 +113,7 @@ class HDFSContext(BaseContext) :
         ----------
         submission : Submission class instance
             represents a collection of tasks, such as backward file names
+
         Returns
         -------
         none
@@ -204,11 +206,12 @@ class HDFSContext(BaseContext) :
          ----------
          fname : string
              file name to be checked
+
          Returns
          -------
          status: boolean
          """
-        return HDFS.exists(self.remote_root + '/' + fname)
+        return HDFS.exists(os.path.join(self.remote_root, fname))
 
     def clean(self):
         HDFS.remove(self.remote_root)
@@ -217,11 +220,11 @@ class HDFSContext(BaseContext) :
         local_file = os.path.join("/tmp/", fname)
         with open(local_file, 'w') as fp:
             fp.write(write_str)
-        HDFS.copy_from_local(local_file, self.remote_root + '/' + fname)
+        HDFS.copy_from_local(local_file, os.path.join(self.remote_root, fname))
         return local_file
 
     def read_file(self, fname):
-        return HDFS.read_hdfs_file(self.remote_root + '/' + fname)
+        return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
 
     def check_file_exists(self, fname):
-        return HDFS.exists(self.remote_root + '/' + fname)
+        return HDFS.exists(os.path.join(self.remote_root, fname))
