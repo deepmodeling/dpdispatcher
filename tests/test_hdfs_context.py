@@ -10,6 +10,7 @@ from .context import Machine
 from .sample_class import SampleClass
 from glob import glob
 
+@unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")
 class TestHDFSContext(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
