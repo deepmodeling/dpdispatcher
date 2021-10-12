@@ -16,6 +16,9 @@ from dpdispatcher.slurm import Slurm
 from dpdispatcher.shell import Shell
 from dpdispatcher.lsf import LSF
 from dpdispatcher.base_context import BaseContext
+from dpdispatcher.distributed_shell import DistributedShell
+from dpdispatcher.hdfs_context import HDFSContext
+from dpdispatcher.hdfs_cli import HDFS
 
 from dpdispatcher.local_context import _identical_files
 try:

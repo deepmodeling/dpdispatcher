@@ -3,7 +3,7 @@ import time
 import struct
 import hmac
 import base64
-
+import subprocess
 
 def get_sha256(filename):
     """Get sha256 of a file.
@@ -62,3 +62,9 @@ def generate_totp(secret: str, period: int=30, token_length: int=6) -> int:
     base = struct.unpack('>I', digest[pos:pos + 4])[0] & 0x7fffffff
     token = base % (10**token_length)
     return str(token).zfill(token_length)
+
+def run_cmd_with_all_output(cmd):
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    ret = proc.returncode
+    return (ret, out, err)

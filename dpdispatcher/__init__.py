@@ -47,12 +47,14 @@ from .pbs import Torque
 from .shell import Shell
 from .lsf import LSF
 from .dp_cloud_server import DpCloudServer
+from .distributed_shell import DistributedShell
 from .machine import Machine
 
 from .lazy_local_context import LazyLocalContext
 from .local_context import LocalContext
 from .ssh_context import SSHContext
 from .dp_cloud_server_context import DpCloudServerContext
+from .hdfs_context import HDFSContext
 
 def info():
     """

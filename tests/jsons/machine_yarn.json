@@ -1,0 +1,30 @@
+{
+    "machine": {
+      "batch_type": "DistributedShell",
+      "context_type": "HDFSContext",
+      "local_root": "./test_hdfs_dir",
+      "remote_root": "/user/jenny/md/local_test"
+    },
+    "resources": {
+      "number_node": 1,
+      "allow_failure": true,
+      "ratio_failue": 0.05,
+      "cpu_per_node": 32,
+      "gpu_per_node": 0,
+      "with_mpi": true,
+      "queue_name": "root.oryx_bigbang",
+      "cluster": "oryx",
+      "group_size": 1,
+      "source_list": ["/opt/intel/oneapi/setvars.sh"],
+      "kwargs": {
+      	"yarn_path": "/opt/tiger/yarn_deploy/hadoop/share/hadoop/yarn",
+      	"img_name": "hub.byted.org/md/dpgen_fp:v1",
+      	"mem_limit": 64
+      },
+      "envs" : {"HADOOP_HOME" : "${HADOOP_HOME:-/opt/tiger/yarn_deploy/hadoop}",
+      	"JAVA_HOME": "${JAVA_HOME:-/opt/tiger/jdk/jdk1.8}",
+      	"LD_LIBRARY_PATH": "${LD_LIBRARY_PATH}:${HADOOP_HOME}/lib/native:${JAVA_HOME}/jre/lib/amd64/server",
+      	"CLASSPATH": "`${HADOOP_HOME}/bin/hadoop classpath --glob`",
+      	"PATH": "${HADOOP_HOME}/bin:/opt/vasp.5.4.4/bin:${PATH}"}
+    }
+}

@@ -13,6 +13,7 @@ from .context import LazyLocalContext, LocalContext, SSHContext
 from .context import LSF, Slurm, PBS, Shell
 from .context import Machine
 from .context import dargs
+from .context import DistributedShell, HDFSContext
 from dargs.dargs import ArgumentKeyError
 
 class TestMachineDispatch(unittest.TestCase):
@@ -179,6 +180,18 @@ class TestMachineDispatch(unittest.TestCase):
             machine_dict=machine_dict
         )
         self.assertIsInstance(machine, Shell)
+
+    def test_distributed_shell(self):
+        machine_dict = {
+            'batch_type': 'DistributedShell',
+            'context_type': 'HDFSContext',
+            'local_root':'./',
+            'remote_root': 'hdfs://test/'
+        }
+        machine = Machine.load_from_dict(
+            machine_dict=machine_dict
+        )
+        self.assertIsInstance(machine, DistributedShell)
 
 class TestContextDispatch(unittest.TestCase):
     def setUp(self):
