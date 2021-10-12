@@ -5,7 +5,7 @@ from dpdispatcher.base_context import BaseContext
 import os
 # from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
-from .dpcloudserver import api
+from .dpcloudserver.api import API
 from .dpcloudserver import zip_file
 # from zip_file import zip_files
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
@@ -27,10 +27,12 @@ class DpCloudServerContext(BaseContext):
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
         email = remote_profile.get("email", None)
-        username = remote_profile.get('username', None)
-        password = remote_profile['password']
-
-        api.login(username=username, email=email, password=password)
+        password = remote_profile.get('password')
+        if email is None:
+            raise ValueError("can not find email in remote_profile, please check your machine file.")
+        if password is None:
+            raise ValueError("can not find password in remote_profile, please check your machine file.")
+        self.api = API(email, password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
@@ -90,7 +92,7 @@ class DpCloudServerContext(BaseContext):
                 zip_task_file,
                 file_list=upload_file_list
             )
-            result = api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
+            result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
         return result
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
@@ -100,7 +102,7 @@ class DpCloudServerContext(BaseContext):
             result_filename = job.job_hash + '_back.zip'
             oss_result_zip = 'indicate/' + job.job_hash + '/' + result_filename
             target_result_zip = os.path.join(self.local_root, result_filename)
-            api.download(oss_result_zip, target_result_zip, ENDPOINT, BUCKET_NAME)
+            self.api.download(oss_result_zip, target_result_zip, ENDPOINT, BUCKET_NAME)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
         return True
 

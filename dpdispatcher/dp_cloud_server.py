@@ -1,9 +1,10 @@
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.machine import Machine
-from dpdispatcher.dpcloudserver import api
+from dpdispatcher.dpcloudserver.api import API
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 import time
+import warnings
 
 shell_script_header_template="""
 #!/bin/bash -l
@@ -15,6 +16,19 @@ class DpCloudServer(Machine):
         self.input_data = context.remote_profile['input_data'].copy()
         self.api_version = self.input_data.get('api_version', 1)
         self.grouped = self.input_data.get('grouped', False)
+        email = context.remote_profile.get("email", None)
+        username = context.remote_profile.get('username', None)
+        password = context.remote_profile.get('password', None)
+        if email is None and username is not None:
+            raise DeprecationWarning("username is no longer support in current version, "
+                                     "please consider use email instead of username.")
+        if email is None:
+            raise ValueError("can not find email in remote_profile, please check your machine file.")
+        if password is None:
+            raise ValueError("can not find password in remote_profile, please check your machine file.")
+        if self.api_version == 1:
+            warnings.warn('api version 1 is deprecated and will be removed in a future version. Use version 2 instead.', DeprecationWarning)
+        self.api = API(email, password)
         self.group_id = None
 
     def gen_script(self, job):
@@ -44,10 +58,11 @@ class DpCloudServer(Machine):
 
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
-
+        if self.context.remote_profile.get('program_id') is None:
+            warnings.warn('program_id will be compulsory in the future.')
         job_id = None
         if self.api_version == 2:
-            job_id, group_id = api.job_create_v2(
+            job_id, group_id = self.api.job_create_v2(
                 job_type=input_data['job_type'],
                 oss_path=input_data['job_resources'],
                 input_data=input_data,
@@ -59,7 +74,7 @@ class DpCloudServer(Machine):
             job.job_id = str(job_id) + ':job_group_id:' + str(group_id)
             job_id = job.job_id
         else:
-            job_id = api.job_create(
+            job_id = self.api.job_create(
                 job_type=input_data['job_type'],
                 oss_path=input_data['job_resources'],
                 input_data=input_data,
@@ -84,9 +99,9 @@ class DpCloudServer(Machine):
         check_return = None
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
         if self.api_version == 2:
-            check_return = api.get_tasks_v2(job_id,group_id)
+            check_return = self.api.get_tasks_v2(job_id,group_id)
         else:
-            check_return = api.get_tasks(job_id)
+            check_return = self.api.get_tasks(job_id)
         try:
             dp_job_status = check_return[0]["status"]
         except IndexError as e:
@@ -94,9 +109,9 @@ class DpCloudServer(Machine):
             time.sleep(60)
             retry_return = None
             if self.api_version == 2:
-                retry_return = api.get_tasks_v2(job_id,group_id)
+                retry_return = self.api.get_tasks_v2(job_id, group_id)
             else:
-                retry_return = api.get_tasks(job_id)
+                retry_return = self.api.get_tasks(job_id)
             try:
                 dp_job_status = retry_return[0]["status"]
             except IndexError as e:
