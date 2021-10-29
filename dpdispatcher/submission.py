@@ -18,7 +18,7 @@ class Submission(object):
     Parameters
     ----------
     work_base : Path
-        path-like, the base directory of the local tasks
+        the base directory of the local tasks. It is usually the dir name of project .
     machine : Machine
         machine class object (for example, PBS, Slurm, Shell) to execute the jobs.
         The machine can still be bound after the instantiation with the bind_submission method.
@@ -189,8 +189,8 @@ class Submission(object):
             finally:
                 pass
         self.handle_unexpected_submission_state()
-        self.submission_to_json()
         self.download_jobs()
+        self.submission_to_json()
         if clean:
             self.clean_jobs()
         return self.serialize()
