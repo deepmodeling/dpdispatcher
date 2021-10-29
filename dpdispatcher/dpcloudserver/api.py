@@ -27,17 +27,23 @@ class API:
         headers = {'Authorization': "jwt " + self._token}
         ret = None
         for retry_count in range(3):
-            ret = requests.get(
-                urljoin(API_HOST, url),
-                params=params,
-                timeout=HTTP_TIME_OUT,
-                headers=headers
-            )
+            try:
+                ret = requests.get(
+                    urljoin(API_HOST, url),
+                    params=params,
+                    timeout=HTTP_TIME_OUT,
+                    headers=headers
+                )
+            except Exception as e:
+                dlog.error(f"request error {e}")
+                continue
             if ret.ok:
                 break
             else:
-                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: {ret.text} retrying")
-                time.sleep(retry_count)
+                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
+                time.sleep(retry_count * 10)
+        if ret is None:
+            raise ConnectionError("request fail")
         # print(url,'>>>', params, '<<<', ret.text)
         ret.raise_for_status()
         ret = json.loads(ret.text)
@@ -55,17 +61,23 @@ class API:
         headers = {'Authorization': "jwt " + self._token}
         ret = None
         for retry_count in range(3):
-            ret = requests.post(
-                urljoin(API_HOST, url),
-                json=params,
-                timeout=HTTP_TIME_OUT,
-                headers=headers
-            )
+            try:
+                ret = requests.post(
+                    urljoin(API_HOST, url),
+                    json=params,
+                    timeout=HTTP_TIME_OUT,
+                    headers=headers
+                )
+            except Exception as e:
+                dlog.error(f"request error {e}")
+                continue
             if ret.ok:
                 break
             else:
-                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: {ret.text} retrying")
+                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
                 time.sleep(retry_count)
+        if ret is None:
+            raise ConnectionError("request fail")
         ret.raise_for_status()
         ret = json.loads(ret.text)
         # print(url,'>>>', params, '<<<', ret.text)
