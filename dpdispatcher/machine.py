@@ -2,7 +2,7 @@
 from dpdispatcher.ssh_context import SSHSession
 import json
 from dargs import Argument
-
+import pathlib
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
 
@@ -229,7 +229,7 @@ class Machine(object):
             single_script_command = script_command_template.format(
                 flag_if_job_task_fail=flag_if_job_task_fail,
                 command_env=command_env,
-                task_work_path=task.task_work_path,
+                task_work_path=pathlib.PurePath(task.task_work_path).as_posix(),
                 command=task.command,
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part)
