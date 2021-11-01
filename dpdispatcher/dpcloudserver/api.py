@@ -1,5 +1,7 @@
 import os
 import json
+import time
+
 try:
     import oss2
     from oss2 import SizedFileAdapter, determine_part_size
@@ -23,44 +25,70 @@ class API:
 
     def get(self, url, params, retry=0):
         headers = {'Authorization': "jwt " + self._token}
-        ret = requests.get(
-            urljoin(API_HOST, url),
-            params=params,
-            timeout=HTTP_TIME_OUT,
-            headers=headers
-        )
+        ret = None
+        for retry_count in range(3):
+            try:
+                ret = requests.get(
+                    urljoin(API_HOST, url),
+                    params=params,
+                    timeout=HTTP_TIME_OUT,
+                    headers=headers
+                )
+            except Exception as e:
+                dlog.error(f"request error {e}")
+                continue
+            if ret.ok:
+                break
+            else:
+                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
+                time.sleep(retry_count * 10)
+        if ret is None:
+            raise ConnectionError("request fail")
         # print(url,'>>>', params, '<<<', ret.text)
+        ret.raise_for_status()
         ret = json.loads(ret.text)
         if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
-            dlog.debug("debug: token expire, refresh token")
+            dlog.error("debug: token expire, refresh token")
             if self._login_data is not None:
                 self.refresh_token()
                 ret = self.get(url, params, retry=retry + 1)
                 return ret
         if ret['code'] != RETCODE.OK:
             raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
-
         return ret['data']
 
     def post(self, url, params, retry=0):
         headers = {'Authorization': "jwt " + self._token}
-        ret = requests.post(
-            urljoin(API_HOST, url),
-            json=params,
-            timeout=HTTP_TIME_OUT,
-            headers=headers
-        )
-        # print(url,'>>>', params, '<<<', ret.text)
+        ret = None
+        for retry_count in range(3):
+            try:
+                ret = requests.post(
+                    urljoin(API_HOST, url),
+                    json=params,
+                    timeout=HTTP_TIME_OUT,
+                    headers=headers
+                )
+            except Exception as e:
+                dlog.error(f"request error {e}")
+                continue
+            if ret.ok:
+                break
+            else:
+                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
+                time.sleep(retry_count)
+        if ret is None:
+            raise ConnectionError("request fail")
+        ret.raise_for_status()
         ret = json.loads(ret.text)
+        # print(url,'>>>', params, '<<<', ret.text)
         if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
-            dlog.debug("debug: token expire, refresh token")
+            dlog.error("debug: token expire, refresh token")
             if self._login_data is not None:
                 self.refresh_token()
                 ret = self.post(url, params, retry=retry + 1)
                 return ret
         if ret['code'] != RETCODE.OK:
             raise ValueError(f"{url} Error: {ret['code']} {ret['message']}")
-
         return ret['data']
 
     def refresh_token(self):
