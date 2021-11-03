@@ -115,7 +115,7 @@ class DpCloudServerContext(BaseContext):
             job_infos = self.api.get_tasks_v2_list(group_id)
         for info in job_infos:
             result_filename = job.job_hash + '_back.zip'
-            self.api.download(info['result_url'], result_filename)
+            self.api.download_from_url(info['result_url'], result_filename)
             target_result_zip = os.path.join(self.local_root, result_filename)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
         return True

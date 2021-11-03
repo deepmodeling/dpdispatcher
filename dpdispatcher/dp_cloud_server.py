@@ -5,6 +5,7 @@ from dpdispatcher.dpcloudserver.api import API
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 import time
 import warnings
+import os
 
 shell_script_header_template="""
 #!/bin/bash -l
@@ -48,6 +49,14 @@ class DpCloudServer(Machine):
         )
         return script_file_name
 
+    def _gen_backward_files_list(self, job):
+        result_file_list = []
+        result_file_list.extend(job.backward_common_files)
+        for task in job.job_task_list:
+            for file in task.backward_files:
+                result_file_list.append(os.path.join(task.task_work_path, file))
+        return result_file_list
+
     def do_submit(self, job):
         self.gen_local_script(job)
         zip_filename = job.job_hash + '.zip'
@@ -58,6 +67,7 @@ class DpCloudServer(Machine):
 
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
+        input_data['backward_files'] = self._gen_backward_files_list(job)
         if self.context.remote_profile.get('program_id') is None:
             warnings.warn('program_id will be compulsory in the future.')
         job_id = None
