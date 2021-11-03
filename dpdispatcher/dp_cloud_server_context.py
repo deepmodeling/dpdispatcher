@@ -98,11 +98,25 @@ class DpCloudServerContext(BaseContext):
         # api.upload(self.oss_task_dir, zip_task_file)
 
     def download(self, submission):
-        for job in submission.belonging_jobs:
+        jobs = submission.belonging_jobs
+        job_ids = []
+        group_id = None
+        job_infos = []
+        for job in jobs:
+            if isinstance(job.job_id, str) and ':job_group_id:' in job.job_id:
+                ids = job.job_id.split(":job_group_id:")
+                jid, gid = int(ids[0]), int(ids[1])
+                job_ids.append(jid)
+                print("group id",gid)
+                group_id = gid
+            else:
+                job_infos.append(self.get_tasks(job.job_id)[0])
+        if group_id is not None:
+            job_infos = self.api.get_tasks_v2_list(group_id)
+        for info in job_infos:
             result_filename = job.job_hash + '_back.zip'
-            oss_result_zip = 'indicate/' + job.job_hash + '/' + result_filename
+            self.api.download(info['result_url'], result_filename)
             target_result_zip = os.path.join(self.local_root, result_filename)
-            self.api.download(oss_result_zip, target_result_zip, ENDPOINT, BUCKET_NAME)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
         return True
 

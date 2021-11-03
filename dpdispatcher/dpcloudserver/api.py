@@ -122,6 +122,10 @@ class API:
         bucket.get_object_to_file(oss_file, save_file)
         return save_file
 
+    def download_from_url(self, url, save_file):
+        result = self.get(url)
+        open(save_file, 'wb').write(result.content)
+
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
         bucket = self._get_oss_bucket(endpoint, bucket_name)
@@ -208,5 +212,23 @@ class API:
         if len(ret['items']) != 0:
             return self.get_tasks_v2(job_id, group_id, page=page + 1)
         return []
+
+    def get_tasks_v2_list(self, group_id, per_page=30):
+        result = []
+        page = 0
+        while True:
+            ret = self.get(
+                f'data/job/{group_id}/tasks',
+                {
+                    'page': page,
+                    'per_page': per_page,
+                }
+            )
+            if len(ret['items']) == 0:
+                break
+            for each in ret['items']:
+                result.append(each)
+            page += 1
+        return result
 
 # %%
