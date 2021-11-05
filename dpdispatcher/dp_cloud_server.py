@@ -51,10 +51,9 @@ class DpCloudServer(Machine):
 
     def _gen_backward_files_list(self, job):
         result_file_list = []
-        result_file_list.extend(job.backward_common_files)
+        # result_file_list.extend(job.backward_common_files)
         for task in job.job_task_list:
-            for file in task.backward_files:
-                result_file_list.append(os.path.join(task.task_work_path, file))
+            result_file_list.extend([ os.path.join(task.task_work_path,b_f) for b_f in task.backward_files])
         return result_file_list
 
     def do_submit(self, job):

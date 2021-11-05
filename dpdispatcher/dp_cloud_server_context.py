@@ -107,7 +107,6 @@ class DpCloudServerContext(BaseContext):
                 ids = job.job_id.split(":job_group_id:")
                 jid, gid = int(ids[0]), int(ids[1])
                 job_ids.append(jid)
-                print("group id",gid)
                 group_id = gid
             else:
                 job_infos.append(self.get_tasks(job.job_id)[0])
@@ -115,8 +114,8 @@ class DpCloudServerContext(BaseContext):
             job_infos = self.api.get_tasks_v2_list(group_id)
         for info in job_infos:
             result_filename = job.job_hash + '_back.zip'
-            self.api.download_from_url(info['result_url'], result_filename)
             target_result_zip = os.path.join(self.local_root, result_filename)
+            self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
         return True
 

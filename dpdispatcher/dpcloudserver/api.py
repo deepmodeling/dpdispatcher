@@ -123,8 +123,25 @@ class API:
         return save_file
 
     def download_from_url(self, url, save_file):
-        result = self.get(url)
-        open(save_file, 'wb').write(result.content)
+        ret = None
+        for retry_count in range(3):
+            try:
+                ret = requests.get(
+                    url,
+                    headers = {'Authorization': "jwt " + self._token}
+                )
+            except Exception as e:
+                dlog.error(f"request error {e}")
+                continue
+            if ret.ok:
+                break
+            else:
+                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
+                time.sleep(retry_count)
+                ret = None
+        if ret is None:
+            ret.raise_for_status()
+        open(save_file, 'wb').write(ret.content)
 
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
