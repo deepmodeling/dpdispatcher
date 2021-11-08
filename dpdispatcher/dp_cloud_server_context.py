@@ -99,21 +99,25 @@ class DpCloudServerContext(BaseContext):
 
     def download(self, submission):
         jobs = submission.belonging_jobs
-        job_ids = []
+        job_hashs = {}
         group_id = None
-        job_infos = []
+        job_infos = {}
         for job in jobs:
             if isinstance(job.job_id, str) and ':job_group_id:' in job.job_id:
                 ids = job.job_id.split(":job_group_id:")
                 jid, gid = int(ids[0]), int(ids[1])
-                job_ids.append(jid)
+                job_hashs[jid] = job.job_hash 
                 group_id = gid
             else:
-                job_infos.append(self.get_tasks(job.job_id)[0])
+                job_infos[job.job_hash] = self.get_tasks(job.job_id)[0]
         if group_id is not None:
-            job_infos = self.api.get_tasks_v2_list(group_id)
-        for info in job_infos:
-            result_filename = job.job_hash + '_back.zip'
+            job_result = self.api.get_tasks_v2_list(group_id)
+            for each in job_result:
+                if 'result_url' in each and each['result_url'] != '' and each['status'] == 2:
+                    job_hash = job_hashs[each['task_id']]
+                    job_infos[job_hash] = each
+        for hash, info in job_infos.items():
+            result_filename = hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
