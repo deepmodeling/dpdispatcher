@@ -15,7 +15,11 @@ class DpCloudServer(Machine):
     def __init__(self, context):
         self.context = context
         self.input_data = context.remote_profile['input_data'].copy()
-        self.api_version = self.input_data.get('api_version', 1)
+        self.api_version = 2
+        if 'api_version' in self.input_data:
+            self.api_version = self.input_data.get('api_version')
+        if 'lebesgue_version' in self.input_data:
+            self.api_version = self.input_data.get('lebesgue_version')
         self.grouped = self.input_data.get('grouped', False)
         email = context.remote_profile.get("email", None)
         username = context.remote_profile.get('username', None)
@@ -142,6 +146,8 @@ class DpCloudServer(Machine):
 
     @staticmethod
     def map_dp_job_state(status):
+        if isinstance(status, JobStatus):
+            return status
         map_dict = {
             -1:JobStatus.terminated,
             0:JobStatus.waiting,
