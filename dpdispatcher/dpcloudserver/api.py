@@ -48,7 +48,7 @@ class API:
         ret.raise_for_status()
         ret = json.loads(ret.text)
         if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
-            dlog.error("debug: token expire, refresh token")
+            dlog.info("debug: token expire, refresh token")
             if self._login_data is not None:
                 self.refresh_token()
                 ret = self.get(url, params, retry=retry + 1)
@@ -82,7 +82,7 @@ class API:
         ret = json.loads(ret.text)
         # print(url,'>>>', params, '<<<', ret.text)
         if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
-            dlog.error("debug: token expire, refresh token")
+            dlog.info("debug: token expire, refresh token")
             if self._login_data is not None:
                 self.refresh_token()
                 ret = self.post(url, params, retry=retry + 1)
