@@ -7,6 +7,7 @@ import uuid
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
+from typing import List
 import pathlib
 # from dpdispatcher.submission import Machine
 from dpdispatcher.utils import get_sha256, generate_totp
@@ -557,3 +558,18 @@ class SSHContext(BaseContext):
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
+
+    @classmethod
+    def machine_subfields(cls) -> List[Argument]:
+        """Generate the machine subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            machine subfields
+        """
+        doc_remote_profile = 'The information used to maintain the connection with remote machine.'
+        remote_profile_format = SSHSession.arginfo()
+        remote_profile_format.name = "remote_profile"
+        remote_profile_format.doc = doc_remote_profile
+        return [remote_profile_format]

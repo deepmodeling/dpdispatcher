@@ -1,7 +1,8 @@
 
 from dpdispatcher.ssh_context import SSHSession
 import json
-from dargs import Argument
+from dargs import Argument, Variant
+from typing import List
 import pathlib
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
@@ -54,6 +55,7 @@ class Machine(object):
     """
 
     subclasses_dict = {}
+    options = set()
 
     def __new__(cls, *args, **kwargs):
         if cls is Machine:
@@ -100,6 +102,7 @@ class Machine(object):
         super().__init_subclass__(**kwargs)
         cls.subclasses_dict[cls.__name__]=cls
         cls.subclasses_dict[cls.__name__.lower()]=cls
+        cls.options.add(cls.__name__)
         # cls.subclasses.append(cls)
 
     @classmethod
@@ -281,28 +284,54 @@ class Machine(object):
             #     command_env+="{ii},".format(ii=ii) 
         return command_env
 
-    @staticmethod
-    def arginfo():
+    @classmethod
+    def arginfo(cls):
         # TODO: change the possible value of batch and context types after we refactor the code
-        doc_batch_type = 'The batch job system type. Option: Slurm, PBS (for OpenPBS only), Torque (for Torque version of pbs), LSF, Shell, DpCloudServer'
-        doc_context_type = 'The connection used to remote machine. Option: LocalContext, LazyLocalContext, SSHContext， DpCloudServerContext'
+        doc_batch_type = 'The batch job system type. Option: ' + ', '.join(cls.options)
+        doc_context_type = 'The connection used to remote machine. Option: ' + ', '.join(BaseContext.options)
         doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
         doc_remote_root = 'The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local.'
-        doc_remote_profile = 'The information used to maintain the connection with remote machine. Only needed when context is ssh.'
         doc_clean_asynchronously = 'Clean the remote directory asynchronously after the job finishes.'
 
-        remote_profile_format = SSHSession.arginfo()
-        remote_profile_format.name = "remote_profile"
-        remote_profile_format.doc = doc_remote_profile
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
-            Argument("context_type", str, optional=False, doc=doc_context_type),
             # TODO: add default to local_root and remote_root after refactor the code
             Argument("local_root", str, optional=False, doc=doc_local_root),
             Argument("remote_root", str, optional=True, doc=doc_remote_root),
-            remote_profile_format,
             Argument("clean_asynchronously", bool, optional=True, default=False, doc=doc_clean_asynchronously),
         ]
 
-        machine_format = Argument("machine", dict, machine_args)
+        context_variant = Variant(
+            "context_type",
+            [context.machine_arginfo() for context in set(BaseContext.subclasses_dict.values())],
+            optional=False,
+            doc=doc_context_type,
+        )
+
+        machine_format = Argument("machine", dict, machine_args, [context_variant])
         return machine_format
+
+    @classmethod
+    def resources_arginfo(cls) -> Argument:
+        """Generate the resources arginfo.
+
+        Returns
+        -------
+        Argument
+            resources arginfo
+        """
+        return Argument(
+            cls.__name__, dict, sub_fields=cls.resources_subfields(),
+            alias=[cls.__name__.lower()]
+        )
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        return [Argument("kwargs", dict, optional=True, doc="This field is empty for this batch.")]

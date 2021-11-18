@@ -1,5 +1,7 @@
 from dpdispatcher.machine import Machine
 import time
+from typing import List
+from dargs import Argument
 
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
@@ -116,3 +118,17 @@ class Slurm(Machine):
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
         return self.context.check_file_exists(job_tag_finished)
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        doc_custom_gpu_line = "Custom GPU configuration, starting with #SBATCH"
+        return [Argument("kwargs", dict, [
+            Argument("custom_gpu_line", str, optional=True, default=None, doc=doc_custom_gpu_line)
+        ], optional=True, doc="Extra arguments.")]

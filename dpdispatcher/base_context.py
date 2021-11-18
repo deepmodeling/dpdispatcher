@@ -1,7 +1,11 @@
+from dargs import Argument
+from typing import List
+
 from dpdispatcher import dlog
 
 class BaseContext(object):
     subclasses_dict = {}
+    options = set()
     def __new__(cls, *args, **kwargs):
         if cls is BaseContext:
             subcls = cls.subclasses_dict[kwargs['context_type']]
@@ -16,6 +20,7 @@ class BaseContext(object):
         cls.subclasses_dict[cls.__name__.lower()]=cls
         cls.subclasses_dict[cls.__name__.replace("Context", "")]=cls
         cls.subclasses_dict[cls.__name__.lower().replace("context", "")]=cls
+        cls.options.add(cls.__name__)
 
     @classmethod
     def load_from_dict(cls, context_dict):
@@ -57,3 +62,31 @@ class BaseContext(object):
     def check_finish(self, proc):
         raise NotImplementedError('abstract method')
 
+    @classmethod
+    def machine_arginfo(cls) -> Argument:
+        """Generate the machine arginfo.
+
+        Returns
+        -------
+        Argument
+            machine arginfo
+        """
+        return Argument(
+            cls.__name__, dict, sub_fields=cls.machine_subfields(),
+            alias=[
+                cls.__name__.lower(),
+                cls.__name__.replace("Context", ""),
+                cls.__name__.lower().replace("context", "")
+            ])
+
+    @classmethod
+    def machine_subfields(cls) -> List[Argument]:
+        """Generate the machine subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            machine subfields
+        """
+        doc_remote_profile = "The information used to maintain the connection with remote machine. This field is empty for this context."
+        return [Argument("remote_profile", dict, optional=True, doc=doc_remote_profile)]

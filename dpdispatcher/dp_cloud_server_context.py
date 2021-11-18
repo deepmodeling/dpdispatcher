@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
+from dargs.dargs import Argument
 from dpdispatcher.base_context import BaseContext
+from typing import List
 import os
 # from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
@@ -175,4 +177,19 @@ class DpCloudServerContext(BaseContext):
 
     def kill(self, cmd_pipes) :
         pass
+
+    @classmethod
+    def machine_subfields(cls) -> List[Argument]:
+        """Generate the machine subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            machine subfields
+        """
+        doc_remote_profile = "The information used to maintain the connection with remote machine."
+        return [Argument("remote_profile", dict, [
+            Argument("email", str, optional=False, doc="Email"),
+            Argument("password", str, optional=False, doc="Password"),
+        ], doc=doc_remote_profile)]
 #%%

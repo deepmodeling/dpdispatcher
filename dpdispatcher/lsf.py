@@ -1,6 +1,8 @@
 from dpdispatcher.machine import Machine
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
+from typing import List
+from dargs import Argument
 
 
 lsf_script_header_template = """\
@@ -121,3 +123,21 @@ class LSF(Machine):
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
         return self.context.check_file_exists(job_tag_finished)
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        doc_gpu_usage = "GPU usage"
+        doc_gpu_new_syntax = "GPU new syntax"
+        doc_gpu_exclusive = "GPU exclusive"
+        return [Argument("kwargs", dict, [
+            Argument("gpu_usage", bool, optional=True, default=False, doc=doc_gpu_usage),
+            Argument("gpu_new_syntax", bool, optional=True, default=False, doc=doc_gpu_new_syntax),
+            Argument("gpu_exclusive", bool, optional=True, default=True, doc=doc_gpu_exclusive),
+        ], optional=False, doc="Extra arguments.")]
