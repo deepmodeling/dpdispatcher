@@ -1,7 +1,7 @@
 
 from dpdispatcher.ssh_context import SSHSession
 import json
-from dargs import Argument
+from dargs import Argument, Variant
 import pathlib
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
@@ -290,21 +290,22 @@ class Machine(object):
         doc_context_type = 'The connection used to remote machine. Option: ' + ', '.join(BaseContext.options)
         doc_local_root = 'The dir where the tasks and relating files locate. Typically the project dir.'
         doc_remote_root = 'The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local.'
-        doc_remote_profile = 'The information used to maintain the connection with remote machine. Only needed when context is ssh.'
         doc_clean_asynchronously = 'Clean the remote directory asynchronously after the job finishes.'
 
-        remote_profile_format = SSHSession.arginfo()
-        remote_profile_format.name = "remote_profile"
-        remote_profile_format.doc = doc_remote_profile
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
-            Argument("context_type", str, optional=False, doc=doc_context_type),
             # TODO: add default to local_root and remote_root after refactor the code
             Argument("local_root", str, optional=False, doc=doc_local_root),
             Argument("remote_root", str, optional=True, doc=doc_remote_root),
-            remote_profile_format,
             Argument("clean_asynchronously", bool, optional=True, default=False, doc=doc_clean_asynchronously),
         ]
 
-        machine_format = Argument("machine", dict, machine_args)
+        context_variant = Variant(
+            "context_type",
+            [context.machine_arginfo() for context in set(BaseContext.subclasses_dict.values())],
+            optional=False,
+            doc=doc_context_type,
+        )
+
+        machine_format = Argument("machine", dict, machine_args, [context_variant])
         return machine_format

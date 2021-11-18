@@ -1,3 +1,6 @@
+from dargs import Argument
+from typing import List
+
 from dpdispatcher import dlog
 
 class BaseContext(object):
@@ -59,3 +62,31 @@ class BaseContext(object):
     def check_finish(self, proc):
         raise NotImplementedError('abstract method')
 
+    @classmethod
+    def machine_arginfo(cls) -> Argument:
+        """Generate the machine arginfo.
+
+        Returns
+        -------
+        Argument
+            machine arginfo
+        """
+        return Argument(
+            cls.__name__, dict, sub_fields=cls.machine_subfields(),
+            alias=[
+                cls.__name__.lower(),
+                cls.__name__.replace("Context", ""),
+                cls.__name__.lower().replace("context", "")
+            ])
+
+    @classmethod
+    def machine_subfields(cls) -> List[Argument]:
+        """Generate the machine subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            machine subfields
+        """
+        doc_remote_profile = "The information used to maintain the connection with remote machine. This field is empty for this context."
+        return [Argument("remote_profile", dict, optional=False, doc=doc_remote_profile)]
