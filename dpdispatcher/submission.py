@@ -706,10 +706,10 @@ class Resources(object):
 
     @classmethod
     def deserialize(cls, resources_dict):
-        resources = cls(number_node=resources_dict['number_node'],
-                        cpu_per_node=resources_dict['cpu_per_node'],
-                        gpu_per_node=resources_dict['gpu_per_node'],
-                        queue_name=resources_dict['queue_name'],
+        resources = cls(number_node=resources_dict.get('number_node', 1),
+                        cpu_per_node=resources_dict.get('cpu_per_node', 1),
+                        gpu_per_node=resources_dict.get('gpu_per_node', 0),
+                        queue_name=resources_dict.get('queue_name', ''),
                         group_size=resources_dict['group_size'],
 
                         custom_flags=resources_dict.get('custom_flags', []),

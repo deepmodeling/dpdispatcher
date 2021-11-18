@@ -1,7 +1,7 @@
 import os
 HTTP_TIME_OUT = 30
 
-API_HOST = os.environ.get('DPDISPATCHER_LEBESGUE_API_HOST', "http://cloudserver.deepmd.net")
+API_HOST = os.environ.get('DPDISPATCHER_LEBESGUE_API_HOST', "https://lebesgue.dp.tech")
 
 ALI_STS_ENDPOINT = os.environ.get('DPDISPATCHER_LEBESGUE_ALI_STS_ENDPOINT', 'http://oss-cn-shenzhen.aliyuncs.com')
 ALI_STS_BUCKET_NAME = os.environ.get('DPDISPATCHER_LEBESGUE_ALI_STS_BUCKET_NAME', "dpcloudserver")
