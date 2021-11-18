@@ -2,6 +2,7 @@
 from dpdispatcher.ssh_context import SSHSession
 import json
 from dargs import Argument, Variant
+from typing import List
 import pathlib
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
@@ -309,3 +310,28 @@ class Machine(object):
 
         machine_format = Argument("machine", dict, machine_args, [context_variant])
         return machine_format
+
+    @classmethod
+    def resources_arginfo(cls) -> Argument:
+        """Generate the resources arginfo.
+
+        Returns
+        -------
+        Argument
+            resources arginfo
+        """
+        return Argument(
+            cls.__name__, dict, sub_fields=cls.resources_subfields(),
+            alias=[cls.__name__.lower()]
+        )
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        return [Argument("kwargs", dict, optional=True, doc="This field is empty for this batch.")]
