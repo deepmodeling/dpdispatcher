@@ -2,6 +2,7 @@ from dpdispatcher import dlog
 
 class BaseContext(object):
     subclasses_dict = {}
+    options = set()
     def __new__(cls, *args, **kwargs):
         if cls is BaseContext:
             subcls = cls.subclasses_dict[kwargs['context_type']]
@@ -16,6 +17,7 @@ class BaseContext(object):
         cls.subclasses_dict[cls.__name__.lower()]=cls
         cls.subclasses_dict[cls.__name__.replace("Context", "")]=cls
         cls.subclasses_dict[cls.__name__.lower().replace("context", "")]=cls
+        cls.options.add(cls.__name__)
 
     @classmethod
     def load_from_dict(cls, context_dict):
