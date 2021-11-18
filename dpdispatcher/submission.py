@@ -2,10 +2,12 @@
 # %%
 import time,random,uuid,json,copy
 
-from dargs.dargs import Argument
+from dargs.dargs import Argument, Variant
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
+
+from dpdispatcher.machine import Machine
 # from dpdispatcher.slurm import SlurmResources
 #%%
 default_strategy = dict(if_cuda_multi_devices=False)
@@ -771,7 +773,15 @@ class Resources(object):
             Argument("module_list", list, optional=True, doc=doc_module_list, default=[]),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
         ]
-        resources_format = Argument("resources", dict, resources_args)
+
+        batch_variant = Variant(
+            "batch_type",
+            [machine.resources_arginfo() for machine in set(Machine.subclasses_dict.values())],
+            optional=False,
+            doc='The batch job system type loaded from machine/batch_type.',
+        )
+
+        resources_format = Argument("resources", dict, resources_args, [batch_variant])
         return resources_format
 
 
