@@ -557,3 +557,18 @@ class SSHContext(BaseContext):
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
+
+    @classmethod
+    def machine_subfields(cls) -> Argument:
+        """Generate the machine subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            machine subfields
+        """
+        doc_remote_profile = 'The information used to maintain the connection with remote machine. Only needed when context is ssh.'
+        remote_profile_format = SSHSession.arginfo()
+        remote_profile_format.name = "remote_profile"
+        remote_profile_format.doc = doc_remote_profile
+        return [remote_profile_format]
