@@ -133,8 +133,11 @@ class LSF(Machine):
         list[Argument]
             resources subfields
         """
+        doc_gpu_usage = "GPU usage"
+        doc_gpu_new_syntax = "GPU new syntax"
+        doc_gpu_exclusive = "GPU exclusive"
         return [Argument("kwargs", dict, [
-            Argument("gpu_usage", bool, optional=True, default=False),
-            Argument("gpu_new_syntax", bool, optional=True, default=False),
-            Argument("gpu_exclusive", bool, optional=True, default=True),
+            Argument("gpu_usage", bool, optional=True, default=False, doc=doc_gpu_usage),
+            Argument("gpu_new_syntax", bool, optional=True, default=False, doc=doc_gpu_new_syntax),
+            Argument("gpu_exclusive", bool, optional=True, default=True, doc=doc_gpu_exclusive),
         ], optional=False, doc="Extra arguments.")]
