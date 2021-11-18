@@ -88,4 +88,5 @@ class BaseContext(object):
         list[Argument]
             machine subfields
         """
-        return []
+        doc_remote_profile = "The information used to maintain the connection with remote machine. This field is empty for this context."
+        return [Argument("remote_profile", dict, optional=False, doc=doc_remote_profile)]
