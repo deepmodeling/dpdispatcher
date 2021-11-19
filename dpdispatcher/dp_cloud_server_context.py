@@ -191,5 +191,15 @@ class DpCloudServerContext(BaseContext):
         return [Argument("remote_profile", dict, [
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
+            Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("input_data", dict, optional=False, doc="Configuration of job"),
+            Argument("input_data/job_name", str, optional=True, doc="Job name"),
+            Argument("input_data/image_name", str, optional=True, doc="Name of the image which run the job, optional "
+                                                                      "when platform is not ali/oss"),
+            Argument("input_data/disk_size", str, optional=True, doc="disk size (GB), optional "
+                                                                     "when platform is not ali/oss"),
+            Argument("input_data/scass_type", str, optional=False, doc="machine configuration"),
+            Argument("input_data/platform", str, optional=False, doc="Job run in which platform"),
+            Argument("input_data/log_file", str, optional=True, doc="loction of log file"),
         ], doc=doc_remote_profile)]
 #%%

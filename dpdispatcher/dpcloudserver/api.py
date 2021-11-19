@@ -128,7 +128,8 @@ class API:
             try:
                 ret = requests.get(
                     url,
-                    headers = {'Authorization': "jwt " + self._token}
+                    headers={'Authorization': "jwt " + self._token},
+                    stream=True
                 )
             except Exception as e:
                 dlog.error(f"request error {e}")
@@ -139,9 +140,13 @@ class API:
                 dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
                 time.sleep(retry_count)
                 ret = None
-        if ret is None:
+        if ret is not None:
             ret.raise_for_status()
-        open(save_file, 'wb').write(ret.content)
+            with open(save_file, 'wb') as f:
+                for chunk in ret.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            ret.close()
+
 
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
