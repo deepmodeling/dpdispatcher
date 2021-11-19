@@ -201,13 +201,13 @@ class DpCloudServerContext(BaseContext):
                 Argument("scass_type", str, optional=False, doc="machine configuration."),
                 Argument("platform", str, optional=False, doc="Job run in which platform."),
                 Argument("log_file", str, optional=True, doc="location of log file."),
-                Argument('checkpoint_files', [str, List[str]], optional=True, doc="location of checkpoint files when "
+                Argument('checkpoint_files', [str, list], optional=True, doc="location of checkpoint files when "
                                                                                   "it is list type. record file "
                                                                                   "changes when it is string value "
                                                                                   "'sync_files'"),
                 Argument('checkpoint_time', int, optional=True, default=15, doc='interval of checkpoint data been '
                                                                                 'stored minimum 15.'),
-                Argument('backward_files', List[str], optional=True, doc='which files to be uploaded to remote '
+                Argument('backward_files', list, optional=True, doc='which files to be uploaded to remote '
                                                                          'resources. Upload all the files when it is '
                                                                          'None or empty.')
             ], optional=False, doc="Configuration of job"),
