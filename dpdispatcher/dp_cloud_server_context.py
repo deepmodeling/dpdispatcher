@@ -191,5 +191,25 @@ class DpCloudServerContext(BaseContext):
         return [Argument("remote_profile", dict, [
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
+            Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("input_data", dict, [
+                Argument("job_name", str, optional=True, doc="Job name"),
+                Argument("image_name", str, optional=True, doc="Name of the image which run the job, optional "
+                                                               "when platform is not ali/oss."),
+                Argument("disk_size", str, optional=True, doc="disk size (GB), optional "
+                                                              "when platform is not ali/oss."),
+                Argument("scass_type", str, optional=False, doc="machine configuration."),
+                Argument("platform", str, optional=False, doc="Job run in which platform."),
+                Argument("log_file", str, optional=True, doc="location of log file."),
+                Argument('checkpoint_files', [str, List[str]], optional=True, doc="location of checkpoint files when "
+                                                                                  "it is list type. record file "
+                                                                                  "changes when it is string value "
+                                                                                  "'sync_files'"),
+                Argument('checkpoint_time', int, optional=True, default=15, doc='interval of checkpoint data been '
+                                                                                'stored minimum 15.'),
+                Argument('backward_files', List[str], optional=True, doc='which files to be uploaded to remote '
+                                                                         'resources. Upload all the files when it is '
+                                                                         'None or empty.')
+            ], optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
 #%%
