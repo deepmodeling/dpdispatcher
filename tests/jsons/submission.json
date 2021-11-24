@@ -1,6 +1,12 @@
 {
-    "local_root": null,
     "work_base": "0_md/",
+    "machine": {
+        "batch_type": "PBS",
+        "context_type": "LocalContext",
+        "local_root": "test_pbs_dir/",
+        "remote_root": "tmp_pbs_dir/",
+        "remote_profile": {}
+    },
     "resources": {
         "number_node": 1,
         "cpu_per_node": 4,

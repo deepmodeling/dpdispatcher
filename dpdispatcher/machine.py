@@ -124,6 +124,26 @@ class Machine(object):
         machine = machine_class(context=context)
         return machine
 
+    def serialize(self, if_empty_remote_profile=False):
+        machine_dict = {}
+        machine_dict['batch_type'] = self.__class__.__name__
+        machine_dict['context_type'] = self.context.__class__.__name__
+        machine_dict['local_root'] = self.context.init_local_root
+        machine_dict['remote_root'] = self.context.init_remote_root
+        if not if_empty_remote_profile:
+            machine_dict['remote_profile'] = self.context.remote_profile
+        else:
+            machine_dict['remote_profile'] = {}
+        return machine_dict
+
+    @classmethod
+    def deserialize(cls, machine_dict):
+        if machine_dict:
+            machine = Machine(**machine_dict)
+        else:
+            machine = None
+        return machine
+
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        
         
