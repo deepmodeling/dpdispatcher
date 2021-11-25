@@ -343,7 +343,7 @@ class Submission(object):
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.bind_machine(machine=self.machine)
-                dlog.info(f"Find old submission; recover from json; "
+                dlog.info(f"Find old submission; recover submission from json file;"
                     f"submission.submission_hash:{submission.submission_hash}; "
                     f"machine.context.remote_root:{self.machine.context.remote_root}; "
                     f"submission.work_base:{submission.work_base};")

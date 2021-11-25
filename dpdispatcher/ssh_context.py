@@ -261,8 +261,8 @@ class SSHContext(BaseContext):
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = pathlib.PurePath(os.path.join(self.temp_remote_root, self.submission.submission_hash)).as_posix()
 
+        sftp = self.ssh_session.ssh.open_sftp()
         try:
-            sftp = self.ssh_session.ssh.open_sftp()
             sftp.mkdir(self.remote_root)
         except OSError:
             pass
