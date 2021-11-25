@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
+import uuid
+
 from dargs.dargs import Argument
 from dpdispatcher.base_context import BaseContext
 from typing import List
 import os
 # from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
+from . import dlog
 from .dpcloudserver.api import API
 from .dpcloudserver import zip_file
+import shutil
 # from zip_file import zip_files
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser('~'),
@@ -64,6 +68,18 @@ class DpCloudServerContext(BaseContext):
         #     file_uuid = uuid.uuid1().hex
         # oss_task_dir = os.path.join()
 
+    def _gen_oss_path(self, job, zip_filename):
+        if hasattr(job, 'upload_path') and job.upload_path:
+            return job.upload_path
+        else:
+            program_id = self.remote_profile.get('program_id')
+            if program_id is None:
+                program_id = 0
+            uid = uuid.uuid4()
+            path = os.path.join("program", str(program_id), str(uid), zip_filename)
+            setattr(job, 'upload_path', path)
+            return path
+
     def upload(self, submission):
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
@@ -75,7 +91,7 @@ class DpCloudServerContext(BaseContext):
         for job in submission.belonging_jobs:
             self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
-            oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
+            oss_task_zip = self._gen_oss_path(job, zip_filename)
             zip_task_file = os.path.join(self.local_root, zip_filename)
 
             upload_file_list = [job.script_file_name, ]
@@ -95,6 +111,16 @@ class DpCloudServerContext(BaseContext):
                 file_list=upload_file_list
             )
             result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
+            try:
+                if self.remote_profile.get('keep_backup', True):
+                    # move to backup directory
+                    os.makedirs(os.path.join(self.local_root, 'backup'), exist_ok=True)
+                    shutil.move(upload_zip,
+                                os.path.join(self.local_root, 'backup', os.path.split(upload_zip)[1]))
+                else:
+                    os.remove(upload_zip)
+            except Exception as e:
+                dlog.error("unable to backup file, " + str(e))
         return result
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
@@ -108,7 +134,7 @@ class DpCloudServerContext(BaseContext):
             if isinstance(job.job_id, str) and ':job_group_id:' in job.job_id:
                 ids = job.job_id.split(":job_group_id:")
                 jid, gid = int(ids[0]), int(ids[1])
-                job_hashs[jid] = job.job_hash 
+                job_hashs[jid] = job.job_hash
                 group_id = gid
             else:
                 job_infos[job.job_hash] = self.get_tasks(job.job_id)[0]
@@ -118,11 +144,24 @@ class DpCloudServerContext(BaseContext):
                 if 'result_url' in each and each['result_url'] != '' and each['status'] == 2:
                     job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
-        for hash, info in job_infos.items():
-            result_filename = hash + '_back.zip'
+        for job_hash, info in job_infos.items():
+            result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
+            os.makedirs(os.path.join(self.local_root, 'backup'), exist_ok=True)
+            shutil.move(target_result_zip,
+                        os.path.join(self.local_root, 'backup', os.path.split(target_result_zip)[1]))
+            try:
+                if self.remote_profile.get('keep_backup', True):
+                    # move to backup directory
+                    os.makedirs(os.path.join(self.local_root, 'backup'), exist_ok=True)
+                    shutil.move(target_result_zip,
+                                os.path.join(self.local_root, 'backup', os.path.split(target_result_zip)[1]))
+                else:
+                    os.remove(target_result_zip)
+            except Exception as e:
+                dlog.error("unable to backup file, " + str(e))
         return True
 
     def write_file(self, fname, write_str):
@@ -212,4 +251,8 @@ class DpCloudServerContext(BaseContext):
                                                                          'None or empty.')
             ], optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
+
+
+class LebesgueContext(DpCloudServerContext):
+    pass
 #%%

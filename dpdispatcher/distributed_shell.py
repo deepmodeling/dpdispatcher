@@ -46,6 +46,9 @@ class DistributedShell(Machine):
         source_files_part = ""
 
         module_unload_part = ""
+        module_purge = job.resources.module_purge
+        if module_purge:
+            module_unload_part += "module purge\n"
         module_unload_list = job.resources.module_unload_list
         for ii in module_unload_list:
             module_unload_part += f"module unload {ii}\n"
@@ -63,7 +66,11 @@ class DistributedShell(Machine):
         export_envs_part = ""
         envs = job.resources.envs
         for k, v in envs.items():
-            export_envs_part += f"export {k}={v}\n"
+            if isinstance(v, list):
+                for each_value in v:
+                    export_envs_part += f"export {k}={each_value}\n"
+            else:
+                export_envs_part += f"export {k}={v}\n"
 
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
 
