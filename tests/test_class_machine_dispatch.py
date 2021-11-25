@@ -3,6 +3,7 @@ from socket import gaierror
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
 
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 __package__ = 'tests'
 from .context import LocalContext
@@ -14,6 +15,7 @@ from .context import LSF, Slurm, PBS, Shell
 from .context import Machine
 from .context import dargs
 from .context import DistributedShell, HDFSContext
+from .sample_class import SampleClass
 from dargs.dargs import ArgumentKeyError
 
 class TestMachineDispatch(unittest.TestCase):

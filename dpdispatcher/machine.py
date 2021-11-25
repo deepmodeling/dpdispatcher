@@ -136,12 +136,12 @@ class Machine(object):
             machine_dict['remote_profile'] = {}
         return machine_dict
 
+    def __eq__(self, other):
+        return self.serialize() == other.serialize()
+
     @classmethod
     def deserialize(cls, machine_dict):
-        if machine_dict:
-            machine = Machine(**machine_dict)
-        else:
-            machine = None
+        machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     def check_status(self, job) :
