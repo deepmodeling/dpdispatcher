@@ -26,6 +26,8 @@ class DpCloudServerContext(BaseContext):
         *args,
         **kwargs,
     ):
+        self.init_local_root = local_root
+        self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
         email = remote_profile.get("email", None)
