@@ -149,9 +149,6 @@ class DpCloudServerContext(BaseContext):
             target_result_zip = os.path.join(self.local_root, result_filename)
             self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
-            os.makedirs(os.path.join(self.local_root, 'backup'), exist_ok=True)
-            shutil.move(target_result_zip,
-                        os.path.join(self.local_root, 'backup', os.path.split(target_result_zip)[1]))
             try:
                 if self.remote_profile.get('keep_backup', True):
                     # move to backup directory
