@@ -9,7 +9,6 @@
         "if_cuda_multi_devices": false
     },
     "para_deg": 1,
-    "module_purge": false,
     "module_unload_list": [],
     "module_list": [],
     "source_list": [],
