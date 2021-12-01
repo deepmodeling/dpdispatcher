@@ -111,16 +111,7 @@ class DpCloudServerContext(BaseContext):
                 file_list=upload_file_list
             )
             result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
-            try:
-                if self.remote_profile.get('keep_backup', True):
-                    # move to backup directory
-                    os.makedirs(os.path.join(self.local_root, 'backup'), exist_ok=True)
-                    shutil.move(upload_zip,
-                                os.path.join(self.local_root, 'backup', os.path.split(upload_zip)[1]))
-                else:
-                    os.remove(upload_zip)
-            except Exception as e:
-                dlog.error("unable to backup file, " + str(e))
+            self._backup(self.local_root, upload_zip, keep_backup=self.remote_profile.get('keep_backup', True))
         return result
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
@@ -137,7 +128,7 @@ class DpCloudServerContext(BaseContext):
                 job_hashs[jid] = job.job_hash
                 group_id = gid
             else:
-                job_infos[job.job_hash] = self.get_tasks(job.job_id)[0]
+                job_infos[job.job_hash] = self.api.get_tasks(job.job_id)[0]
         if group_id is not None:
             job_result = self.api.get_tasks_v2_list(group_id)
             for each in job_result:
@@ -149,17 +140,20 @@ class DpCloudServerContext(BaseContext):
             target_result_zip = os.path.join(self.local_root, result_filename)
             self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
-            try:
-                if self.remote_profile.get('keep_backup', True):
-                    # move to backup directory
-                    os.makedirs(os.path.join(self.local_root, 'backup'), exist_ok=True)
-                    shutil.move(target_result_zip,
-                                os.path.join(self.local_root, 'backup', os.path.split(target_result_zip)[1]))
-                else:
-                    os.remove(target_result_zip)
-            except Exception as e:
-                dlog.error("unable to backup file, " + str(e))
+            self._backup(self.local_root, target_result_zip, keep_backup=self.remote_profile.get('keep_backup', True))
         return True
+
+    def _backup(self, local_root, target, keep_backup=True):
+        try:
+            if keep_backup:
+                # move to backup directory
+                os.makedirs(os.path.join(local_root, 'backup'), exist_ok=True)
+                shutil.move(target,
+                            os.path.join(local_root, 'backup', os.path.split(target)[1]))
+            else:
+                os.remove(target)
+        except (OSError, shutil.Error) as e:
+            dlog.error("unable to backup file, " + str(e))
 
     def write_file(self, fname, write_str):
         result = self.write_home_file(fname, write_str)
