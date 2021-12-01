@@ -21,8 +21,8 @@ class TestSubmission(unittest.TestCase):
         # self.submission2 = Submission.submission_from_json('jsons/submission.json')
     
     def test_serialize_deserialize(self):
-        self.assertEqual(self.submission.serialize(if_none_local_root=True), 
-            Submission.deserialize(submission_dict=self.submission.serialize(if_none_local_root=True)).serialize(if_none_local_root=True))
+        self.assertEqual(self.submission.serialize(), 
+            Submission.deserialize(submission_dict=self.submission.serialize()).serialize())
 
     def test_get_hash(self):
         pass
@@ -80,7 +80,7 @@ class TestSubmission(unittest.TestCase):
         submission2 = Submission.submission_from_json('jsons/submission.json')
         # print('<<<<<<<', self.submission)
         # print('>>>>>>>', submission2)
-        self.assertEqual(self.submission.serialize(if_none_local_root=True), submission2.serialize())
+        self.assertEqual(self.submission.serialize(), submission2.serialize())
 
     def test_submission_json(self):
         with open('jsons/submission.json') as f:

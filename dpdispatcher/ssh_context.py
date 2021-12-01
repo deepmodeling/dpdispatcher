@@ -186,9 +186,12 @@ class SSHContext(BaseContext):
                 **kwargs,
                 ):
         assert(type(local_root) == str)
+        self.init_local_root = local_root
+        self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         assert os.path.isabs(remote_root), f"remote_root must be a abspath"
         self.temp_remote_root = remote_root
+        self.remote_profile = remote_profile
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
@@ -257,6 +260,12 @@ class SSHContext(BaseContext):
         self.local_root = pathlib.PurePath(os.path.join(self.temp_local_root, submission.work_base)).as_posix()
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = pathlib.PurePath(os.path.join(self.temp_remote_root, self.submission.submission_hash)).as_posix()
+
+        sftp = self.ssh_session.ssh.open_sftp()
+        try:
+            sftp.mkdir(self.remote_root)
+        except OSError:
+            pass
 
         # self.job_uuid = submission.submission_hash
         # dlog.debug("debug:SSHContext.bind_submission"

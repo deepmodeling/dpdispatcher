@@ -88,10 +88,14 @@ class Submission(object):
             backward_common_files=submission_dict['backward_common_files'])
         submission.belonging_jobs = [Job.deserialize(job_dict=job_dict) for job_dict in submission_dict['belonging_jobs']]
         submission.submission_hash = submission.get_hash()
-        submission.bind_machine(machine=machine)
+        if machine is not None:
+            submission.bind_machine(machine=machine)
+        else:
+            machine = Machine.deserialize(machine_dict=submission_dict['machine'])
+            submission.bind_machine(machine)
         return submission
 
-    def serialize(self, if_static=False, if_none_local_root=False):
+    def serialize(self, if_static=False):
         """convert the Submission class instance to a dictionary.
 
         Parameters
@@ -105,11 +109,17 @@ class Submission(object):
             the dictionary converted from the Submission class instance
         """
         submission_dict = {}
-        if if_none_local_root:
-            submission_dict['local_root'] = None
-        else:
-            submission_dict['local_root'] = self.local_root
+        # if if_none_local_root:
+        #     submission_dict['local_root'] = None
+        # else:
+        #     submission_dict['local_root'] = self.local_root
+
         submission_dict['work_base'] = self.work_base
+        machine = getattr(self, 'machine', None)
+        if machine is None:
+            submission_dict['machine'] = {}
+        else:
+            submission_dict['machine'] = machine.serialize()
         submission_dict['resources'] = self.resources.serialize()
         submission_dict['forward_common_files'] = self.forward_common_files
         submission_dict['backward_common_files'] = self.backward_common_files
@@ -333,7 +343,7 @@ class Submission(object):
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.bind_machine(machine=self.machine)
-                dlog.info(f"Find old submission; recover from json; "
+                dlog.info(f"Find old submission; recover submission from json file;"
                     f"submission.submission_hash:{submission.submission_hash}; "
                     f"machine.context.remote_root:{self.machine.context.remote_root}; "
                     f"submission.work_base:{submission.work_base};")

@@ -21,10 +21,12 @@ assert os.path.isfile('jsons/resources.json') is False
 with open('jsons/resources.json', 'w') as f:
     json.dump(resources_dict, f, indent=4)
 
-submission_dict = SampleClass.get_sample_submission_dict()
+pbs = SampleClass.get_sample_pbs_local_context()
+submission = SampleClass.get_sample_submission()
+submission.bind_machine(machine=pbs)
 assert os.path.isfile('jsons/submission.json') is False
 with open('jsons/submission.json', 'w') as f:
-    json.dump(submission_dict, f, indent=4)
+    json.dump(submission.serialize(), f, indent=4)
 
 job_dict = SampleClass.get_sample_job_dict()
 assert os.path.isfile('jsons/job.json') is False
