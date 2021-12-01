@@ -135,7 +135,13 @@ class DpCloudServerContext(BaseContext):
             job_result = self.api.get_tasks_v2_list(group_id)
             for each in job_result:
                 if 'result_url' in each and each['result_url'] != '' and each['status'] == 2:
-                    job_hash = job_hashs[each['task_id']]
+                    job_hash = ''
+                    if each['task_id'] not in job_hashs:
+                        dlog.info(f"find unexpect job_hash, but task {each['task_id']} still been download.")
+                        dlog.debug(str(job_hashs))
+                        job_hash = each['task_id']
+                    else:
+                        job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
         for job_hash, info in job_infos.items():
             result_filename = job_hash + '_back.zip'
