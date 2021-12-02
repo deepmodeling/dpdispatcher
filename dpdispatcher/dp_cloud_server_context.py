@@ -7,9 +7,9 @@ from dargs.dargs import Argument
 from dpdispatcher.base_context import BaseContext
 from typing import List
 import os
-# from dpdispatcher import dlog
+from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
-from . import dlog
+# from . import dlog
 from .dpcloudserver.api import API
 from .dpcloudserver import zip_file
 import shutil
