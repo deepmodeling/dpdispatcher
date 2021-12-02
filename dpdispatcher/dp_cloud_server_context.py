@@ -139,7 +139,7 @@ class DpCloudServerContext(BaseContext):
                     if each['task_id'] not in job_hashs:
                         dlog.info(f"find unexpect job_hash, but task {each['task_id']} still been download.")
                         dlog.debug(str(job_hashs))
-                        job_hash = each['task_id']
+                        job_hash = str(each['task_id'])
                     else:
                         job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
