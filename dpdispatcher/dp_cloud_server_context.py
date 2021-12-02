@@ -161,7 +161,7 @@ class DpCloudServerContext(BaseContext):
             else:
                 os.remove(target)
         except (OSError, shutil.Error) as e:
-            dlog.error("unable to backup file, " + str(e))
+            dlog.exception("unable to backup file, " + str(e))
 
     def write_file(self, fname, write_str):
         result = self.write_home_file(fname, write_str)
