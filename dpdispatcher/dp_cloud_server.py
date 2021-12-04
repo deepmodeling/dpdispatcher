@@ -6,6 +6,7 @@ from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 import time
 import warnings
 import os
+import uuid
 
 shell_script_header_template="""
 #!/bin/bash -l
@@ -60,10 +61,24 @@ class DpCloudServer(Machine):
             result_file_list.extend([ os.path.join(task.task_work_path,b_f) for b_f in task.backward_files])
         return result_file_list
 
+    def _gen_oss_path(self, job, zip_filename):
+        if hasattr(job, 'upload_path') and job.upload_path:
+            return job.upload_path
+        else:
+            program_id = self.context.remote_profile.get('program_id')
+            if program_id is None:
+                dlog.info("can not find program id in remote profile, upload to default program id.")
+                program_id = 0
+            uid = uuid.uuid4()
+            path = os.path.join("program", str(program_id), str(uid), zip_filename)
+            setattr(job, 'upload_path', path)
+            return path
+
     def do_submit(self, job):
         self.gen_local_script(job)
         zip_filename = job.job_hash + '.zip'
-        oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
+        # oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
+        oss_task_zip = self._gen_oss_path(job, zip_filename)
         job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
 
         input_data = self.input_data.copy()
@@ -167,3 +182,6 @@ class DpCloudServer(Machine):
     #     job_tag_finished = job.job_hash + '_job_tag_finished'
     #     return self.context.check_file_exists(job_tag_finished)
 
+
+class Lebesgue(DpCloudServer):
+    pass
