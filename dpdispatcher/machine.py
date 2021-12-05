@@ -124,6 +124,26 @@ class Machine(object):
         machine = machine_class(context=context)
         return machine
 
+    def serialize(self, if_empty_remote_profile=False):
+        machine_dict = {}
+        machine_dict['batch_type'] = self.__class__.__name__
+        machine_dict['context_type'] = self.context.__class__.__name__
+        machine_dict['local_root'] = self.context.init_local_root
+        machine_dict['remote_root'] = self.context.init_remote_root
+        if not if_empty_remote_profile:
+            machine_dict['remote_profile'] = self.context.remote_profile
+        else:
+            machine_dict['remote_profile'] = {}
+        return machine_dict
+
+    def __eq__(self, other):
+        return self.serialize() == other.serialize()
+
+    @classmethod
+    def deserialize(cls, machine_dict):
+        machine = cls.load_from_dict(machine_dict=machine_dict)
+        return machine
+
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        
         
@@ -181,6 +201,9 @@ class Machine(object):
         source_files_part = ""
 
         module_unload_part = ""
+        module_purge = job.resources.module_purge
+        if module_purge:
+            module_unload_part += "module purge\n"
         module_unload_list = job.resources.module_unload_list
         for ii in module_unload_list:
             module_unload_part += f"module unload {ii}\n"
@@ -198,7 +221,11 @@ class Machine(object):
         export_envs_part = ""
         envs = job.resources.envs
         for k,v in envs.items():
-            export_envs_part += f"export {k}={v}\n"
+            if isinstance(v, list):
+                for each_value in v:
+                    export_envs_part += f"export {k}={each_value}\n"
+            else:
+                export_envs_part += f"export {k}={v}\n"
 
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
 

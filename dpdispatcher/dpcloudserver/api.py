@@ -48,7 +48,7 @@ class API:
         ret.raise_for_status()
         ret = json.loads(ret.text)
         if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
-            dlog.error("debug: token expire, refresh token")
+            dlog.info("debug: token expire, refresh token")
             if self._login_data is not None:
                 self.refresh_token()
                 ret = self.get(url, params, retry=retry + 1)
@@ -82,7 +82,7 @@ class API:
         ret = json.loads(ret.text)
         # print(url,'>>>', params, '<<<', ret.text)
         if ret['code'] == RETCODE.TOKENINVALID and retry <= 3:
-            dlog.error("debug: token expire, refresh token")
+            dlog.info("debug: token expire, refresh token")
             if self._login_data is not None:
                 self.refresh_token()
                 ret = self.post(url, params, retry=retry + 1)
@@ -121,6 +121,32 @@ class API:
         dlog.debug(f"debug: download: oss_file:{oss_file}; save_file:{save_file}")
         bucket.get_object_to_file(oss_file, save_file)
         return save_file
+
+    def download_from_url(self, url, save_file):
+        ret = None
+        for retry_count in range(3):
+            try:
+                ret = requests.get(
+                    url,
+                    headers={'Authorization': "jwt " + self._token},
+                    stream=True
+                )
+            except Exception as e:
+                dlog.error(f"request error {e}")
+                continue
+            if ret.ok:
+                break
+            else:
+                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
+                time.sleep(retry_count)
+                ret = None
+        if ret is not None:
+            ret.raise_for_status()
+            with open(save_file, 'wb') as f:
+                for chunk in ret.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            ret.close()
+
 
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
@@ -208,5 +234,23 @@ class API:
         if len(ret['items']) != 0:
             return self.get_tasks_v2(job_id, group_id, page=page + 1)
         return []
+
+    def get_tasks_v2_list(self, group_id, per_page=30):
+        result = []
+        page = 0
+        while True:
+            ret = self.get(
+                f'data/job/{group_id}/tasks',
+                {
+                    'page': page,
+                    'per_page': per_page,
+                }
+            )
+            if len(ret['items']) == 0:
+                break
+            for each in ret['items']:
+                result.append(each)
+            page += 1
+        return result
 
 # %%

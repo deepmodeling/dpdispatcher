@@ -5,6 +5,8 @@ from dpdispatcher.dpcloudserver.api import API
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 import time
 import warnings
+import os
+import uuid
 
 shell_script_header_template="""
 #!/bin/bash -l
@@ -14,7 +16,11 @@ class DpCloudServer(Machine):
     def __init__(self, context):
         self.context = context
         self.input_data = context.remote_profile['input_data'].copy()
-        self.api_version = self.input_data.get('api_version', 1)
+        self.api_version = 2
+        if 'api_version' in self.input_data:
+            self.api_version = self.input_data.get('api_version')
+        if 'lebesgue_version' in self.input_data:
+            self.api_version = self.input_data.get('lebesgue_version')
         self.grouped = self.input_data.get('grouped', False)
         email = context.remote_profile.get("email", None)
         username = context.remote_profile.get('username', None)
@@ -48,16 +54,38 @@ class DpCloudServer(Machine):
         )
         return script_file_name
 
+    def _gen_backward_files_list(self, job):
+        result_file_list = []
+        # result_file_list.extend(job.backward_common_files)
+        for task in job.job_task_list:
+            result_file_list.extend([ os.path.join(task.task_work_path,b_f) for b_f in task.backward_files])
+        return result_file_list
+
+    def _gen_oss_path(self, job, zip_filename):
+        if hasattr(job, 'upload_path') and job.upload_path:
+            return job.upload_path
+        else:
+            program_id = self.context.remote_profile.get('program_id')
+            if program_id is None:
+                dlog.info("can not find program id in remote profile, upload to default program id.")
+                program_id = 0
+            uid = uuid.uuid4()
+            path = os.path.join("program", str(program_id), str(uid), zip_filename)
+            setattr(job, 'upload_path', path)
+            return path
+
     def do_submit(self, job):
         self.gen_local_script(job)
         zip_filename = job.job_hash + '.zip'
-        oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
+        # oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
+        oss_task_zip = self._gen_oss_path(job, zip_filename)
         job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
 
         input_data = self.input_data.copy()
 
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
+        # input_data['backward_files'] = self._gen_backward_files_list(job)
         if self.context.remote_profile.get('program_id') is None:
             warnings.warn('program_id will be compulsory in the future.')
         job_id = None
@@ -133,6 +161,8 @@ class DpCloudServer(Machine):
 
     @staticmethod
     def map_dp_job_state(status):
+        if isinstance(status, JobStatus):
+            return status
         map_dict = {
             -1:JobStatus.terminated,
             0:JobStatus.waiting,
@@ -143,6 +173,7 @@ class DpCloudServer(Machine):
             5:JobStatus.terminated
         }
         if status not in map_dict:
+            dlog.error(f'unknown job status {status}')
             return JobStatus.unknown
         return map_dict[status]
 
@@ -152,4 +183,5 @@ class DpCloudServer(Machine):
     #     return self.context.check_file_exists(job_tag_finished)
 
 
-
+class Lebesgue(DpCloudServer):
+    pass

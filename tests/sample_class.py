@@ -42,6 +42,7 @@ class SampleClass(object):
             'custom_flags':[],
             'strategy':{'if_cuda_multi_devices': False}, 
             'para_deg':1,
+            'module_purge':False,
             'module_unload_list':[],
             'module_list':[],
             'source_list':[],

@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
+import uuid
+
 from dargs.dargs import Argument
 from dpdispatcher.base_context import BaseContext
 from typing import List
 import os
-# from dpdispatcher import dlog
+from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
+# from . import dlog
 from .dpcloudserver.api import API
 from .dpcloudserver import zip_file
+import shutil
 # from zip_file import zip_files
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser('~'),
@@ -26,6 +30,8 @@ class DpCloudServerContext(BaseContext):
         *args,
         **kwargs,
     ):
+        self.init_local_root = local_root
+        self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
         email = remote_profile.get("email", None)
@@ -64,6 +70,18 @@ class DpCloudServerContext(BaseContext):
         #     file_uuid = uuid.uuid1().hex
         # oss_task_dir = os.path.join()
 
+    def _gen_oss_path(self, job, zip_filename):
+        if hasattr(job, 'upload_path') and job.upload_path:
+            return job.upload_path
+        else:
+            program_id = self.remote_profile.get('program_id')
+            if program_id is None:
+                program_id = 0
+            uid = uuid.uuid4()
+            path = os.path.join("program", str(program_id), str(uid), zip_filename)
+            setattr(job, 'upload_path', path)
+            return path
+
     def upload(self, submission):
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
@@ -75,7 +93,7 @@ class DpCloudServerContext(BaseContext):
         for job in submission.belonging_jobs:
             self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
-            oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
+            oss_task_zip = self._gen_oss_path(job, zip_filename)
             zip_task_file = os.path.join(self.local_root, zip_filename)
 
             upload_file_list = [job.script_file_name, ]
@@ -95,18 +113,55 @@ class DpCloudServerContext(BaseContext):
                 file_list=upload_file_list
             )
             result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
+            self._backup(self.local_root, upload_zip, keep_backup=self.remote_profile.get('keep_backup', True))
         return result
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
 
     def download(self, submission):
-        for job in submission.belonging_jobs:
-            result_filename = job.job_hash + '_back.zip'
-            oss_result_zip = 'indicate/' + job.job_hash + '/' + result_filename
+        jobs = submission.belonging_jobs
+        job_hashs = {}
+        group_id = None
+        job_infos = {}
+        for job in jobs:
+            if isinstance(job.job_id, str) and ':job_group_id:' in job.job_id:
+                ids = job.job_id.split(":job_group_id:")
+                jid, gid = int(ids[0]), int(ids[1])
+                job_hashs[jid] = job.job_hash
+                group_id = gid
+            else:
+                job_infos[job.job_hash] = self.api.get_tasks(job.job_id)[0]
+        if group_id is not None:
+            job_result = self.api.get_tasks_v2_list(group_id)
+            for each in job_result:
+                if 'result_url' in each and each['result_url'] != '' and each['status'] == 2:
+                    job_hash = ''
+                    if each['task_id'] not in job_hashs:
+                        dlog.info(f"find unexpect job_hash, but task {each['task_id']} still been download.")
+                        dlog.debug(str(job_hashs))
+                        job_hash = str(each['task_id'])
+                    else:
+                        job_hash = job_hashs[each['task_id']]
+                    job_infos[job_hash] = each
+        for job_hash, info in job_infos.items():
+            result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
-            self.api.download(oss_result_zip, target_result_zip, ENDPOINT, BUCKET_NAME)
+            self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
+            self._backup(self.local_root, target_result_zip, keep_backup=self.remote_profile.get('keep_backup', True))
         return True
+
+    def _backup(self, local_root, target, keep_backup=True):
+        try:
+            if keep_backup:
+                # move to backup directory
+                os.makedirs(os.path.join(local_root, 'backup'), exist_ok=True)
+                shutil.move(target,
+                            os.path.join(local_root, 'backup', os.path.split(target)[1]))
+            else:
+                os.remove(target)
+        except (OSError, shutil.Error) as e:
+            dlog.exception("unable to backup file, " + str(e))
 
     def write_file(self, fname, write_str):
         result = self.write_home_file(fname, write_str)
@@ -174,5 +229,30 @@ class DpCloudServerContext(BaseContext):
         return [Argument("remote_profile", dict, [
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
+            Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("input_data", dict, [
+                Argument("job_name", str, optional=True, doc="Job name"),
+                Argument("image_name", str, optional=True, doc="Name of the image which run the job, optional "
+                                                               "when platform is not ali/oss."),
+                Argument("disk_size", str, optional=True, doc="disk size (GB), optional "
+                                                              "when platform is not ali/oss."),
+                Argument("scass_type", str, optional=False, doc="machine configuration."),
+                Argument("platform", str, optional=False, doc="Job run in which platform."),
+                Argument("log_file", str, optional=True, doc="location of log file."),
+                Argument('checkpoint_files', [str, list], optional=True, doc="location of checkpoint files when "
+                                                                                  "it is list type. record file "
+                                                                                  "changes when it is string value "
+                                                                                  "'sync_files'"),
+                Argument('checkpoint_time', int, optional=True, default=15, doc='interval of checkpoint data been '
+                                                                                'stored minimum 15.'),
+                Argument('backward_files', list, optional=True, doc='which files to be uploaded to remote '
+                                                                         'resources. Upload all the files when it is '
+                                                                         'None or empty.')
+            ], optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
+
+
+class LebesgueContext(DpCloudServerContext):
+    pass
+
 #%%
