@@ -797,7 +797,7 @@ class Resources(object):
             Argument("module_unload_list", list, optional=True, doc=doc_module_unload_list, default=[]),
             Argument("module_list", list, optional=True, doc=doc_module_list, default=[]),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
-            Argument("wait_time", int, optional=True, doc=doc_wait_time, default=0)
+            Argument("wait_time", [int, float], optional=True, doc=doc_wait_time, default=0)
         ]
 
         batch_variant = Variant(
