@@ -572,6 +572,8 @@ class Job(object):
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+            if self.resources.wait_time != 0:
+                time.sleep(self.resources.wait_time)
             # self.get_job_state()
 
     def get_hash(self):
@@ -647,6 +649,8 @@ class Resources(object):
         Usually run with `strategy['if_cuda_multi_devices']`
     source_list : list of Path
         The env file to be sourced before the command execution.
+    wait_time : int
+        The waitting time in second after a single task submitted. Default: 0.
     """
     def __init__(self,
                 number_node,
@@ -659,9 +663,11 @@ class Resources(object):
                 strategy=default_strategy,
                 para_deg=1,
                 module_unload_list=[],
+                module_purge=False,
                 module_list=[],
                 source_list=[],
                 envs={},
+                wait_time=0,
                 **kwargs):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
@@ -673,10 +679,12 @@ class Resources(object):
         self.custom_flags = custom_flags
         self.strategy = strategy
         self.para_deg = para_deg
+        self.module_purge = module_purge
         self.module_unload_list = module_unload_list
         self.module_list = module_list
         self.source_list = source_list
         self.envs = envs
+        self.wait_time = wait_time
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
         self.kwargs = kwargs.get('kwargs', kwargs)
@@ -707,10 +715,12 @@ class Resources(object):
         resources_dict['custom_flags'] = self.custom_flags
         resources_dict['strategy'] = self.strategy
         resources_dict['para_deg'] = self.para_deg
+        resources_dict['module_purge'] = self.module_purge
         resources_dict['module_unload_list'] = self.module_unload_list
         resources_dict['module_list'] = self.module_list
         resources_dict['source_list'] = self.source_list
         resources_dict['envs'] = self.envs
+        resources_dict['wait_time'] = self.wait_time
         resources_dict['kwargs'] = self.kwargs
         return resources_dict
 
@@ -725,10 +735,12 @@ class Resources(object):
                         custom_flags=resources_dict.get('custom_flags', []),
                         strategy=resources_dict.get('strategy', default_strategy),
                         para_deg=resources_dict.get('para_deg', 1),
+                        module_purge=resources_dict.get('module_purge', False),
                         module_unload_list=resources_dict.get('module_unload_list', []),
                         module_list=resources_dict.get('module_list', []),
                         source_list=resources_dict.get('source_list', []),
                         envs=resources_dict.get('envs', {}),
+                        wait_time=resources_dict.get('wait_time', 0),
                         **resources_dict.get('kwargs', {})
                         )
         return resources
@@ -757,9 +769,11 @@ class Resources(object):
         doc_custom_flags = 'The extra lines pass to job submitting script header'
         doc_para_deg = 'Decide how many tasks will be run in parallel.'
         doc_source_list = 'The env file to be sourced before the command execution.'
+        doc_module_purge = 'Remove all modules on HPC system before module load (module_list)'
         doc_module_unload_list = 'The modules to be unloaded on HPC system before submitting jobs'
         doc_module_list = 'The modules to be loaded on HPC system before submitting jobs'
         doc_envs = 'The environment variables to be exported on before submitting jobs'
+        doc_wait_time = 'The waitting time in second after a single `task` submitted'
 
         strategy_args = [
             Argument("if_cuda_multi_devices", bool, optional=True, default=True)
@@ -779,9 +793,11 @@ class Resources(object):
             strategy_format,
             Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
             Argument("source_list", list, optional=True, doc=doc_source_list, default=[]),
+            Argument("module_purge", bool, optional=True, doc=doc_module_purge, default=False),
             Argument("module_unload_list", list, optional=True, doc=doc_module_unload_list, default=[]),
             Argument("module_list", list, optional=True, doc=doc_module_list, default=[]),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
+            Argument("wait_time", [int, float], optional=True, doc=doc_wait_time, default=0)
         ]
 
         batch_variant = Variant(
