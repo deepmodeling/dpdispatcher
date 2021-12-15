@@ -239,6 +239,6 @@ class SlurmJobArray(Slurm):
     def check_finish_tag(self, job):
         results = []
         for task in job.job_task_list:
-            task_tag_finished = task.task_hash + '_task_tag_finished'
+            task_tag_finished = (pathlib.PurePath(task.task_work_path)/(task.task_hash + '_task_tag_finished')).as_posix()
             results.append(self.context.check_file_exists(task_tag_finished))
         return all(results)
