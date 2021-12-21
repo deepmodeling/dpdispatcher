@@ -339,12 +339,14 @@ class SSHContext(BaseContext):
             self.write_file(sha256_file, "\n".join(sha256_list))
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
-            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
+            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet >.sha256sum_stdout 2>/dev/null || :" % sha256_file)
             self.sftp.remove(sha256_file)
             # regenerate file list
             file_list = []
-            for ii in stdout:
-                file_list.append(ii.split(":")[0])
+
+            for ii in self.read_file(".sha256sum_stdout").split("\n"):
+                if ii:
+                    file_list.append(ii.split(":")[0])
         else:
             # convert to relative path to local_root
             file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
@@ -500,7 +502,7 @@ class SSHContext(BaseContext):
         os.chdir(self.local_root)
         if os.path.isfile(of) :
             os.remove(of)
-        with tarfile.open(of, "w:gz", dereference = dereference) as tar:
+        with tarfile.open(of, "w:gz", dereference = dereference, compresslevel=6) as tar:
             for ii in files :
                 tar.add(ii)
             if directories is not None:

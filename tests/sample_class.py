@@ -47,6 +47,7 @@ class SampleClass(object):
             'module_list':[],
             'source_list':[],
             'envs':{},
+            'wait_time': 0,
             'kwargs': {}
         }
         return resources_dict
