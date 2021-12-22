@@ -18,9 +18,9 @@ class DpCloudServer(Machine):
         self.input_data = context.remote_profile['input_data'].copy()
         self.api_version = 2
         if 'api_version' in self.input_data:
-            self.api_version = self.input_data.get('api_version')
+            self.api_version = self.input_data.get('api_version', 2)
         if 'lebesgue_version' in self.input_data:
-            self.api_version = self.input_data.get('lebesgue_version')
+            self.api_version = self.input_data.get('lebesgue_version', 2)
         self.grouped = self.input_data.get('grouped', False)
         email = context.remote_profile.get("email", None)
         username = context.remote_profile.get('username', None)
@@ -33,7 +33,7 @@ class DpCloudServer(Machine):
         if password is None:
             raise ValueError("can not find password in remote_profile, please check your machine file.")
         if self.api_version == 1:
-            warnings.warn('api version 1 is deprecated and will be removed in a future version. Use version 2 instead.', DeprecationWarning)
+            warnings.warn('api version 1 is deprecated. Use version 2 instead.', DeprecationWarning)
         self.api = API(email, password)
         self.group_id = None
 
@@ -88,26 +88,17 @@ class DpCloudServer(Machine):
         # input_data['backward_files'] = self._gen_backward_files_list(job)
         if self.context.remote_profile.get('program_id') is None:
             warnings.warn('program_id will be compulsory in the future.')
-        job_id = None
-        if self.api_version == 2:
-            job_id, group_id = self.api.job_create_v2(
-                job_type=input_data['job_type'],
-                oss_path=input_data['job_resources'],
-                input_data=input_data,
-                program_id=self.context.remote_profile.get('program_id', None),
-                group_id=self.group_id
-            )
-            if self.grouped:
-                self.group_id = group_id
-            job.job_id = str(job_id) + ':job_group_id:' + str(group_id)
-            job_id = job.job_id
-        else:
-            job_id = self.api.job_create(
-                job_type=input_data['job_type'],
-                oss_path=input_data['job_resources'],
-                input_data=input_data,
-                program_id=self.context.remote_profile.get('program_id', None)
-            )
+        job_id, group_id = self.api.job_create(
+            job_type=input_data['job_type'],
+            oss_path=input_data['job_resources'],
+            input_data=input_data,
+            program_id=self.context.remote_profile.get('program_id', None),
+            group_id=self.group_id
+        )
+        if self.grouped:
+            self.group_id = group_id
+        job.job_id = str(job_id) + ':job_group_id:' + str(group_id)
+        job_id = job.job_id
         job.job_state = JobStatus.waiting
         return job_id
 
@@ -126,20 +117,13 @@ class DpCloudServer(Machine):
         dlog.debug(f"debug: check_status; job.job_id:{job_id}; job.job_hash:{job.job_hash}")
         check_return = None
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
-        if self.api_version == 2:
-            check_return = self.api.get_tasks_v2(job_id,group_id)
-        else:
-            check_return = self.api.get_tasks(job_id)
+        check_return = self.api.get_tasks(job_id,group_id)
         try:
             dp_job_status = check_return[0]["status"]
         except IndexError as e:
             dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
             time.sleep(60)
-            retry_return = None
-            if self.api_version == 2:
-                retry_return = self.api.get_tasks_v2(job_id, group_id)
-            else:
-                retry_return = self.api.get_tasks(job_id)
+            retry_return = self.api.get_tasks(job_id, group_id)
             try:
                 dp_job_status = retry_return[0]["status"]
             except IndexError as e:

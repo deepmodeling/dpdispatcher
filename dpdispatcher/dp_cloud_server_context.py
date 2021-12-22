@@ -13,6 +13,7 @@ from dpdispatcher import dlog
 from .dpcloudserver.api import API
 from .dpcloudserver import zip_file
 import shutil
+import tqdm
 # from zip_file import zip_files
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser('~'),
@@ -89,8 +90,8 @@ class DpCloudServerContext(BaseContext):
 
         # zip_path = "/home/felix/workplace/22_dpdispatcher/dpdispatcher-yfb/dpdispatcher/dpcloudserver/t.txt"
         # zip_path = self.local_root
-
-        for job in submission.belonging_jobs:
+        bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
+        for job in tqdm.tqdm(submission.belonging_jobs, desc="Uploading to Lebesgue", bar_format=bar_format):
             self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
             oss_task_zip = self._gen_oss_path(job, zip_filename)
@@ -124,15 +125,12 @@ class DpCloudServerContext(BaseContext):
         group_id = None
         job_infos = {}
         for job in jobs:
-            if isinstance(job.job_id, str) and ':job_group_id:' in job.job_id:
-                ids = job.job_id.split(":job_group_id:")
-                jid, gid = int(ids[0]), int(ids[1])
-                job_hashs[jid] = job.job_hash
-                group_id = gid
-            else:
-                job_infos[job.job_hash] = self.api.get_tasks(job.job_id)[0]
+            ids = job.job_id.split(":job_group_id:")
+            jid, gid = int(ids[0]), int(ids[1])
+            job_hashs[jid] = job.job_hash
+            group_id = gid
         if group_id is not None:
-            job_result = self.api.get_tasks_v2_list(group_id)
+            job_result = self.api.get_tasks_list(group_id)
             for each in job_result:
                 if 'result_url' in each and each['result_url'] != '' and each['status'] == 2:
                     job_hash = ''
@@ -143,7 +141,8 @@ class DpCloudServerContext(BaseContext):
                     else:
                         job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
-        for job_hash, info in job_infos.items():
+        bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
+        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Downloading to Lebesgue", bar_format=bar_format):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             self.api.download_from_url(info['result_url'], target_result_zip)
