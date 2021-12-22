@@ -90,7 +90,7 @@ class DpCloudServerContext(BaseContext):
 
         # zip_path = "/home/felix/workplace/22_dpdispatcher/dpdispatcher-yfb/dpdispatcher/dpcloudserver/t.txt"
         # zip_path = self.local_root
-        bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
+        bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]\n"
         for job in tqdm.tqdm(submission.belonging_jobs, desc="Uploading to Lebesgue", bar_format=bar_format):
             self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
@@ -141,7 +141,7 @@ class DpCloudServerContext(BaseContext):
                     else:
                         job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
-        bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
+        bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]\n"
         for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Downloading to Lebesgue", bar_format=bar_format):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
