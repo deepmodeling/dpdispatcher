@@ -93,10 +93,12 @@ class DpCloudServerContext(BaseContext):
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
         job_to_be_uploaded = []
         result = None
+        dlog.info("checking all job has been uploaded")
         for job in submission.belonging_jobs:
             if not self.api.check_job_has_uploaded(job.job_id):
                 job_to_be_uploaded.append(job)
         if len(job_to_be_uploaded) == 0:
+            dlog.info("all job has been uploaded, continue")
             return result
         for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format):
             self.machine.gen_local_script(job)
