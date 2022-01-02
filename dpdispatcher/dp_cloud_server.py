@@ -119,13 +119,13 @@ class DpCloudServer(Machine):
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
         check_return = self.api.get_tasks(job_id,group_id)
         try:
-            dp_job_status = check_return[0]["status"]
+            dp_job_status = check_return["status"]
         except IndexError as e:
             dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
             time.sleep(60)
             retry_return = self.api.get_tasks(job_id, group_id)
             try:
-                dp_job_status = retry_return[0]["status"]
+                dp_job_status = retry_return["status"]
             except IndexError as e:
                 raise RuntimeError(f"cannot find job information in dpcloudserver's database for job {job.job_id} {check_return} {retry_return}")
 

@@ -210,10 +210,10 @@ class API:
         )
         for each in ret['items']:
             if job_id == each["task_id"]:
-                return [each]
+                return each
         if len(ret['items']) != 0:
             return self.get_tasks(job_id, group_id, page=page + 1)
-        return []
+        return None
 
     def get_tasks_list(self, group_id, per_page=30):
         result = []
@@ -232,5 +232,23 @@ class API:
                 result.append(each)
             page += 1
         return result
+
+    def check_job_has_uploaded(self, job_id):
+        try:
+            if not job_id:
+                return False
+            if 'job_group_id' in job_id:
+                ids = job_id.split(":job_group_id:")
+                job_id, _ = int(ids[0]), int(ids[1])
+            ret = self.get(f'data/job/{job_id}', {})
+            if len(ret) == 0:
+                return False
+            if ret.get('input_data'):
+                return True
+            else:
+                return False
+        except ValueError as e:
+            dlog.error(e)
+            return False
 
 # %%

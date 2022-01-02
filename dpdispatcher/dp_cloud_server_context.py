@@ -91,7 +91,14 @@ class DpCloudServerContext(BaseContext):
         # zip_path = "/home/felix/workplace/22_dpdispatcher/dpdispatcher-yfb/dpdispatcher/dpcloudserver/t.txt"
         # zip_path = self.local_root
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
-        for job in tqdm.tqdm(submission.belonging_jobs, desc="Uploading to Lebesgue", bar_format=bar_format):
+        job_to_be_uploaded = []
+        result = None
+        for job in submission.belonging_jobs:
+            if not self.api.check_job_has_uploaded(job.job_id):
+                job_to_be_uploaded.append(job)
+        if len(job_to_be_uploaded) == 0:
+            return result
+        for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format):
             self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
             oss_task_zip = self._gen_oss_path(job, zip_filename)
@@ -143,7 +150,7 @@ class DpCloudServerContext(BaseContext):
                         job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
-        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Downloading to Lebesgue", bar_format=bar_format):
+        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Downloading from Lebesgue", bar_format=bar_format):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             self.api.download_from_url(info['result_url'], target_result_zip)
