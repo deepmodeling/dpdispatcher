@@ -124,7 +124,6 @@ class DpCloudServerContext(BaseContext):
             )
             result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
             self._backup(self.local_root, upload_zip, keep_backup=self.remote_profile.get('keep_backup', True))
-        print()  # empty print because tqdm may not print a newline along with dlog
         return result
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
@@ -152,26 +151,36 @@ class DpCloudServerContext(BaseContext):
                         job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
-        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Downloading from Lebesgue", bar_format=bar_format):
+        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Validating download file from Lebesgue", bar_format=bar_format):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
+            if self._check_if_job_has_already_downloaded(target_result_zip, self.local_root):
+               continue
             self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
             self._backup(self.local_root, target_result_zip, keep_backup=self.remote_profile.get('keep_backup', True))
-        print()  # empty print because tqdm may not print a newline along with dlog
+        self._clean_backup(self.local_root, keep_backup=self.remote_profile.get('keep_backup', True))
         return True
+
+    def _check_if_job_has_already_downloaded(self, target, local_root):
+        backup_file_location = os.path.join(local_root, 'backup', os.path.split(target)[1])
+        if os.path.exists(backup_file_location):
+            return False
+        else:
+            return True
 
     def _backup(self, local_root, target, keep_backup=True):
         try:
-            if keep_backup:
-                # move to backup directory
-                os.makedirs(os.path.join(local_root, 'backup'), exist_ok=True)
-                shutil.move(target,
-                            os.path.join(local_root, 'backup', os.path.split(target)[1]))
-            else:
-                os.remove(target)
+            # move to backup directory
+            os.makedirs(os.path.join(local_root, 'backup'), exist_ok=True)
+            shutil.move(target,
+                        os.path.join(local_root, 'backup', os.path.split(target)[1]))
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
+
+    def _clean_backup(self, local_root, keep_backup=True):
+        if not keep_backup:
+            os.removedirs(os.path.join(local_root, 'backup'))
 
     def write_file(self, fname, write_str):
         result = self.write_home_file(fname, write_str)

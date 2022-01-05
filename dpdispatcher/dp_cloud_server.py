@@ -1,5 +1,8 @@
+import shutil
+
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
+from dpdispatcher.dpcloudserver import zip_file
 from dpdispatcher.machine import Machine
 from dpdispatcher.dpcloudserver.api import API
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
@@ -26,7 +29,7 @@ class DpCloudServer(Machine):
         username = context.remote_profile.get('username', None)
         password = context.remote_profile.get('password', None)
         if email is None and username is not None:
-            raise dlog.exception("username is no longer support in current version, "
+            dlog.exception("username is no longer support in current version, "
                                      "please consider use email instead of username.", DeprecationWarning)
         if email is None:
             raise ValueError("can not find email in remote_profile, please check your machine file.")
@@ -130,7 +133,26 @@ class DpCloudServer(Machine):
                 raise RuntimeError(f"cannot find job information in dpcloudserver's database for job {job.job_id} {check_return} {retry_return}")
 
         job_state = self.map_dp_job_state(dp_job_status)
+        if job_state == JobStatus.finished:
+            self._download_job(job)
         return job_state
+
+
+    def _download_job(self, job):
+        job_url = self.api.get_job_result_url(job.job_id)
+        if not job_url:
+            return
+        job_hash = job.job_hash
+        result_filename = job_hash + '_back.zip'
+        target_result_zip = os.path.join(self.context.local_root, result_filename)
+        self.api.download_from_url(job_url, target_result_zip)
+        zip_file.unzip_file(target_result_zip, out_dir=self.context.local_root)
+        try:
+            os.makedirs(os.path.join(self.context.local_root, 'backup'), exist_ok=True)
+            shutil.move(target_result_zip,
+                        os.path.join(self.context.local_root, 'backup', os.path.split(target_result_zip)[1]))
+        except (OSError, shutil.Error) as e:
+            dlog.exception("unable to backup file, " + str(e))
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'

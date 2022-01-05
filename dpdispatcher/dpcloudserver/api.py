@@ -251,4 +251,20 @@ class API:
             dlog.error(e)
             return False
 
+    def get_job_result_url(self, job_id):
+        try:
+            if not job_id:
+                return None
+            if 'job_group_id' in job_id:
+                ids = job_id.split(":job_group_id:")
+                job_id, _ = int(ids[0]), int(ids[1])
+            ret = self.get(f'data/job/{job_id}', {})
+            if 'result_url' in ret and len(ret['result_url']) != 0:
+                return ret.get('result_url')
+            else:
+                return None
+        except ValueError as e:
+            dlog.error(e)
+            return None
+
 # %%
