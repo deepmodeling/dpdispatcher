@@ -168,9 +168,9 @@ class DpCloudServerContext(BaseContext):
     def _check_if_job_has_already_downloaded(self, target, local_root):
         backup_file_location = os.path.join(local_root, 'backup', os.path.split(target)[1])
         if os.path.exists(backup_file_location):
-            return False
-        else:
             return True
+        else:
+            return False
 
     def _backup(self, local_root, target, keep_backup=True):
         try:
