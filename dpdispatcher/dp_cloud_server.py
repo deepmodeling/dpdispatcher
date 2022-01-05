@@ -29,14 +29,14 @@ class DpCloudServer(Machine):
         username = context.remote_profile.get('username', None)
         password = context.remote_profile.get('password', None)
         if email is None and username is not None:
-            dlog.exception("username is no longer support in current version, "
-                                     "please consider use email instead of username.", DeprecationWarning)
+            raise DeprecationWarning("username is no longer support in current version, "
+                                     "please consider use email instead of username.")
         if email is None:
             raise ValueError("can not find email in remote_profile, please check your machine file.")
         if password is None:
             raise ValueError("can not find password in remote_profile, please check your machine file.")
         if self.api_version == 1:
-            dlog.exception('api version 1 is deprecated. Use version 2 instead.', DeprecationWarning)
+            raise DeprecationWarning('api version 1 is deprecated. Use version 2 instead.')
         self.api = API(email, password)
         self.group_id = None
 
