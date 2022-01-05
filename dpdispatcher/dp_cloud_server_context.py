@@ -180,7 +180,9 @@ class DpCloudServerContext(BaseContext):
 
     def _clean_backup(self, local_root, keep_backup=True):
         if not keep_backup:
-            os.removedirs(os.path.join(local_root, 'backup'))
+            dir_to_be_removed = os.path.join(local_root, 'backup')
+            if os.path.exists(dir_to_be_removed):
+                shutil.rmtree(dir_to_be_removed)
 
     def write_file(self, fname, write_str):
         result = self.write_home_file(fname, write_str)
