@@ -123,7 +123,7 @@ class DpCloudServerContext(BaseContext):
                 file_list=upload_file_list
             )
             result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
-            self._backup(self.local_root, upload_zip, keep_backup=self.remote_profile.get('keep_backup', True))
+            self._backup(self.local_root, upload_zip)
         return result
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
@@ -169,7 +169,7 @@ class DpCloudServerContext(BaseContext):
         else:
             return False
 
-    def _backup(self, local_root, target, keep_backup=True):
+    def _backup(self, local_root, target):
         try:
             # move to backup directory
             os.makedirs(os.path.join(local_root, 'backup'), exist_ok=True)
