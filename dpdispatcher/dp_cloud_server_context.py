@@ -155,10 +155,7 @@ class DpCloudServerContext(BaseContext):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             if self._check_if_job_has_already_downloaded(target_result_zip, self.local_root):
-                dlog.info(str(target_result_zip) + " has already exist")
                 continue
-            else:
-                dlog.info(str(target_result_zip) + " not exist")
             self.api.download_from_url(info['result_url'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
             self._backup(self.local_root, target_result_zip, keep_backup=self.remote_profile.get('keep_backup', True))
