@@ -1,5 +1,8 @@
+import shutil
+
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
+from dpdispatcher.dpcloudserver import zip_file
 from dpdispatcher.machine import Machine
 from dpdispatcher.dpcloudserver.api import API
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
@@ -18,9 +21,9 @@ class DpCloudServer(Machine):
         self.input_data = context.remote_profile['input_data'].copy()
         self.api_version = 2
         if 'api_version' in self.input_data:
-            self.api_version = self.input_data.get('api_version')
+            self.api_version = self.input_data.get('api_version', 2)
         if 'lebesgue_version' in self.input_data:
-            self.api_version = self.input_data.get('lebesgue_version')
+            self.api_version = self.input_data.get('lebesgue_version', 2)
         self.grouped = self.input_data.get('grouped', False)
         email = context.remote_profile.get("email", None)
         username = context.remote_profile.get('username', None)
@@ -33,7 +36,7 @@ class DpCloudServer(Machine):
         if password is None:
             raise ValueError("can not find password in remote_profile, please check your machine file.")
         if self.api_version == 1:
-            warnings.warn('api version 1 is deprecated and will be removed in a future version. Use version 2 instead.', DeprecationWarning)
+            raise DeprecationWarning('api version 1 is deprecated. Use version 2 instead.')
         self.api = API(email, password)
         self.group_id = None
 
@@ -88,26 +91,17 @@ class DpCloudServer(Machine):
         # input_data['backward_files'] = self._gen_backward_files_list(job)
         if self.context.remote_profile.get('program_id') is None:
             warnings.warn('program_id will be compulsory in the future.')
-        job_id = None
-        if self.api_version == 2:
-            job_id, group_id = self.api.job_create_v2(
-                job_type=input_data['job_type'],
-                oss_path=input_data['job_resources'],
-                input_data=input_data,
-                program_id=self.context.remote_profile.get('program_id', None),
-                group_id=self.group_id
-            )
-            if self.grouped:
-                self.group_id = group_id
-            job.job_id = str(job_id) + ':job_group_id:' + str(group_id)
-            job_id = job.job_id
-        else:
-            job_id = self.api.job_create(
-                job_type=input_data['job_type'],
-                oss_path=input_data['job_resources'],
-                input_data=input_data,
-                program_id=self.context.remote_profile.get('program_id', None)
-            )
+        job_id, group_id = self.api.job_create(
+            job_type=input_data['job_type'],
+            oss_path=input_data['job_resources'],
+            input_data=input_data,
+            program_id=self.context.remote_profile.get('program_id', None),
+            group_id=self.group_id
+        )
+        if self.grouped:
+            self.group_id = group_id
+        job.job_id = str(job_id) + ':job_group_id:' + str(group_id)
+        job_id = job.job_id
         job.job_state = JobStatus.waiting
         return job_id
 
@@ -126,27 +120,39 @@ class DpCloudServer(Machine):
         dlog.debug(f"debug: check_status; job.job_id:{job_id}; job.job_hash:{job.job_hash}")
         check_return = None
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
-        if self.api_version == 2:
-            check_return = self.api.get_tasks_v2(job_id,group_id)
-        else:
-            check_return = self.api.get_tasks(job_id)
+        check_return = self.api.get_tasks(job_id,group_id)
         try:
-            dp_job_status = check_return[0]["status"]
+            dp_job_status = check_return["status"]
         except IndexError as e:
             dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
             time.sleep(60)
-            retry_return = None
-            if self.api_version == 2:
-                retry_return = self.api.get_tasks_v2(job_id, group_id)
-            else:
-                retry_return = self.api.get_tasks(job_id)
+            retry_return = self.api.get_tasks(job_id, group_id)
             try:
-                dp_job_status = retry_return[0]["status"]
+                dp_job_status = retry_return["status"]
             except IndexError as e:
                 raise RuntimeError(f"cannot find job information in dpcloudserver's database for job {job.job_id} {check_return} {retry_return}")
 
         job_state = self.map_dp_job_state(dp_job_status)
+        if job_state == JobStatus.finished:
+            self._download_job(job)
         return job_state
+
+
+    def _download_job(self, job):
+        job_url = self.api.get_job_result_url(job.job_id)
+        if not job_url:
+            return
+        job_hash = job.job_hash
+        result_filename = job_hash + '_back.zip'
+        target_result_zip = os.path.join(self.context.local_root, result_filename)
+        self.api.download_from_url(job_url, target_result_zip)
+        zip_file.unzip_file(target_result_zip, out_dir=self.context.local_root)
+        try:
+            os.makedirs(os.path.join(self.context.local_root, 'backup'), exist_ok=True)
+            shutil.move(target_result_zip,
+                        os.path.join(self.context.local_root, 'backup', os.path.split(target_result_zip)[1]))
+        except (OSError, shutil.Error) as e:
+            dlog.exception("unable to backup file, " + str(e))
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'

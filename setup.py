@@ -19,7 +19,7 @@ today = datetime.date.today().strftime("%b-%d-%Y")
 with open(path.join(NAME, '_date.py'), 'w') as fp :
     fp.write('date = \'%s\'' % today)
 
-install_requires=['paramiko', 'dargs>=0.2.6', 'requests']
+install_requires=['paramiko', 'dargs>=0.2.6', 'requests', 'tqdm']
 
 setuptools.setup(
     name=NAME,
@@ -41,7 +41,7 @@ setuptools.setup(
     install_requires=install_requires,    
     extras_require={
         'docs': ['sphinx', 'recommonmark', 'sphinx_rtd_theme>=1.0.0rc1', 'numpydoc'],
-        "cloudserver": ["oss2"],
+        "cloudserver": ["oss2", "tqdm"],
         ":python_version<'3.7'": ["typing_extensions"],
     },
         entry_points={
