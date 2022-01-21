@@ -1,5 +1,5 @@
 from dpdispatcher.base_context import BaseContext
-import os
+import os,signal
 import subprocess as sp
 
 class SPRetObj(object) :
@@ -147,8 +147,8 @@ class LazyLocalContext(BaseContext) :
         os.chdir(cwd)        
         return proc
 
-    def kill(self, proc):
-        proc.kill()
+    def kill(self, job_id):
+        os.kill(job_id, signal.SIGTERM)
 
     def check_finish(self, proc):
         return (proc.poll() != None)

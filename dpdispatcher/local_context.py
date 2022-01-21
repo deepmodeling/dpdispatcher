@@ -1,5 +1,5 @@
 from dpdispatcher.base_context import BaseContext
-import os,shutil,hashlib
+import os,shutil,hashlib,signal
 import subprocess as sp
 from glob import glob
 from dpdispatcher import dlog
@@ -395,8 +395,8 @@ class LocalContext(BaseContext) :
         os.chdir(cwd)        
         return proc
 
-    def kill(self, proc):
-        proc.kill()
+    def kill(self, job_id):
+        os.kill(job_id, signal.SIGTERM)
 
     def check_finish(self, proc):
         return (proc.poll() != None)

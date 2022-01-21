@@ -40,7 +40,7 @@ class SampleClass(object):
             'queue_name':'T4_4_15', 
             'group_size':2,
             'custom_flags':[],
-            'strategy':{'if_cuda_multi_devices': False}, 
+            'strategy':{'if_cuda_multi_devices': False, 'ratio_unfinished': 0.0},
             'para_deg':1,
             'module_unload_list':[],
             'module_list':[],

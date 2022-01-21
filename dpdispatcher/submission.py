@@ -1,14 +1,13 @@
 
 # %%
 import time,random,uuid,json,copy
-
 from dargs.dargs import Argument
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
 # from dpdispatcher.slurm import SlurmResources
 #%%
-default_strategy = dict(if_cuda_multi_devices=False)
+default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
 
 class Submission(object):
     """A submission represents a collection of tasks.
@@ -169,11 +168,16 @@ class Submission(object):
             self.check_all_finished()
             self.handle_unexpected_submission_state()
 
+        ratio_unfinished = self.resources.strategy['ratio_unfinished']
         while not self.check_all_finished():
             if exit_on_submit is True:
                 dlog.info(f"submission succeeded: {self.submission_hash}")
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
+            if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
+                self.remove_unfinished_jobs()
+                break
+
             try:
                 time.sleep(30)
             except (Exception, KeyboardInterrupt, SystemExit) as e:
@@ -239,6 +243,30 @@ class Submission(object):
     #     self.get_submission_state()
 
     # def update_submi
+
+    def check_ratio_unfinished(self, ratio_unfinished):
+        status_list = [job.job_state for job in self.belonging_jobs]
+        finished_num = status_list.count(JobStatus.finished)
+        if finished_num / len(self.belonging_jobs) < (1 - ratio_unfinished):
+            return False
+        else:
+            return True
+
+    def remove_unfinished_jobs(self):
+        removed_jobs = [job for job in self.belonging_jobs if job.job_state not in [JobStatus.finished]]
+        self.belonging_jobs = [job for job in self.belonging_jobs if job.job_state in [JobStatus.finished]]
+        for job in removed_jobs:
+            # kill unfinished jobs
+            try:
+                self.machine.context.kill(job.job_id)
+            except Exception as e:
+                dlog.info("Can not kill job %s" % job.job_id)
+
+            # remove unfinished tasks
+            import os,shutil
+            for task in job.job_task_list:
+                shutil.rmtree(os.path.join(self.machine.context.local_root, task.task_work_path), ignore_errors=True)
+            self.belonging_tasks = [task for task in self.belonging_tasks if task not in job.job_task_list]
 
     def check_all_finished(self):
         """check whether all the jobs in the submission.
@@ -630,6 +658,8 @@ class Resources(object):
             If there are multiple nvidia GPUS on the node, and we want to assign the tasks to different GPUS.
             If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.
             Usually, this option will be used with Task.task_need_resources variable simultaneously.
+        ratio_unfinished : float
+            The ratio of `jobs` that can be unfinished.
     para_deg : int
         Decide how many tasks will be run in parallel.
         Usually run with `strategy['if_cuda_multi_devices']`
@@ -675,12 +705,17 @@ class Resources(object):
         # if self.gpu_per_node > 1:
         # self.in_para_task_num = 0
 
+        if 'if_cuda_multi_devices' not in self.strategy:
+            self.strategy['if_cuda_multi_devices'] = default_strategy.get('if_cuda_multi_devices')
+        if 'ratio_unfinished' not in self.strategy:
+            self.strategy['ratio_unfinished'] = default_strategy.get('ratio_unfinished')
         if self.strategy['if_cuda_multi_devices'] is True:
             if gpu_per_node < 1:
                 raise RuntimeError("gpu_per_node can not be smaller than 1 when if_cuda_multi_devices is True")
             if number_node != 1:
                 raise RuntimeError("number_node must be 1 when if_cuda_multi_devices is True")
-
+        if self.strategy['ratio_unfinished'] >= 1.0:
+            raise RuntimeError("ratio_unfinished must be smaller than 1.0")
     def __eq__(self, other):
         return self.serialize() == other.serialize()
 
@@ -709,7 +744,6 @@ class Resources(object):
                         gpu_per_node=resources_dict['gpu_per_node'],
                         queue_name=resources_dict['queue_name'],
                         group_size=resources_dict['group_size'],
-
                         custom_flags=resources_dict.get('custom_flags', []),
                         strategy=resources_dict.get('strategy', default_strategy),
                         para_deg=resources_dict.get('para_deg', 1),
@@ -750,7 +784,8 @@ class Resources(object):
         doc_envs = 'The environment variables to be exported on before submitting jobs'
 
         strategy_args = [
-            Argument("if_cuda_multi_devices", bool, optional=True, default=True)
+            Argument("if_cuda_multi_devices", bool, optional=True, default=True),
+            Argument("ratio_unfinished", float, optional=True, default=0.0)
         ]
         doc_strategy = 'strategies we use to generation job submitting scripts.'
         strategy_format = Argument("strategy", dict, strategy_args, optional=True, doc=doc_strategy)
