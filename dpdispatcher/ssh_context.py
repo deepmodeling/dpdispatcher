@@ -533,27 +533,15 @@ class SSHContext(BaseContext):
         of = self.submission.submission_hash + '.tar.gz'
         # remote tar
         # If the number of files are large, we may get "Argument list too long" error.
-        # Thus, we may run tar commands for serveral times and tar only 100 files for
-        # each time.
+        # Thus, "-T" accepts a file containing the list of files
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
             self.block_checkcall('tar czfh %s %s' % (of, " ".join(files)))
         else:
-            of_tar = self.submission.submission_hash + '.tar'
-            for ii in range(ntar):
-                ff = files[per_nfile * ii : per_nfile * (ii+1)]
-                if ii == 0:
-                    # tar cf for the first time
-                    self.block_checkcall('tar cfh %s %s' % (of_tar, " ".join(ff)))
-                else:
-                    # append using tar rf
-                    # -r, --append append files to the end of an archive
-                    self.block_checkcall('tar rfh %s %s' % (of_tar, " ".join(ff)))
-            # compress the tar file using gzip, and will get a tar.gz file
-            # overwrite considering dpgen may stop and restart
-            # -f, --force force overwrite of output file and compress links
-            self.block_checkcall('gzip -f %s' % of_tar)
+            file_list_file = os.path.join(self.remote_root, ".tmp.tar." + str(uuid.uuid4()))
+            self.write_file(file_list_file, "\n".join(files))
+            self.block_checkcall('tar czfh %s -T %s' % (of, file_list_file))
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
