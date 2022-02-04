@@ -559,11 +559,12 @@ class Job(object):
             if ( self.fail_count ) > 0 and ( self.fail_count % 3 == 0 ) :
                 raise RuntimeError(f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}")
             self.submit_job()
-            dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
-            time.sleep(0.2)
-            self.get_job_state()
-            dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
-            self.handle_unexpected_job_state()
+            if self.job_state != JobStatus.unsubmitted:
+                dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+                time.sleep(0.2)
+                self.get_job_state()
+                dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
+                self.handle_unexpected_job_state()
 
         if job_state == JobStatus.unsubmitted:
             dlog.debug(f"job: {self.job_hash} unsubmitted; submit it")
