@@ -610,8 +610,8 @@ class Job(object):
 
     def submit_job(self):
         job_id = self.machine.do_submit(self)
+        self.register_job_id(job_id)
         if job_id:
-            self.register_job_id(job_id)
             self.job_state = JobStatus.waiting
         else:
             self.job_state = JobStatus.unsubmitted
