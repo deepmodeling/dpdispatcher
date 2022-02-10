@@ -7,7 +7,7 @@ class RETCODE:
     DATAERR             = "2002" # 数据异常
     IOERR               = "2003" # IO异常
 
-    LOGINERR            = "2100" # 登陆错误
+    TOKENINVALID        = "2100" # 登陆错误
     PARAMERR            = "2101" # 参数错误
     USERERR             = "2102" # 用户异常
     ROLEERR             = "2103" # 权限错误

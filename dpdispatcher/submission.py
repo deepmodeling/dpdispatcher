@@ -1,10 +1,12 @@
 
 # %%
 import time,random,uuid,json,copy
-from dargs.dargs import Argument
+from dargs.dargs import Argument, Variant
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from hashlib import sha1
+
+from dpdispatcher.machine import Machine
 # from dpdispatcher.slurm import SlurmResources
 #%%
 default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
@@ -17,7 +19,7 @@ class Submission(object):
     Parameters
     ----------
     work_base : Path
-        path-like, the base directory of the local tasks
+        the base directory of the local tasks. It is usually the dir name of project .
     machine : Machine
         machine class object (for example, PBS, Slurm, Shell) to execute the jobs.
         The machine can still be bound after the instantiation with the bind_submission method.
@@ -85,10 +87,14 @@ class Submission(object):
             backward_common_files=submission_dict['backward_common_files'])
         submission.belonging_jobs = [Job.deserialize(job_dict=job_dict) for job_dict in submission_dict['belonging_jobs']]
         submission.submission_hash = submission.get_hash()
-        submission.bind_machine(machine=machine)
+        if machine is not None:
+            submission.bind_machine(machine=machine)
+        else:
+            machine = Machine.deserialize(machine_dict=submission_dict['machine'])
+            submission.bind_machine(machine)
         return submission
 
-    def serialize(self, if_static=False, if_none_local_root=False):
+    def serialize(self, if_static=False):
         """convert the Submission class instance to a dictionary.
 
         Parameters
@@ -102,11 +108,17 @@ class Submission(object):
             the dictionary converted from the Submission class instance
         """
         submission_dict = {}
-        if if_none_local_root:
-            submission_dict['local_root'] = None
-        else:
-            submission_dict['local_root'] = self.local_root
+        # if if_none_local_root:
+        #     submission_dict['local_root'] = None
+        # else:
+        #     submission_dict['local_root'] = self.local_root
+
         submission_dict['work_base'] = self.work_base
+        machine = getattr(self, 'machine', None)
+        if machine is None:
+            submission_dict['machine'] = {}
+        else:
+            submission_dict['machine'] = machine.serialize()
         submission_dict['resources'] = self.resources.serialize()
         submission_dict['forward_common_files'] = self.forward_common_files
         submission_dict['backward_common_files'] = self.backward_common_files
@@ -193,8 +205,8 @@ class Submission(object):
             finally:
                 pass
         self.handle_unexpected_submission_state()
-        self.submission_to_json()
         self.download_jobs()
+        self.submission_to_json()
         if clean:
             self.clean_jobs()
         return self.serialize()
@@ -359,7 +371,7 @@ class Submission(object):
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.bind_machine(machine=self.machine)
-                dlog.info(f"Find old submission; recover from json; "
+                dlog.info(f"Find old submission; recover submission from json file;"
                     f"submission.submission_hash:{submission.submission_hash}; "
                     f"machine.context.remote_root:{self.machine.context.remote_root}; "
                     f"submission.work_base:{submission.work_base};")
@@ -575,11 +587,12 @@ class Job(object):
             if ( self.fail_count ) > 0 and ( self.fail_count % 3 == 0 ) :
                 raise RuntimeError(f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}")
             self.submit_job()
-            dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
-            time.sleep(0.2)
-            self.get_job_state()
-            dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
-            self.handle_unexpected_job_state()
+            if self.job_state != JobStatus.unsubmitted:
+                dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+                time.sleep(0.2)
+                self.get_job_state()
+                dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
+                self.handle_unexpected_job_state()
 
         if job_state == JobStatus.unsubmitted:
             dlog.debug(f"job: {self.job_hash} unsubmitted; submit it")
@@ -588,6 +601,8 @@ class Job(object):
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info("job: {job_hash} submit; job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+            if self.resources.wait_time != 0:
+                time.sleep(self.resources.wait_time)
             # self.get_job_state()
 
     def get_hash(self):
@@ -624,8 +639,8 @@ class Job(object):
 
     def submit_job(self):
         job_id = self.machine.do_submit(self)
+        self.register_job_id(job_id)
         if job_id:
-            self.register_job_id(job_id)
             self.job_state = JobStatus.waiting
         else:
             self.job_state = JobStatus.unsubmitted
@@ -665,6 +680,8 @@ class Resources(object):
         Usually run with `strategy['if_cuda_multi_devices']`
     source_list : list of Path
         The env file to be sourced before the command execution.
+    wait_time : int
+        The waitting time in second after a single task submitted. Default: 0.
     """
     def __init__(self,
                 number_node,
@@ -677,9 +694,11 @@ class Resources(object):
                 strategy=default_strategy,
                 para_deg=1,
                 module_unload_list=[],
+                module_purge=False,
                 module_list=[],
                 source_list=[],
                 envs={},
+                wait_time=0,
                 **kwargs):
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
@@ -691,10 +710,12 @@ class Resources(object):
         self.custom_flags = custom_flags
         self.strategy = strategy
         self.para_deg = para_deg
+        self.module_purge = module_purge
         self.module_unload_list = module_unload_list
         self.module_list = module_list
         self.source_list = source_list
         self.envs = envs
+        self.wait_time = wait_time
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
         self.kwargs = kwargs.get('kwargs', kwargs)
@@ -730,27 +751,31 @@ class Resources(object):
         resources_dict['custom_flags'] = self.custom_flags
         resources_dict['strategy'] = self.strategy
         resources_dict['para_deg'] = self.para_deg
+        resources_dict['module_purge'] = self.module_purge
         resources_dict['module_unload_list'] = self.module_unload_list
         resources_dict['module_list'] = self.module_list
         resources_dict['source_list'] = self.source_list
         resources_dict['envs'] = self.envs
+        resources_dict['wait_time'] = self.wait_time
         resources_dict['kwargs'] = self.kwargs
         return resources_dict
 
     @classmethod
     def deserialize(cls, resources_dict):
-        resources = cls(number_node=resources_dict['number_node'],
-                        cpu_per_node=resources_dict['cpu_per_node'],
-                        gpu_per_node=resources_dict['gpu_per_node'],
-                        queue_name=resources_dict['queue_name'],
+        resources = cls(number_node=resources_dict.get('number_node', 1),
+                        cpu_per_node=resources_dict.get('cpu_per_node', 1),
+                        gpu_per_node=resources_dict.get('gpu_per_node', 0),
+                        queue_name=resources_dict.get('queue_name', ''),
                         group_size=resources_dict['group_size'],
                         custom_flags=resources_dict.get('custom_flags', []),
                         strategy=resources_dict.get('strategy', default_strategy),
                         para_deg=resources_dict.get('para_deg', 1),
+                        module_purge=resources_dict.get('module_purge', False),
                         module_unload_list=resources_dict.get('module_unload_list', []),
                         module_list=resources_dict.get('module_list', []),
                         source_list=resources_dict.get('source_list', []),
                         envs=resources_dict.get('envs', {}),
+                        wait_time=resources_dict.get('wait_time', 0),
                         **resources_dict.get('kwargs', {})
                         )
         return resources
@@ -779,9 +804,11 @@ class Resources(object):
         doc_custom_flags = 'The extra lines pass to job submitting script header'
         doc_para_deg = 'Decide how many tasks will be run in parallel.'
         doc_source_list = 'The env file to be sourced before the command execution.'
+        doc_module_purge = 'Remove all modules on HPC system before module load (module_list)'
         doc_module_unload_list = 'The modules to be unloaded on HPC system before submitting jobs'
         doc_module_list = 'The modules to be loaded on HPC system before submitting jobs'
         doc_envs = 'The environment variables to be exported on before submitting jobs'
+        doc_wait_time = 'The waitting time in second after a single `task` submitted'
 
         strategy_args = [
             Argument("if_cuda_multi_devices", bool, optional=True, default=True),
@@ -802,11 +829,21 @@ class Resources(object):
             strategy_format,
             Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
             Argument("source_list", list, optional=True, doc=doc_source_list, default=[]),
+            Argument("module_purge", bool, optional=True, doc=doc_module_purge, default=False),
             Argument("module_unload_list", list, optional=True, doc=doc_module_unload_list, default=[]),
             Argument("module_list", list, optional=True, doc=doc_module_list, default=[]),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
+            Argument("wait_time", [int, float], optional=True, doc=doc_wait_time, default=0)
         ]
-        resources_format = Argument("resources", dict, resources_args)
+
+        batch_variant = Variant(
+            "batch_type",
+            [machine.resources_arginfo() for machine in set(Machine.subclasses_dict.values())],
+            optional=False,
+            doc='The batch job system type loaded from machine/batch_type.',
+        )
+
+        resources_format = Argument("resources", dict, resources_args, [batch_variant])
         return resources_format
 
 

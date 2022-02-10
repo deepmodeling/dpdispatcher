@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import subprocess
 from datetime import date
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -70,8 +71,12 @@ def run_apidoc(_):
     module = os.path.join(cur_dir, "..", "dpdispatcher")
     main(['-M', '--tocfile', 'api', '-H', 'DPDispatcher API', '-o', os.path.join(cur_dir, "api"), module, '--force'])
 
+def generate_train_input(app):
+    subprocess.check_output((sys.executable, os.path.join("..", "scripts", "script_gen_dargs_docs.py")), universal_newlines=True)
+
 def setup(app):
     app.connect('builder-inited', run_apidoc)
+    app.connect('builder-inited', generate_train_input)
 
 
 intersphinx_mapping = {

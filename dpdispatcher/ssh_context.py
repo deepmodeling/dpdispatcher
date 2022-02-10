@@ -7,6 +7,7 @@ import uuid
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
+from typing import List
 import pathlib
 # from dpdispatcher.submission import Machine
 from dpdispatcher.utils import get_sha256, generate_totp
@@ -185,9 +186,12 @@ class SSHContext(BaseContext):
                 **kwargs,
                 ):
         assert(type(local_root) == str)
+        self.init_local_root = local_root
+        self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         assert os.path.isabs(remote_root), f"remote_root must be a abspath"
         self.temp_remote_root = remote_root
+        self.remote_profile = remote_profile
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
@@ -256,6 +260,12 @@ class SSHContext(BaseContext):
         self.local_root = pathlib.PurePath(os.path.join(self.temp_local_root, submission.work_base)).as_posix()
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = pathlib.PurePath(os.path.join(self.temp_remote_root, self.submission.submission_hash)).as_posix()
+
+        sftp = self.ssh_session.ssh.open_sftp()
+        try:
+            sftp.mkdir(self.remote_root)
+        except OSError:
+            pass
 
         # self.job_uuid = submission.submission_hash
         # dlog.debug("debug:SSHContext.bind_submission"
@@ -329,12 +339,14 @@ class SSHContext(BaseContext):
             self.write_file(sha256_file, "\n".join(sha256_list))
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
-            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
+            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet >.sha256sum_stdout 2>/dev/null || :" % sha256_file)
             self.sftp.remove(sha256_file)
             # regenerate file list
             file_list = []
-            for ii in stdout:
-                file_list.append(ii.split(":")[0])
+
+            for ii in self.read_file(".sha256sum_stdout").split("\n"):
+                if ii:
+                    file_list.append(ii.split(":")[0])
         else:
             # convert to relative path to local_root
             file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
@@ -356,7 +368,7 @@ class SSHContext(BaseContext):
         # for ii in job_dirs :
         for task in submission.belonging_tasks :
             for jj in task.backward_files:
-                file_name = os.path.join(task.task_work_path, jj)                
+                file_name = pathlib.PurePath(os.path.join(task.task_work_path, jj)).as_posix()
                 if check_exists:
                     if self.check_file_exists(file_name):
                         file_list.append(file_name)
@@ -490,7 +502,7 @@ class SSHContext(BaseContext):
         os.chdir(self.local_root)
         if os.path.isfile(of) :
             os.remove(of)
-        with tarfile.open(of, "w:gz", dereference = dereference) as tar:
+        with tarfile.open(of, "w:gz", dereference = dereference, compresslevel=6) as tar:
             for ii in files :
                 tar.add(ii)
             if directories is not None:
@@ -521,27 +533,15 @@ class SSHContext(BaseContext):
         of = self.submission.submission_hash + '.tar.gz'
         # remote tar
         # If the number of files are large, we may get "Argument list too long" error.
-        # Thus, we may run tar commands for serveral times and tar only 100 files for
-        # each time.
+        # Thus, "-T" accepts a file containing the list of files
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
             self.block_checkcall('tar czfh %s %s' % (of, " ".join(files)))
         else:
-            of_tar = self.submission.submission_hash + '.tar'
-            for ii in range(ntar):
-                ff = files[per_nfile * ii : per_nfile * (ii+1)]
-                if ii == 0:
-                    # tar cf for the first time
-                    self.block_checkcall('tar cfh %s %s' % (of_tar, " ".join(ff)))
-                else:
-                    # append using tar rf
-                    # -r, --append append files to the end of an archive
-                    self.block_checkcall('tar rfh %s %s' % (of_tar, " ".join(ff)))
-            # compress the tar file using gzip, and will get a tar.gz file
-            # overwrite considering dpgen may stop and restart
-            # -f, --force force overwrite of output file and compress links
-            self.block_checkcall('gzip -f %s' % of_tar)
+            file_list_file = os.path.join(self.remote_root, ".tmp.tar." + str(uuid.uuid4()))
+            self.write_file(file_list_file, "\n".join(files))
+            self.block_checkcall('tar czfh %s -T %s' % (of, file_list_file))
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
@@ -557,3 +557,18 @@ class SSHContext(BaseContext):
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
+
+    @classmethod
+    def machine_subfields(cls) -> List[Argument]:
+        """Generate the machine subfields.
+        
+        Returns
+        -------
+        list[Argument]
+            machine subfields
+        """
+        doc_remote_profile = 'The information used to maintain the connection with remote machine.'
+        remote_profile_format = SSHSession.arginfo()
+        remote_profile_format.name = "remote_profile"
+        remote_profile_format.doc = doc_remote_profile
+        return [remote_profile_format]

@@ -8,12 +8,6 @@ concurrency:
 
 jobs:
   git-mirror:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: wearerequired/git-mirror-action@v1
-        env:
-          ORGANIZATION: deepmodeling
-          SSH_PRIVATE_KEY: ${{ secrets.SYNC_GITEE_PRIVATE_KEY }}
-        with:
-          source-repo: "https://github.com/deepmodeling/dpdispatcher.git"
-          destination-repo: "git@gitee.com:deepmodeling/dpdispatcher.git"
+    uses: deepmodeling/workflows/.github/workflows/mirror_gitee.yml@main
+    secrets:
+      SYNC_GITEE_PRIVATE_KEY: ${{ secrets.SYNC_GITEE_PRIVATE_KEY }}
