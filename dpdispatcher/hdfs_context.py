@@ -230,3 +230,6 @@ class HDFSContext(BaseContext) :
 
     def check_file_exists(self, fname):
         return HDFS.exists(os.path.join(self.remote_root, fname))
+
+    def kill(self, job_id):
+        pass
