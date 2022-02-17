@@ -176,7 +176,8 @@ class DpCloudServer(Machine):
             2:JobStatus.finished,
             3:JobStatus.waiting,
             4:JobStatus.running,
-            5:JobStatus.terminated
+            5:JobStatus.terminated,
+            6:JobStatus.running,
         }
         if status not in map_dict:
             dlog.error(f'unknown job status {status}')
