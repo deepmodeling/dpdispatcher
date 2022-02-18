@@ -63,7 +63,7 @@ class Submission(object):
         """When check whether the two submission are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
-        return self.serialize(if_static=True) == other.serialize(if_static=True)
+        return json.dumps(self.serialize(if_static=True)) == json.dumps(other.serialize(if_static=True))
 
     def __getitem__(self, key):
         return self.serialize()[key]
@@ -399,7 +399,7 @@ class Task(object):
         return str(self.serialize())
 
     def __eq__(self, other):
-        return self.serialize() == other.serialize()
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())
 
     def __getitem__(self, key):
         return self.serialize()[key]
@@ -504,7 +504,7 @@ class Job(object):
         """When check whether the two jobs are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the jobs.
         """
-        return self.serialize(if_static=True) == other.serialize(if_static=True)
+        return json.dumps(self.serialize(if_static=True)) == json.dumps(other.serialize(if_static=True))
 
     @classmethod
     def deserialize(cls, job_dict, machine=None):
@@ -704,7 +704,7 @@ class Resources(object):
                 raise RuntimeError("number_node must be 1 when if_cuda_multi_devices is True")
 
     def __eq__(self, other):
-        return self.serialize() == other.serialize()
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())
 
     def serialize(self):
         resources_dict = {}
