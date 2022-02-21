@@ -62,7 +62,7 @@ class Submission(object):
         """When check whether the two submission are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
-        return self.serialize(if_static=True) == other.serialize(if_static=True)
+        return json.dumps(self.serialize(if_static=True)) == json.dumps(other.serialize(if_static=True))
 
     def __getitem__(self, key):
         return self.serialize()[key]
@@ -136,8 +136,9 @@ class Submission(object):
             raise RuntimeError("Not allowed to register tasks after generating jobs."
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.extend(task_list)
+
     def get_hash(self):
-        return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest()
+        return sha1(json.dumps(self.serialize(if_static=True)).encode('utf-8')).hexdigest()
 
     def bind_machine(self, machine):
         """bind this submission to a machine. update the machine's context remote_root and local_root.
@@ -426,13 +427,13 @@ class Task(object):
         return str(self.serialize())
 
     def __eq__(self, other):
-        return self.serialize() == other.serialize()
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())
 
     def __getitem__(self, key):
         return self.serialize()[key]
 
     def get_hash(self):
-        return sha1(str(self.serialize()).encode('utf-8')).hexdigest()
+        return sha1(json.dumps(self.serialize()).encode('utf-8')).hexdigest()
 
     @classmethod
     def load_from_json(cls, json_file):
@@ -531,7 +532,7 @@ class Job(object):
         """When check whether the two jobs are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the jobs.
         """
-        return self.serialize(if_static=True) == other.serialize(if_static=True)
+        return json.dumps(self.serialize(if_static=True)) == json.dumps(other.serialize(if_static=True))
 
     @classmethod
     def deserialize(cls, job_dict, machine=None):
@@ -626,7 +627,7 @@ class Job(object):
         job_content_dict['job_task_list'] = [ task.serialize() for task in self.job_task_list ]
         job_content_dict['resources'] = self.resources.serialize()
         # job_content_dict['job_work_base'] = self.job_work_base
-        job_hash = sha1(str(job_content_dict).encode('utf-8')).hexdigest()
+        job_hash = sha1(json.dumps(job_content_dict).encode('utf-8')).hexdigest()
         if not if_static:
             job_content_dict['job_state'] = self.job_state
             job_content_dict['job_id'] = self.job_id
@@ -738,7 +739,7 @@ class Resources(object):
         if self.strategy['ratio_unfinished'] >= 1.0:
             raise RuntimeError("ratio_unfinished must be smaller than 1.0")
     def __eq__(self, other):
-        return self.serialize() == other.serialize()
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())
 
     def serialize(self):
         resources_dict = {}
