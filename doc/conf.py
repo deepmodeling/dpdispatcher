@@ -30,6 +30,7 @@ author = 'Deep Modeling'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'deepmodeling_sphinx',
     'recommonmark',
     "sphinx_rtd_theme",
     'sphinx.ext.viewcode',
