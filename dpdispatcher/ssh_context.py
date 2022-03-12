@@ -4,13 +4,15 @@
 from dpdispatcher.base_context import BaseContext
 import os, paramiko, tarfile, time
 import uuid
+import shutil
+from functools improt lru_cache
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
 from typing import List
 import pathlib
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import get_sha256, generate_totp
+from dpdispatcher.utils import get_sha256, generate_totp, rsync
 
 class SSHSession (object):
     def __init__(self,
@@ -175,6 +177,27 @@ class SSHSession (object):
         ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
         return ssh_remote_profile_format
         
+    def put(self, from_f, to_f):
+        if self.rsync_available:
+            return rsync(from_f, self.remote + ":" + to_f)
+        return self.sftp.put(from_f, to_f)
+
+    def get(self, from_f, to_f):
+        if self.rsync_available:
+            return rsync(self.remote + ":" + from_f, to_f)
+        return self.sftp.get(from_f, to_f)
+
+    @property
+    @lru_cache(maxsize=None)
+    def rsync_available(self) -> bool:
+        return (shutil.which("rsync") is not None and self.password is None
+            and self.port == 22 and self.key_filename is None
+            and self.passphrase is None)
+
+    @property
+    def remote(self) -> str:
+        return "%s@%s" % (self.username, self.hostname)
+
 
 class SSHContext(BaseContext):
     def __init__ (self,
@@ -519,7 +542,7 @@ class SSHContext(BaseContext):
         from_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         try:
-           self.sftp.put(from_f, to_f)
+           self.ssh_session.put(from_f, to_f)
         except FileNotFoundError:
            raise FileNotFoundError("from %s to %s @ %s : %s Error!"%(from_f, self.ssh_session.username, self.ssh_session.hostname, to_f))
         # remote extract
@@ -547,7 +570,7 @@ class SSHContext(BaseContext):
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         if os.path.isfile(to_f) :
             os.remove(to_f)
-        self.sftp.get(from_f, to_f)
+        self.ssh_session.get(from_f, to_f)
         # extract
         cwd = os.getcwd()
         os.chdir(self.local_root)
