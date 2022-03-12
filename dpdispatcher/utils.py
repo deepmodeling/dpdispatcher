@@ -64,8 +64,8 @@ def generate_totp(secret: str, period: int=30, token_length: int=6) -> int:
     return str(token).zfill(token_length)
 
 
-def run_cmd_with_all_output(cmd):
-    with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+def run_cmd_with_all_output(cmd, shell=True):
+    with subprocess.Popen(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         out, err = proc.communicate()
         ret = proc.returncode
     return (ret, out, err)
@@ -94,6 +94,6 @@ def rsync(from_file: str, to_file: str):
         from_file,
         to_file,
     ]
-    ret, out, err = run_cmd_with_all_output(cmd)
+    ret, out, err = run_cmd_with_all_output(cmd, shell=False)
     if ret != 0:
         raise RuntimeError("Failed to run %s: %s" %(cmd, err))
