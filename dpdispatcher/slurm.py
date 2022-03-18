@@ -139,6 +139,14 @@ class Slurm(Machine):
 class SlurmJobArray(Slurm):
     """Slurm with job array enabled for multiple tasks in a job"""
     def gen_script_header(self, job):
+        if job.fail_count > 0:
+            # resubmit jobs, check if some of tasks have been finished
+            job_array = []
+            for ii, task in enumerate(job.job_task_list):
+                task_tag_finished = (pathlib.PurePath(task.task_work_path)/(task.task_hash + '_task_tag_finished')).as_posix()
+                if not self.context.check_file_exists(task_tag_finished):
+                    job_array.append(ii)
+            return super().gen_script_header(job) + "\n#SBATCH --array=%s" % (",".join(map(str, job_array)))
         return super().gen_script_header(job) + "\n#SBATCH --array=0-%d" % (len(job.job_task_list)-1)
 
     def gen_script_command(self, job):
