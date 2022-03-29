@@ -334,8 +334,9 @@ class SSHContext(BaseContext):
         try:
             self.ssh_session.sftp.mkdir(os.path.basename(self.remote_root))
         except OSError:
-            # mkdir failed meaning it exists, thus the job is recovered
-            recover = True
+            # mkdir failed meaning it exists
+            if len(self.ssh_session.sftp.listdir(os.path.basename(self.remote_root))):
+                recover = True
         self.ssh_session.sftp.chdir(None)
 
         cwd = os.getcwd()
