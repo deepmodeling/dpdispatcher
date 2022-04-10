@@ -30,7 +30,7 @@ task_list = [task0, task1, task2, task3, task4]
 
 submission = Submission(work_base='lammps_md_300K_5GPa/',
     machine=machine, 
-    resources=reasources,
+    resources=resources,
     task_list=task_list,
     forward_common_files=['graph.pb'], 
     backward_common_files=[]
