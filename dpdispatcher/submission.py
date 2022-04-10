@@ -812,7 +812,7 @@ class Resources(object):
         doc_wait_time = 'The waitting time in second after a single `task` submitted'
 
         strategy_args = [
-            Argument("if_cuda_multi_devices", bool, optional=True, default=True),
+            Argument("if_cuda_multi_devices", bool, optional=True, default=False),
             Argument("ratio_unfinished", float, optional=True, default=0.0)
         ]
         doc_strategy = 'strategies we use to generation job submitting scripts.'
