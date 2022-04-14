@@ -155,7 +155,8 @@ class SSHSession (object):
     def arginfo():
         doc_hostname = 'hostname or ip of ssh connection.'
         doc_username = 'username of target linux system'
-        doc_password = 'password of linux system'
+        doc_password = ('(deprecated) password of linux system. Please use '
+                        '`SSH keys <https://www.ssh.com/academy/ssh/key>`_ instead to improve security.')
         doc_port = 'ssh connection port.'
         doc_key_filename = 'key filename used by ssh connection. If left None, find key in ~/.ssh or ' \
                            'use password for login'
