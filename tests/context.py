@@ -24,7 +24,7 @@ from dpdispatcher.local_context import _identical_files
 try:
     from dpdispatcher.dp_cloud_server import DpCloudServer
     from dpdispatcher.dp_cloud_server_context import DpCloudServerContext
-except:
+except Exception:
     pass
 from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.machine import Machine

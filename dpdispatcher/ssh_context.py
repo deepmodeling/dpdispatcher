@@ -300,7 +300,7 @@ class SSHContext(BaseContext):
         # sftp = self.ssh_session.ssh.open_sftp() 
         # sftp.mkdir(self.remote_root)
         # sftp.close()
-        # except:
+        # except Exception:
         #     pass
 
     def _walk_directory(self, files, work_path, file_list, directory_list):
