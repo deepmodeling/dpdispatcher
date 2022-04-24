@@ -439,6 +439,15 @@ class Task(object):
     def load_from_json(cls, json_file):
         with open(json_file, 'r') as f:
             task_dict = json.load(f)
+        return cls.load_from_dict(task_dict)
+
+    @classmethod
+    def load_from_dict(cls, task_dict: dict) -> "Task":
+        # check dict
+        base = cls.arginfo()
+        task_dict = base.normalize_value(task_dict, trim_pattern="_*")
+        base.check_value(task_dict, strict=True)
+
         task = cls.deserialize(task_dict=task_dict)
         return task
 
@@ -793,10 +802,15 @@ class Resources(object):
 
     @classmethod
     def load_from_dict(cls, resources_dict):
+        # check dict
+        base = cls.arginfo(detail_kwargs=False)
+        resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
+        base.check_value(resources_dict, strict=True)
+
         return cls.deserialize(resources_dict=resources_dict)
 
     @staticmethod
-    def arginfo():
+    def arginfo(detail_kwargs=True):
         doc_number_node = 'The number of node need for each `job`'
         doc_cpu_per_node = 'cpu numbers of each node assigned to each job.'
         doc_gpu_per_node = 'gpu numbers of each node assigned to each job.'
@@ -837,14 +851,20 @@ class Resources(object):
             Argument("wait_time", [int, float], optional=True, doc=doc_wait_time, default=0)
         ]
 
-        batch_variant = Variant(
-            "batch_type",
-            [machine.resources_arginfo() for machine in set(Machine.subclasses_dict.values())],
-            optional=False,
-            doc='The batch job system type loaded from machine/batch_type.',
-        )
+        if detail_kwargs:
+            batch_variant = Variant(
+                "batch_type",
+                [machine.resources_arginfo() for machine in set(Machine.subclasses_dict.values())],
+                optional=False,
+                doc='The batch job system type loaded from machine/batch_type.',
+            )
 
-        resources_format = Argument("resources", dict, resources_args, [batch_variant])
+            resources_format = Argument("resources", dict, resources_args, [batch_variant])
+        else:
+            resources_args.append(
+                Argument("kwargs", dict, optional=True, doc="Vary by different machines.")
+            )
+            resources_format = Argument("resources", dict, resources_args)
         return resources_format
 
 

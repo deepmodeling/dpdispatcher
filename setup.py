@@ -19,7 +19,7 @@ today = datetime.date.today().strftime("%b-%d-%Y")
 with open(path.join(NAME, '_date.py'), 'w') as fp :
     fp.write('date = \'%s\'' % today)
 
-install_requires=['paramiko', 'dargs>=0.2.6', 'requests', 'tqdm']
+install_requires=['paramiko', 'dargs>=0.2.9', 'requests', 'tqdm']
 
 setuptools.setup(
     name=NAME,
