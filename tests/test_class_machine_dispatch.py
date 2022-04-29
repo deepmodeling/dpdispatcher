@@ -16,7 +16,7 @@ from .context import Machine
 from .context import dargs
 from .context import DistributedShell, HDFSContext
 from .sample_class import SampleClass
-from dargs.dargs import ArgumentKeyError
+from dargs.dargs import ArgumentValueError
 
 class TestMachineDispatch(unittest.TestCase):
     def setUp(self):
@@ -136,7 +136,7 @@ class TestMachineDispatch(unittest.TestCase):
             'context_type': 'foo'
         }
         # with self.assertRaises(KeyError):
-        with self.assertRaises(KeyError):
+        with self.assertRaises(ArgumentValueError):
             Machine.load_from_dict(machine_dict=machine_dict)
 
     def test_pbs(self):

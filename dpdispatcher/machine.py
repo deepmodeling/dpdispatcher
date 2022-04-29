@@ -120,6 +120,11 @@ class Machine(object):
         except KeyError as e:
             dlog.error(f"KeyError:batch_type; cls.subclasses_dict:{cls.subclasses_dict}; batch_type:{batch_type};")
             raise e
+        # check dict
+        base = cls.arginfo()
+        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
+        base.check_value(machine_dict, strict=True)
+
         context = BaseContext.load_from_dict(machine_dict)
         machine = machine_class(context=context)
         return machine
