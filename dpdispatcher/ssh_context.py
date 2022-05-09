@@ -310,7 +310,7 @@ class SSHContext(BaseContext):
             if os.path.isfile(file_name):
                 file_list.append(file_name)
             elif os.path.isdir(file_name):
-                for root, dirs, files in os.walk(file_name, topdown=False):
+                for root, dirs, files in os.walk(file_name, topdown=False, followlinks=True):
                     if not files:
                         directory_list.append(root)
                     for name in files:
