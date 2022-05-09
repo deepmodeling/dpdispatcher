@@ -803,7 +803,7 @@ class Resources(object):
     @classmethod
     def load_from_dict(cls, resources_dict):
         # check dict
-        base = cls.arginfo(detail_kwargs=False)
+        base = cls.arginfo(detail_kwargs='batch_type' in resources_dict)
         resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
         base.check_value(resources_dict, strict=True)
 
@@ -863,6 +863,9 @@ class Resources(object):
         else:
             resources_args.append(
                 Argument("kwargs", dict, optional=True, doc="Vary by different machines.")
+            )
+            resources_args.append(
+                Argument("batch_type", str, optional=True, doc="Allow this key when strict checking.")
             )
             resources_format = Argument("resources", dict, resources_args)
         return resources_format
