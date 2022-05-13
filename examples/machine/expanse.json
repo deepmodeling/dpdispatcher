@@ -7,6 +7,6 @@
   "remote_profile": {
     "hostname": "login.expanse.sdsc.edu",
     "username": "njzjz",
-    "port": "22"
+    "port": 22
   }
 }
