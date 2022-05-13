@@ -2,7 +2,7 @@
 
 [Expanse](https://www.sdsc.edu/support/user_guides/expanse.html) is a cluster operated by the San Diego Supercomputer Center. Here we provide an example to run jobs on the expanse.
 
-The machine parameters are provided below. Expanse uses the SLURM workload manager for job scheduling. `remote_root` has been created in advance. It's worth metioned that we do not recommend to use the password, [SSH keys](https://www.ssh.com/academy/ssh/key) are used instead to improve security.
+The machine parameters are provided below. Expanse uses the SLURM workload manager for job scheduling. `remote_root` has been created in advance. It's worth metioned that we do not recommend to use the password, so [SSH keys](https://www.ssh.com/academy/ssh/key) are used instead to improve security.
 
 ```{literalinclude} ../../examples/machine/expanse.json
 :language: json
