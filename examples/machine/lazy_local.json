@@ -1,0 +1,5 @@
+{
+  "batch_type": "Shell",
+  "local_root": "./",
+  "context_type": "LazyLocalContext"
+}

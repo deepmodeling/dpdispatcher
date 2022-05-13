@@ -1,0 +1,13 @@
+{
+    "command": "dp train input.json && dp freeze && dp compress",
+    "task_work_path": "model1/",
+    "forward_files": [
+      "input.json"
+    ],
+    "backward_files": [
+      "frozen_model.pb",
+      "frozen_model_compressed.pb"
+    ],
+    "outlog": "log",
+    "errlog": "err"
+}
