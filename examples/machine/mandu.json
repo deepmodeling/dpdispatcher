@@ -1,0 +1,12 @@
+{
+  "batch_type": "Shell",
+  "local_root": "./",
+  "remote_root": "/data2/jinzhe/dpgen_workdir",
+  "clean_asynchronously": true,
+  "context_type": "SSHContext",
+  "remote_profile": {
+    "hostname": "mandu.iqb.rutgers.edu",
+    "username": "jz748",
+    "port": 22
+  }
+}

@@ -26,7 +26,7 @@ DPDispatcher will monitor (poke) until these jobs finish and download the result
    :caption: Examples
    :glob:
 
-   examples/expanse
+   examples/*
 
 Indices and tables
 ==================
