@@ -31,7 +31,7 @@ author = 'Deep Modeling'
 # ones.
 extensions = [
     'deepmodeling_sphinx',
-    'recommonmark',
+    'myst_parser',
     "sphinx_rtd_theme",
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',

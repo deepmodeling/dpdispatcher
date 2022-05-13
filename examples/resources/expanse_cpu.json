@@ -2,7 +2,7 @@
   "number_node": "1",
   "cpu_per_node": "1",
   "gpu_per_node": "0",
-  "queue_name": "compute",
+  "queue_name": "shared",
   "group_size": "1",
   "custom_flags": [
     "#SBATCH -c 32",
