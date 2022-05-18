@@ -82,4 +82,5 @@ def setup(app):
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/", None),
+    "dargs": ("https://docs.deepmodeling.com/projects/dargs/en/latest/", None),
 }
