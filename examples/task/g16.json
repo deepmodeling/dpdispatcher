@@ -1,0 +1,10 @@
+{
+    "command": "g16 < input > output ||:",
+    "task_work_path": "p1/",
+    "forward_files": [
+      "input"
+    ],
+    "backward_files": [
+      "output"
+    ]
+}
