@@ -311,11 +311,14 @@ class Submission(object):
         if self.belonging_jobs:
             raise RuntimeError(f'Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}')
         group_size = self.resources.group_size
-        if ( group_size < 1 ) or ( type(group_size) is not int ):
+        if ( group_size < 0 ) or ( type(group_size) is not int ):
             raise RuntimeError('group_size must be a positive number')
         task_num = len(self.belonging_tasks)
         if task_num == 0:
             raise RuntimeError("submission must have at least 1 task")
+        if group_size == 0:
+            # 0 means infinity
+            group_size = task_num
         random.seed(42)
         random_task_index = list(range(task_num))
         random.shuffle(random_task_index)
@@ -815,7 +818,7 @@ class Resources(object):
         doc_cpu_per_node = 'cpu numbers of each node assigned to each job.'
         doc_gpu_per_node = 'gpu numbers of each node assigned to each job.'
         doc_queue_name = 'The queue name of batch job scheduler system.'
-        doc_group_size = 'The number of `tasks` in a `job`.'
+        doc_group_size = 'The number of `tasks` in a `job`. 0 means infinity.'
         doc_custom_flags = 'The extra lines pass to job submitting script header'
         doc_para_deg = 'Decide how many tasks will be run in parallel.'
         doc_source_list = 'The env file to be sourced before the command execution.'

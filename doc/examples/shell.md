@@ -14,4 +14,4 @@ The workstation has 48 cores of CPUs and 8 RTX3090 cards. Here we hope each card
 :linenos:
 ```
 
-Note that `group_size` should be set as large as possible to ensure there is only one job and avoid running multiple jobs at the same time.
+Note that `group_size` should be set to `0` (means infinity) to ensure there is only one job and avoid running multiple jobs at the same time.
