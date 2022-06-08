@@ -244,7 +244,10 @@ class API:
             if len(ret) == 0:
                 return False
             if ret.get('input_data'):
-                return True
+                resp = requests.head(ret.get('input_data'))
+                if resp.ok:
+                    return True
+                return False
             else:
                 return False
         except ValueError as e:

@@ -100,7 +100,7 @@ class DpCloudServerContext(BaseContext):
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")
             return result
-        for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format):
+        for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format, leave=False):
             self.machine.gen_local_script(job)
             zip_filename = job.job_hash + '.zip'
             oss_task_zip = self._gen_oss_path(job, zip_filename)
@@ -151,7 +151,7 @@ class DpCloudServerContext(BaseContext):
                         job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
-        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Validating download file from Lebesgue", bar_format=bar_format):
+        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Validating download file from Lebesgue", bar_format=bar_format, leave=False):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             if self._check_if_job_has_already_downloaded(target_result_zip, self.local_root):
@@ -251,6 +251,7 @@ class DpCloudServerContext(BaseContext):
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
             Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("program_id", bool, optional=True, doc="keep download and upload zip"),
             Argument("input_data", dict, optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
 
