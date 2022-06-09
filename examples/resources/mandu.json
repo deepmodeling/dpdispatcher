@@ -3,7 +3,7 @@
   "cpu_per_node": 48,
   "gpu_per_node": 8,
   "queue_name": "shell",
-  "group_size": 9999,
+  "group_size": 0,
   "strategy": {
     "if_cuda_multi_devices": true
   },
