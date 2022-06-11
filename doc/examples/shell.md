@@ -1,4 +1,4 @@
-## Running multiple MD tasks on a GPU workstation
+# Running multiple MD tasks on a GPU workstation
 
 In this example, we are going to show how to run multiple MD tasks on a GPU workstation. This workstation does not install any job scheduling packages installed, so we will use `Shell` as `batch_type`.
 
