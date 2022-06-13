@@ -3,4 +3,6 @@ Task parameters
 .. note::
    One can load, modify, and export the input file by using our effective web-based tool `DP-GUI <https://deepmodeling.com/dpgui/input/dpdispatcher-task>`_. All parameters below can be set in DP-GUI. By clicking "SAVE JSON", one can download the input file.
 
-.. include:: task-auto.rst
+.. dargs::
+   :module: dpdispatcher.arginfo
+   :func: task_dargs
