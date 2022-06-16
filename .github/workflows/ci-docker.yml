@@ -28,4 +28,4 @@ jobs:
 
     - name: Build and push
       run: |
-        docker buildx build --platform linux/arm64,linux/amd64 -t dptechnology/dflow:latest --push .
+        docker buildx build --platform linux/arm64,linux/amd64 -t dptechnology/dpdispatcher:latest --push .
