@@ -462,6 +462,7 @@ class Task(object):
         ----------
         task_dict : dict
             the dictionary which contains the task information
+
         Returns
         -------
         task : Task
