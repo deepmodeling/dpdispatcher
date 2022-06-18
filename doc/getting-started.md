@@ -9,7 +9,7 @@ DPDispatcher will create and submit these jobs when a `submission` instance exec
 This method will poke until the jobs finish and return.  
 - {class}`Job <dpdispatcher.submission.Job>` class, a class used by {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a job on the HPC system. 
 {class}`Submission <dpdispatcher.submission.Submission>` will generate `job`s' submitting scripts used by HPC systems automatically with the {class}`Task <dpdispatcher.submission.Task>` and {class}`Resources <dpdispatcher.submission.Resources>`
-- {class}`Resources` class, which represents the computing resources for each job  within a `submission`.
+- {class}`Resources <dpdispatcher.submission.Resources>` class, which represents the computing resources for each job  within a `submission`.
 
 You can use DPDispatcher in a Python script to submit five tasks:
 
