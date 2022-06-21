@@ -1,4 +1,5 @@
 
+from abc import ABCMeta, abstractmethod
 from dpdispatcher.ssh_context import SSHSession
 import json
 from dargs import Argument, Variant
@@ -45,7 +46,7 @@ FLAG_IF_JOB_TASK_FAIL=$(cat {flag_if_job_task_fail})
 if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1;fi
 """
 
-class Machine(object):
+class Machine(metaclass=ABCMeta):
     """A machine is used to handle the connection with remote machines.
 
     Parameters
@@ -149,11 +150,12 @@ class Machine(object):
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
+    @abstractmethod
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        
-        
+
     def default_resources(self, res) :
-        raise NotImplementedError('abstract method sub_script_head should be implemented by derived class')        
+        raise NotImplementedError('abstract method default_resources should be implemented by derived class')        
 
     def sub_script_head(self, res) :
         raise NotImplementedError('abstract method sub_script_head should be implemented by derived class')        
@@ -161,6 +163,7 @@ class Machine(object):
     def sub_script_cmd(self, res):
         raise NotImplementedError('abstract method sub_script_cmd should be implemented by derived class')        
 
+    @abstractmethod
     def do_submit(self, job):
         '''
         submit a single job, assuming that no job is running there.
@@ -188,9 +191,11 @@ class Machine(object):
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 
+    @abstractmethod
     def check_finish_tag(self, **kwargs):
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
+    @abstractmethod
     def gen_script_header(self, job):
         raise NotImplementedError('abstract method gen_script_header should be implemented by derived class')
 
