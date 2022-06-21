@@ -62,11 +62,9 @@ class BaseContext(metaclass=ABCMeta):
     def read_file(self, fname):
         raise NotImplementedError('abstract method')
 
-    @abstractmethod
     def kill(self, proc):
         raise NotImplementedError('abstract method')
 
-    @abstractmethod
     def check_finish(self, proc):
         raise NotImplementedError('abstract method')
 

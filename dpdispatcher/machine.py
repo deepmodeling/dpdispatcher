@@ -154,15 +154,12 @@ class Machine(metaclass=ABCMeta):
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        
 
-    @abstractmethod    
     def default_resources(self, res) :
-        raise NotImplementedError('abstract method sub_script_head should be implemented by derived class')        
+        raise NotImplementedError('abstract method default_resources should be implemented by derived class')        
 
-    @abstractmethod
     def sub_script_head(self, res) :
         raise NotImplementedError('abstract method sub_script_head should be implemented by derived class')        
 
-    @abstractmethod
     def sub_script_cmd(self, res):
         raise NotImplementedError('abstract method sub_script_cmd should be implemented by derived class')        
 
