@@ -212,7 +212,7 @@ class LocalContext(BaseContext) :
                 flist += glob('error*')                        
                 os.chdir(cwd)
             for jj in flist :
-                rfile = os.path.realpath(os.path.join(remote_job, jj))
+                rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
                 if not os.path.realpath(rfile) == os.path.realpath(lfile) :
                     if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
@@ -230,7 +230,11 @@ class LocalContext(BaseContext) :
                         pass
                     elif (os.path.exists(rfile)) and (not os.path.exists(lfile)) :
                         # trivial case, download happily
-                        shutil.move(rfile, lfile)
+                        # for links, copy instead of moving (default behavior of copyfile is following symlinks)
+                        if os.path.islink(rfile):
+                            shutil.move(rfile, lfile)
+                        else:
+                            shutil.copyfile(rfile, lfile)
                     elif (os.path.exists(rfile)) and (os.path.exists(lfile)) :
                         # both exists, replace!
                         dlog.info('find existing %s, replacing by %s' % (lfile, rfile))
@@ -276,7 +280,10 @@ class LocalContext(BaseContext) :
                     pass
                 elif (os.path.exists(rfile)) and (not os.path.exists(lfile)) :
                     # trivial case, download happily
-                    shutil.move(rfile, lfile)
+                    if os.path.islink(rfile):
+                        shutil.move(rfile, lfile)
+                    else:
+                        shutil.copyfile(rfile, lfile)
                 elif (os.path.exists(rfile)) and (os.path.exists(lfile)) :
                     dlog.info(f"both exist rfile:{rfile}; lfile:{lfile}")
                     # both exists, replace!
