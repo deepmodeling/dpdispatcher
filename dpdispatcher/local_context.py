@@ -212,7 +212,7 @@ class LocalContext(BaseContext) :
                 flist += glob('error*')                        
                 os.chdir(cwd)
             for jj in flist :
-                rfile = os.path.join(remote_job, jj)
+                rfile = os.path.realpath(os.path.join(remote_job, jj))
                 lfile = os.path.join(local_job, jj)
                 if not os.path.realpath(rfile) == os.path.realpath(lfile) :
                     if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
@@ -260,7 +260,7 @@ class LocalContext(BaseContext) :
             flist += glob('error*')                        
             os.chdir(cwd)
         for jj in flist :
-            rfile = os.path.join(remote_job, jj)
+            rfile = os.path.realpath(os.path.join(remote_job, jj))
             lfile = os.path.join(local_job, jj)
             if not os.path.realpath(rfile) == os.path.realpath(lfile) :
                 if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
