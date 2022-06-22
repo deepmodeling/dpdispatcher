@@ -231,7 +231,7 @@ class LocalContext(BaseContext) :
                     elif (os.path.exists(rfile)) and (not os.path.exists(lfile)) :
                         # trivial case, download happily
                         # for links, copy instead of moving (default behavior of copyfile is following symlinks)
-                        if os.path.islink(rfile):
+                        if not os.path.islink(rfile):
                             shutil.move(rfile, lfile)
                         else:
                             shutil.copyfile(rfile, lfile)
@@ -280,7 +280,7 @@ class LocalContext(BaseContext) :
                     pass
                 elif (os.path.exists(rfile)) and (not os.path.exists(lfile)) :
                     # trivial case, download happily
-                    if os.path.islink(rfile):
+                    if not os.path.islink(rfile):
                         shutil.move(rfile, lfile)
                     else:
                         shutil.copyfile(rfile, lfile)
