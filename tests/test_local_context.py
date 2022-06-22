@@ -273,3 +273,26 @@ class TestLocalContextDownload(unittest.TestCase):
         md5_new = get_file_md5(target_file)
         self.assertNotEqual(md5_old, md5_new)
 
+    def test_download_symlink(self):
+        task1 = MagicMock(
+            task_work_path='bct-1/',
+            backward_files=['input.lammps.symlink']
+        )
+        submission = MagicMock(work_base='0_md/',
+            belonging_tasks=[task1],
+            backward_common_files=['graph.pb'],
+            submission_hash='0_md/')
+        os.symlink(os.path.abspath(os.path.join(self.tmp_remote_root, "0_md", "bct-1", "input.lammps")), os.path.join(self.tmp_remote_root, "0_md", "bct-1", "input.lammps.symlink"))
+        
+        self.local_context.bind_submission(submission)
+        self.local_context.download(
+            submission)
+        self.local_context.clean()
+        foo_file = os.path.join(
+            self.tmp_local_root,
+            '0_md',
+            'bct-1',
+            'input.lammps.symlink',
+        )
+        self.assertTrue(os.path.isfile(foo_file))
+
