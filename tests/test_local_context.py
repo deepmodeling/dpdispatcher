@@ -280,19 +280,26 @@ class TestLocalContextDownload(unittest.TestCase):
         )
         submission = MagicMock(work_base='0_md/',
             belonging_tasks=[task1],
-            backward_common_files=['graph.pb'],
+            backward_common_files=['graph.pb.symlink'],
             submission_hash='0_md/')
         os.symlink(os.path.abspath(os.path.join(self.tmp_remote_root, "0_md", "bct-1", "input.lammps")), os.path.join(self.tmp_remote_root, "0_md", "bct-1", "input.lammps.symlink"))
+        os.symlink(os.path.abspath(os.path.join(self.tmp_remote_root, "0_md", "graph.pb")), os.path.join(self.tmp_remote_root, "0_md", "graph.pb.symlink"))
         
         self.local_context.bind_submission(submission)
         self.local_context.download(
             submission)
         self.local_context.clean()
-        foo_file = os.path.join(
+        task_file = os.path.join(
             self.tmp_local_root,
             '0_md',
             'bct-1',
             'input.lammps.symlink',
         )
-        self.assertTrue(os.path.isfile(foo_file))
+        common_file = os.path.join(
+            self.tmp_local_root,
+            '0_md',
+            'graph.pb.symlink',
+        )
+        self.assertTrue(os.path.isfile(task_file))
+        self.assertTrue(os.path.isfile(common_file))
 
