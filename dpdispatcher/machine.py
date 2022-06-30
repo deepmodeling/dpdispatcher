@@ -124,7 +124,7 @@ class Machine(metaclass=ABCMeta):
         # check dict
         base = cls.arginfo()
         machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
-        base.check_value(machine_dict, strict=True)
+        base.check_value(machine_dict, strict=False)
 
         context = BaseContext.load_from_dict(machine_dict)
         machine = machine_class(context=context)
