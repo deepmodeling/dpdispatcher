@@ -1,9 +1,10 @@
+from abc import ABCMeta, abstractmethod
 from dargs import Argument
 from typing import List
 
 from dpdispatcher import dlog
 
-class BaseContext(object):
+class BaseContext(metaclass=ABCMeta):
     subclasses_dict = {}
     options = set()
     def __new__(cls, *args, **kwargs):
@@ -37,9 +38,11 @@ class BaseContext(object):
     def bind_submission(self, submission):
         self.submission = submission
 
+    @abstractmethod
     def upload(self, submission):
         raise NotImplementedError('abstract method')
 
+    @abstractmethod
     def download(self, 
                 submission,
                 check_exists = False,
@@ -47,12 +50,15 @@ class BaseContext(object):
                 back_error=False):
         raise NotImplementedError('abstract method')
 
+    @abstractmethod
     def clean(self):
         raise NotImplementedError('abstract method')
 
+    @abstractmethod
     def write_file(self, fname, write_str):
         raise NotImplementedError('abstract method')
 
+    @abstractmethod
     def read_file(self, fname):
         raise NotImplementedError('abstract method')
 
