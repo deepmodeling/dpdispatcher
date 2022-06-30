@@ -90,7 +90,7 @@ class DpCloudServer(Machine):
         input_data['command'] = f"bash {job.script_file_name}"
         # input_data['backward_files'] = self._gen_backward_files_list(job)
         if self.context.remote_profile.get('program_id') is None:
-            warnings.warn('program_id will be compulsory in the future.')
+            warnings.warn('program_id is compulsory.')
         job_id, group_id = self.api.job_create(
             job_type=input_data['job_type'],
             oss_path=input_data['job_resources'],

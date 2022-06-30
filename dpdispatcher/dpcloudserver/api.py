@@ -245,11 +245,19 @@ class API:
                 return False
             if ret.get('input_data'):
                 resp = requests.head(ret.get('input_data'))
-                if resp.ok:
-                    return True
-                return False
+                return self.check_file_has_uploaded(resp)
             else:
                 return False
+        except ValueError as e:
+            dlog.error(e)
+            return False
+
+    def check_file_has_uploaded(self, file_url):
+        try:
+            resp = requests.head(file_url)
+            if resp.ok:
+                return True
+            return False
         except ValueError as e:
             dlog.error(e)
             return False
