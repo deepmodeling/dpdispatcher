@@ -52,7 +52,7 @@ class TestHDFSContext(unittest.TestCase):
                 fp.write('# mock log') 
 
         file_list = glob("./*")
-        download_tgz = self.context.submission.submission_hash + '_1_download.tar.gz'
+        download_tgz = self.context.submission.submission_hash + '_1_download.tar'
         with tarfile.open(download_tgz, "w:gz", dereference=True) as tar:
             for ii in file_list :
                 tar.add(ii)
