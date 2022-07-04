@@ -140,8 +140,8 @@ fi }&
 wait
 
 ## upload result files to hdfs
-tar czf uuid_download.tar.gz sys-0001-0015
-hadoop fs -put -f uuid_download.tar.gz /root/uuid/sys-0001-0015
+tar cf uuid_download.tar sys-0001-0015
+hadoop fs -put -f uuid_download.tar /root/uuid/sys-0001-0015
 
 ## mark the job has finished
 hadoop fs -touchz /root/uuid/uuid_tag_finished
