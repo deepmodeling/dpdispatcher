@@ -33,8 +33,8 @@ test $? -ne 0 && exit 1
 wait
 FLAG_IF_JOB_TASK_FAIL=$(cat {flag_if_job_task_fail})
 if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then
-    tar czf {submission_hash}_{job_hash}_download.tar.gz {all_task_dirs}
-    hadoop fs -put -f {submission_hash}_{job_hash}_download.tar.gz {remote_root}
+    tar cf {submission_hash}_{job_hash}_download.tar {all_task_dirs}
+    hadoop fs -put -f {submission_hash}_{job_hash}_download.tar {remote_root}
     hadoop fs -touchz {remote_root}/{job_tag_finished}
 else
     exit 1
