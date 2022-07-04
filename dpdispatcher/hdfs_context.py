@@ -130,11 +130,11 @@ class HDFSContext(BaseContext) :
             shutil.rmtree(gz_dir, ignore_errors=True)
         os.mkdir('tmp')
         os.chdir(gz_dir)
-        rfile_tgz = "%s/%s_*_download.tar.gz" % (self.remote_root, submission.submission_hash)
+        rfile_tgz = "%s/%s_*_download.tar" % (self.remote_root, submission.submission_hash)
         lfile_tgz = "%s/tmp/" % (self.local_root)
         HDFS.copy_to_local(rfile_tgz, lfile_tgz)
 
-        tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar.gz"))
+        tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar"))
         for tgz in tgz_file_list:
             with tarfile.open(tgz, "r:gz") as tar:
                 tar.extractall()
