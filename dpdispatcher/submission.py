@@ -449,7 +449,7 @@ class Task(object):
         # check dict
         base = cls.arginfo()
         task_dict = base.normalize_value(task_dict, trim_pattern="_*")
-        base.check_value(task_dict, strict=True)
+        base.check_value(task_dict, strict=False)
 
         task = cls.deserialize(task_dict=task_dict)
         return task
@@ -809,7 +809,7 @@ class Resources(object):
         # check dict
         base = cls.arginfo(detail_kwargs='batch_type' in resources_dict)
         resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
-        base.check_value(resources_dict, strict=True)
+        base.check_value(resources_dict, strict=False)
 
         return cls.deserialize(resources_dict=resources_dict)
 
