@@ -1,0 +1,27 @@
+{
+  "number_node": 1,
+  "cpu_per_node": 1,
+  "gpu_per_node": 0,
+  "queue_name": "shared",
+  "group_size": 1,
+  "custom_flags": [
+    "#SBATCH -c 32",
+    "#SBATCH --mem=16G",
+    "#SBATCH --time=48:00:00",
+    "#SBATCH --account=rut149",
+    "#SBATCH --requeue"
+  ],
+  "source_list": [
+    "activate /home/njzjz/deepmd-kit"
+  ],
+  "envs": {
+    "OMP_NUM_THREADS": 4,
+    "TF_INTRA_OP_PARALLELISM_THREADS": 4,
+    "TF_INTER_OP_PARALLELISM_THREADS": 8,
+    "DP_AUTO_PARALLELIZATION": 1
+  },
+  "batch_type": "Slurm",
+  "kwargs": {
+    "custom_gpu_line": "#SBATCH --gpus=0"
+  }
+}

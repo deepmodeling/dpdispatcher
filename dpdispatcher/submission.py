@@ -1,7 +1,6 @@
 
 # %%
 import time,random,uuid,json,copy
-
 from dargs.dargs import Argument, Variant
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
@@ -10,7 +9,7 @@ from hashlib import sha1
 from dpdispatcher.machine import Machine
 # from dpdispatcher.slurm import SlurmResources
 #%%
-default_strategy = dict(if_cuda_multi_devices=False)
+default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
 
 class Submission(object):
     """A submission represents a collection of tasks.
@@ -63,7 +62,7 @@ class Submission(object):
         """When check whether the two submission are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
-        return self.serialize(if_static=True) == other.serialize(if_static=True)
+        return json.dumps(self.serialize(if_static=True)) == json.dumps(other.serialize(if_static=True))
 
     def __getitem__(self, key):
         return self.serialize()[key]
@@ -137,8 +136,9 @@ class Submission(object):
             raise RuntimeError("Not allowed to register tasks after generating jobs."
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.extend(task_list)
+
     def get_hash(self):
-        return sha1(str(self.serialize(if_static=True)).encode('utf-8')).hexdigest()
+        return sha1(json.dumps(self.serialize(if_static=True)).encode('utf-8')).hexdigest()
 
     def bind_machine(self, machine):
         """bind this submission to a machine. update the machine's context remote_root and local_root.
@@ -181,11 +181,16 @@ class Submission(object):
             self.check_all_finished()
             self.handle_unexpected_submission_state()
 
+        ratio_unfinished = self.resources.strategy['ratio_unfinished']
         while not self.check_all_finished():
             if exit_on_submit is True:
                 dlog.info(f"submission succeeded: {self.submission_hash}")
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
+            if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
+                self.remove_unfinished_jobs()
+                break
+
             try:
                 time.sleep(30)
             except (Exception, KeyboardInterrupt, SystemExit) as e:
@@ -252,6 +257,30 @@ class Submission(object):
 
     # def update_submi
 
+    def check_ratio_unfinished(self, ratio_unfinished):
+        status_list = [job.job_state for job in self.belonging_jobs]
+        finished_num = status_list.count(JobStatus.finished)
+        if finished_num / len(self.belonging_jobs) < (1 - ratio_unfinished):
+            return False
+        else:
+            return True
+
+    def remove_unfinished_jobs(self):
+        removed_jobs = [job for job in self.belonging_jobs if job.job_state not in [JobStatus.finished]]
+        self.belonging_jobs = [job for job in self.belonging_jobs if job.job_state in [JobStatus.finished]]
+        for job in removed_jobs:
+            # kill unfinished jobs
+            try:
+                self.machine.context.kill(job.job_id)
+            except Exception as e:
+                dlog.info("Can not kill job %s" % job.job_id)
+
+            # remove unfinished tasks
+            import os,shutil
+            for task in job.job_task_list:
+                shutil.rmtree(os.path.join(self.machine.context.local_root, task.task_work_path), ignore_errors=True)
+            self.belonging_tasks = [task for task in self.belonging_tasks if task not in job.job_task_list]
+
     def check_all_finished(self):
         """check whether all the jobs in the submission.
 
@@ -282,11 +311,14 @@ class Submission(object):
         if self.belonging_jobs:
             raise RuntimeError(f'Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}')
         group_size = self.resources.group_size
-        if ( group_size < 1 ) or ( type(group_size) is not int ):
+        if ( group_size < 0 ) or ( type(group_size) is not int ):
             raise RuntimeError('group_size must be a positive number')
         task_num = len(self.belonging_tasks)
         if task_num == 0:
             raise RuntimeError("submission must have at least 1 task")
+        if group_size == 0:
+            # 0 means infinity
+            group_size = task_num
         random.seed(42)
         random_task_index = list(range(task_num))
         random.shuffle(random_task_index)
@@ -398,18 +430,27 @@ class Task(object):
         return str(self.serialize())
 
     def __eq__(self, other):
-        return self.serialize() == other.serialize()
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())
 
     def __getitem__(self, key):
         return self.serialize()[key]
 
     def get_hash(self):
-        return sha1(str(self.serialize()).encode('utf-8')).hexdigest()
+        return sha1(json.dumps(self.serialize()).encode('utf-8')).hexdigest()
 
     @classmethod
     def load_from_json(cls, json_file):
         with open(json_file, 'r') as f:
             task_dict = json.load(f)
+        return cls.load_from_dict(task_dict)
+
+    @classmethod
+    def load_from_dict(cls, task_dict: dict) -> "Task":
+        # check dict
+        base = cls.arginfo()
+        task_dict = base.normalize_value(task_dict, trim_pattern="_*")
+        base.check_value(task_dict, strict=False)
+
         task = cls.deserialize(task_dict=task_dict)
         return task
 
@@ -421,6 +462,7 @@ class Task(object):
         ----------
         task_dict : dict
             the dictionary which contains the task information
+
         Returns
         -------
         task : Task
@@ -503,7 +545,7 @@ class Job(object):
         """When check whether the two jobs are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the jobs.
         """
-        return self.serialize(if_static=True) == other.serialize(if_static=True)
+        return json.dumps(self.serialize(if_static=True)) == json.dumps(other.serialize(if_static=True))
 
     @classmethod
     def deserialize(cls, job_dict, machine=None):
@@ -559,11 +601,12 @@ class Job(object):
             if ( self.fail_count ) > 0 and ( self.fail_count % 3 == 0 ) :
                 raise RuntimeError(f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}")
             self.submit_job()
-            dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
-            time.sleep(0.2)
-            self.get_job_state()
-            dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
-            self.handle_unexpected_job_state()
+            if self.job_state != JobStatus.unsubmitted:
+                dlog.info("job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(job_hash=self.job_hash, job_id=self.job_id))
+                time.sleep(0.2)
+                self.get_job_state()
+                dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
+                self.handle_unexpected_job_state()
 
         if job_state == JobStatus.unsubmitted:
             dlog.debug(f"job: {self.job_hash} unsubmitted; submit it")
@@ -597,7 +640,7 @@ class Job(object):
         job_content_dict['job_task_list'] = [ task.serialize() for task in self.job_task_list ]
         job_content_dict['resources'] = self.resources.serialize()
         # job_content_dict['job_work_base'] = self.job_work_base
-        job_hash = sha1(str(job_content_dict).encode('utf-8')).hexdigest()
+        job_hash = sha1(json.dumps(job_content_dict).encode('utf-8')).hexdigest()
         if not if_static:
             job_content_dict['job_state'] = self.job_state
             job_content_dict['job_id'] = self.job_id
@@ -610,8 +653,8 @@ class Job(object):
 
     def submit_job(self):
         job_id = self.machine.do_submit(self)
+        self.register_job_id(job_id)
         if job_id:
-            self.register_job_id(job_id)
             self.job_state = JobStatus.waiting
         else:
             self.job_state = JobStatus.unsubmitted
@@ -644,6 +687,8 @@ class Resources(object):
             If there are multiple nvidia GPUS on the node, and we want to assign the tasks to different GPUS.
             If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.
             Usually, this option will be used with Task.task_need_resources variable simultaneously.
+        ratio_unfinished : float
+            The ratio of `jobs` that can be unfinished.
     para_deg : int
         Decide how many tasks will be run in parallel.
         Usually run with `strategy['if_cuda_multi_devices']`
@@ -695,14 +740,19 @@ class Resources(object):
         # if self.gpu_per_node > 1:
         # self.in_para_task_num = 0
 
+        if 'if_cuda_multi_devices' not in self.strategy:
+            self.strategy['if_cuda_multi_devices'] = default_strategy.get('if_cuda_multi_devices')
+        if 'ratio_unfinished' not in self.strategy:
+            self.strategy['ratio_unfinished'] = default_strategy.get('ratio_unfinished')
         if self.strategy['if_cuda_multi_devices'] is True:
             if gpu_per_node < 1:
                 raise RuntimeError("gpu_per_node can not be smaller than 1 when if_cuda_multi_devices is True")
             if number_node != 1:
                 raise RuntimeError("number_node must be 1 when if_cuda_multi_devices is True")
-
+        if self.strategy['ratio_unfinished'] >= 1.0:
+            raise RuntimeError("ratio_unfinished must be smaller than 1.0")
     def __eq__(self, other):
-        return self.serialize() == other.serialize()
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())
 
     def serialize(self):
         resources_dict = {}
@@ -731,7 +781,6 @@ class Resources(object):
                         gpu_per_node=resources_dict.get('gpu_per_node', 0),
                         queue_name=resources_dict.get('queue_name', ''),
                         group_size=resources_dict['group_size'],
-
                         custom_flags=resources_dict.get('custom_flags', []),
                         strategy=resources_dict.get('strategy', default_strategy),
                         para_deg=resources_dict.get('para_deg', 1),
@@ -757,15 +806,20 @@ class Resources(object):
 
     @classmethod
     def load_from_dict(cls, resources_dict):
+        # check dict
+        base = cls.arginfo(detail_kwargs='batch_type' in resources_dict)
+        resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
+        base.check_value(resources_dict, strict=False)
+
         return cls.deserialize(resources_dict=resources_dict)
 
     @staticmethod
-    def arginfo():
+    def arginfo(detail_kwargs=True):
         doc_number_node = 'The number of node need for each `job`'
         doc_cpu_per_node = 'cpu numbers of each node assigned to each job.'
         doc_gpu_per_node = 'gpu numbers of each node assigned to each job.'
         doc_queue_name = 'The queue name of batch job scheduler system.'
-        doc_group_size = 'The number of `tasks` in a `job`.'
+        doc_group_size = 'The number of `tasks` in a `job`. 0 means infinity.'
         doc_custom_flags = 'The extra lines pass to job submitting script header'
         doc_para_deg = 'Decide how many tasks will be run in parallel.'
         doc_source_list = 'The env file to be sourced before the command execution.'
@@ -776,7 +830,8 @@ class Resources(object):
         doc_wait_time = 'The waitting time in second after a single `task` submitted'
 
         strategy_args = [
-            Argument("if_cuda_multi_devices", bool, optional=True, default=True)
+            Argument("if_cuda_multi_devices", bool, optional=True, default=False),
+            Argument("ratio_unfinished", float, optional=True, default=0.0)
         ]
         doc_strategy = 'strategies we use to generation job submitting scripts.'
         strategy_format = Argument("strategy", dict, strategy_args, optional=True, doc=doc_strategy)
@@ -800,14 +855,23 @@ class Resources(object):
             Argument("wait_time", [int, float], optional=True, doc=doc_wait_time, default=0)
         ]
 
-        batch_variant = Variant(
-            "batch_type",
-            [machine.resources_arginfo() for machine in set(Machine.subclasses_dict.values())],
-            optional=False,
-            doc='The batch job system type loaded from machine/batch_type.',
-        )
+        if detail_kwargs:
+            batch_variant = Variant(
+                "batch_type",
+                [machine.resources_arginfo() for machine in set(Machine.subclasses_dict.values())],
+                optional=False,
+                doc='The batch job system type loaded from machine/batch_type.',
+            )
 
-        resources_format = Argument("resources", dict, resources_args, [batch_variant])
+            resources_format = Argument("resources", dict, resources_args, [batch_variant])
+        else:
+            resources_args.append(
+                Argument("kwargs", dict, optional=True, doc="Vary by different machines.")
+            )
+            resources_args.append(
+                Argument("batch_type", str, optional=True, doc="Allow this key when strict checking.")
+            )
+            resources_format = Argument("resources", dict, resources_args)
         return resources_format
 
 

@@ -1,0 +1,19 @@
+{
+  "number_node": 1,
+  "cpu_per_node": 48,
+  "gpu_per_node": 8,
+  "queue_name": "shell",
+  "group_size": 0,
+  "strategy": {
+    "if_cuda_multi_devices": true
+  },
+  "source_list": [
+    "activate /home/jz748/deepmd-kit"
+  ],
+  "envs": {
+    "OMP_NUM_THREADS": 1,
+    "TF_INTRA_OP_PARALLELISM_THREADS": 1,
+    "TF_INTER_OP_PARALLELISM_THREADS": 1
+  },
+  "para_deg": 6
+}

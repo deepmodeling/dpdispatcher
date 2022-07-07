@@ -1,6 +1,7 @@
 import os,sys,json,glob,shutil,uuid,getpass
 import unittest
 import pathlib
+import socket
 from paramiko.ssh_exception import NoValidConnectionsError
 from paramiko.ssh_exception import SSHException
 
@@ -17,7 +18,7 @@ class TestSSHContext(unittest.TestCase):
             mdata = json.load(f)
         try:
             cls.machine = Machine.load_from_dict(mdata['machine'])
-        except SSHException:
+        except (SSHException, socket.timeout):
             raise unittest.SkipTest("SSHException ssh cannot connect")
         cls.submission = SampleClass.get_sample_submission()
         cls.submission.bind_machine(cls.machine)

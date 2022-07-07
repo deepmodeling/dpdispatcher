@@ -22,6 +22,11 @@ DPDispatcher will monitor (poke) until these jobs finish and download the result
    task
    api/api
 
+.. toctree::
+   :caption: Examples
+   :glob:
+
+   examples/*
 
 Indices and tables
 ==================

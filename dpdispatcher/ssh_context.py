@@ -4,13 +4,15 @@
 from dpdispatcher.base_context import BaseContext
 import os, paramiko, tarfile, time
 import uuid
+import shutil
+from functools import lru_cache
 from glob import glob
 from dpdispatcher import dlog
 from dargs.dargs import Argument
 from typing import List
 import pathlib
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import get_sha256, generate_totp
+from dpdispatcher.utils import get_sha256, generate_totp, rsync
 
 class SSHSession (object):
     def __init__(self,
@@ -153,7 +155,8 @@ class SSHSession (object):
     def arginfo():
         doc_hostname = 'hostname or ip of ssh connection.'
         doc_username = 'username of target linux system'
-        doc_password = 'password of linux system'
+        doc_password = ('(deprecated) password of linux system. Please use '
+                        '`SSH keys <https://www.ssh.com/academy/ssh/key>`_ instead to improve security.')
         doc_port = 'ssh connection port.'
         doc_key_filename = 'key filename used by ssh connection. If left None, find key in ~/.ssh or ' \
                            'use password for login'
@@ -175,6 +178,27 @@ class SSHSession (object):
         ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
         return ssh_remote_profile_format
         
+    def put(self, from_f, to_f):
+        if self.rsync_available:
+            return rsync(from_f, self.remote + ":" + to_f)
+        return self.sftp.put(from_f, to_f)
+
+    def get(self, from_f, to_f):
+        if self.rsync_available:
+            return rsync(self.remote + ":" + from_f, to_f)
+        return self.sftp.get(from_f, to_f)
+
+    @property
+    @lru_cache(maxsize=None)
+    def rsync_available(self) -> bool:
+        return (shutil.which("rsync") is not None and self.password is None
+            and self.port == 22 and self.key_filename is None
+            and self.passphrase is None)
+
+    @property
+    def remote(self) -> str:
+        return "%s@%s" % (self.username, self.hostname)
+
 
 class SSHContext(BaseContext):
     def __init__ (self,
@@ -276,7 +300,7 @@ class SSHContext(BaseContext):
         # sftp = self.ssh_session.ssh.open_sftp() 
         # sftp.mkdir(self.remote_root)
         # sftp.close()
-        # except:
+        # except Exception:
         #     pass
 
     def _walk_directory(self, files, work_path, file_list, directory_list):
@@ -286,7 +310,7 @@ class SSHContext(BaseContext):
             if os.path.isfile(file_name):
                 file_list.append(file_name)
             elif os.path.isdir(file_name):
-                for root, dirs, files in os.walk(file_name, topdown=False):
+                for root, dirs, files in os.walk(file_name, topdown=False, followlinks=True):
                     if not files:
                         directory_list.append(root)
                     for name in files:
@@ -311,8 +335,9 @@ class SSHContext(BaseContext):
         try:
             self.ssh_session.sftp.mkdir(os.path.basename(self.remote_root))
         except OSError:
-            # mkdir failed meaning it exists, thus the job is recovered
-            recover = True
+            # mkdir failed meaning it exists
+            if len(self.ssh_session.sftp.listdir(os.path.basename(self.remote_root))):
+                recover = True
         self.ssh_session.sftp.chdir(None)
 
         cwd = os.getcwd()
@@ -339,12 +364,14 @@ class SSHContext(BaseContext):
             self.write_file(sha256_file, "\n".join(sha256_list))
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
-            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet || :" % sha256_file)
+            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet >.sha256sum_stdout 2>/dev/null || :" % sha256_file)
             self.sftp.remove(sha256_file)
             # regenerate file list
             file_list = []
-            for ii in stdout:
-                file_list.append(ii.split(":")[0])
+
+            for ii in self.read_file(".sha256sum_stdout").split("\n"):
+                if ii:
+                    file_list.append(ii.split(":")[0])
         else:
             # convert to relative path to local_root
             file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
@@ -517,7 +544,7 @@ class SSHContext(BaseContext):
         from_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         try:
-           self.sftp.put(from_f, to_f)
+           self.ssh_session.put(from_f, to_f)
         except FileNotFoundError:
            raise FileNotFoundError("from %s to %s @ %s : %s Error!"%(from_f, self.ssh_session.username, self.ssh_session.hostname, to_f))
         # remote extract
@@ -531,33 +558,21 @@ class SSHContext(BaseContext):
         of = self.submission.submission_hash + '.tar.gz'
         # remote tar
         # If the number of files are large, we may get "Argument list too long" error.
-        # Thus, we may run tar commands for serveral times and tar only 100 files for
-        # each time.
+        # Thus, "-T" accepts a file containing the list of files
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
             self.block_checkcall('tar czfh %s %s' % (of, " ".join(files)))
         else:
-            of_tar = self.submission.submission_hash + '.tar'
-            for ii in range(ntar):
-                ff = files[per_nfile * ii : per_nfile * (ii+1)]
-                if ii == 0:
-                    # tar cf for the first time
-                    self.block_checkcall('tar cfh %s %s' % (of_tar, " ".join(ff)))
-                else:
-                    # append using tar rf
-                    # -r, --append append files to the end of an archive
-                    self.block_checkcall('tar rfh %s %s' % (of_tar, " ".join(ff)))
-            # compress the tar file using gzip, and will get a tar.gz file
-            # overwrite considering dpgen may stop and restart
-            # -f, --force force overwrite of output file and compress links
-            self.block_checkcall('gzip -f %s' % of_tar)
+            file_list_file = os.path.join(self.remote_root, ".tmp.tar." + str(uuid.uuid4()))
+            self.write_file(file_list_file, "\n".join(files))
+            self.block_checkcall('tar czfh %s -T %s' % (of, file_list_file))
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         if os.path.isfile(to_f) :
             os.remove(to_f)
-        self.sftp.get(from_f, to_f)
+        self.ssh_session.get(from_f, to_f)
         # extract
         cwd = os.getcwd()
         os.chdir(self.local_root)

@@ -30,7 +30,9 @@ author = 'Deep Modeling'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'recommonmark',
+    'deepmodeling_sphinx',
+    'dargs.sphinx',
+    'myst_parser',
     "sphinx_rtd_theme",
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
@@ -71,14 +73,12 @@ def run_apidoc(_):
     module = os.path.join(cur_dir, "..", "dpdispatcher")
     main(['-M', '--tocfile', 'api', '-H', 'DPDispatcher API', '-o', os.path.join(cur_dir, "api"), module, '--force'])
 
-def generate_train_input(app):
-    subprocess.check_output((sys.executable, os.path.join("..", "scripts", "script_gen_dargs_docs.py")), universal_newlines=True)
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)
-    app.connect('builder-inited', generate_train_input)
 
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/", None),
+    "dargs": ("https://docs.deepmodeling.com/projects/dargs/en/latest/", None),
 }

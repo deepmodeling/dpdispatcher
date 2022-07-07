@@ -170,18 +170,8 @@ class API:
         # print('debug:upload_result:', result, dir())
         return result
 
-    def job_create(self, job_type, oss_path, input_data, program_id=None):
-        post_data = {
-            'job_type': job_type,
-            'oss_path': oss_path,
-            'input_data': input_data,
-        }
-        if program_id is not None:
-            post_data["program_id"] = program_id
-        ret = self.post('/data/insert_job', post_data)
-        return ret['job_id']
 
-    def job_create_v2(self, job_type, oss_path, input_data, program_id=None, group_id=None):
+    def job_create(self, job_type, oss_path, input_data, program_id=None, group_id=None):
         post_data = {
             'job_type': job_type,
             'oss_path': oss_path,
@@ -210,17 +200,7 @@ class API:
         )
         return ret['items']
 
-    def get_tasks(self, job_id, page=1, per_page=10):
-        ret = self.get(
-            f'data/job/{job_id}/tasks',
-            {
-                'page': page,
-                'per_page': per_page,
-            }
-        )
-        return ret['items']
-
-    def get_tasks_v2(self, job_id, group_id, page=1, per_page=10):
+    def get_tasks(self, job_id, group_id, page=1, per_page=10):
         ret = self.get(
             f'data/job/{group_id}/tasks',
             {
@@ -230,12 +210,12 @@ class API:
         )
         for each in ret['items']:
             if job_id == each["task_id"]:
-                return [each]
+                return each
         if len(ret['items']) != 0:
-            return self.get_tasks_v2(job_id, group_id, page=page + 1)
-        return []
+            return self.get_tasks(job_id, group_id, page=page + 1)
+        return None
 
-    def get_tasks_v2_list(self, group_id, per_page=30):
+    def get_tasks_list(self, group_id, per_page=30):
         result = []
         page = 0
         while True:
@@ -252,5 +232,39 @@ class API:
                 result.append(each)
             page += 1
         return result
+
+    def check_job_has_uploaded(self, job_id):
+        try:
+            if not job_id:
+                return False
+            if 'job_group_id' in job_id:
+                ids = job_id.split(":job_group_id:")
+                job_id, _ = int(ids[0]), int(ids[1])
+            ret = self.get(f'data/job/{job_id}', {})
+            if len(ret) == 0:
+                return False
+            if ret.get('input_data'):
+                return True
+            else:
+                return False
+        except ValueError as e:
+            dlog.error(e)
+            return False
+
+    def get_job_result_url(self, job_id):
+        try:
+            if not job_id:
+                return None
+            if 'job_group_id' in job_id:
+                ids = job_id.split(":job_group_id:")
+                job_id, _ = int(ids[0]), int(ids[1])
+            ret = self.get(f'data/job/{job_id}', {})
+            if 'result_url' in ret and len(ret['result_url']) != 0:
+                return ret.get('result_url')
+            else:
+                return None
+        except ValueError as e:
+            dlog.error(e)
+            return None
 
 # %%

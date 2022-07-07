@@ -2,14 +2,14 @@
 
 DPDispatcher provides the following classes:
 
-- `Task` class, which represents a command to be run on batch job system, as well as the essential files need by the command.
-- `Submission` class, which represents a collection of jobs defined by the HPC system.
+- {class}`Task <dpdispatcher.submission.Task>` class, which represents a command to be run on batch job system, as well as the essential files need by the command.
+- {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a collection of jobs defined by the HPC system.
 And there may be common files to be uploaded by them.
-DPDispatcher will create and submit these jobs when a `submission` instance execute `run_submission` method.
+DPDispatcher will create and submit these jobs when a `submission` instance execute {meth}`run_submission <dpdispatcher.submission.Submission.run_submission>` method.
 This method will poke until the jobs finish and return.  
-- `Job` class, a class used by `Submission` class, which represents a job on the HPC system. 
-`Submission` will generate `job`s' submitting scripts used by HPC systems automatically with the `Task` and `Resources`
-- `Resources` class, which represents the computing resources for each job  within a `submission`.
+- {class}`Job <dpdispatcher.submission.Job>` class, a class used by {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a job on the HPC system. 
+{class}`Submission <dpdispatcher.submission.Submission>` will generate `job`s' submitting scripts used by HPC systems automatically with the {class}`Task <dpdispatcher.submission.Task>` and {class}`Resources <dpdispatcher.submission.Resources>`
+- {class}`Resources <dpdispatcher.submission.Resources>` class, which represents the computing resources for each job  within a `submission`.
 
 You can use DPDispatcher in a Python script to submit five tasks:
 
@@ -30,7 +30,7 @@ task_list = [task0, task1, task2, task3, task4]
 
 submission = Submission(work_base='lammps_md_300K_5GPa/',
     machine=machine, 
-    resources=reasources,
+    resources=resources,
     task_list=task_list,
     forward_common_files=['graph.pb'], 
     backward_common_files=[]

@@ -1,0 +1,12 @@
+{
+  "batch_type": "Slurm",
+  "local_root": "./",
+  "remote_root": "/expanse/lustre/scratch/njzjz/temp_project/dpgen_workdir",
+  "clean_asynchronously": true,
+  "context_type": "SSHContext",
+  "remote_profile": {
+    "hostname": "login.expanse.sdsc.edu",
+    "username": "njzjz",
+    "port": 22
+  }
+}
