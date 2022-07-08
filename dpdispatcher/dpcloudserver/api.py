@@ -245,8 +245,7 @@ class API:
             if len(ret) == 0:
                 return False
             if ret.get('input_data'):
-                resp = requests.head(ret.get('input_data'))
-                return self.check_file_has_uploaded(resp)
+                return self.check_file_has_uploaded(ret.get('input_data'))
             else:
                 return False
         except ValueError as e:
@@ -255,6 +254,8 @@ class API:
 
     def check_file_has_uploaded(self, file_url):
         try:
+            if not file_url:
+                return False
             resp = requests.head(file_url)
             if resp.ok:
                 return True
