@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from dpdispatcher.ssh_context import SSHSession
 import json
 from dargs import Argument, Variant
-from typing import List
+from typing import List, Union
 import pathlib
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
@@ -124,7 +124,7 @@ class Machine(metaclass=ABCMeta):
         # check dict
         base = cls.arginfo()
         machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
-        base.check_value(machine_dict, strict=True)
+        base.check_value(machine_dict, strict=False)
 
         context = BaseContext.load_from_dict(machine_dict)
         machine = machine_class(context=context)
@@ -333,7 +333,7 @@ class Machine(metaclass=ABCMeta):
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
             # TODO: add default to local_root and remote_root after refactor the code
-            Argument("local_root", str, optional=False, doc=doc_local_root),
+            Argument("local_root", [str, None], optional=False, doc=doc_local_root),
             Argument("remote_root", str, optional=True, doc=doc_remote_root),
             Argument("clean_asynchronously", bool, optional=True, default=False, doc=doc_clean_asynchronously),
         ]
