@@ -838,7 +838,7 @@ class Resources(object):
 
         resources_args = [
             Argument("number_node", int, optional=True, doc=doc_number_node, default=1),
-            Argument("cpu_per_node", int, optional=True, doc=doc_cpu_per_node, default=0),
+            Argument("cpu_per_node", int, optional=True, doc=doc_cpu_per_node, default=1),
             Argument("gpu_per_node", int, optional=True, doc=doc_gpu_per_node, default=0),
             Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
