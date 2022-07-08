@@ -15,6 +15,8 @@ from dpdispatcher import dlog
 from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST
 
+ENABLE_STACK = True
+
 
 class API:
     def __init__(self, email, password):
@@ -35,12 +37,13 @@ class API:
                     headers=headers
                 )
             except Exception as e:
-                dlog.error(f"request error {e}")
+                dlog.error(f"request error {e}", stack_info=ENABLE_STACK)
                 continue
             if ret.ok:
                 break
             else:
-                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}")
+                dlog.error(f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}",
+                           stack_info=ENABLE_STACK)
                 time.sleep(retry_count * 10)
         if ret is None:
             raise ConnectionError("request fail")
@@ -69,7 +72,7 @@ class API:
                     headers=headers
                 )
             except Exception as e:
-                dlog.error(f"request error {e}")
+                dlog.error(f"request error {e}", stack_info=ENABLE_STACK)
                 continue
             if ret.ok:
                 break
@@ -132,7 +135,7 @@ class API:
                     stream=True
                 )
             except Exception as e:
-                dlog.error(f"request error {e}")
+                dlog.error(f"request error {e}", stack_info=ENABLE_STACK)
                 continue
             if ret.ok:
                 break
@@ -146,7 +149,6 @@ class API:
                 for chunk in ret.iter_content(chunk_size=8192):
                     f.write(chunk)
             ret.close()
-
 
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}")
@@ -169,7 +171,6 @@ class API:
         result = bucket.complete_multipart_upload(oss_task_zip, upload_id, parts)
         # print('debug:upload_result:', result, dir())
         return result
-
 
     def job_create(self, job_type, oss_path, input_data, program_id=None, group_id=None):
         post_data = {
@@ -249,7 +250,7 @@ class API:
             else:
                 return False
         except ValueError as e:
-            dlog.error(e)
+            dlog.error(e, stack_info=ENABLE_STACK)
             return False
 
     def check_file_has_uploaded(self, file_url):
@@ -259,7 +260,7 @@ class API:
                 return True
             return False
         except ValueError as e:
-            dlog.error(e)
+            dlog.error(e, stack_info=ENABLE_STACK)
             return False
 
     def get_job_result_url(self, job_id):
@@ -275,7 +276,7 @@ class API:
             else:
                 return None
         except ValueError as e:
-            dlog.error(e)
+            dlog.error(e, stack_info=ENABLE_STACK)
             return None
 
 # %%
