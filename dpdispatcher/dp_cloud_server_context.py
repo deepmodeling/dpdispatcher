@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
+import time
 import uuid
 
 from dargs.dargs import Argument
@@ -88,6 +89,7 @@ class DpCloudServerContext(BaseContext):
             return path
 
     def upload_job(self, job, common_files=None):
+        MAX_RETRY = 3
         if common_files is None:
             common_files = []
         self.machine.gen_local_script(job)
@@ -111,9 +113,17 @@ class DpCloudServerContext(BaseContext):
             zip_task_file,
             file_list=upload_file_list
         )
-        if not self.api.check_file_has_uploaded(ALI_OSS_BUCKET_URL + oss_task_zip):
-            self._backup(self.local_root, upload_zip)
         result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
+        retry_count = 0
+        while True:
+            if self.api.check_file_has_uploaded(ALI_OSS_BUCKET_URL + oss_task_zip):
+                self._backup(self.local_root, upload_zip)
+                break
+            elif retry_count < MAX_RETRY:
+                time.sleep(1 + retry_count)
+                retry_count += 1
+            else:
+                raise ValueError(f"upload retried excess {MAX_RETRY} terminate.")
 
     def upload(self, submission):
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
