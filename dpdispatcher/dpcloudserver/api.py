@@ -13,9 +13,9 @@ from urllib.parse import urljoin
 from dpdispatcher import dlog
 
 from .retcode import RETCODE
-from .config import HTTP_TIME_OUT, API_HOST
+from .config import HTTP_TIME_OUT, API_HOST, API_LOGGER_STACK_INFO
 
-ENABLE_STACK = True
+ENABLE_STACK = True if API_LOGGER_STACK_INFO else False
 
 
 class API:
@@ -259,7 +259,7 @@ class API:
             if resp.ok:
                 return True
             return False
-        except ValueError as e:
+        except Exception as e:
             dlog.error(e, stack_info=ENABLE_STACK)
             return False
 
