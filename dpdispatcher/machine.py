@@ -334,7 +334,7 @@ class Machine(metaclass=ABCMeta):
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
             # TODO: add default to local_root and remote_root after refactor the code
             Argument("local_root", [str, None], optional=False, doc=doc_local_root),
-            Argument("remote_root", str, optional=True, doc=doc_remote_root),
+            Argument("remote_root", [str, None], optional=True, doc=doc_remote_root),
             Argument("clean_asynchronously", bool, optional=True, default=False, doc=doc_clean_asynchronously),
         ]
 

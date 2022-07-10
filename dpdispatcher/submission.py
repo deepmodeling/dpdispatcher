@@ -837,10 +837,10 @@ class Resources(object):
         strategy_format = Argument("strategy", dict, strategy_args, optional=True, doc=doc_strategy)
 
         resources_args = [
-            Argument("number_node", int, optional=False, doc=doc_number_node),
-            Argument("cpu_per_node", int, optional=False, doc=doc_cpu_per_node),
-            Argument("gpu_per_node", int, optional=False, doc=doc_gpu_per_node),
-            Argument("queue_name", str, optional=False, doc=doc_queue_name),
+            Argument("number_node", int, optional=True, doc=doc_number_node, default=1),
+            Argument("cpu_per_node", int, optional=True, doc=doc_cpu_per_node, default=1),
+            Argument("gpu_per_node", int, optional=True, doc=doc_gpu_per_node, default=0),
+            Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
 
             Argument("custom_flags", list, optional=True, doc=doc_custom_flags),
