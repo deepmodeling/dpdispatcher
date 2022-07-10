@@ -127,13 +127,13 @@ class Submission(object):
 
     def register_task(self, task):
         if self.belonging_jobs:
-            raise RuntimeError("Not allowed to register tasks after generating jobs."
+            raise RuntimeError("Not allowed to register tasks after generating jobs. "
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
-            raise RuntimeError("Not allowed to register tasks after generating jobs."
+            raise RuntimeError("Not allowed to register tasks after generating jobs. "
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.extend(task_list)
 
@@ -242,8 +242,8 @@ class Submission(object):
                 f"Meet errors will handle unexpected submission state.\n"
                 f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
-                f"Please check the dirs and scripts in remote_root"
-                f"The job information mentioned above may help"
+                f"Please check the dirs and scripts in remote_root. "
+                f"The job information mentioned above may help."
             ) from e
 
     # not used here, submitting job is in handle_unexpected_submission_state.
