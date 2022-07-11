@@ -1,6 +1,6 @@
 
 # %%
-import time,random,uuid,json,copy
+import time,random,uuid,json,copy,os
 from dargs.dargs import Argument, Variant
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
@@ -43,6 +43,8 @@ class Submission(object):
         # self.submission_list = submission_list
         self.local_root = None
         self.work_base = work_base
+        self._abs_work_base = os.path.abspath(work_base)
+
         self.resources = resources
         self.forward_common_files= forward_common_files
         self.backward_common_files = backward_common_files
@@ -114,6 +116,7 @@ class Submission(object):
         #     submission_dict['local_root'] = self.local_root
 
         submission_dict['work_base'] = self.work_base
+        submission_dict['_abs_work_base'] = self._abs_work_base
         machine = getattr(self, 'machine', None)
         if machine is None:
             submission_dict['machine'] = {}

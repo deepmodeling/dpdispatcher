@@ -3,17 +3,17 @@
         "batch_type": "PBS",
         "context_type": "SSHContext",
         "local_root": "./test_context_dir",
-        "remote_root": "/home/fengbo/work_path_dpdispatcher_test",
+        "remote_root": "/home/yuanfengbo/work_path_dpdispatcher_test",
         "remote_profile": {
-            "hostname": "39.106.84.25",
-            "username": "fengbo"
+            "hostname": "39.103.186.143",
+            "username": "yuanfengbo"
         }
     },
     "resources":{
         "number_node": 1,
-        "cpu_per_node": 4,
+        "cpu_per_node": 8,
         "gpu_per_node": 1,
-        "queue_name": "T4_4_15",
+        "queue_name": "V100_8_32",
         "group_size": 5
     }
 }

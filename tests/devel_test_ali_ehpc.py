@@ -28,7 +28,7 @@ submission = SampleClass.get_sample_submission()
 # pbs = SampleClass.get_sample_pbs_local_context()
 # slurm = SampleClass.get_sample_slurm_local_context()
 
-with open('jsons/compute_ali_ehpc.json', 'r') as f:
+with open('jsons/machine_ali_ehpc.json', 'r') as f:
     compute_dict = json.load(f)
 
 machine = Machine.load_from_dict(compute_dict['machine'])
