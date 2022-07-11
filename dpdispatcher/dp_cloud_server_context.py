@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
+import time
 import uuid
 
 from dargs.dargs import Argument
@@ -14,7 +15,10 @@ from .dpcloudserver.api import API
 from .dpcloudserver import zip_file
 import shutil
 import tqdm
+
 # from zip_file import zip_files
+from .dpcloudserver.config import ALI_OSS_BUCKET_URL
+
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser('~'),
     '.dpdispatcher/',
@@ -23,14 +27,15 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 ENDPOINT = 'http://oss-cn-shenzhen.aliyuncs.com'
 BUCKET_NAME = 'dpcloudserver'
 
+
 class DpCloudServerContext(BaseContext):
-    def __init__ (self,
-        local_root,
-        remote_root=None,
-        remote_profile={},
-        *args,
-        **kwargs,
-    ):
+    def __init__(self,
+                 local_root,
+                 remote_root=None,
+                 remote_profile={},
+                 *args,
+                 **kwargs,
+                 ):
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
@@ -83,6 +88,43 @@ class DpCloudServerContext(BaseContext):
             setattr(job, 'upload_path', path)
             return path
 
+    def upload_job(self, job, common_files=None):
+        MAX_RETRY = 3
+        if common_files is None:
+            common_files = []
+        self.machine.gen_local_script(job)
+        zip_filename = job.job_hash + '.zip'
+        oss_task_zip = self._gen_oss_path(job, zip_filename)
+        zip_task_file = os.path.join(self.local_root, zip_filename)
+
+        upload_file_list = [job.script_file_name, ]
+        upload_file_list.extend(common_files)
+
+        for task in job.job_task_list:
+            for file in task.forward_files:
+                upload_file_list.append(
+                    os.path.join(
+                        task.task_work_path, file
+                    )
+                )
+
+        upload_zip = zip_file.zip_file_list(
+            self.local_root,
+            zip_task_file,
+            file_list=upload_file_list
+        )
+        result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
+        retry_count = 0
+        while True:
+            if self.api.check_file_has_uploaded(ALI_OSS_BUCKET_URL + oss_task_zip):
+                self._backup(self.local_root, upload_zip)
+                break
+            elif retry_count < MAX_RETRY:
+                time.sleep(1 + retry_count)
+                retry_count += 1
+            else:
+                raise ValueError(f"upload retried excess {MAX_RETRY} terminate.")
+
     def upload(self, submission):
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
@@ -100,30 +142,8 @@ class DpCloudServerContext(BaseContext):
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")
             return result
-        for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format):
-            self.machine.gen_local_script(job)
-            zip_filename = job.job_hash + '.zip'
-            oss_task_zip = self._gen_oss_path(job, zip_filename)
-            zip_task_file = os.path.join(self.local_root, zip_filename)
-
-            upload_file_list = [job.script_file_name, ]
-            upload_file_list.extend(submission.forward_common_files)
-
-            for task in job.job_task_list:
-                for file in task.forward_files:
-                    upload_file_list.append(
-                        os.path.join(
-                            task.task_work_path, file
-                        )
-                    )
-
-            upload_zip = zip_file.zip_file_list(
-                self.local_root,
-                zip_task_file,
-                file_list=upload_file_list
-            )
-            result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
-            self._backup(self.local_root, upload_zip)
+        for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format, leave=False):
+            self.upload_job(job, submission.forward_common_files)
         return result
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
@@ -151,7 +171,8 @@ class DpCloudServerContext(BaseContext):
                         job_hash = job_hashs[each['task_id']]
                     job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
-        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Validating download file from Lebesgue", bar_format=bar_format):
+        for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Validating download file from Lebesgue",
+                                        bar_format=bar_format, leave=False):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             if self._check_if_job_has_already_downloaded(target_result_zip, self.local_root):
@@ -234,7 +255,7 @@ class DpCloudServerContext(BaseContext):
     #         retcode = cmd_pipes['stdout'].channel.recv_exit_status()
     #         return retcode, cmd_pipes['stdout'], cmd_pipes['stderr']
 
-    def kill(self, cmd_pipes) :
+    def kill(self, cmd_pipes):
         pass
 
     @classmethod
@@ -251,6 +272,7 @@ class DpCloudServerContext(BaseContext):
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
             Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("keep_backup", bool, optional=True, doc="keep download and upload zip"),
             Argument("input_data", dict, optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
 
@@ -258,4 +280,4 @@ class DpCloudServerContext(BaseContext):
 class LebesgueContext(DpCloudServerContext):
     pass
 
-#%%
+# %%

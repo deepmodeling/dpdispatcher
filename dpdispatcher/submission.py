@@ -130,13 +130,13 @@ class Submission(object):
 
     def register_task(self, task):
         if self.belonging_jobs:
-            raise RuntimeError("Not allowed to register tasks after generating jobs."
+            raise RuntimeError("Not allowed to register tasks after generating jobs. "
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
-            raise RuntimeError("Not allowed to register tasks after generating jobs."
+            raise RuntimeError("Not allowed to register tasks after generating jobs. "
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.extend(task_list)
 
@@ -245,8 +245,8 @@ class Submission(object):
                 f"Meet errors will handle unexpected submission state.\n"
                 f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
-                f"Please check the dirs and scripts in remote_root"
-                f"The job information mentioned above may help"
+                f"Please check the dirs and scripts in remote_root. "
+                f"The job information mentioned above may help."
             ) from e
 
     # not used here, submitting job is in handle_unexpected_submission_state.
@@ -840,10 +840,10 @@ class Resources(object):
         strategy_format = Argument("strategy", dict, strategy_args, optional=True, doc=doc_strategy)
 
         resources_args = [
-            Argument("number_node", int, optional=False, doc=doc_number_node),
-            Argument("cpu_per_node", int, optional=False, doc=doc_cpu_per_node),
-            Argument("gpu_per_node", int, optional=False, doc=doc_gpu_per_node),
-            Argument("queue_name", str, optional=False, doc=doc_queue_name),
+            Argument("number_node", int, optional=True, doc=doc_number_node, default=1),
+            Argument("cpu_per_node", int, optional=True, doc=doc_cpu_per_node, default=1),
+            Argument("gpu_per_node", int, optional=True, doc=doc_gpu_per_node, default=0),
+            Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
 
             Argument("custom_flags", list, optional=True, doc=doc_custom_flags),

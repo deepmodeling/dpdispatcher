@@ -90,7 +90,7 @@ class DpCloudServer(Machine):
         input_data['command'] = f"bash {job.script_file_name}"
         # input_data['backward_files'] = self._gen_backward_files_list(job)
         if self.context.remote_profile.get('program_id') is None:
-            warnings.warn('program_id will be compulsory in the future.')
+            warnings.warn('program_id is compulsory.')
         job_id, group_id = self.api.job_create(
             job_type=input_data['job_type'],
             oss_path=input_data['job_resources'],
@@ -124,13 +124,13 @@ class DpCloudServer(Machine):
         try:
             dp_job_status = check_return["status"]
         except IndexError as e:
-            dlog.error(f"cannot find job information in check_return. job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
+            dlog.error(f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
             time.sleep(60)
             retry_return = self.api.get_tasks(job_id, group_id)
             try:
                 dp_job_status = retry_return["status"]
             except IndexError as e:
-                raise RuntimeError(f"cannot find job information in dpcloudserver's database for job {job.job_id} {check_return} {retry_return}")
+                raise RuntimeError(f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}")
 
         job_state = self.map_dp_job_state(dp_job_status)
         if job_state == JobStatus.finished:
