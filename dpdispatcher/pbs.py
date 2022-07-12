@@ -114,3 +114,16 @@ class Torque(PBS):
                 return JobStatus.terminated
         else :
             return JobStatus.unknown
+
+    def gen_script_header(self, job):
+        # ref: https://support.adaptivecomputing.com/wp-content/uploads/2021/02/torque/torque.htm#topics/torque/2-jobs/requestingRes.htm
+        resources = job.resources
+        pbs_script_header_dict= {}
+        pbs_script_header_dict['select_node_line']="#PBS -l nodes={number_node}:ppn={cpu_per_node}".format(
+            number_node=resources.number_node, cpu_per_node=resources.cpu_per_node
+        )
+        if (resources.gpu_per_node != 0):
+            pbs_script_header_dict['select_node_line'] += ":gpus={gpu_per_node}".format(gpu_per_node=resources.gpu_per_node)
+        pbs_script_header_dict['queue_name_line']="#PBS -q {queue_name}".format(queue_name=resources.queue_name)
+        pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+        return pbs_script_header
