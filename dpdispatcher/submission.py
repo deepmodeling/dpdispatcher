@@ -44,8 +44,12 @@ class Submission(object):
         self.local_root = None
         self.work_base = work_base
         self.resources = resources
-        self.forward_common_files= forward_common_files
-        self.backward_common_files = backward_common_files
+        self.forward_common_files = sorted(forward_common_files) \
+            if isinstance(forward_common_files, list) \
+            else forward_common_files
+        self.backward_common_files = sorted(backward_common_files) \
+            if isinstance(backward_common_files, list) \
+            else backward_common_files
 
         self.submission_hash = None
         # warning: can not remote .copy() or there will be bugs
