@@ -1,3 +1,5 @@
+import time
+
 from dpdispatcher.machine import Machine
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
@@ -62,14 +64,25 @@ class LSF(Machine):
 
         return lsf_script_header
 
-    def do_submit(self, job):
+    def do_submit(self, job, retry=0, max_retry=3):
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + '_job_id'
         self.context.write_file(fname=script_file_name, write_str=script_str)
-        stdin, stdout, stderr = self.context.block_checkcall(
-            'cd %s && %s %s' % (self.context.remote_root, 'bsub < ', script_file_name)
-        )
+        
+        try:
+            stdin, stdout, stderr = self.context.block_call(
+                'cd %s && %s %s' % (self.context.remote_root, 'bsub < ', script_file_name)
+            )
+        except RuntimeError as e:
+            err_str = stderr.read().decode('utf-8')
+            if retry < max_retry:
+                dlog.warning(e)
+                dlog.warning("Sleep 60 s and retry submitting...")
+                # rest 60s
+                time.sleep(60)
+                return self.do_submit(job, retry=retry+1, max_retry=max_retry)
+
         subret = (stdout.readlines())
         job_id = subret[0].split()[1][1:-1]
         self.context.write_file(job_id_name, job_id)
@@ -85,7 +98,7 @@ class LSF(Machine):
     def sub_script_head(self, res):
         pass
 
-    def check_status(self, job):
+    def check_status(self, job, retry=0, max_retry=3):
         try:
             job_id = job.job_id
         except AttributeError:
@@ -101,6 +114,14 @@ class LSF(Machine):
             else:
                 return JobStatus.terminated
         elif ret != 0:
+            # just retry when any unknown error raised.
+            if retry < max_retry:
+                dlog.warning("Get error code %d in checking status through ssh with job: %s . message: %s" %
+                    (ret, job.job_hash, err_str))
+                dlog.warning("Sleep 60 s and retry checking...")
+                # rest 60s
+                time.sleep(60)
+                return self.check_status(job, retry=retry + 1, max_retry=max_retry)
             raise RuntimeError("status command bjobs fails to execute.\n error info: %s \nreturn code %d\n"
                                % (err_str, ret))
         status_out = stdout.read().decode('utf-8').split('\n')
