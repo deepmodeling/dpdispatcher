@@ -74,14 +74,14 @@ class LSF(Machine):
             stdin, stdout, stderr = self.context.block_call(
                 'cd %s && %s %s' % (self.context.remote_root, 'bsub < ', script_file_name)
             )
-        except RuntimeError as e:
-            err_str = stderr.read().decode('utf-8')
+        except RuntimeError as err:
             if retry < max_retry:
-                dlog.warning(e)
+                dlog.warning(err)
                 dlog.warning("Sleep 60 s and retry submitting...")
                 # rest 60s
                 time.sleep(60)
                 return self.do_submit(job, retry=retry+1, max_retry=max_retry)
+            raise
 
         subret = (stdout.readlines())
         job_id = subret[0].split()[1][1:-1]
