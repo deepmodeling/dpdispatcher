@@ -71,7 +71,7 @@ class LSF(Machine):
         self.context.write_file(fname=script_file_name, write_str=script_str)
         
         try:
-            stdin, stdout, stderr = self.context.block_call(
+            stdin, stdout, stderr = self.context.block_checkcall(
                 'cd %s && %s %s' % (self.context.remote_root, 'bsub < ', script_file_name)
             )
         except RuntimeError as err:
