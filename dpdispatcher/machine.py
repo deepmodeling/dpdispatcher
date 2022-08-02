@@ -1,8 +1,9 @@
 
+from abc import ABCMeta, abstractmethod
 from dpdispatcher.ssh_context import SSHSession
 import json
 from dargs import Argument, Variant
-from typing import List
+from typing import List, Union
 import pathlib
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
@@ -45,7 +46,7 @@ FLAG_IF_JOB_TASK_FAIL=$(cat {flag_if_job_task_fail})
 if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1;fi
 """
 
-class Machine(object):
+class Machine(metaclass=ABCMeta):
     """A machine is used to handle the connection with remote machines.
 
     Parameters
@@ -123,7 +124,7 @@ class Machine(object):
         # check dict
         base = cls.arginfo()
         machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
-        base.check_value(machine_dict, strict=True)
+        base.check_value(machine_dict, strict=False)
 
         context = BaseContext.load_from_dict(machine_dict)
         machine = machine_class(context=context)
@@ -149,11 +150,12 @@ class Machine(object):
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
+    @abstractmethod
     def check_status(self, job) :
         raise NotImplementedError('abstract method check_status should be implemented by derived class')        
-        
+
     def default_resources(self, res) :
-        raise NotImplementedError('abstract method sub_script_head should be implemented by derived class')        
+        raise NotImplementedError('abstract method default_resources should be implemented by derived class')        
 
     def sub_script_head(self, res) :
         raise NotImplementedError('abstract method sub_script_head should be implemented by derived class')        
@@ -161,6 +163,7 @@ class Machine(object):
     def sub_script_cmd(self, res):
         raise NotImplementedError('abstract method sub_script_cmd should be implemented by derived class')        
 
+    @abstractmethod
     def do_submit(self, job):
         '''
         submit a single job, assuming that no job is running there.
@@ -188,9 +191,11 @@ class Machine(object):
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 
+    @abstractmethod
     def check_finish_tag(self, **kwargs):
         raise NotImplementedError('abstract method check_finish_tag should be implemented by derived class')        
 
+    @abstractmethod
     def gen_script_header(self, job):
         raise NotImplementedError('abstract method gen_script_header should be implemented by derived class')
 
@@ -328,8 +333,8 @@ class Machine(object):
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
             # TODO: add default to local_root and remote_root after refactor the code
-            Argument("local_root", str, optional=False, doc=doc_local_root),
-            Argument("remote_root", str, optional=True, doc=doc_remote_root),
+            Argument("local_root", [str, None], optional=False, doc=doc_local_root),
+            Argument("remote_root", [str, None], optional=True, doc=doc_remote_root),
             Argument("clean_asynchronously", bool, optional=True, default=False, doc=doc_clean_asynchronously),
         ]
 

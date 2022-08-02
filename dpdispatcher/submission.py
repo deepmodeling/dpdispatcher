@@ -1,6 +1,6 @@
 
 # %%
-import time,random,uuid,json,copy
+import time,random,uuid,json,copy,os
 from dargs.dargs import Argument, Variant
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
@@ -43,9 +43,15 @@ class Submission(object):
         # self.submission_list = submission_list
         self.local_root = None
         self.work_base = work_base
+        self._abs_work_base = os.path.abspath(work_base)
+
         self.resources = resources
-        self.forward_common_files= forward_common_files
-        self.backward_common_files = backward_common_files
+        self.forward_common_files = sorted(forward_common_files) \
+            if isinstance(forward_common_files, list) \
+            else forward_common_files
+        self.backward_common_files = sorted(backward_common_files) \
+            if isinstance(backward_common_files, list) \
+            else backward_common_files
 
         self.submission_hash = None
         # warning: can not remote .copy() or there will be bugs
@@ -114,6 +120,7 @@ class Submission(object):
         #     submission_dict['local_root'] = self.local_root
 
         submission_dict['work_base'] = self.work_base
+        submission_dict['_abs_work_base'] = self._abs_work_base
         machine = getattr(self, 'machine', None)
         if machine is None:
             submission_dict['machine'] = {}
@@ -127,13 +134,13 @@ class Submission(object):
 
     def register_task(self, task):
         if self.belonging_jobs:
-            raise RuntimeError("Not allowed to register tasks after generating jobs."
+            raise RuntimeError("Not allowed to register tasks after generating jobs. "
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
-            raise RuntimeError("Not allowed to register tasks after generating jobs."
+            raise RuntimeError("Not allowed to register tasks after generating jobs. "
                     "submission hash error {self}".format(self=self))
         self.belonging_tasks.extend(task_list)
 
@@ -242,8 +249,8 @@ class Submission(object):
                 f"Meet errors will handle unexpected submission state.\n"
                 f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
-                f"Please check the dirs and scripts in remote_root"
-                f"The job information mentioned above may help"
+                f"Please check the dirs and scripts in remote_root. "
+                f"The job information mentioned above may help."
             ) from e
 
     # not used here, submitting job is in handle_unexpected_submission_state.
@@ -449,7 +456,7 @@ class Task(object):
         # check dict
         base = cls.arginfo()
         task_dict = base.normalize_value(task_dict, trim_pattern="_*")
-        base.check_value(task_dict, strict=True)
+        base.check_value(task_dict, strict=False)
 
         task = cls.deserialize(task_dict=task_dict)
         return task
@@ -462,6 +469,7 @@ class Task(object):
         ----------
         task_dict : dict
             the dictionary which contains the task information
+
         Returns
         -------
         task : Task
@@ -808,7 +816,7 @@ class Resources(object):
         # check dict
         base = cls.arginfo(detail_kwargs='batch_type' in resources_dict)
         resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
-        base.check_value(resources_dict, strict=True)
+        base.check_value(resources_dict, strict=False)
 
         return cls.deserialize(resources_dict=resources_dict)
 
@@ -836,10 +844,10 @@ class Resources(object):
         strategy_format = Argument("strategy", dict, strategy_args, optional=True, doc=doc_strategy)
 
         resources_args = [
-            Argument("number_node", int, optional=False, doc=doc_number_node),
-            Argument("cpu_per_node", int, optional=False, doc=doc_cpu_per_node),
-            Argument("gpu_per_node", int, optional=False, doc=doc_gpu_per_node),
-            Argument("queue_name", str, optional=False, doc=doc_queue_name),
+            Argument("number_node", int, optional=True, doc=doc_number_node, default=1),
+            Argument("cpu_per_node", int, optional=True, doc=doc_cpu_per_node, default=1),
+            Argument("gpu_per_node", int, optional=True, doc=doc_gpu_per_node, default=0),
+            Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
 
             Argument("custom_flags", list, optional=True, doc=doc_custom_flags),
