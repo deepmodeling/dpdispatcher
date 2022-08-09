@@ -835,10 +835,14 @@ class Resources(object):
         doc_module_list = 'The modules to be loaded on HPC system before submitting jobs'
         doc_envs = 'The environment variables to be exported on before submitting jobs'
         doc_wait_time = 'The waitting time in second after a single `task` submitted'
+        doc_if_cuda_multi_devices = ('If there are multiple nvidia GPUS on the node, and we want to assign the tasks to different GPUS.'
+            'If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.'
+            'Usually, this option will be used with Task.task_need_resources variable simultaneously.')
+        doc_ratio_unfinished = 'The ratio of `jobs` that can be unfinished.'
 
         strategy_args = [
-            Argument("if_cuda_multi_devices", bool, optional=True, default=False),
-            Argument("ratio_unfinished", float, optional=True, default=0.0)
+            Argument("if_cuda_multi_devices", bool, optional=True, default=False, doc=doc_if_cuda_multi_devices),
+            Argument("ratio_unfinished", float, optional=True, default=0.0, doc=doc_ratio_unfinished),
         ]
         doc_strategy = 'strategies we use to generation job submitting scripts.'
         strategy_format = Argument("strategy", dict, strategy_args, optional=True, doc=doc_strategy)
