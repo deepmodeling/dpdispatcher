@@ -39,3 +39,5 @@ Thumbs.db
 # Editor backup files #
 #######################
 *~
+# generated automatically
+api/
