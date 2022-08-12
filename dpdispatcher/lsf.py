@@ -5,6 +5,7 @@ from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from typing import List
 from dargs import Argument
+from dpdispatcher.utils import retry, RetrySignal
 
 
 lsf_script_header_template = """\
@@ -98,7 +99,8 @@ class LSF(Machine):
     def sub_script_head(self, res):
         pass
 
-    def check_status(self, job, retry=0, max_retry=3):
+    @retry()
+    def check_status(self, job):
         try:
             job_id = job.job_id
         except AttributeError:
@@ -115,15 +117,8 @@ class LSF(Machine):
                 return JobStatus.terminated
         elif ret != 0:
             # just retry when any unknown error raised.
-            if retry < max_retry:
-                dlog.warning("Get error code %d in checking status through ssh with job: %s . message: %s" %
+            raise RetrySignal("Get error code %d in checking status through ssh with job: %s . message: %s" %
                     (ret, job.job_hash, err_str))
-                dlog.warning("Sleep 60 s and retry checking...")
-                # rest 60s
-                time.sleep(60)
-                return self.check_status(job, retry=retry + 1, max_retry=max_retry)
-            raise RuntimeError("status command bjobs fails to execute.\n error info: %s \nreturn code %d\n"
-                               % (err_str, ret))
         status_out = stdout.read().decode('utf-8').split('\n')
         if len(status_out) < 2:
             return JobStatus.unknown

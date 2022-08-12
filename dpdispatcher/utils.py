@@ -4,6 +4,9 @@ import struct
 import hmac
 import base64
 import subprocess
+from typing import Callable, Union
+
+from dpdispatcher import dlog
 
 def get_sha256(filename):
     """Get sha256 of a file.
@@ -97,3 +100,52 @@ def rsync(from_file: str, to_file: str):
     ret, out, err = run_cmd_with_all_output(cmd, shell=False)
     if ret != 0:
         raise RuntimeError("Failed to run %s: %s" %(cmd, err))
+
+
+class RetrySignal(Exception):
+    """Exception to give a signal to retry the function."""
+
+
+def retry(max_retry: int = 3, sleep: Union[int, float] = 60, catch_exception: BaseException = RetrySignal) -> Callable:
+    """Retry the function until it succeeds or fails for certain times.
+
+    Parameters
+    ----------
+    max_retry: int, default=3
+        The maximum retry times. If None, it will retry forever.
+    sleep: int or float, default=60
+        The sleep time in seconds.
+    catch_exception: Exception, default=Exception
+        The exception to catch.
+    
+    Returns
+    -------
+    decorator: Callable
+        The decorator.
+
+    Examples
+    --------
+    >>> @retry(max_retry=3, sleep=60, catch_exception=RetrySignal)
+    ... def func():
+    ...     raise RetrySignal("Failed")
+    """
+    def decorator(func):
+        assert max_retry > 0, "max_retry must be greater than 0"
+        def wrapper(*args, **kwargs):
+            current_retry = 0
+            errors = []
+            while max_retry is None or current_retry < max_retry:
+                try:
+                    return func(*args, **kwargs)
+                except catch_exception as e:
+                    errors.append(e)
+                    dlog.exception("Failed to run %s: %s", func.__name__, e)
+                    # sleep certain seconds
+                    dlog.warning("Sleep %s s and retry...", sleep)
+                    time.sleep(sleep)
+                    current_retry += 1
+            else:
+                # raise all exceptions
+                raise RuntimeError("Failed to run %s for %d times" %(func.__name__, current_retry)) from errors[-1]
+        return wrapper
+    return decorator

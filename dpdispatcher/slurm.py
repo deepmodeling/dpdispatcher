@@ -7,6 +7,7 @@ from dargs import Argument
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.machine import script_command_template
+from dpdispatcher.utils import retry, RetrySignal
 # from dpdispatcher.submission import Resources
 
 slurm_script_header_template="""\
@@ -70,8 +71,9 @@ class Slurm(Machine):
 
     def default_resources(self, resources) :
         pass
-    
-    def check_status(self, job, retry=0, max_retry=3):
+
+    @retry()
+    def check_status(self, job):
         job_id = job.job_id
         if job_id == '' :
             return JobStatus.unsubmitted
@@ -87,13 +89,8 @@ class Slurm(Machine):
                     return JobStatus.terminated
             elif "Socket timed out on send/recv operation" in err_str or "Unable to contact slurm controller" in err_str:
                 # retry 3 times
-                if retry < max_retry:
-                    dlog.warning("Get error code %d in checking status through ssh with job: %s . message: %s" %
+                raise RetrySignal("Get error code %d in checking status through ssh with job: %s . message: %s" %
                         (ret, job.job_hash, err_str))
-                    dlog.warning("Sleep 60 s and retry checking...")
-                    # rest 60s
-                    time.sleep(60)
-                    return self.check_status(job, retry=retry+1, max_retry=max_retry)
             raise RuntimeError("status command squeue fails to execute."
                 "job_id:%s \n error message:%s\n return code %d\n" % (job_id, err_str, ret))
         status_line = stdout.read().decode('utf-8').split ('\n')[-2]
