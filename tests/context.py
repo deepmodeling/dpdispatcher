@@ -28,6 +28,10 @@ except Exception:
     pass
 from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils import (
+    retry,
+    RetrySignal,
+)
 import dargs
 
 def setUpModule():
