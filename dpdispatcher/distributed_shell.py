@@ -135,8 +135,8 @@ class DistributedShell(Machine):
                          '-shell_env ENV_DOCKER_CONTAINER_SHM_SIZE=\'600m\' '\
                          '-master_memory 1024 -master_vcores 2 -num_containers 1 ' \
                          '-container_resources memory-mb=%s,vcores=%s ' \
-                         '-shell_script /tmp/%s' % (resource.kwargs.get('yarn_path',''),
-                                        resource.kwargs.get('yarn_path',''), resources.queue_name, job.job_hash,
+                         '-shell_script /tmp/%s' % (resources.kwargs.get('yarn_path',''),
+                                        resources.kwargs.get('yarn_path',''), resources.queue_name, job.job_hash,
                                         resources.kwargs.get('img_name',''),resources.kwargs.get('mem_limit', 1)*1024,
                                         resources.cpu_per_node, script_file_name)
 
