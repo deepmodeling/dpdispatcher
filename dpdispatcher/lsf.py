@@ -65,7 +65,8 @@ class LSF(Machine):
 
         return lsf_script_header
 
-    def do_submit(self, job, retry=0, max_retry=3):
+    @retry()
+    def do_submit(self, job):
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + '_job_id'
@@ -76,13 +77,7 @@ class LSF(Machine):
                 'cd %s && %s %s' % (self.context.remote_root, 'bsub < ', script_file_name)
             )
         except RuntimeError as err:
-            if retry < max_retry:
-                dlog.warning(err)
-                dlog.warning("Sleep 60 s and retry submitting...")
-                # rest 60s
-                time.sleep(60)
-                return self.do_submit(job, retry=retry+1, max_retry=max_retry)
-            raise
+            raise RetrySignal(err) from err
 
         subret = (stdout.readlines())
         job_id = subret[0].split()[1][1:-1]
