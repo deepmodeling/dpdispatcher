@@ -50,6 +50,9 @@ setuptools.setup(
             ],
         "cloudserver": ["oss2", "tqdm"],
         ":python_version<'3.7'": ["typing_extensions"],
+        "test": [
+            "mock-ssh-server",
+        ],
     },
         entry_points={
           'console_scripts': [
