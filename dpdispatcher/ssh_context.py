@@ -11,6 +11,7 @@ from dpdispatcher import dlog
 from dargs.dargs import Argument
 from typing import List
 import pathlib
+import socket
 # from dpdispatcher.submission import Machine
 from dpdispatcher.utils import (
     get_sha256, generate_totp, rsync,
@@ -137,12 +138,12 @@ class SSHSession (object):
         """Calling self.ssh.exec_command but has an exception check."""
         try:
             return self.ssh.exec_command(cmd)
-        except paramiko.ssh_exception.SSHException:
+        except (paramiko.ssh_exception.SSHException, socket.timeout) as e:
             # SSH session not active
             # retry for up to 3 times
             # ensure alive
             self.ensure_alive()
-            raise RetrySignal("SSH session not active in calling %s" % cmd)
+            raise RetrySignal("SSH session not active in calling %s" % cmd) from e
 
     @property
     def sftp(self):
