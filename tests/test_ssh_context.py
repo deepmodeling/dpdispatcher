@@ -86,6 +86,7 @@ class TestSSHContext(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.machine.context.clean()
         # close the server
         cls.machine.context.close()
         next(cls.server)
