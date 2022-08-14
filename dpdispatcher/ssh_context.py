@@ -12,7 +12,10 @@ from dargs.dargs import Argument
 from typing import List
 import pathlib
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import get_sha256, generate_totp, rsync
+from dpdispatcher.utils import (
+    get_sha256, generate_totp, rsync,
+    retry, RetrySignal,
+)
 
 class SSHSession (object):
     def __init__(self,
@@ -129,19 +132,17 @@ class SSHSession (object):
     def close(self) :
         self.ssh.close()
 
-    def exec_command(self, cmd, retry = 0):
+    @retry(sleep=1)
+    def exec_command(self, cmd):
         """Calling self.ssh.exec_command but has an exception check."""
         try:
             return self.ssh.exec_command(cmd)
         except paramiko.ssh_exception.SSHException:
             # SSH session not active
             # retry for up to 3 times
-            if retry < 3:
-                dlog.warning("SSH session not active in calling %s, retry the command..." % cmd)
-                # ensure alive
-                self.ensure_alive()
-                return self.exec_command(cmd, retry = retry+1)
-            raise RuntimeError("SSH session not active")
+            # ensure alive
+            self.ensure_alive()
+            raise RetrySignal("SSH session not active in calling %s" % cmd)
 
     @property
     def sftp(self):
