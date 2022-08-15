@@ -450,8 +450,12 @@ class SSHContext(BaseContext):
 
     def write_file(self, fname, write_str):
         self.ssh_session.ensure_alive()
-        with self.sftp.open(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(), 'w') as fp :
+        fname = pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
+        # to prevent old file from being overwritten but cancelled, create a temporary file first
+        # when it is fully written, rename it to the original file name
+        with self.sftp.open(fname + "~", 'w') as fp :
             fp.write(write_str)
+        self.sftp.rename(fname + "~", fname)
 
     def read_file(self, fname):
         self.ssh_session.ensure_alive()
