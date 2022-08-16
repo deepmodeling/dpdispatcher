@@ -455,7 +455,8 @@ class SSHContext(BaseContext):
         # when it is fully written, rename it to the original file name
         with self.sftp.open(fname + "~", 'w') as fp :
             fp.write(write_str)
-        self.sftp.posix_rename(fname + "~", fname)
+        # sftp.rename may throw OSError
+        self.block_checkcall("mv %s %s" % (fname + "~", fname))
 
     def read_file(self, fname):
         self.ssh_session.ensure_alive()
