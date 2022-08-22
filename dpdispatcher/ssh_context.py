@@ -543,7 +543,7 @@ class SSHContext(BaseContext):
         if not tar_compress :
             of_suffix = '.tar'
             tarfile_mode = 'w'
-            tarfile_compresslevel = None
+            tarfile_compresslevel = 0
                     
         of = self.submission.submission_hash + of_suffix
         # local tar
