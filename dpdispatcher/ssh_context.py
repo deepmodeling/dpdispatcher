@@ -538,11 +538,11 @@ class SSHContext(BaseContext):
             It it is False, then it is uncompressed
         """
         of_suffix = '.tgz'
-        tarfile_mode = 'w:gz'
+        tarfile_mode = "w:gz"
         tarfile_compresslevel = 6
         if not tar_compress :
             of_suffix = '.tar'
-            tarfile_mode = 'w'
+            tarfile_mode = "w"
             tarfile_compresslevel = 0
                     
         of = self.submission.submission_hash + of_suffix
@@ -581,11 +581,11 @@ class SSHContext(BaseContext):
                    tar_compress = True) :
         
         of_suffix = '.tar.gz'
-        tarfile_mode = 'r:gz'
+        tarfile_mode = "r:gz"
         tar_command = 'czfh'
         if not tar_compress :
             of_suffix = '.tar'
-            tarfile_mode = 'r'
+            tarfile_mode = "r"
             tar_command = 'cfh'
 
         of = self.submission.submission_hash + of_suffix
