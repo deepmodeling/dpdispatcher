@@ -551,7 +551,7 @@ class SSHContext(BaseContext):
         os.chdir(self.local_root)
         if os.path.isfile(of) :
             os.remove(of)
-        with tarfile.open(of, mode = tarfile_mode, dereference = dereference, compresslevel = tarfile_compresslevel) as tar:
+        with tarfile.open(of, tarfile_mode, dereference = dereference, compresslevel=int(tarfile_compresslevel)) as tar:
             for ii in files :
                 tar.add(ii)
             if directories is not None:
