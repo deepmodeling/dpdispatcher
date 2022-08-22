@@ -378,7 +378,7 @@ class SSHContext(BaseContext):
             # convert to relative path to local_root
             file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
 
-        self._put_files(file_list, dereference = dereference, directories=directory_list)
+        self._put_files(file_list, dereference = dereference, directories=directory_list, tar_compress = self.remote_profile.get('tar_compress', None))
         os.chdir(cwd)
 
     def download(self, 
@@ -410,7 +410,7 @@ class SSHContext(BaseContext):
                 file_list.extend(errors)
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
-            self._get_files(file_list)
+            self._get_files(file_list, tar_compress = self.remote_profile.get('tar_compress', None))
         os.chdir(cwd)
         
     def block_checkcall(self, 
@@ -513,6 +513,7 @@ class SSHContext(BaseContext):
                    files,
                    dereference = True,
                    directories = None,
+                   tar_compress = True,
                    ) :
         """Upload files to server.
 
@@ -527,21 +528,31 @@ class SSHContext(BaseContext):
         directories: list, default: None
             uploaded directories non-recursively. Use `files` for uploading
             recursively
+        tar_compress: bool, default: True
+            If tar_compress is True, compress the archive using gzip
+            It it is False, then it is uncompressed
         """
-        of = self.submission.submission_hash + '.tgz'
+        of_suffix = '.tgz'
+        tarfile_mode = 'w:gz'
+        tarfile_compresslevel = 6
+        if not tar_compress :
+            of_suffix = '.tar'
+            tarfile_mode = 'w'
+            tarfile_compresslevel = None
+                    
+        of = self.submission.submission_hash + of_suffix
         # local tar
         cwd = os.getcwd()
         os.chdir(self.local_root)
         if os.path.isfile(of) :
             os.remove(of)
-        with tarfile.open(of, "w:gz", dereference = dereference, compresslevel=6) as tar:
+        with tarfile.open(of, mode = tarfile_mode, dereference = dereference, compresslevel = tarfile_compresslevel) as tar:
             for ii in files :
                 tar.add(ii)
             if directories is not None:
                 for ii in directories:
                     tar.add(ii, recursive=False)
         os.chdir(cwd)
-
         self.ssh_session.ensure_alive()
         try:
             self.sftp.mkdir(self.remote_root)
@@ -561,19 +572,29 @@ class SSHContext(BaseContext):
         self.sftp.remove(to_f)
 
     def _get_files(self, 
-                   files) :
-        of = self.submission.submission_hash + '.tar.gz'
+                   files,
+                   tar_compress = True) :
+        
+        of_suffix = '.tar.gz'
+        tarfile_mode = 'r:gz'
+        tar_command = 'czfh'
+        if not tar_compress :
+            of_suffix = '.tar'
+            tarfile_mode = 'r'
+            tar_command = 'cfh'
+
+        of = self.submission.submission_hash + of_suffix
         # remote tar
         # If the number of files are large, we may get "Argument list too long" error.
         # Thus, "-T" accepts a file containing the list of files
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
-            self.block_checkcall('tar czfh %s %s' % (of, " ".join(files)))
+            self.block_checkcall('tar %s %s %s' % (tar_command, of, " ".join(files)))
         else:
             file_list_file = os.path.join(self.remote_root, ".tmp.tar." + str(uuid.uuid4()))
             self.write_file(file_list_file, "\n".join(files))
-            self.block_checkcall('tar czfh %s -T %s' % (of, file_list_file))
+            self.block_checkcall('tar %s %s -T %s' % (tar_command, of, file_list_file))
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
@@ -583,9 +604,9 @@ class SSHContext(BaseContext):
         # extract
         cwd = os.getcwd()
         os.chdir(self.local_root)
-        with tarfile.open(of, "r:gz") as tar:
+        with tarfile.open(of, mode = tarfile_mode) as tar:
             tar.extractall()
-        os.chdir(cwd)        
+        os.chdir(cwd)    
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
