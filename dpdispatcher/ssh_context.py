@@ -28,6 +28,7 @@ class SSHSession (object):
                 passphrase=None,
                 timeout=10,
                 totp_secret=None,
+                tar_compress=True
                 ):
 
         self.hostname = hostname
@@ -39,6 +40,7 @@ class SSHSession (object):
         self.timeout = timeout
         self.totp_secret = totp_secret
         self.ssh = None
+        self.tar_compress = tar_compress
         self._setup_ssh()
 
     # @classmethod
@@ -115,7 +117,7 @@ class SSHSession (object):
         self.ssh.connect(hostname=self.hostname, port=self.port,
                         username=self.username, password=self.password,
                         key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
-                        compress=True,
+                        compress=self.tar_compress,
                         )
         assert(self.ssh.get_transport().is_active())
         transport = self.ssh.get_transport()
@@ -166,6 +168,7 @@ class SSHSession (object):
         doc_timeout = 'timeout of ssh connection'
         doc_totp_secret = 'Time-based one time password secret. It should be a base32-encoded string' \
                           ' extracted from the 2D code.'
+        doc_tar_compress = 'If it is True, the archieve will be compressed.'
 
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
@@ -176,6 +179,7 @@ class SSHSession (object):
             Argument("passphrase", [str, None], optional=True, default=None, doc=doc_passphrase),
             Argument("timeout", int, optional=True, default=10, doc=doc_timeout),
             Argument("totp_secret", str, optional=True, default=None, doc=doc_totp_secret),
+            Argument("tar_compress", bool, optional=True, default=True, doc = doc_tar_compress),
         ]
         ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
         return ssh_remote_profile_format
@@ -246,6 +250,7 @@ class SSHContext(BaseContext):
         #     key_filename = jdata.get('key_filename', None),
         #     passphrase = jdata.get('passphrase', None),
         #     timeout = jdata.get('timeout', 10),
+        #     tar_compress = jdata.get('tar_compress', True)
         # )
         local_root = context_dict['local_root']
         remote_root = context_dict['remote_root']
