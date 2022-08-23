@@ -539,11 +539,11 @@ class SSHContext(BaseContext):
         """
         of_suffix = '.tgz'
         tarfile_mode = "w:gz"
-        tarfile_compresslevel = 6
+        kwargs = {'compresslevel': 6}
         if not tar_compress :
             of_suffix = '.tar'
             tarfile_mode = "w"
-            tarfile_compresslevel = 0
+            kwargs = {}
                     
         of = self.submission.submission_hash + of_suffix
         # local tar
@@ -551,7 +551,7 @@ class SSHContext(BaseContext):
         os.chdir(self.local_root)
         if os.path.isfile(of) :
             os.remove(of)
-        with tarfile.open(of, tarfile_mode, dereference = dereference, compresslevel=int(tarfile_compresslevel)) as tar:
+        with tarfile.open(of, tarfile_mode, dereference = dereference, **kwargs) as tar:
             for ii in files :
                 tar.add(ii)
             if directories is not None:
