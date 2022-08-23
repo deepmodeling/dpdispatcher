@@ -132,7 +132,22 @@ class SSHSession (object):
         if self.totp_secret:
             ts.auth_interactive(self.username, self.inter_handler)
         else:
-            ts.auth_password(self.username, self.password)
+            default_path = os.path.join(os.environ["HOME"], ".ssh", "id_rsa")
+            path = ""
+            if self.key_filename:
+                path = os.path.abspath(self.key_filename)
+            if len(path) == 0:
+                path = default_path
+            try:
+                key = paramiko.RSAKey.from_private_key_file(path)
+            except paramiko.PasswordRequiredException:
+                key = paramiko.RSAKey.from_private_key_file(path, self.password)
+            try:
+                ts.auth_publickey(self.username, key)
+            except:
+                if self.password:
+                    ts.auth_password(self.username, self.password)
+        assert(ts.is_active())
         #Opening a session creates a channel along the socket to the server
         ts.open_session(timeout=20)
         ts.set_keepalive(60)
