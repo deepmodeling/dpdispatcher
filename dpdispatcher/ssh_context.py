@@ -117,7 +117,7 @@ class SSHSession (object):
         self.ssh.connect(hostname=self.hostname, port=self.port,
                         username=self.username, password=self.password,
                         key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
-                        compress=self.tar_compress,
+                        compress=True,
                         )
         assert(self.ssh.get_transport().is_active())
         transport = self.ssh.get_transport()
