@@ -117,7 +117,7 @@ class SSHSession (object):
         self.ssh.connect(hostname=self.hostname, port=self.port,
                         username=self.username, password=self.password,
                         key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
-                        compress=self.tar_compress,
+                        compress=True,
                         )
         assert(self.ssh.get_transport().is_active())
         transport = self.ssh.get_transport()
@@ -168,7 +168,7 @@ class SSHSession (object):
         doc_timeout = 'timeout of ssh connection'
         doc_totp_secret = 'Time-based one time password secret. It should be a base32-encoded string' \
                           ' extracted from the 2D code.'
-        doc_tar_compress = 'If it is True, the archieve will be compressed.'
+        doc_tar_compress = 'The archive will be compressed in upload and download if it is True. If not, compression will be skipped.'
 
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
