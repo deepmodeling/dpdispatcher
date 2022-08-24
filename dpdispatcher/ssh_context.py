@@ -124,6 +124,7 @@ class SSHSession (object):
 
         #Make a Paramiko Transport object using the socket
         ts = paramiko.Transport(sock)
+        ts.use_compression(compress=True)
 
         #Tell Paramiko that the Transport is going to be used as a client
         ts.start_client(timeout=10)
