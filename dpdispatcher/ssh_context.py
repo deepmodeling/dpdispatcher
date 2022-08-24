@@ -136,20 +136,20 @@ class SSHSession (object):
             path = ""
             if self.key_filename:
                 path = os.path.abspath(self.key_filename)
-            if len(path) == 0:
+            else:
                 path = default_path
             try:
                 key = paramiko.RSAKey.from_private_key_file(path)
             except paramiko.PasswordRequiredException:
-                key = paramiko.RSAKey.from_private_key_file(path, self.password)
+                key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
             try:
                 ts.auth_publickey(self.username, key)
-            except:
+            except paramiko.ssh_exception.AuthenticationException:
                 if self.password:
                     ts.auth_password(self.username, self.password)
         assert(ts.is_active())
         #Opening a session creates a channel along the socket to the server
-        ts.open_session(timeout=20)
+        ts.open_session(timeout=self.timeout)
         ts.set_keepalive(60)
         self.ssh._transport = ts
         # reset sftp

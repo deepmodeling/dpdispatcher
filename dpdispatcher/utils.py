@@ -1,5 +1,4 @@
 import hashlib
-from lib2to3.pgen2 import token
 import time
 import struct
 import hmac
