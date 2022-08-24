@@ -110,19 +110,89 @@ class SSHSession (object):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
-        if self.totp_secret and self.password is None:
-            self.password = generate_totp(self.totp_secret)
-        self.ssh.connect(hostname=self.hostname, port=self.port,
-                        username=self.username, password=self.password,
-                        key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
-                        compress=True,
-                        )
-        assert(self.ssh.get_transport().is_active())
-        transport = self.ssh.get_transport()
-        transport.set_keepalive(60)
+        # if self.totp_secret and self.password is None:
+        #     self.password = generate_totp(self.totp_secret)
+        # self.ssh.connect(hostname=self.hostname, port=self.port,
+        #                 username=self.username, password=self.password,
+        #                 key_filename=self.key_filename, timeout=self.timeout,passphrase=self.passphrase,
+        #                 compress=True,
+        #                 )
+        # assert(self.ssh.get_transport().is_active())
+        # transport = self.ssh.get_transport()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self.hostname, self.port))
+
+        #Make a Paramiko Transport object using the socket
+        ts = paramiko.Transport(sock)
+        ts.use_compression(compress=True)
+
+        #Tell Paramiko that the Transport is going to be used as a client
+        ts.start_client(timeout=10)
+
+        #Begin authentication; note that the username and callback are passed
+        if self.totp_secret:
+            ts.auth_interactive(self.username, self.inter_handler)
+        else:
+            default_path = os.path.join(os.environ["HOME"], ".ssh", "id_rsa")
+            path = ""
+            if self.key_filename:
+                path = os.path.abspath(self.key_filename)
+            else:
+                path = default_path
+            try:
+                key = paramiko.RSAKey.from_private_key_file(path)
+            except paramiko.PasswordRequiredException:
+                key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
+            try:
+                ts.auth_publickey(self.username, key)
+            except paramiko.ssh_exception.AuthenticationException:
+                if self.password:
+                    ts.auth_password(self.username, self.password)
+        assert(ts.is_active())
+        #Opening a session creates a channel along the socket to the server
+        ts.open_session(timeout=self.timeout)
+        ts.set_keepalive(60)
+        self.ssh._transport = ts
         # reset sftp
         self._sftp = None
                         
+    def inter_handler(self, title, instructions, prompt_list):
+        """
+        inter_handler: the callback for paramiko.transport.auth_interactive
+
+        The prototype for this function is defined by Paramiko, so all of the
+        arguments need to be there, even though we don't use 'title' or
+        'instructions'.
+
+        The function is expected to return a tuple of data containing the
+        responses to the provided prompts. Experimental results suggests that
+        there will be one call of this function per prompt, but the mechanism
+        allows for multiple prompts to be sent at once, so it's best to assume
+        that that can happen.
+
+        Since tuples can't really be built on the fly, the responses are 
+        collected in a list which is then converted to a tuple when it's time
+        to return a value.
+
+        Experiments suggest that the username prompt never happens. This makes
+        sense, but the Username prompt is included here just in case.
+        """
+
+        resp = []  #Initialize the response container
+
+        #Walk the list of prompts that the server sent that we need to answer
+        for pr in prompt_list:
+            #str() used to to make sure that we're dealing with a string rather than a unicode string
+            #strip() used to get rid of any padding spaces sent by the server
+            pr_str = str(pr[0]).strip().lower()
+            if "username" in pr_str:
+                resp.append(self.username)
+            elif "password" in pr_str:
+                resp.append(self.password)
+            elif "verification" in pr_str and self.totp_secret:
+                resp.append(generate_totp(self.totp_secret))
+
+        return tuple(resp)  #Convert the response list to a tuple and return it
 
     def get_ssh_client(self) :
         return self.ssh

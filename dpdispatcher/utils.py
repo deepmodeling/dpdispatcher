@@ -31,8 +31,15 @@ def get_sha256(filename):
     sha256 = h.hexdigest()
     return sha256
 
+def hotp(key: str, period: int, token_length: int=6, digest='sha1'):
+    key = base64.b32decode(key.upper() + '=' * ((8 - len(key)) % 8))
+    period = struct.pack('>Q', period)
+    mac = hmac.new(key, period, digest).digest()
+    offset = mac[-1] & 0x0f
+    binary = struct.unpack('>L', mac[offset:offset+4])[0] & 0x7fffffff
+    return str(binary)[-token_length:].zfill(token_length)
 
-def generate_totp(secret: str, period: int=30, token_length: int=6) -> int:
+def generate_totp(secret: str, period: int=30, token_length: int=6) -> str:
     """Generate time-based one time password (TOTP) from the secret.
 
     Some HPCs use TOTP for two-factor authentication for safety.
@@ -49,22 +56,15 @@ def generate_totp(secret: str, period: int=30, token_length: int=6) -> int:
     
     Returns
     -------
-    token: int
+    token: str
         The generated token.
 
     References
     ----------
     https://github.com/lepture/otpauth/blob/49914d83d36dbcd33c9e26f65002b21ce09a6303/otpauth.py#L143-L160
     """
-    timestamp = time.time()
-    counter = int(timestamp) // period
-    msg = struct.pack('>Q', counter)
-    digest = hmac.new(base64.b32decode(secret), msg, hashlib.sha1).digest()
-    ob = digest[19]
-    pos = ob & 15
-    base = struct.unpack('>I', digest[pos:pos + 4])[0] & 0x7fffffff
-    token = base % (10**token_length)
-    return str(token).zfill(token_length)
+    digest = "sha1"
+    return hotp(secret, int(time.time() / period), token_length, digest)
 
 
 def run_cmd_with_all_output(cmd, shell=True):
