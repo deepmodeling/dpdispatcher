@@ -69,6 +69,7 @@ class DpCloudServer(Machine):
             return job.upload_path
         else:
             program_id = self.context.remote_profile.get('program_id')
+            program_id = self.context.remote_profile.get('project_id', program_id)
             if program_id is None:
                 dlog.info("can not find program id in remote profile, upload to default program id.")
                 program_id = 0
@@ -89,13 +90,15 @@ class DpCloudServer(Machine):
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
         # input_data['backward_files'] = self._gen_backward_files_list(job)
-        if self.context.remote_profile.get('program_id') is None:
+        program_id = self.context.remote_profile.get('program_id')
+        program_id = self.context.remote_profile.get('project_id', program_id)
+        if program_id is None:
             warnings.warn('program_id is compulsory.')
         job_id, group_id = self.api.job_create(
             job_type=input_data['job_type'],
             oss_path=input_data['job_resources'],
             input_data=input_data,
-            program_id=self.context.remote_profile.get('program_id', None),
+            program_id=program_id,
             group_id=self.group_id
         )
         if self.grouped:

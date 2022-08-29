@@ -81,6 +81,7 @@ class DpCloudServerContext(BaseContext):
             return job.upload_path
         else:
             program_id = self.remote_profile.get('program_id')
+            program_id = self.remote_profile.get('project_id', program_id)
             if program_id is None:
                 program_id = 0
             uid = uuid.uuid4()
