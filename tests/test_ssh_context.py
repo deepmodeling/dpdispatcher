@@ -109,7 +109,7 @@ class TestSSHContext(unittest.TestCase):
         self.context.download(self.__class__.submission)
 
     def test_tar_compress(self):
-        self.machine["remote_profile"]["tar_compress"] = False
+        self.machine.context.remote_profile['tar_compress'] = False
         self.context.upload(self.__class__.submission)
         check_file_list = ['graph.pb', 'bct-1/conf.lmp', 'bct-4/input.lammps']
         for file in check_file_list:
