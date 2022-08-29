@@ -100,11 +100,11 @@ class LazyLocalContext(BaseContext) :
         # script_dir = os.path.join(self.local_root, self.submission.work_base)
         os.chdir(self.local_root)
         # os.chdir(script_dir)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        o, e = proc.communicate()
-        stdout = SPRetObj(o)
-        stderr = SPRetObj(e)
-        code = proc.returncode
+        with sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE) as proc:
+            o, e = proc.communicate()
+            stdout = SPRetObj(o)
+            stderr = SPRetObj(e)
+            code = proc.returncode
         if code != 0:
             os.chdir(cwd)        
             raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.submission.submission_hash))
@@ -114,11 +114,11 @@ class LazyLocalContext(BaseContext) :
     def block_call(self, cmd) :
         cwd = os.getcwd()
         os.chdir(self.local_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        o, e = proc.communicate()
-        stdout = SPRetObj(o)
-        stderr = SPRetObj(e)
-        code = proc.returncode
+        with sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE) as proc:
+            o, e = proc.communicate()
+            stdout = SPRetObj(o)
+            stderr = SPRetObj(e)
+            code = proc.returncode
         os.chdir(cwd)        
         return code, None, stdout, stderr
 
@@ -145,9 +145,9 @@ class LazyLocalContext(BaseContext) :
     def call(self, cmd) :
         cwd = os.getcwd()
         os.chdir(self.local_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        os.chdir(cwd)        
-        return proc
+        with sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE) as proc:
+            os.chdir(cwd)
+            yield proc
 
     def kill(self, job_id):
         os.kill(job_id, signal.SIGTERM)

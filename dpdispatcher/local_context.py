@@ -356,11 +356,11 @@ class LocalContext(BaseContext) :
                         cmd) :
         cwd = os.getcwd()
         os.chdir(self.remote_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        o, e = proc.communicate()
-        stdout = SPRetObj(o)
-        stderr = SPRetObj(e)
-        code = proc.returncode
+        with sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE) as proc:
+            o, e = proc.communicate()
+            stdout = SPRetObj(o)
+            stderr = SPRetObj(e)
+            code = proc.returncode
         if code != 0:
             os.chdir(cwd)        
             raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.submission.submission_hash))
@@ -370,11 +370,11 @@ class LocalContext(BaseContext) :
     def block_call(self, cmd) :
         cwd = os.getcwd()
         os.chdir(self.remote_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        o, e = proc.communicate()
-        stdout = SPRetObj(o)
-        stderr = SPRetObj(e)
-        code = proc.returncode
+        with sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE) as proc:
+            o, e = proc.communicate()
+            stdout = SPRetObj(o)
+            stderr = SPRetObj(e)
+            code = proc.returncode
         os.chdir(cwd)        
         return code, None, stdout, stderr
 
@@ -400,9 +400,9 @@ class LocalContext(BaseContext) :
     def call(self, cmd) :
         cwd = os.getcwd()
         os.chdir(self.remote_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        os.chdir(cwd)        
-        return proc
+        with sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE) as proc:
+            os.chdir(cwd)        
+            yield proc
 
     def kill(self, job_id):
         os.kill(job_id, signal.SIGTERM)
