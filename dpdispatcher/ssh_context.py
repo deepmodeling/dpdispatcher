@@ -120,6 +120,7 @@ class SSHSession (object):
         # assert(self.ssh.get_transport().is_active())
         # transport = self.ssh.get_transport()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
         sock.connect((self.hostname, self.port))
 
         #Make a Paramiko Transport object using the socket
