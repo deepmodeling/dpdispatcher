@@ -145,9 +145,9 @@ class LazyLocalContext(BaseContext) :
     def call(self, cmd) :
         cwd = os.getcwd()
         os.chdir(self.local_root)
-        with sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE) as proc:
-            os.chdir(cwd)
-            yield proc
+        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
+        os.chdir(cwd)
+        return proc
 
     def kill(self, job_id):
         os.kill(job_id, signal.SIGTERM)
