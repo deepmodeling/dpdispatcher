@@ -128,7 +128,7 @@ class SSHSession (object):
         ts.use_compression(compress=True)
 
         #Tell Paramiko that the Transport is going to be used as a client
-        ts.start_client(timeout=10)
+        ts.start_client(timeout=self.timeout)
 
         #Begin authentication; note that the username and callback are passed
         if self.totp_secret:
