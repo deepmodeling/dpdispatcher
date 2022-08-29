@@ -120,6 +120,7 @@ class SSHSession (object):
         # assert(self.ssh.get_transport().is_active())
         # transport = self.ssh.get_transport()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
         sock.connect((self.hostname, self.port))
 
         #Make a Paramiko Transport object using the socket
@@ -127,7 +128,7 @@ class SSHSession (object):
         ts.use_compression(compress=True)
 
         #Tell Paramiko that the Transport is going to be used as a client
-        ts.start_client(timeout=10)
+        ts.start_client(timeout=self.timeout)
 
         #Begin authentication; note that the username and callback are passed
         if self.totp_secret:
