@@ -7,7 +7,7 @@ dlog = logging.getLogger(__name__)
 dlog.propagate = False
 dlog.setLevel(logging.INFO)
 try:
-    dlogf = logging.FileHandler(os.getcwd()+os.sep+'dpdispatcher'+'.log')
+    dlogf = logging.FileHandler(os.getcwd()+os.sep+'dpdispatcher'+'.log', delay=True)
 except PermissionError:
     warnings.warn(f"dpdispatcher.log meet permission error. redirect the log to ~/dpdispatcher.log")
     dlogf = logging.FileHandler(os.path.join(os.path.expanduser('~'),'dpdispatcher.log'))

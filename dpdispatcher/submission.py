@@ -614,6 +614,8 @@ class Job(object):
                 self.get_job_state()
                 dlog.info(f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}")
                 self.handle_unexpected_job_state()
+            if self.resources.wait_time != 0:
+                time.sleep(self.resources.wait_time)
 
         if job_state == JobStatus.unsubmitted:
             dlog.debug(f"job: {self.job_hash} unsubmitted; submit it")
