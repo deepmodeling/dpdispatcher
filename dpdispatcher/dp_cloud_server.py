@@ -122,7 +122,7 @@ class DpCloudServer(Machine):
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
         check_return = self.api.get_tasks(job_id,group_id)
         try:
-            if isinstance(check_return["status"], type(None)):
+            if check_return is None:
                 return JobStatus.terminated
             dp_job_status = check_return["status"]
         except IndexError as e:
