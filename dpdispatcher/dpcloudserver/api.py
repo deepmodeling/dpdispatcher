@@ -181,12 +181,14 @@ class API:
             post_data["program_id"] = program_id
         if group_id is not None:
             post_data["job_group_id"] = group_id
-        if input_data.get('command') is not None:
-            post_data["cmd"] = input_data.get('command')
-        if input_data.get('backward_files') is not None:
-            post_data["out_files"] = input_data.get('backward_files')
         for k, v in input_data.items():
             post_data[k] = v
+        if input_data.get('backward_files'):
+            post_data["out_files"] = input_data.get('backward_files')
+        if input_data.get('command'):
+            post_data["cmd"] = input_data.get('command')
+        if input_data.get('machine_type'):
+            post_data['scass_type'] = input_data.get('machine_type')
         ret = self.post('/data/v2/insert_job', post_data)
         group_id = ret.get('job_group_id')
         return ret['job_id'], group_id

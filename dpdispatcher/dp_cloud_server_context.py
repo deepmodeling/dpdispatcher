@@ -81,6 +81,7 @@ class DpCloudServerContext(BaseContext):
             return job.upload_path
         else:
             program_id = self.remote_profile.get('program_id')
+            program_id = self.remote_profile.get('project_id', program_id)
             if program_id is None:
                 program_id = 0
             uid = uuid.uuid4()
@@ -271,7 +272,7 @@ class DpCloudServerContext(BaseContext):
         return [Argument("remote_profile", dict, [
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
-            Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("program_id", int, optional=False, alias=['project_id'], doc="Program ID"),
             Argument("keep_backup", bool, optional=True, doc="keep download and upload zip"),
             Argument("input_data", dict, optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
