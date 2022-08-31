@@ -122,6 +122,8 @@ class DpCloudServer(Machine):
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
         check_return = self.api.get_tasks(job_id,group_id)
         try:
+            if check_return["status"] is None:
+                return JobStatus.terminated
             dp_job_status = check_return["status"]
         except IndexError as e:
             dlog.error(f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
