@@ -187,6 +187,8 @@ class API:
             post_data["out_files"] = input_data.get('backward_files')
         if input_data.get('command'):
             post_data["cmd"] = input_data.get('command')
+        if input_data.get('machine_type'):
+            post_data['scass_type'] = input_data.get('machine_type')
         ret = self.post('/data/v2/insert_job', post_data)
         group_id = ret.get('job_group_id')
         return ret['job_id'], group_id

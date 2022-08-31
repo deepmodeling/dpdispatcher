@@ -272,7 +272,7 @@ class DpCloudServerContext(BaseContext):
         return [Argument("remote_profile", dict, [
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
-            Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("program_id", int, optional=False, alias=['project_id'], doc="Program ID"),
             Argument("keep_backup", bool, optional=True, doc="keep download and upload zip"),
             Argument("input_data", dict, optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
