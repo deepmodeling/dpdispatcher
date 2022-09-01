@@ -147,10 +147,9 @@ class SSHSession (object):
                     key = paramiko.RSAKey.from_private_key_file(path)
                 except paramiko.PasswordRequiredException:
                     key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
-            try:
+            if key:
                 ts.auth_publickey(self.username, key)
-            except paramiko.ssh_exception.AuthenticationException:
-                if self.password:
+            elif self.password:
                     ts.auth_password(self.username, self.password)
         assert(ts.is_active())
         #Opening a session creates a channel along the socket to the server
