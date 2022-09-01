@@ -136,21 +136,24 @@ class SSHSession (object):
         if self.totp_secret:
             ts.auth_interactive(self.username, self.inter_handler)
         else:
-            default_path = os.path.join(os.environ["HOME"], ".ssh", "id_rsa")
-            path = ""
+            key_path = os.path.join(os.environ["HOME"], ".ssh", "id_rsa")
             if self.key_filename:
-                path = os.path.abspath(self.key_filename)
+                key_path = os.path.abspath(self.key_filename)
+            if os.path.exists(key_path):
+                try:
+                    key = paramiko.RSAKey.from_private_key_file(key_path)
+                except paramiko.PasswordRequiredException:
+                    key = paramiko.RSAKey.from_private_key_file(key_path, self.passphrase)
+            if key:
+                try:
+                    ts.auth_publickey(self.username, key)
+                except paramiko.ssh_exception.AuthenticationException:
+                    if self.password:
+                        ts.auth_password(self.username, self.password)
+            elif self.password:
+                ts.auth_password(self.username, self.password)
             else:
-                path = default_path
-            try:
-                key = paramiko.RSAKey.from_private_key_file(path)
-            except paramiko.PasswordRequiredException:
-                key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
-            try:
-                ts.auth_publickey(self.username, key)
-            except paramiko.ssh_exception.AuthenticationException:
-                if self.password:
-                    ts.auth_password(self.username, self.password)
+                raise Exception("Please provide at least one form of authentication")
         assert(ts.is_active())
         #Opening a session creates a channel along the socket to the server
         ts.open_session(timeout=self.timeout)
