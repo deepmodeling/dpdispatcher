@@ -151,6 +151,8 @@ class SSHSession (object):
                 except paramiko.ssh_exception.AuthenticationException:
                     if self.password:
                         ts.auth_password(self.username, self.password)
+                    else:
+                        raise Exception("Authentication failed, try to provide password")
             elif self.password:
                 ts.auth_password(self.username, self.password)
             else:
