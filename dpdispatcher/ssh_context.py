@@ -142,10 +142,11 @@ class SSHSession (object):
                 path = os.path.abspath(self.key_filename)
             else:
                 path = default_path
-            try:
-                key = paramiko.RSAKey.from_private_key_file(path)
-            except paramiko.PasswordRequiredException:
-                key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
+            if os.path.exists(path):
+                try:
+                    key = paramiko.RSAKey.from_private_key_file(path)
+                except paramiko.PasswordRequiredException:
+                    key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
             try:
                 ts.auth_publickey(self.username, key)
             except paramiko.ssh_exception.AuthenticationException:
