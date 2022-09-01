@@ -148,7 +148,11 @@ class SSHSession (object):
                 except paramiko.PasswordRequiredException:
                     key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
             if key:
-                ts.auth_publickey(self.username, key)
+                try:
+                    ts.auth_publickey(self.username, key)
+                except paramiko.ssh_exception.AuthenticationException:
+                    if self.password:
+                        ts.auth_password(self.username, self.password)
             elif self.password:
                 ts.auth_password(self.username, self.password)
         assert(ts.is_active())
