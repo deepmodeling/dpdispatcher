@@ -124,7 +124,14 @@ class DpCloudServer(Machine):
         check_return = None
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
         check_return = self.api.get_tasks(job_id,group_id)
-        try:
+        assert (check_return is not None), f"Failed to retrieve tasks information. To resubmit this job, please " \
+                                           f"try again, if this problem still exists please delete the submission " \
+                                           f"file and try again.\nYou can check submission.submission_hash in the " \
+                                           f"previous log or type `grep -rl \"{job_id}:job_group_id:{group_id}\" " \
+                                           f"~/.dpdispatcher/dp_cloud_server/` to find corresponding file. " \
+                                           f"You can try with command:\n    " \
+                                           f'rm $(grep -rl "{job_id}:job_group_id:{group_id}" ~/.dpdispatcher/dp_cloud_server/)'
+        try:            
             dp_job_status = check_return["status"]
         except IndexError as e:
             dlog.error(f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
