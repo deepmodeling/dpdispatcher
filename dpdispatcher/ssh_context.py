@@ -135,7 +135,11 @@ class SSHSession (object):
 
         #Begin authentication; note that the username and callback are passed
         if self.totp_secret:
-            ts.auth_interactive(self.username, self.inter_handler)
+            try:
+                ts.auth_interactive(self.username, self.inter_handler)
+            except paramiko.ssh_exception.AuthenticationException:
+                # since the asynchrony of interactive authentication, one addtional try is added
+                ts.auth_interactive(self.username, self.inter_handler)
         else:
             key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
             if self.key_filename:
