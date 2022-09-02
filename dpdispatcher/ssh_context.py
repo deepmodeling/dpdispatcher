@@ -136,7 +136,7 @@ class SSHSession (object):
         if self.totp_secret:
             ts.auth_interactive(self.username, self.inter_handler)
         else:
-            key_path = os.path.join(os.environ["HOME"], ".ssh", "id_rsa")
+            key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
             if self.key_filename:
                 key_path = os.path.abspath(self.key_filename)
             key = None
@@ -156,7 +156,7 @@ class SSHSession (object):
             elif self.password:
                 ts.auth_password(self.username, self.password)
             else:
-                raise Exception("Please provide at least one form of authentication")
+                raise RuntimeError("Please provide at least one form of authentication")
         assert(ts.is_active())
         #Opening a session creates a channel along the socket to the server
         ts.open_session(timeout=self.timeout)
