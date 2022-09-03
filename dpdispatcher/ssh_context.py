@@ -108,6 +108,7 @@ class SSHSession (object):
     #     transport = self.ssh.get_transport()
     #     transport.set_keepalive(60)
     
+    @retry(max_retry=3, sleep=1)
     def _setup_ssh(self):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
@@ -135,7 +136,12 @@ class SSHSession (object):
 
         #Begin authentication; note that the username and callback are passed
         if self.totp_secret:
-            ts.auth_interactive(self.username, self.inter_handler)
+            try:
+                ts.auth_interactive(self.username, self.inter_handler)
+            except paramiko.ssh_exception.AuthenticationException:
+                # since the asynchrony of interactive authentication, one addtional try is added
+                # retry for up to 3 times
+                raise RetrySignal("Authentication failed")
         else:
             key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
             if self.key_filename:
