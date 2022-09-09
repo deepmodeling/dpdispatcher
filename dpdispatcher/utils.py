@@ -104,8 +104,8 @@ def rsync(from_file: str, to_file: str, port: int = 22, key_filename: str = None
         '-o',
         'StrictHostKeyChecking=no',
         '-p',
-        '-q',
         str(port),
+        '-q',
     ]
     if key_filename is not None:
         ssh_cmd.extend(['-i', key_filename])
