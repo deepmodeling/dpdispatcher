@@ -95,6 +95,8 @@ def rsync(from_file: str, to_file: str, port: int=22, key_filename: str=None):
     """
     ssh_cmd = [
         'ssh',
+        '-o',
+        'StrictHostKeyChecking=no',
         '-p',
         str(port),
     ]
