@@ -270,19 +270,18 @@ class SSHSession (object):
         
     def put(self, from_f, to_f):
         if self.rsync_available:
-            return rsync(from_f, self.remote + ":" + to_f)
+            return rsync(from_f, self.remote + ":" + to_f, port=self.port, key_filename=self.key_filename)
         return self.sftp.put(from_f, to_f)
 
     def get(self, from_f, to_f):
         if self.rsync_available:
-            return rsync(self.remote + ":" + from_f, to_f)
+            return rsync(self.remote + ":" + from_f, to_f, port=self.port, key_filename=self.key_filename)
         return self.sftp.get(from_f, to_f)
 
     @property
     @lru_cache(maxsize=None)
     def rsync_available(self) -> bool:
         return (shutil.which("rsync") is not None and self.password is None
-            and self.port == 22 and self.key_filename is None
             and self.passphrase is None)
 
     @property
