@@ -104,6 +104,7 @@ def rsync(from_file: str, to_file: str, port: int = 22, key_filename: str = None
         '-o',
         'StrictHostKeyChecking=no',
         '-p',
+        '-q',
         str(port),
     ]
     if key_filename is not None:
@@ -115,6 +116,7 @@ def rsync(from_file: str, to_file: str, port: int = 22, key_filename: str = None
         '-az',
         '-e',
         " ".join(ssh_cmd),
+        '-q',
         from_file,
         to_file,
     ]
