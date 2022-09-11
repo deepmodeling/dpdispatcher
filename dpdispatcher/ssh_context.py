@@ -135,7 +135,7 @@ class SSHSession (object):
         ts.start_client(timeout=self.timeout)
 
         #Begin authentication; note that the username and callback are passed
-        if self.totp_secret:
+        if self.totp_secret and self.password is not None:
             try:
                 ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
@@ -156,6 +156,8 @@ class SSHSession (object):
                 try:
                     ts.auth_publickey(self.username, key)
                 except paramiko.ssh_exception.AuthenticationException:
+                    if self.totp_secret is not None:
+                        self.password = generate_totp(self.totp_secret)
                     if self.password:
                         ts.auth_password(self.username, self.password)
                     else:
