@@ -208,7 +208,7 @@ class SSHSession (object):
             if "username" in pr_str:
                 resp.append(self.username)
             elif "password" in pr_str:
-                resp.append(generate_totp(self.totp_secret))
+                resp.append(self.password)
             elif "verification" in pr_str or "token" in pr_str and self.totp_secret:
                 resp.append(generate_totp(self.totp_secret))
 
