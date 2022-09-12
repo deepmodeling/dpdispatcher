@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: ./ci/${{ matrix.machine }}.sh
-    - run: ln -s . /dpdispatcher
+    - run: sudo ln -s . /dpdispatcher
     - uses: codecov/codecov-action@v3
       with:
         files: .coverage
