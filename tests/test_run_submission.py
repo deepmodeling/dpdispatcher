@@ -5,7 +5,6 @@ from .context import (
     Submission,
     Task,
     Resources,
-    get_file_md5,
     Machine,
 )
 
@@ -61,7 +60,7 @@ class RunSubmission:
         shutil.rmtree(os.path.join(self.machine_dict['local_root']))
 
 
-@unittest.skipIf(os.environ['DPDISPATCHER_TEST'] != 'slurm', "outside the slurm testing environment")
+@unittest.skipIf(os.environ.get('DPDISPATCHER_TEST') != 'slurm', "outside the slurm testing environment")
 class TestSlurmRun(RunSubmission, unittest.TestCase):
     def setUp(self):
         super().setUp()
