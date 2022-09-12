@@ -13,5 +13,5 @@ jobs:
           - slurm
     steps:
     - uses: actions/checkout@v2
-    - run: ./ci/${{ matrix.machine }}
+    - run: ./ci/${{ matrix.machine }}.sh
     - uses: codecov/codecov-action@v1
