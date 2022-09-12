@@ -11,6 +11,7 @@ jobs:
       matrix:
         machine:
           - slurm
+          - pbs
     steps:
     - uses: actions/checkout@v2
     - run: ./ci/${{ matrix.machine }}.sh

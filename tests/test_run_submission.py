@@ -17,7 +17,7 @@ class RunSubmission:
             "context_type": "LocalContext",
             "local_root" : "test_run_submission/",
             # /data is mounted in the docker container
-            "remote_root" : "/data/tmp_run_submission/",
+            "remote_root" : os.path.join(os.environ.get("CI_SHARED_SPACE", "/"), "tmp_run_submission"),
             "remote_profile": {}
         }
         self.resources_dict = {
@@ -66,3 +66,11 @@ class TestSlurmRun(RunSubmission, unittest.TestCase):
         super().setUp()
         self.machine_dict["batch_type"] = "Slurm"
         self.resources_dict["queue_name"] = "normal"
+
+
+@unittest.skipIf(os.environ.get('DPDISPATCHER_TEST') != 'pbs', "outside the pbs testing environment")
+class TestPBSRun(RunSubmission, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.machine_dict["batch_type"] = "PBS"
+        self.resources_dict["queue_name"] = "workq"
