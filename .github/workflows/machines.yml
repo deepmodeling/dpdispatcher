@@ -14,4 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: ./ci/${{ matrix.machine }}.sh
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v3
+      with:
+        files: .coverage
