@@ -135,35 +135,39 @@ class SSHSession (object):
         ts.start_client(timeout=self.timeout)
 
         #Begin authentication; note that the username and callback are passed
-        if self.totp_secret:
+        key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
+        if self.key_filename:
+            key_path = os.path.abspath(self.key_filename)
+        key = None
+        key_ok = False
+        key_error = None
+        if os.path.exists(key_path):
+            try:
+                key = paramiko.RSAKey.from_private_key_file(key_path)
+            except paramiko.PasswordRequiredException:
+                key = paramiko.RSAKey.from_private_key_file(key_path, self.passphrase)
+        if key is not None:
+            try:
+                ts.auth_publickey(self.username, key)
+            except paramiko.ssh_exception.AuthenticationException as e:
+                key_error = e
+            else:
+                key_ok = True
+        if self.totp_secret is not None:
             try:
                 ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
                 # since the asynchrony of interactive authentication, one addtional try is added
                 # retry for up to 3 times
                 raise RetrySignal("Authentication failed")
+        elif key_ok:
+            pass
+        elif self.password is not None:
+            ts.auth_password(self.username, self.password)
+        elif key_error is not None:
+            raise RuntimeError("Authentication failed, try to provide password") from key_error
         else:
-            key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
-            if self.key_filename:
-                key_path = os.path.abspath(self.key_filename)
-            key = None
-            if os.path.exists(key_path):
-                try:
-                    key = paramiko.RSAKey.from_private_key_file(key_path)
-                except paramiko.PasswordRequiredException:
-                    key = paramiko.RSAKey.from_private_key_file(key_path, self.passphrase)
-            if key:
-                try:
-                    ts.auth_publickey(self.username, key)
-                except paramiko.ssh_exception.AuthenticationException:
-                    if self.password:
-                        ts.auth_password(self.username, self.password)
-                    else:
-                        raise RuntimeError("Authentication failed, try to provide password")
-            elif self.password:
-                ts.auth_password(self.username, self.password)
-            else:
-                raise RuntimeError("Please provide at least one form of authentication")
+            raise RuntimeError("Please provide at least one form of authentication")
         assert(ts.is_active())
         #Opening a session creates a channel along the socket to the server
         ts.open_session(timeout=self.timeout)
@@ -205,7 +209,7 @@ class SSHSession (object):
                 resp.append(self.username)
             elif "password" in pr_str:
                 resp.append(self.password)
-            elif "verification" in pr_str and self.totp_secret:
+            elif "verification" in pr_str or "token" in pr_str and self.totp_secret:
                 resp.append(generate_totp(self.totp_secret))
 
         return tuple(resp)  #Convert the response list to a tuple and return it
@@ -282,6 +286,7 @@ class SSHSession (object):
     @lru_cache(maxsize=None)
     def rsync_available(self) -> bool:
         return (shutil.which("rsync") is not None and self.password is None
+            and self.totp_secret is None
             and self.passphrase is None)
 
     @property

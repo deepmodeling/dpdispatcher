@@ -54,7 +54,8 @@ class Shell(Machine):
         if job_id == "" :
             return JobStatus.unsubmitted
 
-        ret, stdin, stdout, stderr = self.context.block_call(f"if ps -p {job_id} > /dev/null; then echo 1; fi")
+        # mark defunct process as terminated
+        ret, stdin, stdout, stderr = self.context.block_call(f"if ps -p {job_id} > /dev/null && ! (ps -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi")
         if ret != 0:
             err_str = stderr.read().decode('utf-8')
             raise RuntimeError\
