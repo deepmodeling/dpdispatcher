@@ -77,7 +77,7 @@ class TestSSHContext(unittest.TestCase):
             outlog=f'out.txt'
         )
 
-        submission = Submission(work_base='test_dir/',
+        submission = Submission(work_base='./',
             machine=machine,
             resources=resources,
             forward_common_files=[],
