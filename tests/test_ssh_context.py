@@ -7,7 +7,7 @@ from paramiko.ssh_exception import SSHException
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 __package__ = 'tests'
 from .context import SSHSession
-from .context import Machine
+from .context import Machine, Resources, Task, Submission
 from .sample_class import SampleClass
 
 
@@ -58,6 +58,33 @@ class TestSSHContext(unittest.TestCase):
         check_file_list = ['graph.pb', 'bct-1/conf.lmp', 'bct-4/input.lammps']
         for file in check_file_list:
             self.assertTrue(self.context.check_file_exists(os.path.join(self.context.remote_root, file)))
+
+    def test_empty_transfer(self):
+        # Both forward_files and backward_files are empty
+        machine = Machine.load_from_dict(self.machine.serialize())
+        resources = Resources.load_from_dict({
+            "number_node": 1,
+            "cpu_per_node": 1,
+            "gpu_per_node": 0,
+            "queue_name": "?",
+            "group_size": 2,
+        })
+        task = Task(
+            command=f"echo dpdispatcher_unittest",
+            task_work_path='./',
+            forward_files=[],
+            backward_files=[],
+            outlog=f'out.txt'
+        )
+
+        submission = Submission(work_base='./',
+            machine=machine,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            task_list=[task],
+        )
+        submission.run_submission()
 
     def test_download(self):
         self.context.download(self.__class__.submission)
