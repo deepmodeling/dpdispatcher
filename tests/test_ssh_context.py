@@ -24,7 +24,6 @@ class TestSSHContext(unittest.TestCase):
                 "hostname": "server",
                 "port": 22,
                 "username": "root",
-                "password": "dpdispatcher",
             },
         }
         try:
@@ -76,7 +75,6 @@ class TestSSHContextNoCompress(unittest.TestCase):
                 "hostname": "server",
                 "port": 22,
                 "username": "root",
-                "password": "dpdispatcher",
                 "tar_compress": False,
             },
         }

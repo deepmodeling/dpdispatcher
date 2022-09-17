@@ -10,12 +10,21 @@ services:
       ROOT_PASSWORD: dpdispatcher
     expose:
       - "22"
-  local:
-    image: python3.10
+    volumes:
+      - ssh_config:/root/.ssh
+  test:
+    image: python:3.10
+    tty: true
     build: .
-    container_name: local
-    hostname: local
+    container_name: test
+    hostname: test
     environment:
       DPDISPATCHER_TEST : ssh
     volumes:
+      - ssh_config:/root/.ssh
       - ../..:/dpdispatcher
+    depends_on:
+      - server
+
+volumes:
+  ssh_config:
