@@ -82,3 +82,9 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
         super().setUp()
         self.machine_dict["batch_type"] = "PBS"
         self.resources_dict["queue_name"] = "workq"
+
+
+class TestLazyLocalContext(RunSubmission, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.machine_dict["context_type"] = "LazyLocalContext"
