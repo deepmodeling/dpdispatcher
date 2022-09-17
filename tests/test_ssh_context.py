@@ -24,6 +24,7 @@ class TestSSHContext(unittest.TestCase):
                 "hostname": "server",
                 "port": 22,
                 "username": "root",
+                "key_filename": "/root/.ssh/id_rsa",
             },
         }
         try:
