@@ -286,6 +286,7 @@ class SSHSession (object):
     @lru_cache(maxsize=None)
     def rsync_available(self) -> bool:
         return (shutil.which("rsync") is not None and self.password is None
+            and self.block_call("rsync --version")[0] == 0
             and self.totp_secret is None
             and self.passphrase is None)
 

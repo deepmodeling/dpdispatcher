@@ -13,6 +13,7 @@ jobs:
           - slurm
           - pbs
           - ssh
+          - ssh_rsync
     steps:
     - uses: actions/checkout@v2
     - run: ./ci/${{ matrix.machine }}.sh
