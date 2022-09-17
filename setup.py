@@ -51,7 +51,6 @@ setuptools.setup(
         "cloudserver": ["oss2", "tqdm"],
         ":python_version<'3.7'": ["typing_extensions"],
         "test": [
-            "mock-ssh-server @ https://github.com/njzjz/mock-ssh-server/archive/refs/heads/dpdispatcher.tar.gz",
         ],
     },
         entry_points={
