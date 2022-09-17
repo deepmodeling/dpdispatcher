@@ -61,7 +61,7 @@ class TestSSHContext(unittest.TestCase):
 
     def test_empty_transfer(self):
         # Both forward_files and backward_files are empty
-        machine = self.machine
+        machine = Machine.load_from_dict(self.machine.serialize())
         resources = Resources.load_from_dict({
             "number_node": 1,
             "cpu_per_node": 1,
