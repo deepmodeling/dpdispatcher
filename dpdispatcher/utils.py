@@ -74,7 +74,7 @@ def run_cmd_with_all_output(cmd, shell=True):
     return (ret, out, err)
 
 
-def rsync(from_file: str, to_file: str):
+def rsync(from_file: str, to_file: str, port: int = 22, key_filename: str = None, timeout: Union[int, float] = 10):
     """Call rsync to transfer files.
     
     Parameters
@@ -83,17 +83,40 @@ def rsync(from_file: str, to_file: str):
         SRC
     to_file: str
         DEST
+    port : int, default=22
+        port for ssh
+    key_filename : str, optional
+        identity file name
+    timeout : int, default=10
+        timeout for ssh
     
     Raises
     ------
     RuntimeError
         when return code is not 0
     """
+    ssh_cmd = [
+        'ssh',
+        '-o',
+        'ConnectTimeout=' + str(timeout),
+        '-o',
+        'BatchMode=yes',
+        '-o',
+        'StrictHostKeyChecking=no',
+        '-p',
+        str(port),
+        '-q',
+    ]
+    if key_filename is not None:
+        ssh_cmd.extend(['-i', key_filename])
     cmd = [
         'rsync',
         # -a: archieve
         # -z: compress
         '-az',
+        '-e',
+        " ".join(ssh_cmd),
+        '-q',
         from_file,
         to_file,
     ]
