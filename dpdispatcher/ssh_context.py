@@ -311,6 +311,7 @@ class SSHContext(BaseContext):
         assert os.path.isabs(remote_root), f"remote_root must be a abspath"
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
+        self.remote_root = None
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
@@ -378,8 +379,14 @@ class SSHContext(BaseContext):
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = pathlib.PurePath(os.path.join(self.temp_local_root, submission.work_base)).as_posix()
+        old_remote_root = self.remote_root
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = pathlib.PurePath(os.path.join(self.temp_remote_root, self.submission.submission_hash)).as_posix()
+        # move the working directory if remote_root changes
+        if old_remote_root is not None and old_remote_root != self.remote_root \
+            and self.check_file_exists(old_remote_root) \
+            and not self.check_file_exists(self.remote_root):
+            self.block_checkcall(f"mv {old_remote_root} {self.remote_root}")
 
         sftp = self.ssh_session.ssh.open_sftp()
         try:
