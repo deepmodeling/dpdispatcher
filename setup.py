@@ -46,7 +46,7 @@ setuptools.setup(
             'sphinx_rtd_theme>=1.0.0rc1',
             'numpydoc',
             'deepmodeling_sphinx>=0.1.1',
-            'dargs>=0.3.1',
+            'dargs @ git+https://https://github.com/deepmodeling/dargs',
             ],
         "cloudserver": ["oss2", "tqdm"],
         ":python_version<'3.7'": ["typing_extensions"],
