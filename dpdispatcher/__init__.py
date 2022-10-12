@@ -32,10 +32,6 @@ try:
     from ._version import version as __version__
 except ImportError:
     __version__ = 'unkown'
-try:
-    from ._date import date as __date__
-except ImportError:
-    __date__ = 'unkown'
 
 from .submission import Submission
 from .submission import Task
@@ -63,7 +59,6 @@ def info():
 
     print('DeepModeling\n------------')
     print('Version: ' + __version__)
-    print('Date:    ' + __date__)
     print('Path:    ' + ROOT_PATH)
     print('')
     print('Dependency')
