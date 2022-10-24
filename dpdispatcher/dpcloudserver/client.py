@@ -179,7 +179,7 @@ class Client:
             'oss_path': oss_path,
         }
         if program_id is not None:
-            post_data["program_id"] = program_id
+            post_data["project_id"] = program_id
         if group_id is not None:
             post_data["job_group_id"] = group_id
         for k, v in input_data.items():
