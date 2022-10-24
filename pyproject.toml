@@ -7,9 +7,9 @@ name = "dpdispatcher"
 dynamic = ["version"]
 description = "Generate HPC scheduler systems jobs input scripts, submit these scripts to HPC systems, and poke until they finish"
 authors = [
-  {name = "DeepModeling"},
+    { name = "DeepModeling" },
 ]
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3.6",
     "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
@@ -42,7 +42,7 @@ docs = [
     'deepmodeling_sphinx>=0.1.1',
     'dargs>=0.3.1',
 ]
-cloudserver = ["oss2", "tqdm"]
+cloudserver = ["oss2", "tqdm", 'pyhumps']
 test = []
 
 [tool.setuptools.packages.find]
