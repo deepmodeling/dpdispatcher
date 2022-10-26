@@ -190,6 +190,16 @@ class Client:
             post_data["cmd"] = input_data.get('command')
         if input_data.get('machine_type'):
             post_data['scass_type'] = input_data.get('machine_type')
+        log = input_data.get('logFiles', input_data.get('log_files'))
+        if log:
+            if isinstance(log, str):
+                log = [log]
+            post_data['log_files'] = log
+        oss_path = input_data.get('ossPath', input_data.get('oss_path'))
+        if oss_path:
+            if isinstance(oss_path, str):
+                oss_path = [oss_path]
+            post_data['oss_path'] = oss_path
         camel_data = {humps.camelize(k): v for k, v in post_data.items()}
         ret = self.post('/brm/v2/job/add', camel_data)
         group_id = ret.get('jobGroupId')
