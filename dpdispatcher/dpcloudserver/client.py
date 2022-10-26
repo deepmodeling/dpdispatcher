@@ -191,7 +191,7 @@ class Client:
         if input_data.get('machine_type'):
             post_data['scass_type'] = input_data.get('machine_type')
         camel_data = {humps.camelize(k): v for k, v in post_data.items()}
-        ret = self.post('/brm/v1/job/add', camel_data)
+        ret = self.post('/brm/v2/job/add', camel_data)
         group_id = ret.get('jobGroupId')
         return ret['jobId'], group_id
 
