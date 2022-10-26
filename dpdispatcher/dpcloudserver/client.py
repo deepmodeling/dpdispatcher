@@ -176,7 +176,7 @@ class Client:
     def job_create(self, job_type, oss_path, input_data, program_id=None, group_id=None):
         post_data = {
             'job_type': job_type,
-            'oss_path': oss_path,
+            'oss_path': [oss_path],
         }
         if program_id is not None:
             post_data["project_id"] = program_id
@@ -193,13 +193,7 @@ class Client:
         log = input_data.get('logFiles', input_data.get('log_files'))
         if log:
             if isinstance(log, str):
-                log = [log]
-            post_data['log_files'] = log
-        oss_path = input_data.get('ossPath', input_data.get('oss_path'))
-        if oss_path:
-            if isinstance(oss_path, str):
-                oss_path = [oss_path]
-            post_data['oss_path'] = oss_path
+                post_data['log_files'] = [log]
         camel_data = {humps.camelize(k): v for k, v in post_data.items()}
         ret = self.post('/brm/v2/job/add', camel_data)
         group_id = ret.get('jobGroupId')
