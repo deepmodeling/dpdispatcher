@@ -57,6 +57,8 @@ class Client:
             if method == 'GET':
                 resp = requests.get(url, params=params, headers=header)
             else:
+                if self.debug:
+                    print(data)
                 resp = requests.post(url, json=data, params=params, headers=header)
             if self.debug:
                 print(resp.text)
