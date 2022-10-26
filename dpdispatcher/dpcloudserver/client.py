@@ -192,7 +192,7 @@ class Client:
             post_data["cmd"] = input_data.get('command')
         if input_data.get('machine_type'):
             post_data['scass_type'] = input_data.get('machine_type')
-        log = input_data.get('logFiles', input_data.get('log_files'))
+        log = input_data.get('logFiles', input_data.get('log_files', input_data.get('log_file')))
         if log:
             if isinstance(log, str):
                 post_data['log_files'] = [log]
