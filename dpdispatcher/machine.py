@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from dpdispatcher.ssh_context import SSHSession
 import json
 from dargs import Argument, Variant
-from typing import List, Union
+from typing import List, Optional, Tuple
 import pathlib
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
@@ -57,6 +57,9 @@ class Machine(metaclass=ABCMeta):
 
     subclasses_dict = {}
     options = set()
+    # alias: for subclasses_dict key
+    # notes: this attribute can be inherited
+    alias: Optional[Tuple[str, ...]] = tuple()
 
     def __new__(cls, *args, **kwargs):
         if cls is Machine:
@@ -101,8 +104,10 @@ class Machine(metaclass=ABCMeta):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.subclasses_dict[cls.__name__]=cls
-        cls.subclasses_dict[cls.__name__.lower()]=cls
+        alias = [cls.__name__, *cls.alias]
+        for aa in alias:
+            cls.subclasses_dict[aa]=cls
+            cls.subclasses_dict[aa.lower()]=cls
         cls.options.add(cls.__name__)
         # cls.subclasses.append(cls)
 
@@ -357,9 +362,15 @@ class Machine(metaclass=ABCMeta):
         Argument
             resources arginfo
         """
+        alias = []
+        for aa in cls.alias:
+            alias.extend((
+                aa,
+                aa.lower(),
+            ))
         return Argument(
             cls.__name__, dict, sub_fields=cls.resources_subfields(),
-            alias=[cls.__name__.lower()]
+            alias=[cls.__name__.lower(), *alias]
         )
 
     @classmethod

@@ -1,12 +1,16 @@
 from abc import ABCMeta, abstractmethod
 from dargs import Argument
-from typing import List
+from typing import List, Optional, Tuple
 
 from dpdispatcher import dlog
 
 class BaseContext(metaclass=ABCMeta):
     subclasses_dict = {}
     options = set()
+    # alias: for subclasses_dict key
+    # notes: this attribute can be inherited
+    alias: Optional[Tuple[str, ...]] = tuple()
+
     def __new__(cls, *args, **kwargs):
         if cls is BaseContext:
             subcls = cls.subclasses_dict[kwargs['context_type']]
@@ -17,10 +21,12 @@ class BaseContext(metaclass=ABCMeta):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.subclasses_dict[cls.__name__]=cls
-        cls.subclasses_dict[cls.__name__.lower()]=cls
-        cls.subclasses_dict[cls.__name__.replace("Context", "")]=cls
-        cls.subclasses_dict[cls.__name__.lower().replace("context", "")]=cls
+        alias = [cls.__name__, *cls.alias]
+        for aa in alias:
+            cls.subclasses_dict[aa]=cls
+            cls.subclasses_dict[aa.lower()]=cls
+            cls.subclasses_dict[aa.replace("Context", "")]=cls
+            cls.subclasses_dict[aa.lower().replace("context", "")]=cls
         cls.options.add(cls.__name__)
 
     @classmethod
@@ -77,12 +83,21 @@ class BaseContext(metaclass=ABCMeta):
         Argument
             machine arginfo
         """
+        alias = []
+        for aa in cls.alias:
+            alias.extend((
+                aa,
+                aa.lower(),
+                aa.replace("Context", ""),
+                aa.lower().replace("context", ""),
+            ))
         return Argument(
             cls.__name__, dict, sub_fields=cls.machine_subfields(),
             alias=[
                 cls.__name__.lower(),
                 cls.__name__.replace("Context", ""),
-                cls.__name__.lower().replace("context", "")
+                cls.__name__.lower().replace("context", ""),
+                *alias,
             ])
 
     @classmethod

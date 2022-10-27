@@ -19,6 +19,7 @@ from dpdispatcher.base_context import BaseContext
 from dpdispatcher.distributed_shell import DistributedShell
 from dpdispatcher.hdfs_context import HDFSContext
 from dpdispatcher.hdfs_cli import HDFS
+from dpdispatcher.dp_cloud_server import Lebesgue
 
 from dpdispatcher.local_context import _identical_files
 try:

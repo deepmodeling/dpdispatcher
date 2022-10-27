@@ -28,7 +28,8 @@ ENDPOINT = 'http://oss-cn-shenzhen.aliyuncs.com'
 BUCKET_NAME = 'dpcloudserver'
 
 
-class DpCloudServerContext(BaseContext):
+class BohriumContext(BaseContext):
+    alias = ("DpCloudServerContext", 'LebesgueContext')
     def __init__(self,
                  local_root,
                  remote_root=None,
@@ -269,7 +270,7 @@ class DpCloudServerContext(BaseContext):
         ], doc=doc_remote_profile)]
 
 
-class LebesgueContext(DpCloudServerContext):
-    pass
+DpCloudServerContext = BohriumContext
+LebesgueContext = BohriumContext
 
 # %%
