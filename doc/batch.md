@@ -49,12 +49,12 @@ One needs to make sure TORQUE has been setup in the remote server and the relate
 [IBM Spectrum LSF Suites](https://www.ibm.com/products/hpc-workload-management) is a comprehensive workload management solution used by HPCs.
 One needs to make sure LSF has been setup in the remote server and the related environment is activated.
 
-## Lebesgue
+## Bohrium
 
-{dargs:argument}`batch_type <resources/batch_type>`: `Lebesgue`
+{dargs:argument}`batch_type <resources/batch_type>`: `Bohrium`
 
-Lebesgue is the cloud platform for scientific computing.
-Read Lebesgue documentation for details.
+Bohrium is the cloud platform for scientific computing.
+Read Bohrium documentation for details.
 
 ## DistributedShell
 

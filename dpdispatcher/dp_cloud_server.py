@@ -16,8 +16,8 @@ shell_script_header_template = """
 """
 
 
-class Lebesgue(Machine):
-    alias = ("Bohrium", "DpCloudServer")
+class Bohrium(Machine):
+    alias = ("Lebesgue", "DpCloudServer")
     def __init__(self, context):
         self.context = context
         self.input_data = context.remote_profile['input_data'].copy()
@@ -202,5 +202,5 @@ class Lebesgue(Machine):
     #     return self.context.check_file_exists(job_tag_finished)
 
 
-DpCloudServer = Lebesgue
-Bohrium = Lebesgue
+DpCloudServer = Bohrium
+Lebesgue = Bohrium
