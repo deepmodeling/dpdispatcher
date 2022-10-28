@@ -196,8 +196,8 @@ class Client:
         if log:
             if isinstance(log, str):
                 post_data['log_files'] = [log]
-        if 'checkpoint_files' in input_data and input_data['checkpoint_files'] == 'sync_files':
-            input_data['checkpoint_files'] = ['*']
+        if 'checkpoint_files' in post_data and post_data['checkpoint_files'] == 'sync_files':
+            post_data['checkpoint_files'] = ['*']
         camel_data = {humps.camelize(k): v for k, v in post_data.items()}
         ret = self.post('/brm/v2/job/add', camel_data)
         group_id = ret.get('jobGroupId')
