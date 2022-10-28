@@ -272,8 +272,4 @@ class DpCloudServerContext(BaseContext):
 class LebesgueContext(DpCloudServerContext):
     pass
 
-
-class BohriumContext(DpCloudServerContext):
-    pass
-
 # %%

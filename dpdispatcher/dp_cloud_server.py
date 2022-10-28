@@ -203,7 +203,3 @@ class DpCloudServer(Machine):
 
 class Lebesgue(DpCloudServer):
     pass
-
-
-class Bohrium(DpCloudServer):
-    pass
