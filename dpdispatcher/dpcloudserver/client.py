@@ -1,8 +1,8 @@
 import json
 import os
+import re
 import time
 import urllib.parse
-import humps
 import requests
 from .retcode import RETCODE
 from .config import HTTP_TIME_OUT, API_HOST, API_LOGGER_STACK_INFO
@@ -198,10 +198,25 @@ class Client:
                 post_data['log_files'] = [log]
         if 'checkpoint_files' in post_data and post_data['checkpoint_files'] == 'sync_files':
             post_data['checkpoint_files'] = ['*']
-        camel_data = {humps.camelize(k): v for k, v in post_data.items()}
+        camel_data = {self._camelize(k): v for k, v in post_data.items()}
         ret = self.post('/brm/v2/job/add', camel_data)
         group_id = ret.get('jobGroupId')
         return ret['jobId'], group_id
+
+    def _camelize(self, str_or_iter):
+        # code reference from https://pypi.org/project/pyhumps/
+        regex = re.compile(r"(?<=[^\-_\s])[\-_\s]+[^\-_\s]")
+
+        def _is_none(_in):
+            return "" if _in is None else _in
+
+        s = str(_is_none(str_or_iter))
+        if s.isupper() or s.isnumeric():
+            return str_or_iter
+
+        if len(s) != 0 and not s[:2].isupper():
+            s = s[0].lower() + s[1:]
+        return regex.sub(lambda m: m.group(0)[-1].upper(), s)
 
     def get_tasks(self, job_id, group_id, page=1, per_page=10):
         ret = self.get(
