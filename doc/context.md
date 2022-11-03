@@ -28,13 +28,13 @@ It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/Open
 
 Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed.
 
-## Lebesgue
+## Bohrium
 
-{dargs:argument}`context_type <machine/context_type>`: `Lebesgue`
+{dargs:argument}`context_type <machine/context_type>`: `Bohrium`
 
-Lebesgue is the cloud platform for scientific computing.
-Read Lebesgue documentation for details.
-To use Lebesgue, one needs to provide necessary parameters in {dargs:argument}`remote_profile <machine[LebesgueContext]/remote_profile>`.
+Bohrium is the cloud platform for scientific computing.
+Read Bohrium documentation for details.
+To use Bohrium, one needs to provide necessary parameters in {dargs:argument}`remote_profile <machine[BohriumContext]/remote_profile>`.
 
 ## HDFS
 
