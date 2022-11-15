@@ -25,6 +25,7 @@ test $? -ne 0 && exit 1
 {module_load_part}
 {source_files_part}
 {export_envs_part}
+{prepend_script_part}
 """
 
 script_command_template="""
@@ -44,6 +45,7 @@ test $? -ne 0 && exit 1
 wait
 FLAG_IF_JOB_TASK_FAIL=$(cat {flag_if_job_task_fail})
 if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1;fi
+{append_script_part}
 """
 
 class Machine(metaclass=ABCMeta):
@@ -242,6 +244,16 @@ class Machine(metaclass=ABCMeta):
             else:
                 export_envs_part += f"export {k}={v}\n"
 
+        prepend_script_part = ""
+        prepend_script = job.resources.prepend_script
+        for ii in prepend_script:
+            prepend_script_part += "{ii}\n"
+
+        append_script_part = ""
+        append_script = job.resources.append_script
+        for ii in append_script:
+            append_script_part += "\n{ii}"
+
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
 
         script_env = script_env_template.format(
@@ -251,6 +263,8 @@ class Machine(metaclass=ABCMeta):
             module_load_part=module_load_part,
             source_files_part=source_files_part,
             export_envs_part=export_envs_part,
+            prepend_script_part=prepend_script_part,
+            append_script_part=append_script_part
         )
         return script_env
 

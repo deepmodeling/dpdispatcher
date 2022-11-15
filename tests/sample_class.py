@@ -47,6 +47,8 @@ class SampleClass(object):
             'module_list':[],
             'source_list':[],
             'envs':{},
+            'prepend_script':[],
+            'append_script':[],
             'wait_time': 0,
             'kwargs': {}
         }
