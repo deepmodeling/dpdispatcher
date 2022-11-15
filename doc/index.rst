@@ -17,6 +17,8 @@ DPDispatcher will monitor (poke) until these jobs finish and download the result
    
    install
    getting-started
+   context
+   batch
    machine
    resources
    task

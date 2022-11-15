@@ -14,7 +14,7 @@ from .context import LazyLocalContext, LocalContext, SSHContext
 from .context import LSF, Slurm, PBS, Shell
 from .context import Machine
 from .context import dargs
-from .context import DistributedShell, HDFSContext
+from .context import DistributedShell, HDFSContext, Lebesgue
 from .sample_class import SampleClass
 from dargs.dargs import ArgumentValueError
 
@@ -194,6 +194,24 @@ class TestMachineDispatch(unittest.TestCase):
             machine_dict=machine_dict
         )
         self.assertIsInstance(machine, DistributedShell)
+
+    def test_lebesgue(self):
+        machine_dict = {
+            'batch_type': 'Lebesgue',
+            'context_type': 'LebesgueContext',
+            'local_root':'./',
+            'remote_root': './',
+            'remote_profile': {
+                'email': '114@514.com',
+                'password': '114514',
+                'program_id': 114514,
+                'input_data': {},
+            }
+        }
+        machine = Machine.load_from_dict(
+            machine_dict=machine_dict
+        )
+        self.assertIsInstance(machine, Lebesgue)
 
 class TestContextDispatch(unittest.TestCase):
     def setUp(self):

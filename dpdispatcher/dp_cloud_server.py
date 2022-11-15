@@ -1,21 +1,23 @@
-import shutil
-
-from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher import dlog
-from dpdispatcher.dpcloudserver import zip_file
-from dpdispatcher.machine import Machine
-from dpdispatcher.dpcloudserver.api import API
-from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
-import time
-import warnings
 import os
+import shutil
+import time
 import uuid
+import warnings
 
-shell_script_header_template="""
+from dpdispatcher import dlog
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.dpcloudserver import zip_file
+from dpdispatcher.dpcloudserver import Client
+from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
+from dpdispatcher.machine import Machine
+
+shell_script_header_template = """
 #!/bin/bash -l
 """
 
-class DpCloudServer(Machine):
+
+class Bohrium(Machine):
+    alias = ("Lebesgue", "DpCloudServer")
     def __init__(self, context):
         self.context = context
         self.input_data = context.remote_profile['input_data'].copy()
@@ -37,7 +39,7 @@ class DpCloudServer(Machine):
             raise ValueError("can not find password in remote_profile, please check your machine file.")
         if self.api_version == 1:
             raise DeprecationWarning('api version 1 is deprecated. Use version 2 instead.')
-        self.api = API(email, password)
+        self.api = Client(email, password)
         self.group_id = None
 
     def gen_script(self, job):
@@ -61,7 +63,7 @@ class DpCloudServer(Machine):
         result_file_list = []
         # result_file_list.extend(job.backward_common_files)
         for task in job.job_task_list:
-            result_file_list.extend([ os.path.join(task.task_work_path,b_f) for b_f in task.backward_files])
+            result_file_list.extend([os.path.join(task.task_work_path, b_f) for b_f in task.backward_files])
         return result_file_list
 
     def _gen_oss_path(self, job, zip_filename):
@@ -69,6 +71,7 @@ class DpCloudServer(Machine):
             return job.upload_path
         else:
             program_id = self.context.remote_profile.get('program_id')
+            program_id = self.context.remote_profile.get('project_id', program_id)
             if program_id is None:
                 dlog.info("can not find program id in remote profile, upload to default program id.")
                 program_id = 0
@@ -89,13 +92,15 @@ class DpCloudServer(Machine):
         input_data['job_resources'] = job_resources
         input_data['command'] = f"bash {job.script_file_name}"
         # input_data['backward_files'] = self._gen_backward_files_list(job)
-        if self.context.remote_profile.get('program_id') is None:
+        program_id = self.context.remote_profile.get('program_id')
+        program_id = self.context.remote_profile.get('project_id', program_id)
+        if program_id is None:
             warnings.warn('program_id is compulsory.')
         job_id, group_id = self.api.job_create(
             job_type=input_data['job_type'],
             oss_path=input_data['job_resources'],
             input_data=input_data,
-            program_id=self.context.remote_profile.get('program_id', None),
+            program_id=program_id,
             group_id=self.group_id
         )
         if self.grouped:
@@ -120,23 +125,31 @@ class DpCloudServer(Machine):
         dlog.debug(f"debug: check_status; job.job_id:{job_id}; job.job_hash:{job.job_hash}")
         check_return = None
         # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
-        check_return = self.api.get_tasks(job_id,group_id)
+        check_return = self.api.get_tasks(job_id, group_id)
+        assert (check_return is not None), f"Failed to retrieve tasks information. To resubmit this job, please " \
+                                           f"try again, if this problem still exists please delete the submission " \
+                                           f"file and try again.\nYou can check submission.submission_hash in the " \
+                                           f"previous log or type `grep -rl \"{job_id}:job_group_id:{group_id}\" " \
+                                           f"~/.dpdispatcher/dp_cloud_server/` to find corresponding file. " \
+                                           f"You can try with command:\n    " \
+                                           f'rm $(grep -rl "{job_id}:job_group_id:{group_id}" ~/.dpdispatcher/dp_cloud_server/)'
         try:
             dp_job_status = check_return["status"]
         except IndexError as e:
-            dlog.error(f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
+            dlog.error(
+                f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds")
             time.sleep(60)
             retry_return = self.api.get_tasks(job_id, group_id)
             try:
                 dp_job_status = retry_return["status"]
             except IndexError as e:
-                raise RuntimeError(f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}")
+                raise RuntimeError(
+                    f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}")
 
         job_state = self.map_dp_job_state(dp_job_status)
         if job_state == JobStatus.finished:
             self._download_job(job)
         return job_state
-
 
     def _download_job(self, job):
         job_url = self.api.get_job_result_url(job.job_id)
@@ -156,7 +169,7 @@ class DpCloudServer(Machine):
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
-        dlog.info('check if job finished: ',job.job_id, job_tag_finished)
+        dlog.info('check if job finished: ', job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
         # return
         # pass
@@ -170,25 +183,24 @@ class DpCloudServer(Machine):
         if isinstance(status, JobStatus):
             return status
         map_dict = {
-            -1:JobStatus.terminated,
-            0:JobStatus.waiting,
-            1:JobStatus.running,
-            2:JobStatus.finished,
-            3:JobStatus.waiting,
-            4:JobStatus.running,
-            5:JobStatus.terminated,
-            6:JobStatus.running,
+            -1: JobStatus.terminated,
+            0: JobStatus.waiting,
+            1: JobStatus.running,
+            2: JobStatus.finished,
+            3: JobStatus.waiting,
+            4: JobStatus.running,
+            5: JobStatus.terminated,
+            6: JobStatus.running,
         }
         if status not in map_dict:
             dlog.error(f'unknown job status {status}')
             return JobStatus.unknown
         return map_dict[status]
 
-
     # def check_finish_tag(self, job):
     #     job_tag_finished = job.job_hash + '_job_tag_finished'
     #     return self.context.check_file_exists(job_tag_finished)
 
 
-class Lebesgue(DpCloudServer):
-    pass
+DpCloudServer = Bohrium
+Lebesgue = Bohrium

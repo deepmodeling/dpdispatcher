@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dpdispatcher"
+dynamic = ["version"]
+description = "Generate HPC scheduler systems jobs input scripts, submit these scripts to HPC systems, and poke until they finish"
+authors = [
+    { name = "DeepModeling" },
+]
+license = { file = "LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3.6",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+]
+dependencies = [
+    'paramiko',
+    'dargs>=0.2.9',
+    'requests',
+    'tqdm',
+    'typing_extensions; python_version < "3.7"',
+]
+requires-python = ">=3.7"
+readme = "README.md"
+keywords = ["dispatcher", "hpc", "slurm", "lsf", "pbs", "ssh"]
+
+[project.urls]
+Homepage = "https://github.com/deepmodeling/dpdispatcher"
+documentation = "https://docs.deepmodeling.com/projects/dpdispatcher"
+repository = "https://github.com/deepmodeling/dpdispatcher"
+
+[project.entry-points.console_scripts]
+dpdisp = "dpdispatcher.dpdisp:main"
+
+[project.optional-dependencies]
+docs = [
+    'sphinx',
+    'myst-parser',
+    'sphinx_rtd_theme>=1.0.0rc1',
+    'numpydoc',
+    'deepmodeling_sphinx>=0.1.1',
+    'dargs>=0.3.1',
+]
+cloudserver = ["oss2", "tqdm"]
+test = []
+
+[tool.setuptools.packages.find]
+include = ["dpdispatcher*"]
+
+[tool.setuptools_scm]
+write_to = "dpdispatcher/_version.py"

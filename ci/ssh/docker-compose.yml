@@ -1,0 +1,30 @@
+version: "2.2"
+
+services:
+  server:
+    image: takeyamajp/ubuntu-sshd:ubuntu22.04
+    build: .
+    container_name: server
+    hostname: server
+    environment:
+      ROOT_PASSWORD: dpdispatcher
+    expose:
+      - "22"
+    volumes:
+      - ssh_config:/root/.ssh
+  test:
+    image: python:3.10
+    tty: true
+    build: .
+    container_name: test
+    hostname: test
+    environment:
+      DPDISPATCHER_TEST : ssh
+    volumes:
+      - ssh_config:/root/.ssh
+      - ../..:/dpdispatcher
+    depends_on:
+      - server
+
+volumes:
+  ssh_config:

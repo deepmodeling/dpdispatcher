@@ -108,6 +108,7 @@ class SSHSession (object):
     #     transport = self.ssh.get_transport()
     #     transport.set_keepalive(60)
     
+    @retry(max_retry=3, sleep=1)
     def _setup_ssh(self):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
@@ -127,30 +128,46 @@ class SSHSession (object):
 
         #Make a Paramiko Transport object using the socket
         ts = paramiko.Transport(sock)
+        ts.banner_timeout = 60
         ts.use_compression(compress=True)
 
         #Tell Paramiko that the Transport is going to be used as a client
         ts.start_client(timeout=self.timeout)
 
         #Begin authentication; note that the username and callback are passed
-        if self.totp_secret:
-            ts.auth_interactive(self.username, self.inter_handler)
-        else:
-            default_path = os.path.join(os.environ["HOME"], ".ssh", "id_rsa")
-            path = ""
-            if self.key_filename:
-                path = os.path.abspath(self.key_filename)
-            else:
-                path = default_path
+        key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
+        if self.key_filename:
+            key_path = os.path.abspath(self.key_filename)
+        key = None
+        key_ok = False
+        key_error = None
+        if os.path.exists(key_path):
             try:
-                key = paramiko.RSAKey.from_private_key_file(path)
+                key = paramiko.RSAKey.from_private_key_file(key_path)
             except paramiko.PasswordRequiredException:
-                key = paramiko.RSAKey.from_private_key_file(path, self.passphrase)
+                key = paramiko.RSAKey.from_private_key_file(key_path, self.passphrase)
+        if key is not None:
             try:
                 ts.auth_publickey(self.username, key)
+            except paramiko.ssh_exception.AuthenticationException as e:
+                key_error = e
+            else:
+                key_ok = True
+        if self.totp_secret is not None:
+            try:
+                ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
-                if self.password:
-                    ts.auth_password(self.username, self.password)
+                # since the asynchrony of interactive authentication, one addtional try is added
+                # retry for up to 3 times
+                raise RetrySignal("Authentication failed")
+        elif key_ok:
+            pass
+        elif self.password is not None:
+            ts.auth_password(self.username, self.password)
+        elif key_error is not None:
+            raise RuntimeError("Authentication failed, try to provide password") from key_error
+        else:
+            raise RuntimeError("Please provide at least one form of authentication")
         assert(ts.is_active())
         #Opening a session creates a channel along the socket to the server
         ts.open_session(timeout=self.timeout)
@@ -192,7 +209,7 @@ class SSHSession (object):
                 resp.append(self.username)
             elif "password" in pr_str:
                 resp.append(self.password)
-            elif "verification" in pr_str and self.totp_secret:
+            elif "verification" in pr_str or "token" in pr_str and self.totp_secret:
                 resp.append(generate_totp(self.totp_secret))
 
         return tuple(resp)  #Convert the response list to a tuple and return it
@@ -257,19 +274,20 @@ class SSHSession (object):
         
     def put(self, from_f, to_f):
         if self.rsync_available:
-            return rsync(from_f, self.remote + ":" + to_f)
+            return rsync(from_f, self.remote + ":" + to_f, port=self.port, key_filename=self.key_filename, timeout=self.timeout)
         return self.sftp.put(from_f, to_f)
 
     def get(self, from_f, to_f):
         if self.rsync_available:
-            return rsync(self.remote + ":" + from_f, to_f)
+            return rsync(self.remote + ":" + from_f, to_f, port=self.port, key_filename=self.key_filename, timeout=self.timeout)
         return self.sftp.get(from_f, to_f)
 
     @property
     @lru_cache(maxsize=None)
     def rsync_available(self) -> bool:
         return (shutil.which("rsync") is not None and self.password is None
-            and self.port == 22 and self.key_filename is None
+            and self.exec_command("rsync --version")[1].channel.recv_exit_status() == 0
+            and self.totp_secret is None
             and self.passphrase is None)
 
     @property
@@ -293,6 +311,7 @@ class SSHContext(BaseContext):
         assert os.path.isabs(remote_root), f"remote_root must be a abspath"
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
+        self.remote_root = None
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
@@ -360,8 +379,14 @@ class SSHContext(BaseContext):
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = pathlib.PurePath(os.path.join(self.temp_local_root, submission.work_base)).as_posix()
+        old_remote_root = self.remote_root
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = pathlib.PurePath(os.path.join(self.temp_remote_root, self.submission.submission_hash)).as_posix()
+        # move the working directory if remote_root changes
+        if old_remote_root is not None and old_remote_root != self.remote_root \
+            and self.check_file_exists(old_remote_root) \
+            and not self.check_file_exists(self.remote_root):
+            self.block_checkcall(f"mv {old_remote_root} {self.remote_root}")
 
         sftp = self.ssh_session.ssh.open_sftp()
         try:

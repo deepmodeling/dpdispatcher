@@ -11,7 +11,7 @@ import os
 from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
 # from . import dlog
-from .dpcloudserver.api import API
+from .dpcloudserver import Client
 from .dpcloudserver import zip_file
 import shutil
 import tqdm
@@ -28,7 +28,8 @@ ENDPOINT = 'http://oss-cn-shenzhen.aliyuncs.com'
 BUCKET_NAME = 'dpcloudserver'
 
 
-class DpCloudServerContext(BaseContext):
+class BohriumContext(BaseContext):
+    alias = ("DpCloudServerContext", 'LebesgueContext')
     def __init__(self,
                  local_root,
                  remote_root=None,
@@ -46,7 +47,7 @@ class DpCloudServerContext(BaseContext):
             raise ValueError("can not find email in remote_profile, please check your machine file.")
         if password is None:
             raise ValueError("can not find password in remote_profile, please check your machine file.")
-        self.api = API(email, password)
+        self.api = Client(email, password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
@@ -81,6 +82,7 @@ class DpCloudServerContext(BaseContext):
             return job.upload_path
         else:
             program_id = self.remote_profile.get('program_id')
+            program_id = self.remote_profile.get('project_id', program_id)
             if program_id is None:
                 program_id = 0
             uid = uuid.uuid4()
@@ -115,15 +117,7 @@ class DpCloudServerContext(BaseContext):
         )
         result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
         retry_count = 0
-        while True:
-            if self.api.check_file_has_uploaded(ALI_OSS_BUCKET_URL + oss_task_zip):
-                self._backup(self.local_root, upload_zip)
-                break
-            elif retry_count < MAX_RETRY:
-                time.sleep(1 + retry_count)
-                retry_count += 1
-            else:
-                raise ValueError(f"upload retried excess {MAX_RETRY} terminate.")
+        self._backup(self.local_root, upload_zip)
 
     def upload(self, submission):
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
@@ -137,8 +131,7 @@ class DpCloudServerContext(BaseContext):
         result = None
         dlog.info("checking all job has been uploaded")
         for job in submission.belonging_jobs:
-            if not self.api.check_job_has_uploaded(job.job_id):
-                job_to_be_uploaded.append(job)
+            job_to_be_uploaded.append(job)
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")
             return result
@@ -161,14 +154,14 @@ class DpCloudServerContext(BaseContext):
         if group_id is not None:
             job_result = self.api.get_tasks_list(group_id)
             for each in job_result:
-                if 'result_url' in each and each['result_url'] != '' and each['status'] == 2:
+                if 'resultUrl' in each and each['resultUrl'] != '' and each['status'] == 2:
                     job_hash = ''
-                    if each['task_id'] not in job_hashs:
-                        dlog.info(f"find unexpect job_hash, but task {each['task_id']} still been download.")
+                    if each['id'] not in job_hashs:
+                        dlog.info(f"find unexpect job_hash, but task {each['id']} still been download.")
                         dlog.debug(str(job_hashs))
-                        job_hash = str(each['task_id'])
+                        job_hash = str(each['id'])
                     else:
-                        job_hash = job_hashs[each['task_id']]
+                        job_hash = job_hashs[each['id']]
                     job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
         for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Validating download file from Lebesgue",
@@ -177,7 +170,7 @@ class DpCloudServerContext(BaseContext):
             target_result_zip = os.path.join(self.local_root, result_filename)
             if self._check_if_job_has_already_downloaded(target_result_zip, self.local_root):
                 continue
-            self.api.download_from_url(info['result_url'], target_result_zip)
+            self.api.download_from_url(info['resultUrl'], target_result_zip)
             zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
             self._backup(self.local_root, target_result_zip)
         self._clean_backup(self.local_root, keep_backup=self.remote_profile.get('keep_backup', True))
@@ -261,7 +254,7 @@ class DpCloudServerContext(BaseContext):
     @classmethod
     def machine_subfields(cls) -> List[Argument]:
         """Generate the machine subfields.
-        
+
         Returns
         -------
         list[Argument]
@@ -271,13 +264,13 @@ class DpCloudServerContext(BaseContext):
         return [Argument("remote_profile", dict, [
             Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
-            Argument("program_id", int, optional=False, doc="Program ID"),
+            Argument("program_id", int, optional=False, alias=['project_id'], doc="Program ID"),
             Argument("keep_backup", bool, optional=True, doc="keep download and upload zip"),
             Argument("input_data", dict, optional=False, doc="Configuration of job"),
         ], doc=doc_remote_profile)]
 
 
-class LebesgueContext(DpCloudServerContext):
-    pass
+DpCloudServerContext = BohriumContext
+LebesgueContext = BohriumContext
 
 # %%
