@@ -249,11 +249,6 @@ class Machine(metaclass=ABCMeta):
         for ii in prepend_script:
             prepend_script_part += "{ii}\n"
 
-        append_script_part = ""
-        append_script = job.resources.append_script
-        for ii in append_script:
-            append_script_part += "\n{ii}"
-
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
 
         script_env = script_env_template.format(
@@ -263,8 +258,7 @@ class Machine(metaclass=ABCMeta):
             module_load_part=module_load_part,
             source_files_part=source_files_part,
             export_envs_part=export_envs_part,
-            prepend_script_part=prepend_script_part,
-            append_script_part=append_script_part
+            prepend_script_part=prepend_script_part
         )
         return script_env
 
@@ -300,9 +294,16 @@ class Machine(metaclass=ABCMeta):
     def gen_script_end(self, job):
         job_tag_finished = job.job_hash + '_job_tag_finished'
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
+
+        append_script_part = ""
+        append_script = job.resources.append_script
+        for ii in append_script:
+            append_script_part += "\n{ii}"
+        
         script_end = script_end_template.format(
             job_tag_finished=job_tag_finished,
-            flag_if_job_task_fail=flag_if_job_task_fail
+            flag_if_job_task_fail=flag_if_job_task_fail,
+            append_script_part=append_script_part
         )
         return script_end
 
