@@ -15,8 +15,7 @@ lsf_script_header_template = """\
 {lsf_nodes_line}
 {lsf_ptile_line}
 {lsf_partition_line}
-{lsf_number_gpu_line}
-"""
+{lsf_number_gpu_line}"""
 
 
 class LSF(Machine):

@@ -41,7 +41,8 @@ class TestJob(unittest.TestCase):
                 "cc": True,
             }
         }).serialize()
-        expected_dict = {'cpu_per_node': 2,
+        expected_dict = {'append_script': [],
+                         'cpu_per_node': 2,
                          'custom_flags': [],
                          'envs': {'aa': 'bb'},
                          'gpu_per_node': 0,
@@ -54,6 +55,7 @@ class TestJob(unittest.TestCase):
                          'module_unload_list': [],
                          'number_node': 1,
                          'para_deg': 1,
+                         'prepend_script': [],
                          'queue_name': 'haha',
                          'source_list': [],
                          'strategy': {'if_cuda_multi_devices': False, 'ratio_unfinished': 0.0},

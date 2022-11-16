@@ -15,6 +15,7 @@ script_env_template="""
 {module_load_part}
 {source_files_part}
 {export_envs_part}
+{prepend_script_part}
 
 REMOTE_ROOT=`pwd`
 echo 0 > {flag_if_job_task_fail}
@@ -39,6 +40,7 @@ if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then
 else
     exit 1
 fi
+{append_script_part}
 """
 
 class DistributedShell(Machine):
@@ -72,6 +74,9 @@ class DistributedShell(Machine):
             else:
                 export_envs_part += f"export {k}={v}\n"
 
+        prepend_script = job.resources.prepend_script
+        prepend_script_part = "\n".join(prepend_script)
+
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
 
         script_env = script_env_template.format(
@@ -80,6 +85,7 @@ class DistributedShell(Machine):
             module_load_part=module_load_part,
             source_files_part=source_files_part,
             export_envs_part=export_envs_part,
+            prepend_script_part=prepend_script_part,
             remote_root=self.context.remote_root,
             submission_hash=self.context.submission.submission_hash,
         )
@@ -91,10 +97,15 @@ class DistributedShell(Machine):
             all_task_dirs += "%s " % task.task_work_path
         job_tag_finished = job.job_hash + '_job_tag_finished'
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
+
+        append_script = job.resources.append_script
+        append_script_part = "\n".join(append_script)
+        
         script_end = script_end_template.format(
             job_tag_finished=job_tag_finished,
             flag_if_job_task_fail=flag_if_job_task_fail,
             all_task_dirs=all_task_dirs,
+            append_script_part=append_script_part,
             remote_root=self.context.remote_root,
             submission_hash=self.context.submission.submission_hash,
             job_hash=job.job_hash

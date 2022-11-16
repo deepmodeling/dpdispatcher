@@ -721,6 +721,8 @@ class Resources(object):
                 module_list=[],
                 source_list=[],
                 envs={},
+                prepend_script=[],
+                append_script=[],
                 wait_time=0,
                 **kwargs):
         self.number_node = number_node
@@ -738,6 +740,8 @@ class Resources(object):
         self.module_list = module_list
         self.source_list = source_list
         self.envs = envs
+        self.prepend_script = prepend_script
+        self.append_script = append_script
         self.wait_time = wait_time
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
@@ -779,6 +783,8 @@ class Resources(object):
         resources_dict['module_list'] = self.module_list
         resources_dict['source_list'] = self.source_list
         resources_dict['envs'] = self.envs
+        resources_dict['prepend_script'] = self.prepend_script
+        resources_dict['append_script'] = self.append_script
         resources_dict['wait_time'] = self.wait_time
         resources_dict['kwargs'] = self.kwargs
         return resources_dict
@@ -798,6 +804,8 @@ class Resources(object):
                         module_list=resources_dict.get('module_list', []),
                         source_list=resources_dict.get('source_list', []),
                         envs=resources_dict.get('envs', {}),
+                        prepend_script=resources_dict.get('prepend_script', []),
+                        append_script=resources_dict.get('append_script', []),
                         wait_time=resources_dict.get('wait_time', 0),
                         **resources_dict.get('kwargs', {})
                         )
@@ -836,6 +844,8 @@ class Resources(object):
         doc_module_unload_list = 'The modules to be unloaded on HPC system before submitting jobs'
         doc_module_list = 'The modules to be loaded on HPC system before submitting jobs'
         doc_envs = 'The environment variables to be exported on before submitting jobs'
+        doc_prepend_script = 'Optional script run before jobs submitted.'
+        doc_append_script = 'Optional script run after jobs submitted.'
         doc_wait_time = 'The waitting time in second after a single `task` submitted'
         doc_if_cuda_multi_devices = ('If there are multiple nvidia GPUS on the node, and we want to assign the tasks to different GPUS.'
             'If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.'
@@ -865,6 +875,8 @@ class Resources(object):
             Argument("module_unload_list", list, optional=True, doc=doc_module_unload_list, default=[]),
             Argument("module_list", list, optional=True, doc=doc_module_list, default=[]),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
+            Argument("prepend_script", list, optional=True, doc=doc_prepend_script, default=[]),
+            Argument("append_script", list, optional=True, doc=doc_append_script, default=[]),
             Argument("wait_time", [int, float], optional=True, doc=doc_wait_time, default=0)
         ]
 
