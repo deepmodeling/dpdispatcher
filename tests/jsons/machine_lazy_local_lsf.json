@@ -1,14 +1,8 @@
 {
     "machine":{
         "batch_type": "LSF",
-        "context_type": "SSHContext",
-        "local_root": "./test_lsf_dir",
-        "remote_root": "/data/home/ypliu/dptasks",
-        "remote_profile": {
-            "hostname": "123.45.78.99",
-            "port": 56789,
-            "username": "ypliu"
-        }
+        "context_type": "LazyLocalContext",
+        "local_root": "./test_lsf_dir"
     },
     "resources":{
         "number_node": 1,
@@ -25,6 +19,7 @@
         },
         "para_deg": 1,
         "module_unload_list": [],
+        "module_purge": true,
         "module_list": [
             "use.own",
             "deepmd/1.3"
@@ -34,9 +29,18 @@
             "/data/home/ypliu/dprun/tf_envs.sh"
         ],
         "envs": {"DP_DISPATCHER_EXPORT": "test_foo_bar_baz"},
+        "prepend_script": [
+            "echo 'mira'",
+            "echo 'ao'"
+        ],
+        "append_script": [
+            "echo 'himari'",
+            "echo 'yori'"
+        ],
         "kwargs": {
             "gpu_usage": true,
-            "gpu_new_syntax": true
+            "gpu_new_syntax": true,
+            "gpu_exclusive": false
         }
     }
 }
