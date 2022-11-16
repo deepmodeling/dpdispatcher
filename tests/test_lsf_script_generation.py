@@ -78,8 +78,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
 
             export DP_DISPATCHER_EXPORT=test_foo_bar_baz
 
-            echo 'mira'
-            echo 'ao'
+            echo 'The summer you were there.'
             """.format(task_hash=task_hash, job_hash=job_hash))
         self.assertEqual(env_str.split("\n")[2:], benchmark_env.split("\n")[2:])
 
@@ -92,6 +91,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
             wait
             FLAG_IF_JOB_TASK_FAIL=$(cat {job_hash}_flag_if_job_task_fail)
             if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_hash}_job_tag_finished; else exit 1;fi
+
             echo 'shizuku'
             echo 'kaori'
             """)

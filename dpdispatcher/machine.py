@@ -45,6 +45,7 @@ test $? -ne 0 && exit 1
 wait
 FLAG_IF_JOB_TASK_FAIL=$(cat {flag_if_job_task_fail})
 if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1;fi
+
 {append_script_part}
 """
 
