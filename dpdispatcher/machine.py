@@ -246,8 +246,7 @@ class Machine(metaclass=ABCMeta):
 
         prepend_script_part = ""
         prepend_script = job.resources.prepend_script
-        for ii in prepend_script:
-            prepend_script_part += "{ii}\n"
+        prepend_script_part = "\n".join(prepend_script)
 
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
 
@@ -297,8 +296,7 @@ class Machine(metaclass=ABCMeta):
 
         append_script_part = ""
         append_script = job.resources.append_script
-        for ii in append_script:
-            append_script_part += "\n{ii}"
+        append_script_part = "\n".join(append_script)
         
         script_end = script_end_template.format(
             job_tag_finished=job_tag_finished,
