@@ -245,7 +245,6 @@ class Machine(metaclass=ABCMeta):
             else:
                 export_envs_part += f"export {k}={v}\n"
 
-        prepend_script_part = ""
         prepend_script = job.resources.prepend_script
         prepend_script_part = "\n".join(prepend_script)
 
@@ -295,7 +294,6 @@ class Machine(metaclass=ABCMeta):
         job_tag_finished = job.job_hash + '_job_tag_finished'
         flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
 
-        append_script_part = ""
         append_script = job.resources.append_script
         append_script_part = "\n".join(append_script)
         
