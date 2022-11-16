@@ -30,12 +30,11 @@
         ],
         "envs": {"DP_DISPATCHER_EXPORT": "test_foo_bar_baz"},
         "prepend_script": [
-            "echo 'mira'",
-            "echo 'ao'"
+            "echo 'The summer you were there.'"
         ],
         "append_script": [
-            "echo 'himari'",
-            "echo 'yori'"
+            "echo 'shizuku'",
+            "echo 'kaori'"
         ],
         "kwargs": {
             "gpu_usage": true,

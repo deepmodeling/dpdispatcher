@@ -39,8 +39,12 @@ class TestLSFScriptGeneration(unittest.TestCase):
             task_list=task_list
         )
         submission.generate_jobs()
+        
+        task_hash = submission.get_hash()
+        test_job = submission.belonging_jobs[0]
+        job_hash = test_job.job_hash
 
-        header_str = machine.gen_script_header(submission.belonging_jobs[0])
+        header_str = machine.gen_script_header(test_job)
         benchmark_header = textwrap.dedent("""\
             #!/bin/bash -l
             #BSUB -e %J.err
@@ -51,46 +55,44 @@ class TestLSFScriptGeneration(unittest.TestCase):
             #BSUB -gpu 'num=1:mode=shared:j_exclusive=no'""")
         self.assertEqual(header_str, benchmark_header)
 
-        custom_flags_str = machine.gen_script_custom_flags_lines(submission.belonging_jobs[0])
+        custom_flags_str = machine.gen_script_custom_flags_lines(test_job)
         benchmark_custom_flags = textwrap.dedent("""\
             #BSUB -R "select[hname != g005]"
             #BSUB -W 24:00
             """)
         self.assertEqual(custom_flags_str, benchmark_custom_flags)
 
-        env_str = machine.gen_script_env(submission.belonging_jobs[0])
-        benchmark_env = textwrap.dedent("""\
-            REMOTE_ROOT={remote_root}
-            echo 0 > $REMOTE_ROOT/{flag_if_job_task_fail}
+        env_str = machine.gen_script_env(test_job)
+        benchmark_env = textwrap.dedent("""
+            REMOTE_ROOT={task_hash}
+            echo 0 > $REMOTE_ROOT/{job_hash}_flag_if_job_task_fail
             test $? -ne 0 && exit 1
-
 
             module purge
 
             module load use.own
             module load deepmd/1.3
 
-            { source /data/home/ypliu/scripts/avail_gpu.sh; } 
-            { source /data/home/ypliu/dprun/tf_envs.sh; } 
+            {{ source /data/home/ypliu/scripts/avail_gpu.sh; }} 
+            {{ source /data/home/ypliu/dprun/tf_envs.sh; }} 
 
             export DP_DISPATCHER_EXPORT=test_foo_bar_baz
 
             echo 'mira'
             echo 'ao'
-            """)
-        self.assertEqual(env_str.split("\n")[4:], benchmark_env.split("\n")[4:])
+            """.format(task_hash=task_hash, job_hash=job_hash))
+        self.assertEqual(env_str.split("\n")[2:], benchmark_env.split("\n")[2:])
 
-        footer_str = machine.gen_script_end(submission.belonging_jobs[0])
-        benchmark_footer = textwrap.dedent("""\
+        footer_str = machine.gen_script_end(test_job)
+        benchmark_footer = textwrap.dedent(f"""\
 
             cd $REMOTE_ROOT
             test $? -ne 0 && exit 1
 
             wait
-            FLAG_IF_JOB_TASK_FAIL=$(cat {flag_if_job_task_fail})
-            if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1;fi
-            echo 'himari'
-            echo 'yori'
+            FLAG_IF_JOB_TASK_FAIL=$(cat {job_hash}_flag_if_job_task_fail)
+            if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_hash}_job_tag_finished; else exit 1;fi
+            echo 'shizuku'
+            echo 'kaori'
             """)
-        self.assertEqual(footer_str.split("\n")[:4], benchmark_footer.split("\n")[:4])
-        self.assertEqual(footer_str.split("\n")[7:], benchmark_footer.split("\n")[7:])
+        self.assertEqual(footer_str, benchmark_footer)
