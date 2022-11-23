@@ -443,8 +443,6 @@ class SSHContext(BaseContext):
                 recover = True
         self.ssh_session.sftp.chdir(None)
 
-        cwd = os.getcwd()
-        os.chdir(self.local_root) 
         file_list = []
         directory_list = []
         for task in submission.belonging_tasks:
@@ -480,7 +478,6 @@ class SSHContext(BaseContext):
             file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
 
         self._put_files(file_list, dereference = dereference, directories=directory_list, tar_compress = self.remote_profile.get('tar_compress', None))
-        os.chdir(cwd)
 
     def download(self, 
                  submission,
@@ -490,8 +487,6 @@ class SSHContext(BaseContext):
                  mark_failure = True,
                  back_error=False) :
         self.ssh_session.ensure_alive()
-        cwd = os.getcwd()
-        os.chdir(self.local_root) 
         file_list = []
         # for ii in job_dirs :
         for task in submission.belonging_tasks :
@@ -512,7 +507,6 @@ class SSHContext(BaseContext):
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
             self._get_files(file_list, tar_compress = self.remote_profile.get('tar_compress', None))
-        os.chdir(cwd)
         
     def block_checkcall(self, 
                         cmd,
@@ -643,17 +637,16 @@ class SSHContext(BaseContext):
                     
         of = self.submission.submission_hash + of_suffix
         # local tar
-        cwd = os.getcwd()
-        os.chdir(self.local_root)
-        if os.path.isfile(of) :
-            os.remove(of)
-        with tarfile.open(of, tarfile_mode, dereference = dereference, **kwargs) as tar:
+        if os.path.isfile(os.path.join(self.local_root, of)):
+            os.remove(os.path.join(self.local_root, of))
+        with tarfile.open(os.path.join(self.local_root, of), tarfile_mode, dereference = dereference, **kwargs) as tar:
             for ii in files :
-                tar.add(ii)
+                ii_full = os.path.join(self.local_root, ii)
+                tar.add(ii_full, arcname=ii)
             if directories is not None:
                 for ii in directories:
-                    tar.add(ii, recursive=False)
-        os.chdir(cwd)
+                    ii_full = os.path.join(self.local_root, ii)
+                    tar.add(ii_full, arcname=ii, recursive=False)
         self.ssh_session.ensure_alive()
         try:
             self.sftp.mkdir(self.remote_root)
@@ -703,11 +696,8 @@ class SSHContext(BaseContext):
             os.remove(to_f)
         self.ssh_session.get(from_f, to_f)
         # extract
-        cwd = os.getcwd()
-        os.chdir(self.local_root)
         with tarfile.open(of, mode = tarfile_mode) as tar:
-            tar.extractall()
-        os.chdir(cwd)    
+            tar.extractall(path=self.local_root)
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)

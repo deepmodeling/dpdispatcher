@@ -47,14 +47,13 @@ class HDFSContext(BaseContext) :
                    dereference=True):
         of = self.submission.submission_hash + '_upload.tgz'
         # local tar
-        cwd = os.getcwd()
-        os.chdir(self.local_root)
-        if os.path.isfile(of) :
-            os.remove(of)
-        with tarfile.open(of, "w:gz", dereference=dereference) as tar:
+        if os.path.isfile(os.path.join(self.local_root, of)):
+            os.remove(os.path.join(self.local_root, of))
+        with tarfile.open(os.path.join(self.local_root, of), "w:gz", dereference=dereference) as tar:
             for ii in files :
-                tar.add(ii)
-        os.chdir(cwd)
+                ii_full = os.path.join(self.local_root, ii)
+                tar.add(ii_full, arcname=ii)
+
 
         # trans
         from_f = os.path.join(self.local_root, of)
@@ -78,8 +77,6 @@ class HDFSContext(BaseContext) :
         none
         """
 
-        cwd = os.getcwd()
-        os.chdir(self.local_root)
         file_list = []
 
         for task in submission.belonging_tasks:
@@ -87,7 +84,6 @@ class HDFSContext(BaseContext) :
             for ff in task.forward_files:
                 abs_file_list = glob(os.path.join(local_job, ff))
                 if not abs_file_list:
-                    os.chdir(cwd)
                     raise RuntimeError('cannot find upload file ' + os.path.join(local_job, ff))
                 rel_file_list = [os.path.relpath(ii, self.local_root) for ii in abs_file_list]
                 file_list.extend(rel_file_list)
@@ -96,13 +92,11 @@ class HDFSContext(BaseContext) :
         for fc in submission.forward_common_files:
             abs_file_list = glob(os.path.join(local_job, fc))
             if not abs_file_list:
-                os.chdir(cwd)
                 raise RuntimeError('cannot find upload file ' + os.path.join(local_job, fc))
             rel_file_list = [os.path.relpath(ii, self.local_root) for ii in abs_file_list]
             file_list.extend(rel_file_list)
 
         self._put_files(file_list, dereference=dereference)
-        os.chdir(cwd)
 
     def download(self,
                  submission,
@@ -124,12 +118,10 @@ class HDFSContext(BaseContext) :
         cwd = os.getcwd()
 
         # download all hdfs files to tmp dir
-        os.chdir(self.local_root)
         gz_dir = os.path.join(self.local_root, 'tmp')
         if os.path.exists(gz_dir):
             shutil.rmtree(gz_dir, ignore_errors=True)
-        os.mkdir('tmp')
-        os.chdir(gz_dir)
+        os.mkdir(os.path.join(self.local_root, 'tmp'))
         rfile_tgz = "%s/%s_*_download.tar.gz" % (self.remote_root, submission.submission_hash)
         lfile_tgz = "%s/tmp/" % (self.local_root)
         HDFS.copy_to_local(rfile_tgz, lfile_tgz)
@@ -137,8 +129,7 @@ class HDFSContext(BaseContext) :
         tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar.gz"))
         for tgz in tgz_file_list:
             with tarfile.open(tgz, "r:gz") as tar:
-                tar.extractall()
-        os.chdir(self.local_root)
+                tar.extractall(path=gz_dir)
 
         for task in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, task.task_work_path)
@@ -169,7 +160,6 @@ class HDFSContext(BaseContext) :
                             os.remove(lfile)
                     shutil.move(rfile, lfile)
 
-        os.chdir(cwd)
         local_job = self.local_root
         remote_job = gz_dir
         flist = submission.backward_common_files
