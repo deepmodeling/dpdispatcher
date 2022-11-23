@@ -450,7 +450,7 @@ class SSHContext(BaseContext):
         #     file_list.append(ii)
             self._walk_directory(
                 task.forward_files, 
-                pathlib.PurePath(task.task_work_path).as_posix(), 
+                os.path.join(self.local_root, task.task_work_path), 
                 file_list, 
                 directory_list
             )
