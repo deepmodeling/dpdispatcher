@@ -696,7 +696,7 @@ class SSHContext(BaseContext):
             os.remove(to_f)
         self.ssh_session.get(from_f, to_f)
         # extract
-        with tarfile.open(of, mode = tarfile_mode) as tar:
+        with tarfile.open(to_f, mode = tarfile_mode) as tar:
             tar.extractall(path=self.local_root)
         # cleanup
         os.remove(to_f)
