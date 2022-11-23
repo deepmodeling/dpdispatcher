@@ -119,79 +119,79 @@ class LocalContext(BaseContext) :
     def upload(self, submission):
         os.makedirs(self.remote_root, exist_ok = True)
         # os.makedirs(self.remote_root, exist_ok = True)
-        cwd = os.getcwd()
+        # cwd = os.getcwd()
         # job_dirs = [ ii.task_work_path for ii in submission.belonging_tasks]
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
             remote_job = os.path.join(self.remote_root, ii.task_work_path)
             os.makedirs(remote_job, exist_ok = True)
-            os.chdir(remote_job)
+            #os.chdir(remote_job)
 
             file_list = []
             for kk in ii.forward_files:
                 abs_file_list = glob(os.path.join(local_job, kk))
                 if not abs_file_list:
-                    os.chdir(cwd)
+                    #os.chdir(cwd)
                     raise RuntimeError('cannot find upload file ' + os.path.join(local_job, kk))
                 rel_file_list = [os.path.relpath(ii, start=local_job) for ii in abs_file_list]
                 file_list.extend(rel_file_list)
 
             for jj in file_list:
                 if not os.path.exists(os.path.join(local_job, jj)):
-                    os.chdir(cwd)
+                    #os.chdir(cwd)
                     raise RuntimeError('cannot find upload file ' + os.path.join(local_job, jj))
                 if os.path.exists(os.path.join(remote_job, jj)) :
                     os.remove(os.path.join(remote_job, jj))
                 _check_file_path(jj)
                 os.symlink(os.path.join(local_job, jj),
                             os.path.join(remote_job, jj))
-        os.chdir(cwd)
+        #os.chdir(cwd) seems not taking effect for this case.
 
         local_job = self.local_root
         remote_job = self.remote_root
         # os.makedirs(remote_job, exist_ok = True)
-        os.chdir(remote_job)
+        #os.chdir(remote_job)
 
         file_list = []
         for kk in submission.forward_common_files:
             abs_file_list = glob(os.path.join(local_job, kk))
             if not abs_file_list:
-                os.chdir(cwd)
+                #os.chdir(cwd)
                 raise RuntimeError('cannot find upload file ' + os.path.join(local_job, kk))
             rel_file_list = [os.path.relpath(ii, start=local_job) for ii in abs_file_list]
             file_list.extend(rel_file_list)
 
         for jj in file_list:
             if not os.path.exists(os.path.join(local_job, jj)):
-                os.chdir(cwd)
+                #os.chdir(cwd)
                 raise RuntimeError('cannot find upload file ' + os.path.join(local_job, jj))
             if os.path.exists(os.path.join(remote_job, jj)) :
                 os.remove(os.path.join(remote_job, jj))
             _check_file_path(jj)
             os.symlink(os.path.join(local_job, jj),
                        os.path.join(remote_job, jj))
-        os.chdir(cwd)
+        #os.chdir(cwd)
 
     def upload_(self,
                job_dirs,
                local_up_files,
                dereference = True) :
-        cwd = os.getcwd()
+        #cwd = os.getcwd()
         for ii in job_dirs :
             local_job = os.path.join(self.local_root, ii)
             remote_job = os.path.join(self.remote_root, ii)
             os.makedirs(remote_job, exist_ok = True)
-            os.chdir(remote_job)
+            #os.chdir(remote_job)
             for jj in local_up_files :
                 if not os.path.exists(os.path.join(local_job, jj)):
-                    os.chdir(cwd)
+                    #os.chdir(cwd)
                     raise RuntimeError('cannot find upload file ' + os.path.join(local_job, jj))
                 if os.path.exists(os.path.join(remote_job, jj)) :
                     os.remove(os.path.join(remote_job, jj))
                 _check_file_path(jj)
                 os.symlink(os.path.join(local_job, jj),
                            os.path.join(remote_job, jj))
-        os.chdir(cwd)
+        #os.chdir(cwd)
 
 
     def download(self, 
@@ -199,7 +199,7 @@ class LocalContext(BaseContext) :
                 check_exists = False,
                 mark_failure = True,
                 back_error=False) :
-        cwd = os.getcwd()
+        #cwd = os.getcwd()
         
         for ii in submission.belonging_tasks:
         # for ii in job_dirs :
@@ -208,9 +208,9 @@ class LocalContext(BaseContext) :
             # flist = remote_down_files
             flist = ii.backward_files
             if back_error :
-                os.chdir(remote_job)
-                flist += glob('error*')                        
-                os.chdir(cwd)
+                #os.chdir(remote_job)
+                flist += glob(os.path.join(remote_job, 'error*'))
+                #os.chdir(cwd)
             for jj in flist :
                 rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
@@ -249,7 +249,7 @@ class LocalContext(BaseContext) :
                 else :
                     # no nothing in the case of linked files
                     pass
-        os.chdir(cwd)
+        #os.chdir(cwd)
         # for ii in submission.belonging_tasks:
         # for ii in job_dirs :
             # local_job = os.path.join(self.local_root, ii.task_work_path)
@@ -260,9 +260,9 @@ class LocalContext(BaseContext) :
         remote_job = self.remote_root
         flist = submission.backward_common_files
         if back_error :
-            os.chdir(remote_job)
-            flist += glob('error*')                        
-            os.chdir(cwd)
+            #os.chdir(remote_job)
+            flist += glob(os.path.join(remote_job, 'error*'))
+            #os.chdir(cwd)
         for jj in flist :
             rfile = os.path.join(remote_job, jj)
             lfile = os.path.join(local_job, jj)
@@ -299,7 +299,7 @@ class LocalContext(BaseContext) :
             else :
                 # no nothing in the case of linked files
                 pass
-        os.chdir(cwd)
+        #os.chdir(cwd)
 
 
 
@@ -309,15 +309,15 @@ class LocalContext(BaseContext) :
                  check_exists = False,
                  mark_failure = True,
                  back_error=False) :
-        cwd = os.getcwd()
+        #cwd = os.getcwd()
         for ii in job_dirs :
             local_job = os.path.join(self.local_root, ii)
             remote_job = os.path.join(self.remote_root, ii)
             flist = remote_down_files
             if back_error :
-                os.chdir(remote_job)
-                flist += glob('error*')                        
-                os.chdir(cwd)
+                #os.chdir(remote_job)
+                flist += glob(os.path.join(remote_job, 'error*'))
+                #os.chdir(cwd)
             for jj in flist :
                 rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
@@ -350,32 +350,32 @@ class LocalContext(BaseContext) :
                 else :
                     # no nothing in the case of linked files
                     pass
-        os.chdir(cwd)
+        #os.chdir(cwd)
 
     def block_checkcall(self,
                         cmd) :
-        cwd = os.getcwd()
-        os.chdir(self.remote_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
+        #cwd = os.getcwd()
+        #os.chdir(self.remote_root)
+        proc = sp.Popen(cmd, cwd=self.remote_root, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
         o, e = proc.communicate()
         stdout = SPRetObj(o)
         stderr = SPRetObj(e)
         code = proc.returncode
         if code != 0:
-            os.chdir(cwd)        
+            #os.chdir(cwd)        
             raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.submission.submission_hash))
-        os.chdir(cwd)        
+        #os.chdir(cwd)        
         return None, stdout, stderr
         
     def block_call(self, cmd) :
-        cwd = os.getcwd()
-        os.chdir(self.remote_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
+        #cwd = os.getcwd()
+        #os.chdir(self.remote_root)
+        proc = sp.Popen(cmd, cwd=self.remote_root, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
         o, e = proc.communicate()
         stdout = SPRetObj(o)
         stderr = SPRetObj(e)
         code = proc.returncode
-        os.chdir(cwd)        
+        #os.chdir(cwd)        
         return code, None, stdout, stderr
 
     def clean(self):
@@ -398,10 +398,10 @@ class LocalContext(BaseContext) :
         return os.path.isfile(os.path.join(self.remote_root, fname))
         
     def call(self, cmd) :
-        cwd = os.getcwd()
-        os.chdir(self.remote_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        os.chdir(cwd)        
+        #cwd = os.getcwd()
+        #os.chdir(self.remote_root)
+        proc = sp.Popen(cmd, cwd=self.remote_root, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
+        #os.chdir(cwd)        
         return proc
 
     def kill(self, job_id):
