@@ -96,30 +96,23 @@ class LazyLocalContext(BaseContext) :
 
     def block_checkcall(self,
                         cmd) :
-        cwd = os.getcwd()
         # script_dir = os.path.join(self.local_root, self.submission.work_base)
-        os.chdir(self.local_root)
         # os.chdir(script_dir)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
+        proc = sp.Popen(cmd, cwd=self.local_root, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
         o, e = proc.communicate()
         stdout = SPRetObj(o)
         stderr = SPRetObj(e)
         code = proc.returncode
         if code != 0:
-            os.chdir(cwd)        
-            raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.submission.submission_hash))
-        os.chdir(cwd)        
+            raise RuntimeError("Get error code %d in locally calling %s with job: %s ", (code, cmd, self.submission.submission_hash))    
         return None, stdout, stderr
         
     def block_call(self, cmd) :
-        cwd = os.getcwd()
-        os.chdir(self.local_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
+        proc = sp.Popen(cmd, cwd=self.local_root, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
         o, e = proc.communicate()
         stdout = SPRetObj(o)
         stderr = SPRetObj(e)
-        code = proc.returncode
-        os.chdir(cwd)        
+        code = proc.returncode     
         return code, None, stdout, stderr
 
     def clean(self) :
@@ -144,9 +137,7 @@ class LazyLocalContext(BaseContext) :
         
     def call(self, cmd) :
         cwd = os.getcwd()
-        os.chdir(self.local_root)
-        proc = sp.Popen(cmd, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)
-        os.chdir(cwd)        
+        proc = sp.Popen(cmd, cwd=self.local_root, shell=True, stdout = sp.PIPE, stderr = sp.PIPE)    
         return proc
 
     def kill(self, job_id):

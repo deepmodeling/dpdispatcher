@@ -135,17 +135,49 @@ class SSHSession (object):
         ts.start_client(timeout=self.timeout)
 
         #Begin authentication; note that the username and callback are passed
-        key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
-        if self.key_filename:
-            key_path = os.path.abspath(self.key_filename)
         key = None
         key_ok = False
         key_error = None
-        if os.path.exists(key_path):
-            try:
-                key = paramiko.RSAKey.from_private_key_file(key_path)
-            except paramiko.PasswordRequiredException:
-                key = paramiko.RSAKey.from_private_key_file(key_path, self.passphrase)
+        keyfiles = []
+        if self.key_filename:
+            key_path = os.path.abspath(self.key_filename)
+            if os.path.exists(key_path):
+                for pkey_class in (
+                    paramiko.RSAKey, 
+                    paramiko.DSSKey, 
+                    paramiko.ECDSAKey, 
+                    paramiko.Ed25519Key
+                ):
+                    try:
+                        # passing empty passphrase would not raise error.
+                        key = pkey_class.from_private_key_file(key_path, self.passphrase)
+                    except paramiko.SSHException as e:
+                        pass
+                    if key is not None:
+                        break
+        else:
+            for keytype, name in [
+                (paramiko.RSAKey, "rsa"),
+                (paramiko.DSSKey, "dsa"),
+                (paramiko.ECDSAKey, "ecdsa"),
+                (paramiko.Ed25519Key, "ed25519"),
+            ]:
+                for directory in [".ssh", "ssh"]:
+                    full_path = os.path.join(
+                        os.path.expanduser("~"),
+                        directory, f"id_{name}"
+                    )
+                    if os.path.isfile(full_path):
+                        keyfiles.append((keytype, full_path))
+                        # TODO: supporting cert
+            for pkey_class, filename in keyfiles:
+                try:
+                    key = pkey_class.from_private_key_file(filename, self.passphrase)
+                except paramiko.SSHException as e:
+                    pass
+                if key is not None:
+                    break
+        
         if key is not None:
             try:
                 ts.auth_publickey(self.username, key)
@@ -443,14 +475,17 @@ class SSHContext(BaseContext):
                 recover = True
         self.ssh_session.sftp.chdir(None)
 
-        cwd = os.getcwd()
-        os.chdir(self.local_root) 
         file_list = []
         directory_list = []
         for task in submission.belonging_tasks:
             directory_list.append(task.task_work_path)
         #     file_list.append(ii)
-            self._walk_directory(task.forward_files, task.task_work_path, file_list, directory_list)
+            self._walk_directory(
+                task.forward_files, 
+                os.path.join(self.local_root, task.task_work_path), 
+                file_list, 
+                directory_list
+            )
         self._walk_directory(submission.forward_common_files, self.local_root, file_list, directory_list)
 
         # check if the same file exists on the remote file
@@ -480,7 +515,6 @@ class SSHContext(BaseContext):
             file_list = [os.path.relpath(jj, self.local_root) for jj in file_list] 
 
         self._put_files(file_list, dereference = dereference, directories=directory_list, tar_compress = self.remote_profile.get('tar_compress', None))
-        os.chdir(cwd)
 
     def download(self, 
                  submission,
@@ -490,8 +524,6 @@ class SSHContext(BaseContext):
                  mark_failure = True,
                  back_error=False) :
         self.ssh_session.ensure_alive()
-        cwd = os.getcwd()
-        os.chdir(self.local_root) 
         file_list = []
         # for ii in job_dirs :
         for task in submission.belonging_tasks :
@@ -512,7 +544,6 @@ class SSHContext(BaseContext):
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
             self._get_files(file_list, tar_compress = self.remote_profile.get('tar_compress', None))
-        os.chdir(cwd)
         
     def block_checkcall(self, 
                         cmd,
@@ -643,17 +674,16 @@ class SSHContext(BaseContext):
                     
         of = self.submission.submission_hash + of_suffix
         # local tar
-        cwd = os.getcwd()
-        os.chdir(self.local_root)
-        if os.path.isfile(of) :
-            os.remove(of)
-        with tarfile.open(of, tarfile_mode, dereference = dereference, **kwargs) as tar:
+        if os.path.isfile(os.path.join(self.local_root, of)):
+            os.remove(os.path.join(self.local_root, of))
+        with tarfile.open(os.path.join(self.local_root, of), tarfile_mode, dereference = dereference, **kwargs) as tar:
             for ii in files :
-                tar.add(ii)
+                ii_full = os.path.join(self.local_root, ii)
+                tar.add(ii_full, arcname=ii)
             if directories is not None:
                 for ii in directories:
-                    tar.add(ii, recursive=False)
-        os.chdir(cwd)
+                    ii_full = os.path.join(self.local_root, ii)
+                    tar.add(ii_full, arcname=ii, recursive=False)
         self.ssh_session.ensure_alive()
         try:
             self.sftp.mkdir(self.remote_root)
@@ -703,11 +733,8 @@ class SSHContext(BaseContext):
             os.remove(to_f)
         self.ssh_session.get(from_f, to_f)
         # extract
-        cwd = os.getcwd()
-        os.chdir(self.local_root)
-        with tarfile.open(of, mode = tarfile_mode) as tar:
-            tar.extractall()
-        os.chdir(cwd)    
+        with tarfile.open(to_f, mode = tarfile_mode) as tar:
+            tar.extractall(path=self.local_root)
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
