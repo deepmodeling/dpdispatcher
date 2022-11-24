@@ -93,7 +93,8 @@ class TestLocalContext(unittest.TestCase):
             f2 = os.path.join(self.tmp_remote_root, submission_hash, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
 
-    @unittest.skipIf(sys.platform != 'linux')
+    # TODO: support other platforms
+    @unittest.skipIf(sys.platform != 'linux', "not linux")
     def test_block_call(self):
         submission_hash = 'mock_hash_3'
         task1 = MagicMock(
