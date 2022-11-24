@@ -93,6 +93,7 @@ class TestLocalContext(unittest.TestCase):
             f2 = os.path.join(self.tmp_remote_root, submission_hash, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
 
+    @unittest.skipIf(sys.platform != 'linux')
     def test_block_call(self):
         submission_hash = 'mock_hash_3'
         task1 = MagicMock(
@@ -127,11 +128,16 @@ class TestLocalContext(unittest.TestCase):
         self.local_context.bind_submission(submission)
         self.local_context.upload(submission)
 
-        proc = self.local_context.call('sleep 0.12')
+        if sys.platform == 'win32':
+            proc = self.local_context.call('timeout /t 0.12')
+        else:
+            proc = self.local_context.call('sleep 0.12')
         self.assertFalse(self.local_context.check_finish(proc))
         time.sleep(0.06)
         self.assertFalse(self.local_context.check_finish(proc))
         time.sleep(0.10)
+        # wait until terminated, as in some test environments, it's slow to execute commands
+        proc.wait(timeout=2)
         self.assertTrue(self.local_context.check_finish(proc))
         r,o,e=self.local_context.get_return(proc)
         self.assertEqual(r, 0)
