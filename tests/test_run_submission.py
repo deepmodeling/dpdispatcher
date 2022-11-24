@@ -84,6 +84,7 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
         self.resources_dict["queue_name"] = "workq"
 
 
+@unittest.skipIf(sys.platform == 'win32', 'Shell is not supported on Windows')
 class TestLazyLocalContext(RunSubmission, unittest.TestCase):
     def setUp(self):
         super().setUp()

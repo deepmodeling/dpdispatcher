@@ -31,6 +31,8 @@ class TestLazyLocalContext(unittest.TestCase):
     def test_download(self):        
         pass
 
+    # TODO: support other platforms
+    @unittest.skipIf(sys.platform != 'linux', "not linux")
     def test_block_call(self):
         code, stdin, stdout, stderr = self.lazy_local_context.block_call('ls')
         self.assertEqual(stdout.readlines(), ['bct-1\n',
