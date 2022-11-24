@@ -149,9 +149,10 @@ class SSHSession (object):
                     paramiko.Ed25519Key
                 ):
                     try:
-                        key = pkey_class.from_private_key_file(key_path)
-                    except paramiko.PasswordRequiredException:
+                        # passing empty passphrase would not raise error.
                         key = pkey_class.from_private_key_file(key_path, self.passphrase)
+                    except paramiko.SSHException as e:
+                        pass
                     if key is not None:
                         break
         else:
@@ -170,9 +171,9 @@ class SSHSession (object):
                         # TODO: supporting cert
             for pkey_class, filename in keyfiles:
                 try:
-                    key = pkey_class.from_private_key_file(filename)
-                except paramiko.PasswordRequiredException:
                     key = pkey_class.from_private_key_file(filename, self.passphrase)
+                except paramiko.SSHException as e:
+                    pass
                 if key is not None:
                     break
         
