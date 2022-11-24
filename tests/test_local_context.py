@@ -121,6 +121,7 @@ class TestLocalContext(unittest.TestCase):
         self.assertTrue('ls: cannot access' in err_msg)
         self.assertTrue('No such file or directory\n' in err_msg)
 
+    @unittest.skipIf(sys.platform == 'win32', 'sleep is not supported on Windows')
     def test_call(self) :
         submission_hash = 'mock_hash_4'
         submission = MagicMock(work_base='0_md/',
@@ -129,10 +130,7 @@ class TestLocalContext(unittest.TestCase):
         self.local_context.bind_submission(submission)
         self.local_context.upload(submission)
 
-        if sys.platform == 'win32':
-            proc = self.local_context.call('timeout /t 0.12')
-        else:
-            proc = self.local_context.call('sleep 0.12')
+        proc = self.local_context.call('sleep 0.12')
         # in some environment it's not easy to determine which is faster..
         # self.assertFalse(self.local_context.check_finish(proc))
         # time.sleep(0.06)
