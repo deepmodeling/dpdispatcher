@@ -163,8 +163,9 @@ class SSHSession (object):
                 (paramiko.Ed25519Key, "ed25519"),
             ]:
                 for directory in [".ssh", "ssh"]:
-                    full_path = os.path.expanduser(
-                        "~/{}/id_{}".format(directory, name)
+                    full_path = os.path.join(
+                        os.path.expanduser("~"),
+                        directory, f"id_{name}"
                     )
                     if os.path.isfile(full_path):
                         keyfiles.append((keytype, full_path))
