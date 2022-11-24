@@ -9,6 +9,7 @@ from .context import Machine
 
 import unittest
 
+@unittest.skipIf(sys.platform == 'win32', 'Shell is not supported on Windows')
 class TestShellCudaMultiDevices(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None

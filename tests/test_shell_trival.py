@@ -13,6 +13,7 @@ import unittest
 import json
 
 
+@unittest.skipIf(sys.platform == 'win32', 'Shell is not supported on Windows')
 class TestShellTrival(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
