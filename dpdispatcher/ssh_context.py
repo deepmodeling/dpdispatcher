@@ -135,17 +135,47 @@ class SSHSession (object):
         ts.start_client(timeout=self.timeout)
 
         #Begin authentication; note that the username and callback are passed
-        key_path = os.path.join(os.path.expanduser("~"), ".ssh", "id_rsa")
-        if self.key_filename:
-            key_path = os.path.abspath(self.key_filename)
         key = None
         key_ok = False
         key_error = None
-        if os.path.exists(key_path):
-            try:
-                key = paramiko.RSAKey.from_private_key_file(key_path)
-            except paramiko.PasswordRequiredException:
-                key = paramiko.RSAKey.from_private_key_file(key_path, self.passphrase)
+        keyfiles = []
+        if self.key_filename:
+            key_path = os.path.abspath(self.key_filename)
+            if os.path.exists(key_path):
+                for pkey_class in (
+                    paramiko.RSAKey, 
+                    paramiko.DSSKey, 
+                    paramiko.ECDSAKey, 
+                    paramiko.Ed25519Key
+                ):
+                    try:
+                        key = pkey_class.from_private_key_file(key_path)
+                    except paramiko.PasswordRequiredException:
+                        key = pkey_class.from_private_key_file(key_path, self.passphrase)
+                    if key is not None:
+                        break
+        else:
+            for keytype, name in [
+                (paramiko.RSAKey, "rsa"),
+                (paramiko.DSSKey, "dsa"),
+                (paramiko.ECDSAKey, "ecdsa"),
+                (paramiko.Ed25519Key, "ed25519"),
+            ]:
+                for directory in [".ssh", "ssh"]:
+                    full_path = os.path.expanduser(
+                        "~/{}/id_{}".format(directory, name)
+                    )
+                    if os.path.isfile(full_path):
+                        keyfiles.append((keytype, full_path))
+                        # TODO: supporting cert
+            for pkey_class, filename in keyfiles:
+                try:
+                    key = pkey_class.from_private_key_file(filename)
+                except paramiko.PasswordRequiredException:
+                    key = pkey_class.from_private_key_file(filename, self.passphrase)
+                if key is not None:
+                    break
+        
         if key is not None:
             try:
                 ts.auth_publickey(self.username, key)
