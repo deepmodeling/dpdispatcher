@@ -8,6 +8,7 @@ on:
 jobs:
   build-n-push:
     name: Build docker image and push to Docker Hub
+    if: github.repository == 'deepmodeling/dpdispatcher'
     runs-on: ubuntu-latest
     steps:
     - name: Check out the repo
