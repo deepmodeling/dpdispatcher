@@ -135,7 +135,7 @@ class BohriumContext(BaseContext):
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")
             return result
-        for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format, leave=False):
+        for job in tqdm.tqdm(job_to_be_uploaded, desc="Uploading to Lebesgue", bar_format=bar_format, leave=False, disable=None):
             self.upload_job(job, submission.forward_common_files)
         return result
         # return oss_task_zip
@@ -165,7 +165,7 @@ class BohriumContext(BaseContext):
                     job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
         for job_hash, info in tqdm.tqdm(job_infos.items(), desc="Validating download file from Lebesgue",
-                                        bar_format=bar_format, leave=False):
+                                        bar_format=bar_format, leave=False, disable=None):
             result_filename = job_hash + '_back.zip'
             target_result_zip = os.path.join(self.local_root, result_filename)
             if self._check_if_job_has_already_downloaded(target_result_zip, self.local_root):
