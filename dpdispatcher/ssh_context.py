@@ -11,6 +11,7 @@ from functools import lru_cache
 from glob import glob
 from typing import List
 
+import paramiko.ssh_exception
 from dargs.dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
@@ -78,7 +79,7 @@ class SSHSession (object):
             if count == max_check:
                 raise RuntimeError('cannot connect ssh after %d failures at interval %d s' %
                                     (max_check, sleep_time))
-            dlog.info('connection check failed, try to reconnect to ' + self.remote_root)
+            dlog.info('connection check failed, try to reconnect to ' + self.hostname)
             self._setup_ssh()
             count += 1
             time.sleep(sleep_time)
@@ -88,6 +89,7 @@ class SSHSession (object):
             return False
         try :
             transport = self.ssh.get_transport()
+            assert transport is not None
             transport.send_ignore()
             return True
         except EOFError:
@@ -207,7 +209,7 @@ class SSHSession (object):
         #Opening a session creates a channel along the socket to the server
         ts.open_session(timeout=self.timeout)
         ts.set_keepalive(60)
-        self.ssh._transport = ts
+        self.ssh._transport = ts # type: ignore
         # reset sftp
         self._sftp = None
                         
@@ -244,10 +246,11 @@ class SSHSession (object):
                 resp.append(self.username)
             elif "password" in pr_str:
                 resp.append(self.password)
-            elif "verification" in pr_str or "token" in pr_str and self.totp_secret:
+            elif "verification" in pr_str or "token" in pr_str and self.totp_secret is not None:
+                assert self.totp_secret is not None
                 resp.append(generate_totp(self.totp_secret))
 
-        return tuple(resp)  #Convert the response list to a tuple and return it
+        return resp
 
     def get_ssh_client(self) :
         return self.ssh
@@ -256,11 +259,13 @@ class SSHSession (object):
     #     return self.remote_root
 
     def close(self) :
+        assert self.ssh is not None
         self.ssh.close()
 
     @retry(sleep=1)
     def exec_command(self, cmd):
         """Calling self.ssh.exec_command but has an exception check."""
+        assert self.ssh is not None
         try:
             return self.ssh.exec_command(cmd)
         except (paramiko.ssh_exception.SSHException, socket.timeout) as e:
@@ -274,6 +279,7 @@ class SSHSession (object):
     def sftp(self):
         """Returns sftp. Open a new one if not existing."""
         if self._sftp is None:
+            assert self.ssh is not None
             self.ensure_alive()
             self._sftp = self.ssh.open_sftp()
         return self._sftp
@@ -355,7 +361,7 @@ class SSHContext(BaseContext):
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
-        self.ssh_session = SSHSession(**remote_profile)
+        self.ssh_session = SSHSession(**remote_profile) # type: ignore
         # self.temp_remote_root = os.path.join(self.ssh_session.get_session_root())
         self.ssh_session.ensure_alive()
         try:
@@ -412,6 +418,8 @@ class SSHContext(BaseContext):
         return self.remote_root
 
     def bind_submission(self, submission):
+        assert self.ssh_session is not None
+        assert self.ssh_session.ssh is not None
         self.submission = submission
         self.local_root = pathlib.PurePath(os.path.join(self.temp_local_root, submission.work_base)).as_posix()
         old_remote_root = self.remote_root
@@ -466,6 +474,7 @@ class SSHContext(BaseContext):
                submission,
                # local_up_files,
                dereference = True) :
+        assert self.remote_root is not None
         dlog.info(f'remote path: {self.remote_root}')
         # remote_cwd = 
         self.ssh_session.sftp.chdir(self.temp_remote_root)
@@ -562,6 +571,7 @@ class SSHContext(BaseContext):
         asynchronously: bool, optional, default=False
             Run command asynchronously. If True, `nohup` will be used to run the command.
         """
+        assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         if asynchronously:
             cmd = "nohup %s >/dev/null &" % cmd
@@ -574,6 +584,7 @@ class SSHContext(BaseContext):
 
     def block_call(self, 
                    cmd) :
+        assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         stdin, stdout, stderr = self.ssh_session.exec_command(('cd %s ;' % shlex.quote(self.remote_root)) + cmd)
         exit_status = stdout.channel.recv_exit_status() 
@@ -584,6 +595,7 @@ class SSHContext(BaseContext):
         self._rmtree(self.remote_root)
 
     def write_file(self, fname, write_str):
+        assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         fname = pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
         # to prevent old file from being overwritten but cancelled, create a temporary file first
@@ -594,12 +606,14 @@ class SSHContext(BaseContext):
         self.block_checkcall("mv %s %s" % (shlex.quote(fname + "~"), shlex.quote(fname)))
 
     def read_file(self, fname):
+        assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         with self.sftp.open(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(), 'r') as fp:
             ret = fp.read().decode('utf-8')
         return ret
 
     def check_file_exists(self, fname):
+        assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         try:
             self.sftp.stat(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix())
@@ -667,6 +681,7 @@ class SSHContext(BaseContext):
             If tar_compress is True, compress the archive using gzip
             It it is False, then it is uncompressed
         """
+        assert self.remote_root is not None
         of_suffix = '.tgz'
         tarfile_mode = "w:gz"
         kwargs = {'compresslevel': 6}
@@ -709,6 +724,7 @@ class SSHContext(BaseContext):
     def _get_files(self, 
                    files,
                    tar_compress = True) :
+        assert self.remote_root is not None
         # avoid compressing duplicated files
         files = list(set(files))
 

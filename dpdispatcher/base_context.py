@@ -9,7 +9,7 @@ class BaseContext(metaclass=ABCMeta):
     options = set()
     # alias: for subclasses_dict key
     # notes: this attribute can be inherited
-    alias: Optional[Tuple[str, ...]] = tuple()
+    alias: Tuple[str, ...] = tuple()
 
     def __new__(cls, *args, **kwargs):
         if cls is BaseContext:

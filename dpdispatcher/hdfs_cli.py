@@ -98,7 +98,8 @@ class HDFS(object):
     @staticmethod
     def copy_to_local(from_uri, local_path):
         remote = ''
-        if isinstance(from_uri, string_types):
+        # TODO: error: "string_types" is not defined
+        if isinstance(from_uri, string_types): # type: ignore
             remote = from_uri
         elif isinstance(from_uri, list) or \
                 isinstance(from_uri, tuple):
