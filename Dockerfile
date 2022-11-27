@@ -1,5 +1,5 @@
-FROM python:3.8
+FROM python:3.11
 
 WORKDIR /data/dpdispatcher
 COPY ./ ./
-RUN pip install .
+RUN pip install .[cloudserver]
