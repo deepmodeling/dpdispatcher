@@ -26,6 +26,7 @@ dependencies = [
     'dargs>=0.2.9',
     'requests',
     'tqdm',
+    'oss2',
     'typing_extensions; python_version < "3.7"',
 ]
 requires-python = ">=3.7"
