@@ -34,7 +34,7 @@ class TestSSHContext(unittest.TestCase):
         cls.submission = SampleClass.get_sample_submission()
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
-        file_list = ['bct-1/log.lammps', 'bct-2/log.lammps', 'bct-3/log.lammps', 'bct-4/log.lammps', 'dir with space/output with space']
+        file_list = ['bct-1/log.lammps', 'bct-2/log.lammps', 'bct-3/log.lammps', 'bct-4/log.lammps', 'dir with space/file with space']
         for file in file_list:
             cls.machine.context.sftp.mkdir(os.path.join(cls.machine.context.remote_root, os.path.dirname(file)))
             cls.machine.context.write_file(file, '# mock log')
@@ -113,7 +113,7 @@ class TestSSHContextNoCompress(unittest.TestCase):
         cls.submission = SampleClass.get_sample_submission()
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
-        file_list = ['bct-1/log.lammps', 'bct-2/log.lammps', 'bct-3/log.lammps', 'bct-4/log.lammps', 'dir with space/output with space']
+        file_list = ['bct-1/log.lammps', 'bct-2/log.lammps', 'bct-3/log.lammps', 'bct-4/log.lammps', 'dir with space/file with space']
         for file in file_list:
             cls.machine.context.sftp.mkdir(os.path.join(cls.machine.context.remote_root, os.path.dirname(file)))
             cls.machine.context.write_file(file, '# mock log')
