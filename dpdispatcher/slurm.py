@@ -155,15 +155,15 @@ class SlurmJobArray(Slurm):
 
             log_err_part = ""
             if task.outlog is not None:
-                log_err_part += f"1>>{task.outlog} "
+                log_err_part += f"1>>{shlex.quote(task.outlog)} "
             if task.errlog is not None:
-                log_err_part += f"2>>{task.errlog} "
+                log_err_part += f"2>>{shlex.quote(task.errlog)} "
 
             flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
             single_script_command = script_command_template.format(
                 flag_if_job_task_fail=flag_if_job_task_fail,
                 command_env=command_env,
-                task_work_path=pathlib.PurePath(task.task_work_path).as_posix(),
+                task_work_path=shlex.quote(pathlib.PurePath(task.task_work_path).as_posix()),
                 command=task.command,
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part)
