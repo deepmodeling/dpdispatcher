@@ -274,9 +274,9 @@ class Machine(metaclass=ABCMeta):
 
             log_err_part = ""
             if task.outlog is not None:
-                log_err_part += f"1>>{task.outlog} "
+                log_err_part += f"1>>{shlex.quote(task.outlog)} "
             if task.errlog is not None:
-                log_err_part += f"2>>{task.errlog} "
+                log_err_part += f"2>>{shlex.quote(task.errlog)} "
 
             flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
             single_script_command = script_command_template.format(
