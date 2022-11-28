@@ -677,11 +677,12 @@ class SSHContext(BaseContext):
         if os.path.isfile(os.path.join(self.local_root, of)):
             os.remove(os.path.join(self.local_root, of))
         with tarfile.open(os.path.join(self.local_root, of), tarfile_mode, dereference = dereference, **kwargs) as tar:
-            for ii in files :
+            # avoid compressing duplicated files or directories
+            for ii in set(files) :
                 ii_full = os.path.join(self.local_root, ii)
                 tar.add(ii_full, arcname=ii)
             if directories is not None:
-                for ii in directories:
+                for ii in set(directories):
                     ii_full = os.path.join(self.local_root, ii)
                     tar.add(ii_full, arcname=ii, recursive=False)
         self.ssh_session.ensure_alive()
@@ -705,7 +706,9 @@ class SSHContext(BaseContext):
     def _get_files(self, 
                    files,
                    tar_compress = True) :
-        
+        # avoid compressing duplicated files
+        files = list(set(files))
+
         of_suffix = '.tar.gz'
         tarfile_mode = "r:gz"
         tar_command = 'czfh'
