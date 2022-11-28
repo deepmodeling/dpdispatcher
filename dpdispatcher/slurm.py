@@ -1,9 +1,10 @@
-from dpdispatcher.machine import Machine
-import time
 import pathlib
+import shlex
 from typing import List
+
 from dargs import Argument
 
+from dpdispatcher.machine import Machine
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.machine import script_command_template
@@ -45,7 +46,7 @@ class Slurm(Machine):
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
-        ret, stdin, stdout, stderr = self.context.block_call('cd %s && %s %s' % (self.context.remote_root, 'sbatch', script_file_name))
+        ret, stdin, stdout, stderr = self.context.block_call('cd %s && %s %s' % (shlex.quote(self.context.remote_root), 'sbatch', shlex.quote(script_file_name)))
         if ret != 0:
             err_str = stderr.read().decode('utf-8')
             if "Socket timed out on send/recv operation" in err_str or "Unable to contact slurm controller" in err_str:
@@ -154,15 +155,15 @@ class SlurmJobArray(Slurm):
 
             log_err_part = ""
             if task.outlog is not None:
-                log_err_part += f"1>>{task.outlog} "
+                log_err_part += f"1>>{shlex.quote(task.outlog)} "
             if task.errlog is not None:
-                log_err_part += f"2>>{task.errlog} "
+                log_err_part += f"2>>{shlex.quote(task.errlog)} "
 
             flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
             single_script_command = script_command_template.format(
                 flag_if_job_task_fail=flag_if_job_task_fail,
                 command_env=command_env,
-                task_work_path=pathlib.PurePath(task.task_work_path).as_posix(),
+                task_work_path=shlex.quote(pathlib.PurePath(task.task_work_path).as_posix()),
                 command=task.command,
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part)

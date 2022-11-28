@@ -36,7 +36,7 @@ class TestLazyLocalContext(unittest.TestCase):
     def test_block_call(self):
         code, stdin, stdout, stderr = self.lazy_local_context.block_call('ls')
         self.assertEqual(stdout.readlines(), ['bct-1\n',
-            'bct-2\n', 'bct-3\n', 'bct-4\n', 'graph.pb\n'])
+            'bct-2\n', 'bct-3\n', 'bct-4\n', 'dir with space\n', 'graph.pb\n'])
         self.assertEqual(code, 0)
 
         code, stdin, stdout, stderr = self.lazy_local_context.block_call('ls a')

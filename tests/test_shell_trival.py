@@ -83,6 +83,32 @@ class TestShellTrival(unittest.TestCase):
 
         pass
 
+    def test_dir_with_space(self):
+        """Test directory with space"""
+        with open('jsons/machine_local_shell.json', 'r') as f:
+            machine_dict = json.load(f)
+
+        machine = Machine(**machine_dict['machine'])
+        resources = Resources(**machine_dict['resources'])
+
+        task1 = Task(command='cat example.txt', task_work_path='dir with space/', forward_files=['example.txt'], backward_files=['out.txt'], outlog='out.txt')
+        task_list = [task1]
+
+        submission = Submission(
+            work_base='parent_dir/',
+            machine=machine,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            task_list=task_list
+        )
+        submission.run_submission(clean=False)
+
+        for dir in ['dir with space']:
+            f1 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'example.txt')
+            f2 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'out.txt')
+            self.assertEqual(get_file_md5(f1), get_file_md5(f2))
+
 
     @classmethod
     def tearDownClass(cls):
