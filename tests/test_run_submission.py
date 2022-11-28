@@ -28,6 +28,9 @@ class RunSubmission:
             "group_size": 2,
         }
         os.makedirs(os.path.join(self.machine_dict['local_root'], 'test_dir'), exist_ok=True)
+        os.makedirs(os.path.join(self.machine_dict['local_root'], 'test_dir', 'test space'), exist_ok=True)
+        with open(os.path.join(self.machine_dict['local_root'], 'test_dir', 'test space', 'inp space.txt')) as f:
+            f.write('inp space')
 
     def test_run_submission(self):
         machine = Machine.load_from_dict(self.machine_dict)
@@ -44,6 +47,14 @@ class RunSubmission:
             )
             task_list.append(task)
 
+        # test space in file name
+        task_list.append(Task(
+            command=f"echo dpdispatcher_unittest_space",
+            task_work_path='test space/',
+            forward_files=['inp space.txt'],
+            backward_files=['out space.txt'],
+            outlog='out space.txt',
+        ))
         submission = Submission(work_base='test_dir/',
             machine=machine,
             resources=resources,

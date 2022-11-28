@@ -1,10 +1,11 @@
-import time
+import shlex
+from typing import List
+
+from dargs import Argument
 
 from dpdispatcher.machine import Machine
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
-from typing import List
-from dargs import Argument
 from dpdispatcher.utils import retry, RetrySignal
 
 
@@ -73,7 +74,7 @@ class LSF(Machine):
         
         try:
             stdin, stdout, stderr = self.context.block_checkcall(
-                'cd %s && %s %s' % (self.context.remote_root, 'bsub < ', script_file_name)
+                'cd %s && %s %s' % (shlex.quote(self.context.remote_root), 'bsub < ', shlex.quote(script_file_name))
             )
         except RuntimeError as err:
             raise RetrySignal(err) from err

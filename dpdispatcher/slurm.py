@@ -1,9 +1,10 @@
-from dpdispatcher.machine import Machine
-import time
 import pathlib
+import shlex
 from typing import List
+
 from dargs import Argument
 
+from dpdispatcher.machine import Machine
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.machine import script_command_template
@@ -45,7 +46,7 @@ class Slurm(Machine):
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
-        ret, stdin, stdout, stderr = self.context.block_call('cd %s && %s %s' % (self.context.remote_root, 'sbatch', script_file_name))
+        ret, stdin, stdout, stderr = self.context.block_call('cd %s && %s %s' % (shlex.quote(self.context.remote_root), 'sbatch', shlex.quote(script_file_name)))
         if ret != 0:
             err_str = stderr.read().decode('utf-8')
             if "Socket timed out on send/recv operation" in err_str or "Unable to contact slurm controller" in err_str:

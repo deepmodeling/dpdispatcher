@@ -1,3 +1,5 @@
+import shlex
+
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.machine import Machine
@@ -37,7 +39,7 @@ class PBS(Machine):
         # script_file_dir = os.path.join(self.context.submission.work_base)
         script_file_dir = self.context.remote_root
         # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
-        stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (script_file_dir, 'qsub', script_file_name))
+        stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (shlex.quote(script_file_dir), 'qsub', shlex.quote(script_file_name)))
         subret = (stdout.readlines())
         job_id = subret[0].split()[0]
         self.context.write_file(job_id_name, job_id)        

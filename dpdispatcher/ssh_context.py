@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from dpdispatcher.base_context import BaseContext
 import os, paramiko, tarfile, time
 import uuid
 import shutil
-from functools import lru_cache
-from glob import glob
-from dpdispatcher import dlog
-from dargs.dargs import Argument
-from typing import List
 import pathlib
 import socket
+import shlex
+from functools import lru_cache
+from glob import glob
+from typing import List
+
+from dargs.dargs import Argument
+
+from dpdispatcher.base_context import BaseContext
+from dpdispatcher import dlog
 # from dpdispatcher.submission import Machine
 from dpdispatcher.utils import (
     get_sha256, generate_totp, rsync,
@@ -418,7 +421,7 @@ class SSHContext(BaseContext):
         if old_remote_root is not None and old_remote_root != self.remote_root \
             and self.check_file_exists(old_remote_root) \
             and not self.check_file_exists(self.remote_root):
-            self.block_checkcall(f"mv {old_remote_root} {self.remote_root}")
+            self.block_checkcall(f"mv {shlex.quote(old_remote_root)} {shlex.quote(self.remote_root)}")
 
         sftp = self.ssh_session.ssh.open_sftp()
         try:
@@ -502,7 +505,7 @@ class SSHContext(BaseContext):
             self.write_file(sha256_file, "\n".join(sha256_list))
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
-            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet >.sha256sum_stdout 2>/dev/null || :" % sha256_file)
+            _, stdout, _ = self.block_checkcall("sha256sum -c %s --quiet >.sha256sum_stdout 2>/dev/null || :" % shlex.quote(sha256_file))
             self.sftp.remove(sha256_file)
             # regenerate file list
             file_list = []
@@ -562,7 +565,7 @@ class SSHContext(BaseContext):
         self.ssh_session.ensure_alive()
         if asynchronously:
             cmd = "nohup %s >/dev/null &" % cmd
-        stdin, stdout, stderr = self.ssh_session.exec_command(('cd %s ;' % self.remote_root) + cmd)
+        stdin, stdout, stderr = self.ssh_session.exec_command(('cd %s ;' % shlex.quote(self.remote_root)) + cmd)
         exit_status = stdout.channel.recv_exit_status() 
         if exit_status != 0:
             raise RuntimeError("Get error code %d in calling %s through ssh with job: %s . message: %s" %
@@ -572,7 +575,7 @@ class SSHContext(BaseContext):
     def block_call(self, 
                    cmd) :
         self.ssh_session.ensure_alive()
-        stdin, stdout, stderr = self.ssh_session.exec_command(('cd %s ;' % self.remote_root) + cmd)
+        stdin, stdout, stderr = self.ssh_session.exec_command(('cd %s ;' % shlex.quote(self.remote_root)) + cmd)
         exit_status = stdout.channel.recv_exit_status() 
         return exit_status, stdin, stdout, stderr
 
@@ -588,7 +591,7 @@ class SSHContext(BaseContext):
         with self.sftp.open(fname + "~", 'w') as fp :
             fp.write(write_str)
         # sftp.rename may throw OSError
-        self.block_checkcall("mv %s %s" % (fname + "~", fname))
+        self.block_checkcall("mv %s %s" % (shlex.quote(fname + "~"), shlex.quote(fname)))
 
     def read_file(self, fname):
         self.ssh_session.ensure_alive()
@@ -639,7 +642,7 @@ class SSHContext(BaseContext):
         # In some supercomputers, it's very slow to remove large numbers of files
         # (e.g. directory containing trajectory) due to bad I/O performance.
         # So an asynchronously option is provided.
-        self.block_checkcall('rm -rf %s' % remotepath, asynchronously=self.clean_asynchronously)
+        self.block_checkcall('rm -rf %s' % shlex.quote(remotepath), asynchronously=self.clean_asynchronously)
 
     def _put_files(self,
                    files,
@@ -724,11 +727,11 @@ class SSHContext(BaseContext):
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
-            self.block_checkcall('tar %s %s %s' % (tar_command, of, " ".join(files)))
+            self.block_checkcall('tar %s %s %s' % (tar_command, shlex.quote(of), " ".join([shlex.quote(file) for file in files])))
         else:
             file_list_file = os.path.join(self.remote_root, ".tmp.tar." + str(uuid.uuid4()))
             self.write_file(file_list_file, "\n".join(files))
-            self.block_checkcall('tar %s %s -T %s' % (tar_command, of, file_list_file))
+            self.block_checkcall('tar %s %s -T %s' % (tar_command, shlex.quote(of), shlex.quote(file_list_file)))
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()

@@ -1,10 +1,11 @@
 
-from abc import ABCMeta, abstractmethod
-from dpdispatcher.ssh_context import SSHSession
 import json
-from dargs import Argument, Variant
-from typing import List, Optional, Tuple
+import shlex
 import pathlib
+from abc import ABCMeta, abstractmethod
+from typing import List, Optional, Tuple
+
+from dargs import Argument, Variant
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
 
@@ -252,7 +253,7 @@ class Machine(metaclass=ABCMeta):
 
         script_env = script_env_template.format(
             flag_if_job_task_fail=flag_if_job_task_fail,
-            remote_root=self.context.remote_root,
+            remote_root=shlex.quote(self.context.remote_root),
             module_unload_part=module_unload_part,
             module_load_part=module_load_part,
             source_files_part=source_files_part,
@@ -281,7 +282,7 @@ class Machine(metaclass=ABCMeta):
             single_script_command = script_command_template.format(
                 flag_if_job_task_fail=flag_if_job_task_fail,
                 command_env=command_env,
-                task_work_path=pathlib.PurePath(task.task_work_path).as_posix(),
+                task_work_path=shlex.quote(pathlib.PurePath(task.task_work_path).as_posix()),
                 command=task.command,
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part)
