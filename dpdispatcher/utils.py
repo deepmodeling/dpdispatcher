@@ -4,7 +4,7 @@ import struct
 import hmac
 import base64
 import subprocess
-from typing import Callable, Union
+from typing import Optional, Callable, Union
 
 from dpdispatcher import dlog
 
@@ -74,7 +74,7 @@ def run_cmd_with_all_output(cmd, shell=True):
     return (ret, out, err)
 
 
-def rsync(from_file: str, to_file: str, port: int = 22, key_filename: str = None, timeout: Union[int, float] = 10):
+def rsync(from_file: str, to_file: str, port: int = 22, key_filename: Optional[str] = None, timeout: Union[int, float] = 10):
     """Call rsync to transfer files.
     
     Parameters
