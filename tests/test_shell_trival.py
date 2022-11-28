@@ -104,7 +104,7 @@ class TestShellTrival(unittest.TestCase):
         )
         submission.run_submission(clean=False)
 
-        for dir in ['dir1', 'dir2', 'dir3', 'dir4']:
+        for dir in ['dir with space']:
             f1 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'example.txt')
             f2 = os.path.join('test_shell_trival_dir/', 'parent_dir/', dir, 'out.txt')
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))

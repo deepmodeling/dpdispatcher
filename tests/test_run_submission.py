@@ -29,7 +29,7 @@ class RunSubmission:
         }
         os.makedirs(os.path.join(self.machine_dict['local_root'], 'test_dir'), exist_ok=True)
         os.makedirs(os.path.join(self.machine_dict['local_root'], 'test_dir', 'test space'), exist_ok=True)
-        with open(os.path.join(self.machine_dict['local_root'], 'test_dir', 'test space', 'inp space.txt')) as f:
+        with open(os.path.join(self.machine_dict['local_root'], 'test_dir', 'test space', 'inp space.txt'), 'w') as f:
             f.write('inp space')
 
     def test_run_submission(self):
