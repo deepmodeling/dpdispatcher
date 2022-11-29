@@ -67,7 +67,7 @@ class BohriumContext(BaseContext):
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        self.remote_root = '$(pwd)'
+        self.remote_root = '.'
 
         self.submission_hash = submission.submission_hash
 

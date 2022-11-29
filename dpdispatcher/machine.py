@@ -18,7 +18,7 @@ script_template="""\
 """
 
 script_env_template="""
-REMOTE_ROOT={remote_root}
+REMOTE_ROOT=$(readlink -f {remote_root})
 echo 0 > $REMOTE_ROOT/{flag_if_job_task_fail}
 test $? -ne 0 && exit 1
 
