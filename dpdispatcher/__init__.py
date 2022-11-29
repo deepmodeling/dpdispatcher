@@ -2,7 +2,7 @@ import logging
 import os, sys
 import warnings
 
-ROOT_PATH=__path__[0]
+ROOT_PATH=tuple(__path__)[0]
 dlog = logging.getLogger(__name__)
 dlog.propagate = False
 dlog.setLevel(logging.INFO)
@@ -54,7 +54,7 @@ from .hdfs_context import HDFSContext
 
 def info():
     """
-        Show basic information about """+NAME+""", its location and version.
+        Show basic information about dpdispatcher, its location and version.
     """
 
     print('DeepModeling\n------------')

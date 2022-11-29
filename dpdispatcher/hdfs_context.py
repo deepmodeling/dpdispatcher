@@ -173,7 +173,7 @@ class HDFSContext(BaseContext) :
             if not os.path.exists(rfile):
                 if check_exists:
                     if mark_failure:
-                        with open(os.path.join(self.local_root, task.task_work_path, 'tag_failure_download_%s' % jj), 'w') as fp:
+                        with open(os.path.join(self.local_root, 'tag_failure_download_%s' % jj), 'w') as fp:
                             pass
                     else:
                         raise RuntimeError('do not find download file ' + rfile)
@@ -217,9 +217,6 @@ class HDFSContext(BaseContext) :
 
     def read_file(self, fname):
         return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
-
-    def check_file_exists(self, fname):
-        return HDFS.exists(os.path.join(self.remote_root, fname))
 
     def kill(self, job_id):
         pass

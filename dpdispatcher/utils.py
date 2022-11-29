@@ -4,7 +4,7 @@ import struct
 import hmac
 import base64
 import subprocess
-from typing import Optional, Callable, Union
+from typing import Iterable, Optional, Callable, Type, Union
 
 from dpdispatcher import dlog
 
@@ -32,9 +32,9 @@ def get_sha256(filename):
     return sha256
 
 def hotp(key: str, period: int, token_length: int=6, digest='sha1'):
-    key = base64.b32decode(key.upper() + '=' * ((8 - len(key)) % 8))
-    period = struct.pack('>Q', period)
-    mac = hmac.new(key, period, digest).digest()
+    key_ = base64.b32decode(key.upper() + '=' * ((8 - len(key)) % 8))
+    period_ = struct.pack('>Q', period)
+    mac = hmac.new(key_, period_, digest).digest()
     offset = mac[-1] & 0x0f
     binary = struct.unpack('>L', mac[offset:offset+4])[0] & 0x7fffffff
     return str(binary)[-token_length:].zfill(token_length)
@@ -129,7 +129,7 @@ class RetrySignal(Exception):
     """Exception to give a signal to retry the function."""
 
 
-def retry(max_retry: int = 3, sleep: Union[int, float] = 60, catch_exception: BaseException = RetrySignal) -> Callable:
+def retry(max_retry: int = 3, sleep: Union[int, float] = 60, catch_exception: Type[BaseException] = RetrySignal) -> Callable:
     """Retry the function until it succeeds or fails for certain times.
 
     Parameters
@@ -160,7 +160,7 @@ def retry(max_retry: int = 3, sleep: Union[int, float] = 60, catch_exception: Ba
             while max_retry is None or current_retry < max_retry:
                 try:
                     return func(*args, **kwargs)
-                except catch_exception as e:
+                except (catch_exception,) as e:
                     errors.append(e)
                     dlog.exception("Failed to run %s: %s", func.__name__, e)
                     # sleep certain seconds

@@ -1,0 +1,15 @@
+on:
+  push:
+  pull_request:
+name: Type checker
+jobs:
+  test:
+    name: pyright
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - run: pip install -e .[cloudserver]
+    - uses: jakebailey/pyright-action@v1

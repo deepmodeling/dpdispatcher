@@ -113,6 +113,7 @@ class Submission(object):
         submission_dict : dict
             the dictionary converted from the Submission class instance
         """
+        assert self.resources is not None
         submission_dict = {}
         # if if_none_local_root:
         #     submission_dict['local_root'] = None
@@ -172,6 +173,7 @@ class Submission(object):
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         if exit_on_submit is True, submission will exit.
         """
+        assert self.resources is not None
         if not self.belonging_jobs:
             self.generate_jobs()
         self.try_recover_from_json()
@@ -315,6 +317,7 @@ class Submission(object):
         Why we randomly shuffle the tasks is under the consideration of load balance.
         The random seed is a constant (to be concrete, 42). And this insures that the jobs are equal when we re-run the program.
         """
+        assert self.resources is not None
         if self.belonging_jobs:
             raise RuntimeError(f'Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}')
         group_size = self.resources.group_size
@@ -592,6 +595,7 @@ class Job(object):
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
         dlog.debug(f"debug:query database; self.job_hash:{self.job_hash}; self.job_id:{self.job_id}")
+        assert self.machine is not None
         job_state = self.machine.check_status(self)
         self.job_state = job_state
 
@@ -661,6 +665,7 @@ class Job(object):
         self.job_id = job_id
 
     def submit_job(self):
+        assert self.machine is not None
         job_id = self.machine.do_submit(self)
         self.register_job_id(job_id)
         if job_id:
@@ -670,6 +675,7 @@ class Job(object):
 
     def job_to_json(self):
         write_str = json.dumps(self.serialize(), indent=2, default=str)
+        assert self.machine is not None
         self.machine.context.write_file(self.job_hash + '_job.json', write_str=write_str)
 
 

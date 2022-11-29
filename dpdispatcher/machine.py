@@ -63,7 +63,7 @@ class Machine(metaclass=ABCMeta):
     options = set()
     # alias: for subclasses_dict key
     # notes: this attribute can be inherited
-    alias: Optional[Tuple[str, ...]] = tuple()
+    alias: Tuple[str, ...] = tuple()
 
     def __new__(cls, *args, **kwargs):
         if cls is Machine:
@@ -84,7 +84,7 @@ class Machine(metaclass=ABCMeta):
     ):
         if context is None:
             assert isinstance(self, self.__class__.subclasses_dict[batch_type])
-            context = BaseContext(
+            context = BaseContext( # type: ignore
                 context_type=context_type,
                 local_root=local_root,
                 remote_root=remote_root,

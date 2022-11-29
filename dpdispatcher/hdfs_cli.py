@@ -98,7 +98,7 @@ class HDFS(object):
     @staticmethod
     def copy_to_local(from_uri, local_path):
         remote = ''
-        if isinstance(from_uri, string_types):
+        if isinstance(from_uri, str):
             remote = from_uri
         elif isinstance(from_uri, list) or \
                 isinstance(from_uri, tuple):
