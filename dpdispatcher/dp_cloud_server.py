@@ -18,6 +18,7 @@ shell_script_header_template = """
 
 class Bohrium(Machine):
     alias = ("Lebesgue", "DpCloudServer")
+
     def __init__(self, context):
         self.context = context
         self.input_data = context.remote_profile['input_data'].copy()
@@ -148,7 +149,13 @@ class Bohrium(Machine):
 
         job_state = self.map_dp_job_state(dp_job_status)
         if job_state == JobStatus.finished:
+            job_log = self.api.get_log(job_id)
+            if self.input_data.get('output_log'):
+                print(job_log, end='')
             self._download_job(job)
+        elif self.input_data.get('output_log') and job_state == JobStatus.running:
+            job_log = self.api.get_log(job_id)
+            print(job_log, end='')
         return job_state
 
     def _download_job(self, job):

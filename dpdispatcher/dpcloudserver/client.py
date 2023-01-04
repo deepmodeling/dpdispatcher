@@ -34,6 +34,7 @@ class Client:
         self.config['email'] = email
         self.config['password'] = password
         self.base_url = base_url
+        self.last_log_offset = 0
 
     def post(self, url, data=None, header=None, params=None, retry=5):
         self.refresh_token()
@@ -223,6 +224,30 @@ class Client:
             f'brm/v1/job/{job_id}',
         )
         return ret
+
+    def get_log(self, job_id):
+        url, size = self._get_job_log(job_id)
+        if not url:
+            return ''
+        if self.last_log_offset >= size:
+            return ''
+        resp = requests.get(url, headers={
+            'Range': f'bytes={self.last_log_offset}-'
+        })
+        self.last_log_offset += len(resp.content)
+        return resp.content.decode('utf-8')
+
+    def _get_job_log(self, job_id):
+        ret = self.get(
+            f'/brm/v1/job/{job_id}/log',
+            params={
+                'pageSize': 1,
+            }
+        )
+        d = ret.get('logFiles')
+        if d and len(d) != 0:
+            return d[0]['url'], d[0]['size']
+        return None, 0
 
     def get_tasks_list(self, group_id, per_page=30):
         result = []
