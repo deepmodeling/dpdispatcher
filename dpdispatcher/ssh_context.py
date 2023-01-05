@@ -32,7 +32,8 @@ class SSHSession (object):
                 passphrase=None,
                 timeout=10,
                 totp_secret=None,
-                tar_compress=True
+                tar_compress=True,
+                look_for_keys=True,
                 ):
 
         self.hostname = hostname
@@ -45,6 +46,7 @@ class SSHSession (object):
         self.totp_secret = totp_secret
         self.ssh = None
         self.tar_compress = tar_compress
+        self.look_for_keys = look_for_keys
         self._setup_ssh()
 
     # @classmethod
@@ -160,7 +162,7 @@ class SSHSession (object):
                         pass
                     if key is not None:
                         break
-        else:
+        elif self.look_for_keys:
             for keytype, name in [
                 (paramiko.RSAKey, "rsa"),
                 (paramiko.DSSKey, "dsa"),
@@ -298,6 +300,7 @@ class SSHSession (object):
         doc_totp_secret = 'Time-based one time password secret. It should be a base32-encoded string' \
                           ' extracted from the 2D code.'
         doc_tar_compress = 'The archive will be compressed in upload and download if it is True. If not, compression will be skipped.'
+        doc_look_for_keys = "enable searching for discoverable private key files in ~/.ssh/"
 
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
@@ -309,6 +312,7 @@ class SSHSession (object):
             Argument("timeout", int, optional=True, default=10, doc=doc_timeout),
             Argument("totp_secret", str, optional=True, default=None, doc=doc_totp_secret),
             Argument("tar_compress", bool, optional=True, default=True, doc = doc_tar_compress),
+            Argument("look_for_keys", bool, optional=True, default=True, doc=doc_look_for_keys),
         ]
         ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
         return ssh_remote_profile_format
