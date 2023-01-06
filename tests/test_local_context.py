@@ -67,7 +67,7 @@ class TestLocalContext(unittest.TestCase):
         submission_hash = 'mock_hash_2'
         task1 = MagicMock(
             task_work_path='bct-1/',
-            forward_files=['input.lammps', 'conf.lmp']
+            forward_files=['input.lammps', 'conf.lmp', 'some_dir/some_file']
         )
         task2 = MagicMock(
             task_work_path='bct-2/',
@@ -75,7 +75,7 @@ class TestLocalContext(unittest.TestCase):
         )
         submission = MagicMock(work_base='0_md/',
             belonging_tasks=[task1, task2],
-            forward_common_files=['graph.pb'],
+            forward_common_files=['graph.pb', 'some_dir/some_file'],
             submission_hash=submission_hash)
 
         self.local_context.bind_submission(submission)
@@ -84,9 +84,11 @@ class TestLocalContext(unittest.TestCase):
         check_file_list = [
             'bct-1/input.lammps',
             'bct-1/conf.lmp',
+            'bct-1/some_dir/some_file',
             'bct-2/input.lammps',
             'bct-2/conf.lmp',
             'graph.pb',
+            'some_dir/some_file',
         ]
         for file in check_file_list:
             f1 = os.path.join(self.tmp_local_root, '0_md/', file)
