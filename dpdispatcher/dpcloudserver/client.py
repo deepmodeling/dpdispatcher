@@ -37,11 +37,9 @@ class Client:
         self.last_log_offset = 0
 
     def post(self, url, data=None, header=None, params=None, retry=5):
-        self.refresh_token()
         return self._req('POST', url, data=data, header=header, params=params, retry=retry)
 
     def get(self, url, header=None, params=None, retry=5):
-        self.refresh_token()
         return self._req('GET', url, header=header, params=params, retry=retry)
 
     def _req(self, method, url, data=None, header=None, params=None, retry=5):
@@ -49,8 +47,9 @@ class Client:
         url = urllib.parse.urljoin(self.base_url, url)
         if header is None:
             header = {}
-        if self.token:
-            header['Authorization'] = f'jwt {self.token}'
+        if not self.token:
+            self.refresh_token()
+        header['Authorization'] = f'jwt {self.token}'
         resp_code = None
         err = None
         for i in range(retry):
@@ -70,7 +69,7 @@ class Client:
                 try:
                     result = resp.json()
                     err = result.get("error")
-                except:
+                except Exception:
                     pass
                 time.sleep(0.1 * i)
                 continue
@@ -78,8 +77,9 @@ class Client:
             if result['code'] == '0000' or result['code'] == 0:
                 return result.get('data', {})
             else:
+                self.token = ""
+                self.refresh_token()
                 err = result.get('message') or result.get('error')
-                break
         raise RequestInfoException(resp_code, short_url, err)
 
     def _login(self):
@@ -94,22 +94,37 @@ class Client:
         # print(self.token)
         self.user_id = resp['user_id']
 
-    def refresh_token(self):
+    def refresh_token(self, retry=3):
         url = '/account/login'
         post_data = {
             'email': self.config['email'],
             'password': self.config['password']
         }
-        ret = requests.post(
-            urljoin(API_HOST, url),
-            json=post_data,
-            timeout=HTTP_TIME_OUT,
-        )
-        ret = json.loads(ret.text)
-        if ret['code'] == RETCODE.OK or ret['code'] == 0:
-            self.token = ret['data']['token']
-            return
-        raise ValueError(f"{url} Error: {ret['code']} {ret.get('message', ret.get('error'))} ")
+        resp_code = None
+        err = None
+        for i in range(retry):
+            resp = requests.post(
+                urljoin(API_HOST, url),
+                json=post_data,
+                timeout=HTTP_TIME_OUT,
+            )
+            resp_code = resp.status_code
+            if not resp.ok:
+                if self.debug:
+                    print(f"login retry: {i},statusCode: {resp.status_code}")
+                try:
+                    result = resp.json()
+                    err = result.get("error")
+                except Exception:
+                    pass
+                time.sleep(1 * i)
+                continue
+
+            result = resp.json()
+            if result['code'] == RETCODE.OK or result['code'] == 0:
+                self.token = result['data']['token']
+                return
+        raise RequestInfoException(resp_code, url, err)
 
     def _get_oss_bucket(self, endpoint, bucket_name):
         #  res = get("/tools/sts_token", {})
