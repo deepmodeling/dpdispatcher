@@ -4,9 +4,10 @@ from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
 from dpdispatcher.machine import Machine
 
-shell_script_header_template="""
+shell_script_header_template = """
 #!/bin/bash -l
 """
+
 
 class Shell(Machine):
     def gen_script(self, job):
@@ -18,17 +19,27 @@ class Shell(Machine):
         return shell_script_header
 
     def do_submit(self, job):
-        script_str = self.gen_script(job) 
+        script_str = self.gen_script(job)
         script_file_name = job.script_file_name
-        job_id_name = job.job_hash + '_job_id'
-        output_name = job.job_hash + '.out'
+        job_id_name = job.job_hash + "_job_id"
+        output_name = job.job_hash + ".out"
         self.context.write_file(fname=script_file_name, write_str=script_str)
-        ret, stdin, stdout, stderr = self.context.block_call('cd %s && { nohup bash %s 1>>%s 2>>%s & } && echo $!' % (shlex.quote(self.context.remote_root), script_file_name, output_name, output_name) )
+        ret, stdin, stdout, stderr = self.context.block_call(
+            "cd %s && { nohup bash %s 1>>%s 2>>%s & } && echo $!"
+            % (
+                shlex.quote(self.context.remote_root),
+                script_file_name,
+                output_name,
+                output_name,
+            )
+        )
         if ret != 0:
-            err_str = stderr.read().decode('utf-8')
-            raise RuntimeError\
-                    ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
-        job_id = int(stdout.read().decode('utf-8').strip())
+            err_str = stderr.read().decode("utf-8")
+            raise RuntimeError(
+                "status command squeue fails to execute\nerror message:%s\nreturn code %d\n"
+                % (err_str, ret)
+            )
+        job_id = int(stdout.read().decode("utf-8").strip())
         self.context.write_file(job_id_name, str(job_id))
         return job_id
 
@@ -40,28 +51,31 @@ class Shell(Machine):
         # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
         # subret = (stdout.readlines())
         # job_id = subret[0].split()[0]
-        # self.context.write_file(job_id_name, job_id)        
+        # self.context.write_file(job_id_name, job_id)
         # return job_id
 
-
-    def default_resources(self, resources) :
+    def default_resources(self, resources):
         pass
-    
+
     def check_status(self, job):
         job_id = job.job_id
         # print('shell.check_status.job_id', job_id)
         # job_state = JobStatus.unknown
-        if job_id == "" :
+        if job_id == "":
             return JobStatus.unsubmitted
 
         # mark defunct process as terminated
-        ret, stdin, stdout, stderr = self.context.block_call(f"if ps -p {job_id} > /dev/null && ! (ps -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi")
+        ret, stdin, stdout, stderr = self.context.block_call(
+            f"if ps -p {job_id} > /dev/null && ! (ps -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
+        )
         if ret != 0:
-            err_str = stderr.read().decode('utf-8')
-            raise RuntimeError\
-                    ("status command squeue fails to execute\nerror message:%s\nreturn code %d\n" % (err_str, ret))
-        
-        if_job_exists = bool(stdout.read().decode('utf-8').strip())
+            err_str = stderr.read().decode("utf-8")
+            raise RuntimeError(
+                "status command squeue fails to execute\nerror message:%s\nreturn code %d\n"
+                % (err_str, ret)
+            )
+
+        if_job_exists = bool(stdout.read().decode("utf-8").strip())
         if self.check_finish_tag(job=job):
             dlog.info(f"job: {job.job_hash} {job.job_id} finished")
             return JobStatus.finished
@@ -71,7 +85,7 @@ class Shell(Machine):
         else:
             return JobStatus.terminated
         # return job_state
-    
+
     # def check_status(self, job):
     #     job_id = job.job_id
     #     uuid_names = job.job_hash
@@ -84,6 +98,6 @@ class Shell(Machine):
     #     return False
 
     def check_finish_tag(self, job):
-        job_tag_finished = job.job_hash + '_job_tag_finished'
+        job_tag_finished = job.job_hash + "_job_tag_finished"
         # print('job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
