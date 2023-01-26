@@ -5,10 +5,11 @@ from zipfile import ZipFile
 #     shutil.make_archive(base_name=zip_filename,
 #         root_dir=root_path,)
 
+
 def zip_file_list(root_path, zip_filename, file_list=[]):
     out_zip_file = os.path.join(root_path, zip_filename)
     # print('debug: file_list', file_list)
-    zip_obj = ZipFile(out_zip_file, 'w')
+    zip_obj = ZipFile(out_zip_file, "w")
     for f in file_list:
         matched_files = os.path.join(root_path, f)
         for ii in glob.glob(matched_files):
@@ -27,6 +28,7 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
                 zip_obj.write(ii, arcname)
     zip_obj.close()
     return out_zip_file
+
 
 # def zip_files(root_path, out_file, selected=[]):
 #     obj = ZipFile(out_file, "w")
@@ -74,7 +76,7 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
 #     return False
 
 
-def unzip_file(zip_file, out_dir='./'):
+def unzip_file(zip_file, out_dir="./"):
     obj = ZipFile(zip_file, "r")
     for item in obj.namelist():
         obj.extract(item, out_dir)

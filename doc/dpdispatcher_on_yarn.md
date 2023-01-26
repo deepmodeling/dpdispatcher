@@ -1,6 +1,6 @@
 # Support DPDispatcher on Yarn
 ## Background
-Currently, DPGen(or other DP softwares) supports for HPC systems like Slurm, PBS, LSF and cloud machines. In order to run DPGen jobs on ByteDance internal platform, we need to extend it to support yarn resources. Hadoop Ecosystem is a very commonly used platform to process the big data, and in the process of developing the new interface, we found it can be implemented by only using hadoop opensource components. So for the convenience of the masses, we decided to contribute the codes to opensource community. 
+Currently, DPGen(or other DP softwares) supports for HPC systems like Slurm, PBS, LSF and cloud machines. In order to run DPGen jobs on ByteDance internal platform, we need to extend it to support yarn resources. Hadoop Ecosystem is a very commonly used platform to process the big data, and in the process of developing the new interface, we found it can be implemented by only using hadoop opensource components. So for the convenience of the masses, we decided to contribute the codes to opensource community.
 
 ## Design
 We use DistributedShell and HDFS to implement it. The control flow shows as follows:
@@ -28,7 +28,7 @@ class HDFSContext(BaseContext) :
     none
     """
         pass
-    
+
     def download(self, submission):
     """ download backward files from HDFS root dir
 
@@ -42,7 +42,7 @@ class HDFSContext(BaseContext) :
     none
     """
         pass
-        
+
    def check_file_exists(self, fname):
    """ check whether the given file exists, often used in checking whether the belonging job has finished
 
@@ -74,7 +74,7 @@ class DistributedShell(Machine):
         usually a yarn application id
     """
         pass
-        
+
     def check_status(self, job):
     """ check the yarn job status
 
@@ -86,9 +86,9 @@ class DistributedShell(Machine):
     Returns
     -------
     status: JobStatus
-    """        
+    """
         pass
-    
+
     def gen_script_command(self, job):
     """ Generate the shell script to be executed in DistibutedShell container
 
@@ -101,7 +101,7 @@ class DistributedShell(Machine):
     -------
     script: string
         script command string
-    """          
+    """
         pass
 ```
 
@@ -124,15 +124,15 @@ hadoop fs -test -e /root/uuid/sys-0001-0015/tag_0_finished
   cur_dir=`pwd`
   cd t sys-0001-0015
   test $? -ne 0 && exit 1
-  
+
   ## do your job here
   mpirun -n 32 vasp_std  1>> log 2>> err
-  
+
   if test $? -ne 0; then
       exit 1
   else
       hadoop fs -touchz /root/uuid/sys-0001-0015/tag_0_finished
-  fi 
+  fi
   cd $cur_dir
   test $? -ne 0 && exit 1
 fi }&
