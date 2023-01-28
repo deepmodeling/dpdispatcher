@@ -242,10 +242,15 @@ class Client:
             s = s[0].lower() + s[1:]
         return regex.sub(lambda m: m.group(0)[-1].upper(), s)
 
-    def get_tasks(self, job_id, group_id, page=1, per_page=10):
-        ret = self.get(
-            f"brm/v1/job/{job_id}",
-        )
+    def get_job_detail(self, job_id):
+        try:
+            ret = self.get(
+                f'brm/v1/job/{job_id}',
+            )
+        except Exception as e:
+            dlog.error(f"get job detail error {e}", stack_info=ENABLE_STACK)
+            return
+        
         return ret
 
     def get_log(self, job_id):
