@@ -62,14 +62,14 @@ class DPTest(unittest.TestCase):
         job_id = api.job_create(
             self.test_data["job_type"], self.test_data["job_resources"], self.test_data
         )
-        tasks = api.get_tasks(job_id)
+        tasks = api.get_job_detail(job_id)
         print(tasks)
 
     def test_get_tasks(self):
         print("----------", sys._getframe().f_code.co_name)
         jobs = api.get_jobs()
         for j in jobs:
-            tasks = api.get_tasks(j["id"])
+            tasks = api.get_job_detail(j["id"])
             print(tasks)
 
     # def test_download(self):

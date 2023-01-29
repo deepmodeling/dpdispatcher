@@ -120,6 +120,19 @@ class Bohrium(Machine):
         job.job_state = JobStatus.waiting
         return job_id
 
+    def _get_job_detail(self, job_id, group_id):
+        check_return = self.api.get_job_detail(job_id)
+        assert check_return is not None, (
+            f"Failed to retrieve tasks information. To resubmit this job, please "
+            f"try again, if this problem still exists please delete the submission "
+            f"file and try again.\nYou can check submission.submission_hash in the "
+            f'previous log or type `grep -rl "{job_id}:job_group_id:{group_id}" '
+            f"~/.dpdispatcher/dp_cloud_server/` to find corresponding file. "
+            f"You can try with command:\n    "
+            f'rm $(grep -rl "{job_id}:job_group_id:{group_id}" ~/.dpdispatcher/dp_cloud_server/)'
+        )
+        return check_return
+
     def check_status(self, job):
         if job.job_id == "":
             return JobStatus.unsubmitted
@@ -138,18 +151,7 @@ class Bohrium(Machine):
         dlog.debug(
             f"debug: check_status; job.job_id:{job_id}; job.job_hash:{job.job_hash}"
         )
-        check_return = None
-        # print("api",self.api_version,self.input_data.get('job_group_id'),job.job_id)
-        check_return = self.api.get_tasks(job_id, group_id)
-        assert check_return is not None, (
-            f"Failed to retrieve tasks information. To resubmit this job, please "
-            f"try again, if this problem still exists please delete the submission "
-            f"file and try again.\nYou can check submission.submission_hash in the "
-            f'previous log or type `grep -rl "{job_id}:job_group_id:{group_id}" '
-            f"~/.dpdispatcher/dp_cloud_server/` to find corresponding file. "
-            f"You can try with command:\n    "
-            f'rm $(grep -rl "{job_id}:job_group_id:{group_id}" ~/.dpdispatcher/dp_cloud_server/)'
-        )
+        check_return = self._get_job_detail(job_id, group_id)
         try:
             dp_job_status = check_return["status"]
         except IndexError as e:
@@ -157,7 +159,7 @@ class Bohrium(Machine):
                 f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds"
             )
             time.sleep(60)
-            retry_return = self.api.get_tasks(job_id, group_id)
+            retry_return = self._get_job_detail(job_id, group_id)
             try:
                 dp_job_status = retry_return["status"]
             except IndexError as e:
