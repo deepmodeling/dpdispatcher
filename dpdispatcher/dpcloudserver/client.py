@@ -245,12 +245,12 @@ class Client:
     def get_job_detail(self, job_id):
         try:
             ret = self.get(
-                f'brm/v1/job/{job_id}',
+                f"brm/v1/job/{job_id}",
             )
         except Exception as e:
             dlog.error(f"get job detail error {e}", stack_info=ENABLE_STACK)
             return
-        
+
         return ret
 
     def get_log(self, job_id):
