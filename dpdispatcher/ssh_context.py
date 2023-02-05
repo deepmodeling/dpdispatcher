@@ -19,9 +19,9 @@ from dargs.dargs import Argument
 
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
+
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import (RetrySignal, generate_totp, get_sha256, retry,
-                                rsync)
+from dpdispatcher.utils import RetrySignal, generate_totp, get_sha256, retry, rsync
 
 
 class SSHSession(object):

@@ -7,8 +7,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 __package__ = "tests"
 import unittest
 
-from .context import (Job, LocalContext, Machine, Resources, Shell, Submission,
-                      Task, get_file_md5)
+from .context import (
+    Job,
+    LocalContext,
+    Machine,
+    Resources,
+    Shell,
+    Submission,
+    Task,
+    get_file_md5,
+)
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")

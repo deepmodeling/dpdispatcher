@@ -13,9 +13,22 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 __package__ = "tests"
 from dargs.dargs import ArgumentValueError
 
-from .context import (LSF, PBS, BaseContext, DistributedShell, HDFSContext,
-                      JobStatus, LazyLocalContext, Lebesgue, LocalContext,
-                      Machine, Shell, Slurm, SSHContext, dargs)
+from .context import (
+    LSF,
+    PBS,
+    BaseContext,
+    DistributedShell,
+    HDFSContext,
+    JobStatus,
+    LazyLocalContext,
+    Lebesgue,
+    LocalContext,
+    Machine,
+    Shell,
+    Slurm,
+    SSHContext,
+    dargs,
+)
 from .sample_class import SampleClass
 
 

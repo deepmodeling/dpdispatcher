@@ -9,8 +9,15 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "slurm"
-from .context import (Dispatcher, JobStatus, LocalContext, LocalSession, Slurm,
-                      my_file_cmp, setUpModule)
+from .context import (
+    Dispatcher,
+    JobStatus,
+    LocalContext,
+    LocalSession,
+    Slurm,
+    my_file_cmp,
+    setUpModule,
+)
 
 
 @unittest.skipIf(not shutil.which("sbatch"), "requires Slurm")

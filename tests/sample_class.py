@@ -13,8 +13,16 @@ __package__ = "tests"
 # from .context import LocalSession
 # from .context import LocalContext
 # from dpdispatcher.local_context import LocalContext
-from .context import (PBS, Job, JobStatus, LocalContext, Resources, Slurm,
-                      Submission, Task)
+from .context import (
+    PBS,
+    Job,
+    JobStatus,
+    LocalContext,
+    Resources,
+    Slurm,
+    Submission,
+    Task,
+)
 
 
 class SampleClass(object):

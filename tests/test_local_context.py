@@ -14,8 +14,7 @@ from unittest.mock import MagicMock, PropertyMock, patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 # from .context import LocalSession
-from .context import (LocalContext, Task, _identical_files, get_file_md5,
-                      setUpModule)
+from .context import LocalContext, Task, _identical_files, get_file_md5, setUpModule
 from .sample_class import SampleClass
 
 # from .context import dpd

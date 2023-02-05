@@ -9,8 +9,15 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "lsf"
-from .context import (LSF, Dispatcher, JobStatus, LocalContext, LocalSession,
-                      my_file_cmp, setUpModule)
+from .context import (
+    LSF,
+    Dispatcher,
+    JobStatus,
+    LocalContext,
+    LocalSession,
+    my_file_cmp,
+    setUpModule,
+)
 
 
 class TestDispatcher(unittest.TestCase):

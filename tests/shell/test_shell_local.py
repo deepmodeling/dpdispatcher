@@ -9,8 +9,14 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "shell"
-from .context import (JobStatus, LocalContext, LocalSession, Shell,
-                      my_file_cmp, setUpModule)
+from .context import (
+    JobStatus,
+    LocalContext,
+    LocalSession,
+    Shell,
+    my_file_cmp,
+    setUpModule,
+)
 
 
 class TestShell(unittest.TestCase):
