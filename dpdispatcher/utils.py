@@ -14,7 +14,7 @@ def get_sha256(filename):
 
     Parameters
     ----------
-    filename: str
+    filename : str
         The filename.
 
     Returns
@@ -49,12 +49,12 @@ def generate_totp(secret: str, period: int = 30, token_length: int = 6) -> str:
 
     Parameters
     ----------
-    secret: str
+    secret : str
         The encoded secret provided by the HPC. It's usually extracted
         from a 2D code and base32 encoded.
-    period: int, default=30
+    period : int, default=30
         Time period where the code is valid in seconds.
-    token_length: int, default=6
+    token_length : int, default=6
         The token length.
 
     Returns
@@ -90,9 +90,9 @@ def rsync(
 
     Parameters
     ----------
-    from_file: str
+    from_file : str
         SRC
-    to_file: str
+    to_file : str
         DEST
     port : int, default=22
         port for ssh
@@ -149,11 +149,11 @@ def retry(
 
     Parameters
     ----------
-    max_retry: int, default=3
+    max_retry : int, default=3
         The maximum retry times. If None, it will retry forever.
-    sleep: int or float, default=60
+    sleep : int or float, default=60
         The sleep time in seconds.
-    catch_exception: Exception, default=Exception
+    catch_exception : Exception, default=Exception
         The exception to catch.
 
     Returns

@@ -673,9 +673,9 @@ class SSHContext(BaseContext):
 
         Parameters
         ----------
-        cmd: str
+        cmd : str
             The command to run.
-        asynchronously: bool, optional, default=False
+        asynchronously : bool, optional, default=False
             Run command asynchronously. If True, `nohup` will be used to run the command.
         """
         assert self.remote_root is not None
@@ -795,16 +795,16 @@ class SSHContext(BaseContext):
 
         Parameters
         ----------
-        files: list
+        files : list
             uploaded files
-        dereference: bool, default: True
+        dereference : bool, default: True
             If dereference is False, add symbolic and hard links to the archive.
             If it is True, add the content of the target files to the archive.
             This has no effect on systems that do not support symbolic links.
-        directories: list, default: None
+        directories : list, default: None
             uploaded directories non-recursively. Use `files` for uploading
             recursively
-        tar_compress: bool, default: True
+        tar_compress : bool, default: True
             If tar_compress is True, compress the archive using gzip
             It it is False, then it is uncompressed
         """
