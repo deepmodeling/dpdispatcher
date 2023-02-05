@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
-from dargs import Argument
 from typing import List, Optional, Tuple
+
+from dargs import Argument
 
 from dpdispatcher import dlog
 

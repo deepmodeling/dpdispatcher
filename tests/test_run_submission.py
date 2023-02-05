@@ -1,15 +1,12 @@
-import sys, os, shutil
+import os
+import shutil
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import (
-    Submission,
-    Task,
-    Resources,
-    Machine,
-)
-
 import unittest
+
+from .context import Machine, Resources, Submission, Task
 
 
 class RunSubmission:

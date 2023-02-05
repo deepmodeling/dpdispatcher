@@ -1,6 +1,8 @@
-from dpdispatcher.base_context import BaseContext
-import os, signal
+import os
+import signal
 import subprocess as sp
+
+from dpdispatcher.base_context import BaseContext
 
 
 class SPRetObj(object):

@@ -1,4 +1,6 @@
-import sys, os, json
+import json
+import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # from .sample_class import SampleClass
@@ -8,8 +10,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # from dpdispatcher.local_context import LocalContext
 # from dpdispatcher.lazy_local_context import LazyLocalContext
 
-from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.machine import Machine
+from dpdispatcher.submission import Job, Resources, Submission, Task
 from tests.sample_class import SampleClass
 
 # from dpdispatcher.pbs import PBS

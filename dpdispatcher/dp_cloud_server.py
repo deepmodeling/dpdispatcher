@@ -5,10 +5,9 @@ import uuid
 import warnings
 
 from dpdispatcher import dlog
-from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher.dpcloudserver import zip_file
-from dpdispatcher.dpcloudserver import Client
+from dpdispatcher.dpcloudserver import Client, zip_file
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
+from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
 
 shell_script_header_template = """

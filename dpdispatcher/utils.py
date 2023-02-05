@@ -1,10 +1,10 @@
-import hashlib
-import time
-import struct
-import hmac
 import base64
+import hashlib
+import hmac
+import struct
 import subprocess
-from typing import Iterable, Optional, Callable, Type, Union
+import time
+from typing import Callable, Iterable, Optional, Type, Union
 
 from dpdispatcher import dlog
 

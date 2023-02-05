@@ -1,13 +1,16 @@
-import os, sys, json, glob, shutil, uuid, time
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
+import uuid
+from unittest.mock import MagicMock, PropertyMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LocalContext
-from .context import PBS
-from .context import JobStatus
-from .context import Submission, Job, Task, Resources
+from .context import PBS, Job, JobStatus, LocalContext, Resources, Submission, Task
 from .sample_class import SampleClass
 
 

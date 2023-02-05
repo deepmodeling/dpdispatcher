@@ -1,8 +1,9 @@
+import json
 import os
 import sys
-import json
-from dpdispatcher.submission import Submission, Job, Task, Resources
+
 from dpdispatcher.machine import Machine
+from dpdispatcher.submission import Job, Resources, Submission, Task
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 

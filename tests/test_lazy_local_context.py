@@ -1,12 +1,17 @@
-import os, sys, json, glob, shutil, uuid, time
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
+import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LazyLocalContext
-from .context import setUpModule
+from .context import LazyLocalContext, setUpModule
 
 
 class TestLazyLocalContext(unittest.TestCase):

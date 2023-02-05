@@ -4,11 +4,10 @@ from typing import List
 
 from dargs import Argument
 
-from dpdispatcher.machine import Machine
-from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
-from dpdispatcher.machine import script_command_template
-from dpdispatcher.utils import retry, RetrySignal
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.machine import Machine, script_command_template
+from dpdispatcher.utils import RetrySignal, retry
 
 # from dpdispatcher.submission import Resources
 

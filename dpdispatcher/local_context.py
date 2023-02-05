@@ -1,9 +1,13 @@
-from dpdispatcher.base_context import BaseContext
-import os, shutil, hashlib, signal
+import hashlib
+import os
+import shutil
+import signal
 import subprocess as sp
 from glob import glob
-from dpdispatcher import dlog
 from subprocess import TimeoutExpired
+
+from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 
 
 class SPRetObj(object):
