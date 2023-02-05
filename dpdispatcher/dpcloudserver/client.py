@@ -3,12 +3,14 @@ import os
 import re
 import time
 import urllib.parse
-import requests
-from .retcode import RETCODE
-from .config import HTTP_TIME_OUT, API_HOST, API_LOGGER_STACK_INFO
 from urllib.parse import urljoin
 
+import requests
+
 from dpdispatcher import dlog
+
+from .config import API_HOST, API_LOGGER_STACK_INFO, HTTP_TIME_OUT
+from .retcode import RETCODE
 
 try:
     import oss2

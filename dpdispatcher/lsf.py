@@ -3,11 +3,10 @@ from typing import List
 
 from dargs import Argument
 
-from dpdispatcher.machine import Machine
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher.utils import retry, RetrySignal
-
+from dpdispatcher.machine import Machine
+from dpdispatcher.utils import RetrySignal, retry
 
 lsf_script_header_template = """\
 #!/bin/bash -l

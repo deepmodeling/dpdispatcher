@@ -1,7 +1,11 @@
-from dpdispatcher.base_context import BaseContext
-import os, shutil, hashlib, tarfile
+import hashlib
+import os
+import shutil
+import tarfile
 from glob import glob
+
 from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 from dpdispatcher.hdfs_cli import HDFS
 
 

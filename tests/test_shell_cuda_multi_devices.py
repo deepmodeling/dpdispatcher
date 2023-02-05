@@ -1,14 +1,14 @@
-import sys, os, shutil, json
+import json
+import os
+import shutil
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import Submission, Job, Task, Resources
-from .context import Shell
-from .context import LocalContext
-from .context import get_file_md5
-from .context import Machine
-
 import unittest
+
+from .context import (Job, LocalContext, Machine, Resources, Shell, Submission,
+                      Task, get_file_md5)
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")

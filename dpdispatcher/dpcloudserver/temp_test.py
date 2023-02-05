@@ -1,8 +1,8 @@
 #%%
 import os
 import sys
-import uuid
 import unittest
+import uuid
 
 from dpdispatcher.dpcloudserver import api
 from dpdispatcher.dpcloudserver.zip_file import zip_files

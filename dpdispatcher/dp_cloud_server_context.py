@@ -1,22 +1,21 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
+import os
+import shutil
 import time
 import uuid
-
-from dargs.dargs import Argument
-from dpdispatcher.base_context import BaseContext
 from typing import List
-import os
+
+import tqdm
+from dargs.dargs import Argument
+
 from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 
 # from dpdispatcher.submission import Machine
 # from . import dlog
-from .dpcloudserver import Client
-from .dpcloudserver import zip_file
-import shutil
-import tqdm
-
+from .dpcloudserver import Client, zip_file
 # from zip_file import zip_files
 from .dpcloudserver.config import ALI_OSS_BUCKET_URL
 

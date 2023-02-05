@@ -1,14 +1,16 @@
-import os, sys, json, glob, shutil, uuid, time
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
+import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "slurm"
-from .context import LocalSession
-from .context import LocalContext
-from .context import Slurm
-from .context import JobStatus
-from .context import my_file_cmp
-from .context import setUpModule
+from .context import (JobStatus, LocalContext, LocalSession, Slurm,
+                      my_file_cmp, setUpModule)
 
 
 @unittest.skipIf(not shutil.which("sbatch"), "requires Slurm")

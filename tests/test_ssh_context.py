@@ -1,13 +1,13 @@
-import os, sys
-import unittest
+import os
 import socket
+import sys
+import unittest
 
 from paramiko.ssh_exception import SSHException
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import SSHSession
-from .context import Machine, Resources, Task, Submission
+from .context import Machine, Resources, SSHSession, Submission, Task
 from .sample_class import SampleClass
 
 

@@ -1,10 +1,16 @@
 # %%
-import time, random, uuid, json, copy, os
-from dargs.dargs import Argument, Variant
-from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher import dlog
+import copy
+import json
+import os
+import random
+import time
+import uuid
 from hashlib import sha1
 
+from dargs.dargs import Argument, Variant
+
+from dpdispatcher import dlog
+from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
 
 # from dpdispatcher.slurm import SlurmResources
@@ -318,7 +324,8 @@ class Submission(object):
                 dlog.info("Can not kill job %s" % job.job_id)
 
             # remove unfinished tasks
-            import os, shutil
+            import os
+            import shutil
 
             for task in job.job_task_list:
                 shutil.rmtree(

@@ -1,16 +1,14 @@
-import sys, os
+import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from dpdispatcher.local_context import LocalSession
-from dpdispatcher.local_context import LocalContext
-from dpdispatcher.lazy_local_context import LazyLocalContext
-
-from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.batch import Batch
-
+from dpdispatcher.lazy_local_context import LazyLocalContext
+from dpdispatcher.local_context import LocalContext, LocalSession
 # from dpdispatcher.pbs import PBS
 from dpdispatcher.shell import Shell
+from dpdispatcher.submission import Job, Resources, Submission, Task
 
 local_session = LocalSession({"work_path": "temp2"})
 local_context = LocalContext(local_root="test_shell_dir/", work_profile=local_session)

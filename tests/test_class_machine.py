@@ -1,22 +1,22 @@
-import os, sys, json, glob, shutil, uuid, time
-from socket import gaierror
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
-
+import uuid
+from socket import gaierror
+from unittest.mock import MagicMock, PropertyMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LocalContext
-from .context import BaseContext
-from .context import PBS
-from .context import JobStatus
-from .context import LazyLocalContext, LocalContext, SSHContext
-from .context import LSF, Slurm, PBS, Shell
-from .context import Machine
-from .context import dargs
-from .context import DistributedShell, HDFSContext
-from .sample_class import SampleClass
 from dargs.dargs import ArgumentKeyError
+
+from .context import (LSF, PBS, BaseContext, DistributedShell, HDFSContext,
+                      JobStatus, LazyLocalContext, LocalContext, Machine,
+                      Shell, Slurm, SSHContext, dargs)
+from .sample_class import SampleClass
 
 
 class TestMachineInit(unittest.TestCase):

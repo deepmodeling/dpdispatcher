@@ -1,13 +1,16 @@
-import os, sys, json, glob, shutil, uuid, time, getpass
+import getpass
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
+import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "shell"
-from .context import SSHSession
-from .context import SSHContext
-from .context import Shell
-from .context import JobStatus
-from .context import setUpModule
+from .context import JobStatus, Shell, SSHContext, SSHSession, setUpModule
 
 
 class TestShell(unittest.TestCase):

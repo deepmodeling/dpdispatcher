@@ -1,30 +1,27 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, paramiko, tarfile, time
-import uuid
-import shutil
+import os
 import pathlib
-import socket
 import shlex
+import shutil
+import socket
+import tarfile
+import time
+import uuid
 from functools import lru_cache
 from glob import glob
 from typing import List
 
+import paramiko
 import paramiko.ssh_exception
 from dargs.dargs import Argument
 
-from dpdispatcher.base_context import BaseContext
 from dpdispatcher import dlog
-
+from dpdispatcher.base_context import BaseContext
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import (
-    get_sha256,
-    generate_totp,
-    rsync,
-    retry,
-    RetrySignal,
-)
+from dpdispatcher.utils import (RetrySignal, generate_totp, get_sha256, retry,
+                                rsync)
 
 
 class SSHSession(object):

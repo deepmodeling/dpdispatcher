@@ -2,9 +2,8 @@
 # import sys, os
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
 # import dpdispatcher
-from dpdispatcher.submission import Resources, Task
 from dpdispatcher.machine import Machine
-
+from dpdispatcher.submission import Resources, Task
 
 # %%
 resources_dargs_doc = Resources.arginfo().gen_doc()

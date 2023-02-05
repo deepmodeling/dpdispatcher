@@ -1,14 +1,14 @@
 """Test `Submission.generate_jobs` with different group size."""
 
+import json
 import os
 import sys
-import json
-from unittest import TestCase
 from pathlib import Path
+from unittest import TestCase
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import Machine, Resources, Task, Submission
+from .context import Machine, Resources, Submission, Task
 
 # 99 tasks in total
 # group_size - expected_ntasks

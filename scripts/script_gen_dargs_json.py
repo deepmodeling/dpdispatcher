@@ -1,6 +1,8 @@
-from dpdispatcher import Resources, Task, Machine
-from dargs import ArgumentEncoder
 import json
+
+from dargs import ArgumentEncoder
+
+from dpdispatcher import Machine, Resources, Task
 
 resources_dargs = Resources.arginfo()
 with open("dpdispatcher-resources.json", "w") as f:
