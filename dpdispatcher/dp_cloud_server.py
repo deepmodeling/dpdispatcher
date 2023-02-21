@@ -28,18 +28,23 @@ class Bohrium(Machine):
             self.api_version = self.input_data.get('lebesgue_version', 2)
         self.grouped = self.input_data.get('grouped', False)
         email = context.remote_profile.get("email", None)
+        phone = context.remote_profile.get("phone", None)
         username = context.remote_profile.get('username', None)
         password = context.remote_profile.get('password', None)
         if email is None and username is not None:
             raise DeprecationWarning("username is no longer support in current version, "
                                      "please consider use email instead of username.")
-        if email is None:
-            raise ValueError("can not find email in remote_profile, please check your machine file.")
+        if email is None and phone is None:
+            raise ValueError("can not find email/phone number in remote_profile, please check your machine file.")
         if password is None:
             raise ValueError("can not find password in remote_profile, please check your machine file.")
         if self.api_version == 1:
             raise DeprecationWarning('api version 1 is deprecated. Use version 2 instead.')
-        self.api = Client(email, password)
+
+        account = email
+        if email is None:
+            account = phone
+        self.api = Client(account, password)
         self.group_id = None
 
     def gen_script(self, job):

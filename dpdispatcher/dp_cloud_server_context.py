@@ -42,12 +42,18 @@ class BohriumContext(BaseContext):
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
         email = remote_profile.get("email", None)
+        phone = remote_profile.get("phone", None)
         password = remote_profile.get('password')
-        if email is None:
-            raise ValueError("can not find email in remote_profile, please check your machine file.")
+        if email is None and phone is None:
+            raise ValueError("can not find email/phone number in remote_profile, please check your machine file.")
         if password is None:
             raise ValueError("can not find password in remote_profile, please check your machine file.")
-        self.api = Client(email, password)
+        # account 作为登录账号
+        account = email
+        if email is None:
+            account = phone
+
+        self.api = Client(account, password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
