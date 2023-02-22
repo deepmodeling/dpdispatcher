@@ -268,7 +268,7 @@ class BohriumContext(BaseContext):
         """
         doc_remote_profile = "The information used to maintain the connection with remote machine."
         return [Argument("remote_profile", dict, [
-            Argument("email", str, optional=False, doc="Email"),
+        #    Argument("email", str, optional=False, doc="Email"),
             Argument("password", str, optional=False, doc="Password"),
             Argument("program_id", int, optional=False, alias=['project_id'], doc="Program ID"),
             Argument("keep_backup", bool, optional=True, doc="keep download and upload zip"),
