@@ -132,7 +132,9 @@ class Machine(metaclass=ABCMeta):
             raise e
         # check dict
         base = cls.arginfo()
+        print("load_from_json.base", base)
         machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
+        print("load_from_json.machine_dict", machine_dict)
         base.check_value(machine_dict, strict=False)
 
         context = BaseContext.load_from_dict(machine_dict)
