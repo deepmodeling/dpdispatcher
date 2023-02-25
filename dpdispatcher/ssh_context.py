@@ -38,7 +38,6 @@ class SSHSession(object):
         tar_compress=True,
         look_for_keys=True,
     ):
-
         self.hostname = hostname
         self.username = username
         self.password = password

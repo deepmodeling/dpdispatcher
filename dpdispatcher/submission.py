@@ -14,7 +14,7 @@ from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
 
 # from dpdispatcher.slurm import SlurmResources
-#%%
+# %%
 default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
 
 
@@ -499,7 +499,6 @@ class Task(object):
         outlog="log",
         errlog="err",
     ):
-
         self.command = command
         self.task_work_path = task_work_path
         self.forward_files = forward_files

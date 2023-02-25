@@ -139,7 +139,6 @@ class LocalContext(BaseContext):
     def download(
         self, submission, check_exists=False, mark_failure=True, back_error=False
     ):
-
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
             remote_job = os.path.join(self.remote_root, ii.task_work_path)

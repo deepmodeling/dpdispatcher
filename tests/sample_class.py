@@ -28,7 +28,6 @@ from .context import (
 class SampleClass(object):
     @classmethod
     def get_sample_resources(cls):
-
         resources = Resources(
             number_node=1,
             cpu_per_node=4,

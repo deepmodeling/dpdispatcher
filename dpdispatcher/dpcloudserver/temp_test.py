@@ -1,4 +1,4 @@
-#%%
+# %%
 import os
 import sys
 import unittest
@@ -11,9 +11,8 @@ from dpdispatcher.dpcloudserver.zip_file import zip_files
 # from zip_file import zip_files
 
 
-#%%
+# %%
 class DPTest(unittest.TestCase):
-
     test_data = {
         "job_type": "indicate",
         "log_file": "mylog",

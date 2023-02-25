@@ -18,7 +18,6 @@ class HDFSContext(BaseContext):
         *args,
         **kwargs,
     ):
-
         assert type(local_root) == str
         self.init_local_root = local_root
         self.init_remote_root = remote_root
