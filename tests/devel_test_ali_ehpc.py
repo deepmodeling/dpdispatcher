@@ -1,5 +1,8 @@
-import sys, os, json
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # from .sample_class import SampleClass
 # from .context import Machine
 # from .context import Resources
@@ -7,9 +10,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..' 
 # from dpdispatcher.local_context import LocalContext
 # from dpdispatcher.lazy_local_context import LazyLocalContext
 
-from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.machine import Machine
+from dpdispatcher.submission import Job, Resources, Submission, Task
 from tests.sample_class import SampleClass
+
 # from dpdispatcher.pbs import PBS
 
 # local_session = LocalSession({'work_path':'test_work_path/'})
@@ -28,11 +32,11 @@ submission = SampleClass.get_sample_submission()
 # pbs = SampleClass.get_sample_pbs_local_context()
 # slurm = SampleClass.get_sample_slurm_local_context()
 
-with open('jsons/machine_ali_ehpc.json', 'r') as f:
+with open("jsons/machine_ali_ehpc.json", "r") as f:
     compute_dict = json.load(f)
 
-machine = Machine.load_from_dict(compute_dict['machine'])
-resources = Resources.load_from_dict(compute_dict['resources'])
+machine = Machine.load_from_dict(compute_dict["machine"])
+resources = Resources.load_from_dict(compute_dict["resources"])
 
 submission.resouces = resources
 submission.bind_machine(machine=machine)
@@ -41,7 +45,7 @@ submission.bind_machine(machine=machine)
 submission.run_submission()
 
 
-# resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=True) 
+# resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_8_32", group_size=2, if_cuda_multi_devices=True)
 # submission = Submission(work_base='0_md/', resources=resources,  forward_common_files=['graph.pb'], backward_common_files=[]) #,  batch=PBS)
 # task1 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-1/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=1)
 # task2 = Task(command='lmp_serial -i input.lammps', task_work_path='bct-2/', forward_files=['conf.lmp', 'input.lammps'], backward_files=['log.lammps'], task_need_resources=0.25)

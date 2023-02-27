@@ -1,18 +1,23 @@
-import os,sys,json,glob,shutil,uuid,time
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
+import uuid
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-__package__ = 'tests'
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+__package__ = "tests"
 # from .context import LocalContext
 from dpdispatcher.local_context import LocalContext
-from .context import JobStatus
+
 # from .context import Dispatcher
-from .context import setUpModule
-from .context import Submission, Job, Task, Resources
+from .context import Job, JobStatus, Resources, Submission, Task, setUpModule
 from .sample_class import SampleClass
 
 
-class TestTask(unittest.TestCase) :
+class TestTask(unittest.TestCase):
     def setUp(self):
         self.task = SampleClass.get_sample_task()
         self.task_dict = SampleClass.get_sample_task_dict()
@@ -23,16 +28,16 @@ class TestTask(unittest.TestCase) :
     def test_deserialize(self):
         task = Task.deserialize(task_dict=self.task_dict)
         self.assertTrue(task, self.task)
-    
+
     def test_serialize_deserialize(self):
         self.assertEqual(Task.deserialize(task_dict=self.task.serialize()), self.task)
 
     def test_task_json(self):
-        with open('jsons/task.json', 'r') as f:
+        with open("jsons/task.json", "r") as f:
             task_json_dict = json.load(f)
         self.assertTrue(task_json_dict, self.task_dict)
         self.assertTrue(task_json_dict, self.task.serialize())
-            
+
     def test_repr(self):
         task_repr = repr(self.task)
         print("debug:", task_repr, self.task_dict)

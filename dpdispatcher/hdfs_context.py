@@ -1,19 +1,24 @@
-from dpdispatcher.base_context import BaseContext
-import os,shutil,hashlib,tarfile
+import hashlib
+import os
+import shutil
+import tarfile
 from glob import glob
+
 from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 from dpdispatcher.hdfs_cli import HDFS
 
-class HDFSContext(BaseContext) :
-    def __init__(self,
-                local_root,
-                remote_root,
-                remote_profile={},
-                *args,
-                **kwargs,
-                ):
 
-        assert(type(local_root) == str)
+class HDFSContext(BaseContext):
+    def __init__(
+        self,
+        local_root,
+        remote_root,
+        remote_profile={},
+        *args,
+        **kwargs,
+    ):
+        assert type(local_root) == str
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
@@ -22,38 +27,39 @@ class HDFSContext(BaseContext) :
 
     @classmethod
     def load_from_dict(cls, context_dict):
-        local_root = context_dict['local_root']
-        remote_root = context_dict['remote_root']
-        remote_profile = context_dict.get('remote_profile', {})
+        local_root = context_dict["local_root"]
+        remote_root = context_dict["remote_root"]
+        remote_profile = context_dict.get("remote_profile", {})
         instance = cls(
             local_root=local_root,
             remote_root=remote_root,
-            remote_profile=remote_profile
+            remote_profile=remote_profile,
         )
         return instance
 
     def get_job_root(self):
         return self.remote_root
-    
+
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
-        self.remote_root = os.path.join(self.temp_remote_root, submission.submission_hash)
+        self.remote_root = os.path.join(
+            self.temp_remote_root, submission.submission_hash
+        )
 
         HDFS.mkdir(self.remote_root)
 
-    def _put_files(self,
-                   files,
-                   dereference=True):
-        of = self.submission.submission_hash + '_upload.tgz'
+    def _put_files(self, files, dereference=True):
+        of = self.submission.submission_hash + "_upload.tgz"
         # local tar
         if os.path.isfile(os.path.join(self.local_root, of)):
             os.remove(os.path.join(self.local_root, of))
-        with tarfile.open(os.path.join(self.local_root, of), "w:gz", dereference=dereference) as tar:
-            for ii in files :
+        with tarfile.open(
+            os.path.join(self.local_root, of), "w:gz", dereference=dereference
+        ) as tar:
+            for ii in files:
                 ii_full = os.path.join(self.local_root, ii)
                 tar.add(ii_full, arcname=ii)
-
 
         # trans
         from_f = os.path.join(self.local_root, of)
@@ -62,10 +68,8 @@ class HDFSContext(BaseContext) :
         # clean up
         os.remove(from_f)
 
-    def upload(self,
-               submission,
-               dereference=True):
-        """ upload forward files and forward command files to HDFS root dir
+    def upload(self, submission, dereference=True):
+        """upload forward files and forward command files to HDFS root dir
 
         Parameters
         ----------
@@ -84,26 +88,32 @@ class HDFSContext(BaseContext) :
             for ff in task.forward_files:
                 abs_file_list = glob(os.path.join(local_job, ff))
                 if not abs_file_list:
-                    raise RuntimeError('cannot find upload file ' + os.path.join(local_job, ff))
-                rel_file_list = [os.path.relpath(ii, self.local_root) for ii in abs_file_list]
+                    raise RuntimeError(
+                        "cannot find upload file " + os.path.join(local_job, ff)
+                    )
+                rel_file_list = [
+                    os.path.relpath(ii, self.local_root) for ii in abs_file_list
+                ]
                 file_list.extend(rel_file_list)
 
         local_job = self.local_root
         for fc in submission.forward_common_files:
             abs_file_list = glob(os.path.join(local_job, fc))
             if not abs_file_list:
-                raise RuntimeError('cannot find upload file ' + os.path.join(local_job, fc))
-            rel_file_list = [os.path.relpath(ii, self.local_root) for ii in abs_file_list]
+                raise RuntimeError(
+                    "cannot find upload file " + os.path.join(local_job, fc)
+                )
+            rel_file_list = [
+                os.path.relpath(ii, self.local_root) for ii in abs_file_list
+            ]
             file_list.extend(rel_file_list)
 
         self._put_files(file_list, dereference=dereference)
 
-    def download(self,
-                 submission,
-                 check_exists= False,
-                 mark_failure = True,
-                 back_error = False):
-        """ download backward files from HDFS root dir
+    def download(
+        self, submission, check_exists=False, mark_failure=True, back_error=False
+    ):
+        """download backward files from HDFS root dir
 
         Parameters
         ----------
@@ -118,11 +128,14 @@ class HDFSContext(BaseContext) :
         cwd = os.getcwd()
 
         # download all hdfs files to tmp dir
-        gz_dir = os.path.join(self.local_root, 'tmp')
+        gz_dir = os.path.join(self.local_root, "tmp")
         if os.path.exists(gz_dir):
             shutil.rmtree(gz_dir, ignore_errors=True)
-        os.mkdir(os.path.join(self.local_root, 'tmp'))
-        rfile_tgz = "%s/%s_*_download.tar.gz" % (self.remote_root, submission.submission_hash)
+        os.mkdir(os.path.join(self.local_root, "tmp"))
+        rfile_tgz = "%s/%s_*_download.tar.gz" % (
+            self.remote_root,
+            submission.submission_hash,
+        )
         lfile_tgz = "%s/tmp/" % (self.local_root)
         HDFS.copy_to_local(rfile_tgz, lfile_tgz)
 
@@ -136,7 +149,7 @@ class HDFSContext(BaseContext) :
             remote_job = os.path.join(gz_dir, task.task_work_path)
             flist = task.backward_files
             if back_error:
-                errors = glob(os.path.join(remote_job, 'error*'))
+                errors = glob(os.path.join(remote_job, "error*"))
                 flist.extend(errors)
             for jj in flist:
                 rfile = os.path.join(remote_job, jj)
@@ -145,15 +158,22 @@ class HDFSContext(BaseContext) :
                 if not os.path.exists(rfile):
                     if check_exists:
                         if mark_failure:
-                            with open(os.path.join(self.local_root, task.task_work_path, 'tag_failure_download_%s' % jj), 'w') as fp:
+                            with open(
+                                os.path.join(
+                                    self.local_root,
+                                    task.task_work_path,
+                                    "tag_failure_download_%s" % jj,
+                                ),
+                                "w",
+                            ) as fp:
                                 pass
                         else:
-                            raise RuntimeError('do not find download file ' + rfile)
+                            raise RuntimeError("do not find download file " + rfile)
                     else:
-                        raise RuntimeError('do not find download file ' + rfile)
+                        raise RuntimeError("do not find download file " + rfile)
                 else:
                     if os.path.exists(lfile):
-                        dlog.info('find existing %s, replacing by %s' % (lfile, rfile))
+                        dlog.info("find existing %s, replacing by %s" % (lfile, rfile))
                         if os.path.isdir(lfile):
                             shutil.rmtree(lfile, ignore_errors=True)
                         elif os.path.isfile(lfile):
@@ -164,7 +184,7 @@ class HDFSContext(BaseContext) :
         remote_job = gz_dir
         flist = submission.backward_common_files
         if back_error:
-            errors = glob(os.path.join(remote_job, 'error*'))
+            errors = glob(os.path.join(remote_job, "error*"))
             flist.extend(errors)
         for jj in flist:
             rfile = os.path.join(remote_job, jj)
@@ -173,15 +193,20 @@ class HDFSContext(BaseContext) :
             if not os.path.exists(rfile):
                 if check_exists:
                     if mark_failure:
-                        with open(os.path.join(self.local_root, 'tag_failure_download_%s' % jj), 'w') as fp:
+                        with open(
+                            os.path.join(
+                                self.local_root, "tag_failure_download_%s" % jj
+                            ),
+                            "w",
+                        ) as fp:
                             pass
                     else:
-                        raise RuntimeError('do not find download file ' + rfile)
+                        raise RuntimeError("do not find download file " + rfile)
                 else:
-                    raise RuntimeError('do not find download file ' + rfile)
+                    raise RuntimeError("do not find download file " + rfile)
             else:
                 if os.path.exists(lfile):
-                    dlog.info('find existing %s, replacing by %s' % (lfile, rfile))
+                    dlog.info("find existing %s, replacing by %s" % (lfile, rfile))
                     if os.path.isdir(lfile):
                         shutil.rmtree(lfile, ignore_errors=True)
                     elif os.path.isfile(lfile):
@@ -192,17 +217,17 @@ class HDFSContext(BaseContext) :
         shutil.rmtree(gz_dir, ignore_errors=True)
 
     def check_file_exists(self, fname):
-        """ check whether the given file exists, often used in checking whether the belonging job has finished
+        """check whether the given file exists, often used in checking whether the belonging job has finished
 
-         Parameters
-         ----------
-         fname : string
-             file name to be checked
+        Parameters
+        ----------
+        fname : string
+            file name to be checked
 
-         Returns
-         -------
-         status: boolean
-         """
+        Returns
+        -------
+        status: boolean
+        """
         return HDFS.exists(os.path.join(self.remote_root, fname))
 
     def clean(self):
@@ -210,7 +235,7 @@ class HDFSContext(BaseContext) :
 
     def write_file(self, fname, write_str):
         local_file = os.path.join("/tmp/", fname)
-        with open(local_file, 'w') as fp:
+        with open(local_file, "w") as fp:
             fp.write(write_str)
         HDFS.copy_from_local(local_file, os.path.join(self.remote_root, fname))
         return local_file

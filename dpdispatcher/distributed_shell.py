@@ -1,16 +1,16 @@
-from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher import dlog
-from dpdispatcher.machine import Machine
-from dpdispatcher.utils import run_cmd_with_all_output
 import subprocess as sp
 
+from dpdispatcher import dlog
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.machine import Machine
+from dpdispatcher.utils import run_cmd_with_all_output
 
-shell_script_header_template="""
+shell_script_header_template = """
 #!/bin/bash -l
 set -x
 """
 
-script_env_template="""
+script_env_template = """
 {module_unload_part}
 {module_load_part}
 {source_files_part}
@@ -27,7 +27,7 @@ fi
 for TGZ in `ls *.tgz`; do tar xvf $TGZ; done
 
 """
-script_end_template="""
+script_end_template = """
 cd $REMOTE_ROOT
 test $? -ne 0 && exit 1
 
@@ -42,6 +42,7 @@ else
 fi
 {append_script_part}
 """
+
 
 class DistributedShell(Machine):
     def gen_script_env(self, job):
@@ -77,7 +78,7 @@ class DistributedShell(Machine):
         prepend_script = job.resources.prepend_script
         prepend_script_part = "\n".join(prepend_script)
 
-        flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
+        flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 
         script_env = script_env_template.format(
             flag_if_job_task_fail=flag_if_job_task_fail,
@@ -95,12 +96,12 @@ class DistributedShell(Machine):
         all_task_dirs = ""
         for task in job.job_task_list:
             all_task_dirs += "%s " % task.task_work_path
-        job_tag_finished = job.job_hash + '_job_tag_finished'
-        flag_if_job_task_fail = job.job_hash + '_flag_if_job_task_fail'
+        job_tag_finished = job.job_hash + "_job_tag_finished"
+        flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 
         append_script = job.resources.append_script
         append_script_part = "\n".join(append_script)
-        
+
         script_end = script_end_template.format(
             job_tag_finished=job_tag_finished,
             flag_if_job_task_fail=flag_if_job_task_fail,
@@ -108,7 +109,7 @@ class DistributedShell(Machine):
             append_script_part=append_script_part,
             remote_root=self.context.remote_root,
             submission_hash=self.context.submission.submission_hash,
-            job_hash=job.job_hash
+            job_hash=job.job_hash,
         )
         return script_end
 
@@ -117,7 +118,7 @@ class DistributedShell(Machine):
         return shell_script_header
 
     def do_submit(self, job):
-        """ submit th job to yarn using distributed shell
+        """submit th job to yarn using distributed shell
 
         Parameters
         ----------
@@ -132,49 +133,68 @@ class DistributedShell(Machine):
 
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
-        job_id_name = job.job_hash + '_job_id'
-        output_name = job.job_hash + '.out'
+        job_id_name = job.job_hash + "_job_id"
+        output_name = job.job_hash + ".out"
         self.context.write_file(fname=script_file_name, write_str=script_str)
 
         resources = job.resources
-        submit_command = 'hadoop jar %s/hadoop-yarn-applications-distributedshell-*.jar ' \
-                         'org.apache.hadoop.yarn.applications.distributedshell.Client ' \
-                         '-jar %s/hadoop-yarn-applications-distributedshell-*.jar ' \
-                         '-queue %s -appname "distributedshell_dpgen_%s" ' \
-                         '-shell_env YARN_CONTAINER_RUNTIME_TYPE=docker ' \
-                         '-shell_env YARN_CONTAINER_RUNTIME_DOCKER_IMAGE=%s ' \
-                         '-shell_env ENV_DOCKER_CONTAINER_SHM_SIZE=\'600m\' '\
-                         '-master_memory 1024 -master_vcores 2 -num_containers 1 ' \
-                         '-container_resources memory-mb=%s,vcores=%s ' \
-                         '-shell_script /tmp/%s' % (resources.kwargs.get('yarn_path',''),
-                                        resources.kwargs.get('yarn_path',''), resources.queue_name, job.job_hash,
-                                        resources.kwargs.get('img_name',''),resources.kwargs.get('mem_limit', 1)*1024,
-                                        resources.cpu_per_node, script_file_name)
+        submit_command = (
+            "hadoop jar %s/hadoop-yarn-applications-distributedshell-*.jar "
+            "org.apache.hadoop.yarn.applications.distributedshell.Client "
+            "-jar %s/hadoop-yarn-applications-distributedshell-*.jar "
+            '-queue %s -appname "distributedshell_dpgen_%s" '
+            "-shell_env YARN_CONTAINER_RUNTIME_TYPE=docker "
+            "-shell_env YARN_CONTAINER_RUNTIME_DOCKER_IMAGE=%s "
+            "-shell_env ENV_DOCKER_CONTAINER_SHM_SIZE='600m' "
+            "-master_memory 1024 -master_vcores 2 -num_containers 1 "
+            "-container_resources memory-mb=%s,vcores=%s "
+            "-shell_script /tmp/%s"
+            % (
+                resources.kwargs.get("yarn_path", ""),
+                resources.kwargs.get("yarn_path", ""),
+                resources.queue_name,
+                job.job_hash,
+                resources.kwargs.get("img_name", ""),
+                resources.kwargs.get("mem_limit", 1) * 1024,
+                resources.cpu_per_node,
+                script_file_name,
+            )
+        )
 
-        cmd = '{ nohup %s 1>%s 2>%s & } && echo $!' % (submit_command, output_name, output_name)
+        cmd = "{ nohup %s 1>%s 2>%s & } && echo $!" % (
+            submit_command,
+            output_name,
+            output_name,
+        )
         ret, stdout, stderr = run_cmd_with_all_output(cmd)
 
         if ret != 0:
-            err_str = stderr.decode('utf-8')
-            raise RuntimeError\
-                    ("Command squeue fails to execute, error message:%s\nreturn code %d\n" % (err_str, ret))
-        job_id = int(stdout.decode('utf-8').strip())
+            err_str = stderr.decode("utf-8")
+            raise RuntimeError(
+                "Command squeue fails to execute, error message:%s\nreturn code %d\n"
+                % (err_str, ret)
+            )
+        job_id = int(stdout.decode("utf-8").strip())
 
         self.context.write_file(job_id_name, str(job_id))
         return job_id
 
     def check_status(self, job):
         job_id = job.job_id
-        if job_id == '' :
+        if job_id == "":
             return JobStatus.unsubmitted
 
-        ret, stdout, stderr = run_cmd_with_all_output(f"if ps -p {job_id} > /dev/null; then echo 1; fi")
+        ret, stdout, stderr = run_cmd_with_all_output(
+            f"if ps -p {job_id} > /dev/null; then echo 1; fi"
+        )
         if ret != 0:
-            err_str = stderr.decode('utf-8')
-            raise RuntimeError \
-                ("Command fails to execute, error message:%s\nreturn code %d\n" % (err_str, ret))
+            err_str = stderr.decode("utf-8")
+            raise RuntimeError(
+                "Command fails to execute, error message:%s\nreturn code %d\n"
+                % (err_str, ret)
+            )
 
-        if_job_exists = bool(stdout.decode('utf-8').strip())
+        if_job_exists = bool(stdout.decode("utf-8").strip())
         if self.check_finish_tag(job=job):
             dlog.info(f"job: {job.job_hash} {job.job_id} finished")
             return JobStatus.finished
@@ -185,5 +205,5 @@ class DistributedShell(Machine):
             return JobStatus.terminated
 
     def check_finish_tag(self, job):
-        job_tag_finished = job.job_hash + '_job_tag_finished'
+        job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)

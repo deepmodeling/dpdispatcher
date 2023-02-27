@@ -1,14 +1,18 @@
-import os,sys,json,glob,shutil,uuid,time
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
+import uuid
+from unittest.mock import MagicMock, PropertyMock, patch
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-__package__ = 'tests'
-from .context import LocalContext
-from .context import PBS
-from .context import JobStatus
-from .context import Submission, Job, Task, Resources
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+__package__ = "tests"
+from .context import PBS, Job, JobStatus, LocalContext, Resources, Submission, Task
 from .sample_class import SampleClass
+
 
 class TestSubmission(unittest.TestCase):
     def setUp(self):
@@ -19,10 +23,14 @@ class TestSubmission(unittest.TestCase):
 
         #  self.submission2 = Submission.submission_from_json('jsons/submission.json')
         # self.submission2 = Submission.submission_from_json('jsons/submission.json')
-    
+
     def test_serialize_deserialize(self):
-        self.assertEqual(self.submission.serialize(), 
-            Submission.deserialize(submission_dict=self.submission.serialize()).serialize())
+        self.assertEqual(
+            self.submission.serialize(),
+            Submission.deserialize(
+                submission_dict=self.submission.serialize()
+            ).serialize(),
+        )
 
     def test_get_hash(self):
         pass
@@ -50,9 +58,11 @@ class TestSubmission(unittest.TestCase):
     def test_submission_to_json(self):
         pass
 
-    @patch('dpdispatcher.Submission.submission_to_json')
-    @patch('dpdispatcher.Submission.update_submission_state')
-    def test_check_all_finished(self, patch_update_submission_state, patch_submission_to_json):
+    @patch("dpdispatcher.Submission.submission_to_json")
+    @patch("dpdispatcher.Submission.update_submission_state")
+    def test_check_all_finished(
+        self, patch_update_submission_state, patch_submission_to_json
+    ):
         patch_update_submission_state = MagicMock(return_value=None)
         patch_submission_to_json = MagicMock(return_value=None)
 
@@ -63,7 +73,7 @@ class TestSubmission(unittest.TestCase):
         self.submission.belonging_jobs[0].job_state = JobStatus.finished
         self.submission.belonging_jobs[1].job_state = JobStatus.unsubmitted
         self.assertFalse(self.submission.check_all_finished())
-        
+
         self.submission.belonging_jobs[0].job_state = JobStatus.completing
         self.submission.belonging_jobs[1].job_state = JobStatus.finished
         self.assertFalse(self.submission.check_all_finished())
@@ -75,15 +85,15 @@ class TestSubmission(unittest.TestCase):
         self.submission.belonging_jobs[0].job_state = JobStatus.finished
         self.submission.belonging_jobs[1].job_state = JobStatus.finished
         self.assertTrue(self.submission.check_all_finished())
-    
+
     def test_submission_from_json(self):
-        submission2 = Submission.submission_from_json('jsons/submission.json')
+        submission2 = Submission.submission_from_json("jsons/submission.json")
         # print('<<<<<<<', self.submission)
         # print('>>>>>>>', submission2)
         self.assertEqual(self.submission.serialize(), submission2.serialize())
 
     def test_submission_json(self):
-        with open('jsons/submission.json') as f:
+        with open("jsons/submission.json") as f:
             submission_json_dict = json.load(f)
         self.assertTrue(submission_json_dict, self.submission.serialize())
 
