@@ -1,14 +1,20 @@
-import os, sys, json, glob, shutil, uuid, getpass, tarfile
-import unittest
+import getpass
+import glob
+import json
+import os
 import pathlib
+import shutil
+import sys
+import tarfile
+import unittest
+import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import HDFSContext
-from .context import HDFS
-from .context import Machine
-from .sample_class import SampleClass
 from glob import glob
+
+from .context import HDFS, HDFSContext, Machine
+from .sample_class import SampleClass
 
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")

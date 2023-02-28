@@ -1,30 +1,27 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os, paramiko, tarfile, time
-import uuid
-import shutil
+import os
 import pathlib
-import socket
 import shlex
+import shutil
+import socket
+import tarfile
+import time
+import uuid
 from functools import lru_cache
 from glob import glob
 from typing import List
 
+import paramiko
 import paramiko.ssh_exception
 from dargs.dargs import Argument
 
-from dpdispatcher.base_context import BaseContext
 from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import (
-    get_sha256,
-    generate_totp,
-    rsync,
-    retry,
-    RetrySignal,
-)
+from dpdispatcher.utils import RetrySignal, generate_totp, get_sha256, retry, rsync
 
 
 class SSHSession(object):
@@ -41,7 +38,6 @@ class SSHSession(object):
         tar_compress=True,
         look_for_keys=True,
     ):
-
         self.hostname = hostname
         self.username = username
         self.password = password
@@ -673,9 +669,9 @@ class SSHContext(BaseContext):
 
         Parameters
         ----------
-        cmd: str
+        cmd : str
             The command to run.
-        asynchronously: bool, optional, default=False
+        asynchronously : bool, optional, default=False
             Run command asynchronously. If True, `nohup` will be used to run the command.
         """
         assert self.remote_root is not None
@@ -795,16 +791,16 @@ class SSHContext(BaseContext):
 
         Parameters
         ----------
-        files: list
+        files : list
             uploaded files
-        dereference: bool, default: True
+        dereference : bool, default: True
             If dereference is False, add symbolic and hard links to the archive.
             If it is True, add the content of the target files to the archive.
             This has no effect on systems that do not support symbolic links.
-        directories: list, default: None
+        directories : list, default: None
             uploaded directories non-recursively. Use `files` for uploading
             recursively
-        tar_compress: bool, default: True
+        tar_compress : bool, default: True
             If tar_compress is True, compress the archive using gzip
             It it is False, then it is uncompressed
         """

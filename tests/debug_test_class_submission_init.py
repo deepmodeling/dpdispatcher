@@ -11,7 +11,6 @@
 # from .context import Submission, Job, Task, Resources
 from sample_class import SampleClass
 
-
 # print('in', SampleClass.get_sample_empty_submission())
 
 

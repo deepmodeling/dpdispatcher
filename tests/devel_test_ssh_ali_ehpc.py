@@ -1,15 +1,16 @@
-import sys, os, json
+import json
+import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # from dpdispatcher.local_context import LocalSession
 # from dpdispatcher.local_context import LocalContext
 
-from dpdispatcher.submission import Submission, Job, Task, Resources
-
 # from dpdispatcher.batch import Batch
 # from dpdispatcher.pbs import PBS
 from dpdispatcher.batch_object import BatchObject
+from dpdispatcher.submission import Job, Resources, Submission, Task
 
 with open("ssh_machine.json", "r") as f:
     jdata = json.load(f)

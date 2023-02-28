@@ -1,8 +1,8 @@
-#%%
+# %%
 import os
 import sys
-import uuid
 import unittest
+import uuid
 
 from dpdispatcher.dpcloudserver import api
 from dpdispatcher.dpcloudserver.zip_file import zip_files
@@ -11,9 +11,8 @@ from dpdispatcher.dpcloudserver.zip_file import zip_files
 # from zip_file import zip_files
 
 
-#%%
+# %%
 class DPTest(unittest.TestCase):
-
     test_data = {
         "job_type": "indicate",
         "log_file": "mylog",

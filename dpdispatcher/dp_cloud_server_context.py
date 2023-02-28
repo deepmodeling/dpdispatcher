@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 # coding: utf-8
 # %%
+import os
+import shutil
 import time
 import uuid
-
-from dargs.dargs import Argument
-from dpdispatcher.base_context import BaseContext
 from typing import List
-import os
+
+import tqdm
+from dargs.dargs import Argument
+
 from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 
 # from dpdispatcher.submission import Machine
 # from . import dlog
-from .dpcloudserver import Client
-from .dpcloudserver import zip_file
-import shutil
-import tqdm
+from .dpcloudserver import Client, zip_file
 
 # from zip_file import zip_files
 from .dpcloudserver.config import ALI_OSS_BUCKET_URL
@@ -43,16 +43,22 @@ class BohriumContext(BaseContext):
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
         email = remote_profile.get("email", None)
+        phone = remote_profile.get("phone", None)
         password = remote_profile.get("password")
-        if email is None:
+        if email is None and phone is None:
             raise ValueError(
-                "can not find email in remote_profile, please check your machine file."
+                "can not find email/phone number in remote_profile, please check your machine file."
             )
         if password is None:
             raise ValueError(
                 "can not find password in remote_profile, please check your machine file."
             )
-        self.api = Client(email, password)
+        # account 作为登录账号
+        account = email
+        if email is None:
+            account = phone
+
+        self.api = Client(account, password)
 
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
@@ -290,7 +296,7 @@ class BohriumContext(BaseContext):
                 "remote_profile",
                 dict,
                 [
-                    Argument("email", str, optional=False, doc="Email"),
+                    # Argument("email", str, optional=False, doc="Email"),
                     Argument("password", str, optional=False, doc="Password"),
                     Argument(
                         "program_id",

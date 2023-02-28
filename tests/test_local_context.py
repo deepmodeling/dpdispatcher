@@ -1,19 +1,20 @@
-#%%
-import os, sys, json, glob, shutil, uuid, time
+# %%
+import glob
+import json
+import os
+import shutil
+import sys
+import time
 import unittest
+import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
-#%%
+# %%
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LocalContext
-
 # from .context import LocalSession
-from .context import setUpModule
-from .context import _identical_files
-from .context import Task
-from .context import get_file_md5
+from .context import LocalContext, Task, _identical_files, get_file_md5, setUpModule
 from .sample_class import SampleClass
 
 # from .context import dpd

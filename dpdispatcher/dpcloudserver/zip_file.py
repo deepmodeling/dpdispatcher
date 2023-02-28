@@ -1,4 +1,5 @@
-import os, glob
+import glob
+import os
 from zipfile import ZipFile
 
 # def zip_file_list(root_path, zip_filename, file_list=[]):

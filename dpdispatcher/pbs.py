@@ -1,9 +1,8 @@
 import shlex
 
-from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher import dlog
+from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-
 
 pbs_script_header_template = """
 #!/bin/bash -l

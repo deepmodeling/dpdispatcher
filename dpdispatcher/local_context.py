@@ -1,9 +1,13 @@
-from dpdispatcher.base_context import BaseContext
-import os, shutil, hashlib, signal
+import hashlib
+import os
+import shutil
+import signal
 import subprocess as sp
 from glob import glob
-from dpdispatcher import dlog
 from subprocess import TimeoutExpired
+
+from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 
 
 class SPRetObj(object):
@@ -135,7 +139,6 @@ class LocalContext(BaseContext):
     def download(
         self, submission, check_exists=False, mark_failure=True, back_error=False
     ):
-
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
             remote_job = os.path.join(self.remote_root, ii.task_work_path)

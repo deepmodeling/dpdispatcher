@@ -1,7 +1,11 @@
-from dpdispatcher.base_context import BaseContext
-import os, shutil, hashlib, tarfile
+import hashlib
+import os
+import shutil
+import tarfile
 from glob import glob
+
 from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 from dpdispatcher.hdfs_cli import HDFS
 
 
@@ -14,7 +18,6 @@ class HDFSContext(BaseContext):
         *args,
         **kwargs,
     ):
-
         assert type(local_root) == str
         self.init_local_root = local_root
         self.init_remote_root = remote_root

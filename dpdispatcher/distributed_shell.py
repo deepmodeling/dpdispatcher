@@ -1,9 +1,9 @@
-from dpdispatcher.JobStatus import JobStatus
-from dpdispatcher import dlog
-from dpdispatcher.machine import Machine
-from dpdispatcher.utils import run_cmd_with_all_output
 import subprocess as sp
 
+from dpdispatcher import dlog
+from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.machine import Machine
+from dpdispatcher.utils import run_cmd_with_all_output
 
 shell_script_header_template = """
 #!/bin/bash -l

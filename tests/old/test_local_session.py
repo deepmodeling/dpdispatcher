@@ -1,10 +1,13 @@
-import os, sys, json, glob, shutil
+import glob
+import json
+import os
+import shutil
+import sys
 import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LocalSession
-from .context import setUpModule
+from .context import LocalSession, setUpModule
 
 
 class TestLocalSession(unittest.TestCase):
