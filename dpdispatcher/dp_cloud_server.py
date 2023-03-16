@@ -29,20 +29,26 @@ class Bohrium(Machine):
         self.grouped = self.input_data.get("grouped", False)
         email = context.remote_profile.get("email", None)
         phone = context.remote_profile.get("phone", None)
-        username = context.remote_profile.get('username', None)
-        password = context.remote_profile.get('password', None)
+        username = context.remote_profile.get("username", None)
+        password = context.remote_profile.get("password", None)
         if email is None and username is not None:
-            raise DeprecationWarning("username is no longer support in current version, "
-                                     "please consider use email instead of username.")
+            raise DeprecationWarning(
+                "username is no longer support in current version, "
+                "please consider use email instead of username."
+            )
         if email is None and phone is None:
-            raise ValueError("can not find email/phone number in remote_profile, please check your machine file.")
+            raise ValueError(
+                "can not find email/phone number in remote_profile, please check your machine file."
+            )
 
         if password is None:
             raise ValueError(
                 "can not find password in remote_profile, please check your machine file."
             )
         if self.api_version == 1:
-            raise DeprecationWarning('api version 1 is deprecated. Use version 2 instead.')
+            raise DeprecationWarning(
+                "api version 1 is deprecated. Use version 2 instead."
+            )
 
         account = email
         if email is None:

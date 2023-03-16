@@ -44,7 +44,7 @@ class BohriumContext(BaseContext):
         self.remote_profile = remote_profile
         email = remote_profile.get("email", None)
         phone = remote_profile.get("phone", None)
-        password = remote_profile.get('password')
+        password = remote_profile.get("password")
         if email is None and phone is None:
             raise ValueError(
                 "can not find email/phone number in remote_profile, please check your machine file."
