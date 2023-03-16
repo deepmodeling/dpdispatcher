@@ -196,13 +196,14 @@ class Submission(object):
             self.local_root = machine.context.temp_local_root
         return self
 
-    def run_submission(self, *, exit_on_submit=False, clean=True):
+    def run_submission(self, *, dry_run=False, exit_on_submit=False, clean=True):
         """main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
         Third, run the submission defined previously.
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
-        if exit_on_submit is True, submission will exit.
+        If dry_run is True, submission will be uploaded but not be executed and exit.
+        If exit_on_submit is True, submission will exit.
         """
         assert self.resources is not None
         if not self.belonging_jobs:
@@ -214,6 +215,10 @@ class Submission(object):
         else:
             dlog.info("info:check_all_finished: False")
             self.upload_jobs()
+            if dry_run is True:
+                dlog.info(f"submission succeeded: {self.submission_hash}")
+                dlog.info(f"at {self.machine.context.remote_root}")
+                return self.serialize()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
             time.sleep(1)
