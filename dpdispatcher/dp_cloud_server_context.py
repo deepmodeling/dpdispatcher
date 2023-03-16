@@ -296,7 +296,7 @@ class BohriumContext(BaseContext):
                 "remote_profile",
                 dict,
                 [
-                    # Argument("email", str, optional=False, doc="Email"),
+                    Argument("email", str, optional=True, doc="Email"),
                     Argument("password", str, optional=False, doc="Password"),
                     Argument(
                         "program_id",
