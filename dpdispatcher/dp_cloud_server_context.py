@@ -168,11 +168,7 @@ class BohriumContext(BaseContext):
         # if group_id is not None:
         #     job_result = self.api.get_tasks_list(group_id)
         for each in job_result:
-            if (
-                "resultUrl" in each
-                and each["resultUrl"] != ""
-                and each["status"] == 2
-            ):
+            if "resultUrl" in each and each["resultUrl"] != "" and each["status"] == 2:
                 job_hash = ""
                 if each["id"] not in job_hashs:
                     dlog.info(
