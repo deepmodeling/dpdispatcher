@@ -78,6 +78,7 @@ class Bohrium(Machine):
             result_file_list.extend(
                 [os.path.join(task.task_work_path, b_f) for b_f in task.backward_files]
             )
+        result_file_list = list(set(result_file_list))
         return result_file_list
 
     def _gen_oss_path(self, job, zip_filename):
