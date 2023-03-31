@@ -108,7 +108,8 @@ class Bohrium(Machine):
 
         input_data["job_resources"] = job_resources
         input_data["command"] = f"bash {job.script_file_name}"
-        input_data["backward_files"] = self._gen_backward_files_list(job)
+        if not input_data["backward_files"] or len(input_data["backward_files"]) == 0:
+            input_data["backward_files"] = self._gen_backward_files_list(job)
         input_data["logFiles"] = os.path.join(
             job.job_task_list[0].task_work_path, job.job_task_list[0].outlog
         )
