@@ -157,31 +157,28 @@ class BohriumContext(BaseContext):
     def download(self, submission):
         jobs = submission.belonging_jobs
         job_hashs = {}
-        group_id = None
         job_infos = {}
+        job_result = []
         for job in jobs:
             ids = job.job_id.split(":job_group_id:")
-            jid, gid = int(ids[0]), int(ids[1])
+            jid = int(ids[0])
             job_hashs[jid] = job.job_hash
-            group_id = gid
-        if group_id is not None:
-            job_result = self.api.get_tasks_list(group_id)
-            for each in job_result:
-                if (
-                    "resultUrl" in each
-                    and each["resultUrl"] != ""
-                    and each["status"] == 2
-                ):
-                    job_hash = ""
-                    if each["id"] not in job_hashs:
-                        dlog.info(
-                            f"find unexpect job_hash, but task {each['id']} still been download."
-                        )
-                        dlog.debug(str(job_hashs))
-                        job_hash = str(each["id"])
-                    else:
-                        job_hash = job_hashs[each["id"]]
-                    job_infos[job_hash] = each
+            jobinfo = self.api.get_job_detail(jid)
+            job_result.append(jobinfo)
+        # if group_id is not None:
+        #     job_result = self.api.get_tasks_list(group_id)
+        for each in job_result:
+            if "resultUrl" in each and each["resultUrl"] != "" and each["status"] == 2:
+                job_hash = ""
+                if each["id"] not in job_hashs:
+                    dlog.info(
+                        f"find unexpect job_hash, but task {each['id']} still been download."
+                    )
+                    dlog.debug(str(job_hashs))
+                    job_hash = str(each["id"])
+                else:
+                    job_hash = job_hashs[each["id"]]
+                job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
         for job_hash, info in tqdm.tqdm(
             job_infos.items(),
@@ -296,7 +293,7 @@ class BohriumContext(BaseContext):
                 "remote_profile",
                 dict,
                 [
-                    # Argument("email", str, optional=False, doc="Email"),
+                    Argument("email", str, optional=True, doc="Email"),
                     Argument("password", str, optional=False, doc="Password"),
                     Argument(
                         "program_id",
