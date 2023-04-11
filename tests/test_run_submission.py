@@ -6,8 +6,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 __package__ = "tests"
 import unittest
 
-from .context import Machine, Resources, Submission, Task
-from .context import setUpModule  # noqa: F401
+from .context import (
+    Machine,
+    Resources,
+    Submission,
+    Task,
+    setUpModule,  # noqa: F401
+)
+
 
 class RunSubmission:
     def setUp(self):

@@ -9,9 +9,13 @@ from glob import glob
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 
-from .context import HDFS, HDFSContext, Machine
+from .context import (
+    HDFS,
+    HDFSContext,
+    Machine,
+    setUpModule,  # noqa: F401
+)
 from .sample_class import SampleClass
-from .context import setUpModule  # noqa: F401
 
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")

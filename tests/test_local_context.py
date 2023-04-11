@@ -10,8 +10,12 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 # from .context import LocalSession
-from .context import LocalContext, _identical_files, get_file_md5
-from .context import setUpModule  # noqa: F401
+from .context import (
+    LocalContext,
+    _identical_files,
+    get_file_md5,
+    setUpModule,  # noqa: F401
+)
 
 # from .context import dpd
 

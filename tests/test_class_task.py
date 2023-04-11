@@ -8,9 +8,11 @@ __package__ = "tests"
 # from .context import LocalContext
 
 # from .context import Dispatcher
-from .context import Task
+from .context import (
+    Task,
+    setUpModule,  # noqa: F401
+)
 from .sample_class import SampleClass
-from .context import setUpModule  # noqa: F401
 
 
 class TestTask(unittest.TestCase):

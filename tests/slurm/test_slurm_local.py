@@ -7,7 +7,12 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "slurm"
-from .context import JobStatus, LocalContext, LocalSession, Slurm, setUpModule  # noqa: F401
+from .context import (
+    JobStatus,
+    LocalContext,
+    LocalSession,
+    Slurm,
+)
 
 
 @unittest.skipIf(not shutil.which("sbatch"), "requires Slurm")

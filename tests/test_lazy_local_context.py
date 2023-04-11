@@ -6,8 +6,10 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LazyLocalContext
-from .context import setUpModule  # noqa: F401
+from .context import (
+    LazyLocalContext,
+    setUpModule,  # noqa: F401
+)
 
 
 class TestLazyLocalContext(unittest.TestCase):

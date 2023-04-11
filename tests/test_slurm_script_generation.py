@@ -14,8 +14,8 @@ from .context import (
     Resources,
     Submission,
     Task,
+    setUpModule,  # noqa: F401
 )
-from .context import setUpModule  # noqa: F401
 
 
 class TestSlurmScriptGeneration(unittest.TestCase):

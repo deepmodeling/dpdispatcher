@@ -4,9 +4,8 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .sample_class import SampleClass
-
 from .context import setUpModule  # noqa: F401
+from .sample_class import SampleClass
 
 # print('in', SampleClass.get_sample_empty_submission())
 

@@ -6,8 +6,11 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import JobStatus, Submission
-from .context import setUpModule  # noqa: F401
+from .context import (
+    JobStatus,
+    Submission,
+    setUpModule,  # noqa: F401
+)
 from .sample_class import SampleClass
 
 
