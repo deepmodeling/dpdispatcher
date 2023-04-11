@@ -1,16 +1,13 @@
-import glob
-import json
 import os
 import shutil
 import sys
 import time
 import unittest
 import uuid
-from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LocalContext, LocalSession, _identical_files, setUpModule
+from .context import LocalContext, LocalSession, _identical_files
 
 
 class TestIdFile(unittest.TestCase):
@@ -120,7 +117,7 @@ class TestLocalContext(unittest.TestCase):
         for ii in tasks:
             for jj in ["dir1"]:
                 for kk in ["test6", "test7"]:
-                    with open(os.path.join("loc", ii, jj, kk), "r") as fp:
+                    with open(os.path.join("loc", ii, jj, kk)) as fp:
                         tmp = fp.read()
                         self.assertEqual(tmp, record_uuid[cc])
                         cc += 1
@@ -156,7 +153,7 @@ class TestLocalContext(unittest.TestCase):
         for ii in tasks:
             for jj in ["dir1"]:
                 for kk in ["test6", "test7"]:
-                    with open(os.path.join("loc", ii, jj, kk), "r") as fp:
+                    with open(os.path.join("loc", ii, jj, kk)) as fp:
                         tmp = fp.read()
                         self.assertEqual(tmp, record_uuid[cc])
                         cc += 1
@@ -203,14 +200,14 @@ class TestLocalContext(unittest.TestCase):
         cc = 0
         for ii in tasks:
             for jj in ["test4", "test5"]:
-                with open(os.path.join("loc", ii, jj), "r") as fp:
+                with open(os.path.join("loc", ii, jj)) as fp:
                     tmp = fp.read()
                     self.assertEqual(tmp, record_uuid[cc])
                     cc += 1
         for ii in tasks:
             for jj in ["dir1"]:
                 for kk in ["test6"]:
-                    with open(os.path.join("loc", ii, jj, kk), "r") as fp:
+                    with open(os.path.join("loc", ii, jj, kk)) as fp:
                         tmp = fp.read()
                         self.assertEqual(tmp, record_uuid[cc])
                         cc += 1
@@ -267,7 +264,7 @@ class TestLocalContext(unittest.TestCase):
                         + os.path.join("loc", ii, "tag_failure_download_%s" % jj),
                     )
                     continue
-                with open(os.path.join("loc", ii, jj), "r") as fp:
+                with open(os.path.join("loc", ii, jj)) as fp:
                     tmp = fp.read()
                     self.assertEqual(tmp, record_uuid[cc])
                     cc += 1
@@ -320,7 +317,7 @@ class TestLocalContext(unittest.TestCase):
                         + os.path.join("loc", ii, "tag_failure_download_%s" % jj),
                     )
                     continue
-                with open(os.path.join("loc", ii, jj), "r") as fp:
+                with open(os.path.join("loc", ii, jj)) as fp:
                     tmp = fp.read()
                     self.assertEqual(tmp, record_uuid[cc])
                     cc += 1

@@ -11,7 +11,7 @@ shell_script_header_template = """
 
 class Shell(Machine):
     def gen_script(self, job):
-        shell_script = super(Shell, self).gen_script(job)
+        shell_script = super().gen_script(job)
         return shell_script
 
     def gen_script_header(self, job):

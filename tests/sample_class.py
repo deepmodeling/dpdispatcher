@@ -1,12 +1,5 @@
-import glob
-import json
 import os
-import shutil
 import sys
-import time
-import unittest
-import uuid
-from unittest.mock import MagicMock, PropertyMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -15,8 +8,6 @@ __package__ = "tests"
 # from dpdispatcher.local_context import LocalContext
 from .context import (
     PBS,
-    Job,
-    JobStatus,
     LocalContext,
     Resources,
     Slurm,
@@ -25,7 +16,7 @@ from .context import (
 )
 
 
-class SampleClass(object):
+class SampleClass:
     @classmethod
     def get_sample_resources(cls):
         resources = Resources(

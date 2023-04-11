@@ -5,9 +5,8 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # from .context import dpdispatcher
 # from dpdispatcher.local_context import LocalContext
-from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.machine import Machine
-from dpdispatcher.submission import Job, Resources, Submission, Task
+from dpdispatcher.submission import Resources, Submission, Task
 
 # from dpdispatcher.ssh_context import SSHContext
 
@@ -34,7 +33,7 @@ from dpdispatcher.submission import Job, Resources, Submission, Task
 # slurm_sbatch_dict={'mem': '10G', 'cpus_per_task':1, 'time': "120:0:0"}
 # slurm_resources = SlurmResources(resources=resources, slurm_sbatch_dict=slurm_sbatch_dict)
 
-with open("jsons/machine_slurm.json", "r") as f:
+with open("jsons/machine_slurm.json") as f:
     mdata = json.load(f)
 
 machine = Machine.load_from_dict(mdata["machine"])

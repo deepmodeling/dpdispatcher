@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 import os
 import pathlib
@@ -24,7 +23,7 @@ from dpdispatcher.base_context import BaseContext
 from dpdispatcher.utils import RetrySignal, generate_totp, get_sha256, retry, rsync
 
 
-class SSHSession(object):
+class SSHSession:
     def __init__(
         self,
         hostname,
@@ -221,8 +220,7 @@ class SSHSession(object):
         self._sftp = None
 
     def inter_handler(self, title, instructions, prompt_list):
-        """
-        inter_handler: the callback for paramiko.transport.auth_interactive
+        """inter_handler: the callback for paramiko.transport.auth_interactive.
 
         The prototype for this function is defined by Paramiko, so all of the
         arguments need to be there, even though we don't use 'title' or
@@ -241,7 +239,6 @@ class SSHSession(object):
         Experiments suggest that the username prompt never happens. This makes
         sense, but the Username prompt is included here just in case.
         """
-
         resp = []  # Initialize the response container
 
         # Walk the list of prompts that the server sent that we need to answer
@@ -393,7 +390,7 @@ class SSHSession(object):
 
     @property
     def remote(self) -> str:
-        return "%s@%s" % (self.username, self.hostname)
+        return f"{self.username}@{self.hostname}"
 
 
 class SSHContext(BaseContext):
@@ -410,7 +407,7 @@ class SSHContext(BaseContext):
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
-        assert os.path.isabs(remote_root), f"remote_root must be a abspath"
+        assert os.path.isabs(remote_root), "remote_root must be a abspath"
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
         self.remote_root = None
@@ -673,6 +670,10 @@ class SSHContext(BaseContext):
             The command to run.
         asynchronously : bool, optional, default=False
             Run command asynchronously. If True, `nohup` will be used to run the command.
+        stderr_whitelist : list of str, optional, default=None
+            If not None, the stderr will be checked against the whitelist. If the stderr
+            contains any of the strings in the whitelist, the command will be considered
+            successful.
         """
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
@@ -717,7 +718,7 @@ class SSHContext(BaseContext):
             fp.write(write_str)
         # sftp.rename may throw OSError
         self.block_checkcall(
-            "mv %s %s" % (shlex.quote(fname + "~"), shlex.quote(fname))
+            "mv {} {}".format(shlex.quote(fname + "~"), shlex.quote(fname))
         )
 
     def read_file(self, fname):
@@ -737,7 +738,7 @@ class SSHContext(BaseContext):
                 pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
             )
             ret = True
-        except IOError:
+        except OSError:
             ret = False
         return ret
 

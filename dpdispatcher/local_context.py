@@ -10,7 +10,7 @@ from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
 
 
-class SPRetObj(object):
+class SPRetObj:
     def __init__(self, ret):
         self.data = ret
 
@@ -40,6 +40,22 @@ def _identical_files(fname0, fname1):
 
 
 class LocalContext(BaseContext):
+    """Run jobs in the local server and remote directory.
+
+    Parameters
+    ----------
+    local_root : str
+        The local directory to store the jobs.
+    remote_root : str
+        The remote directory to store the jobs.
+    remote_profile : dict, optional
+        The remote profile. The default is {}.
+    *args
+        The arguments.
+    **kwargs
+        The keyword arguments.
+    """
+
     def __init__(
         self,
         local_root,
@@ -48,11 +64,6 @@ class LocalContext(BaseContext):
         *args,
         **kwargs,
     ):
-        """
-        local_root:
-        remote_root:
-        remote_profile:
-        """
         assert type(local_root) == str
         self.init_local_root = local_root
         self.init_remote_root = remote_root
@@ -175,7 +186,7 @@ class LocalContext(BaseContext):
                             shutil.copyfile(rfile, lfile)
                     elif (os.path.exists(rfile)) and (os.path.exists(lfile)):
                         # both exists, replace!
-                        dlog.info("find existing %s, replacing by %s" % (lfile, rfile))
+                        dlog.info(f"find existing {lfile}, replacing by {rfile}")
                         if os.path.isdir(lfile):
                             shutil.rmtree(lfile, ignore_errors=True)
                         elif os.path.isfile(lfile) or os.path.islink(lfile):
@@ -221,7 +232,7 @@ class LocalContext(BaseContext):
                 elif (os.path.exists(rfile)) and (os.path.exists(lfile)):
                     dlog.info(f"both exist rfile:{rfile}; lfile:{lfile}")
                     # both exists, replace!
-                    dlog.info("find existing %s, replacing by %s" % (lfile, rfile))
+                    dlog.info(f"find existing {lfile}, replacing by {rfile}")
                     if os.path.isdir(lfile):
                         shutil.rmtree(lfile, ignore_errors=True)
                     elif os.path.isfile(lfile) or os.path.islink(lfile):
@@ -267,7 +278,7 @@ class LocalContext(BaseContext):
             fp.write(write_str)
 
     def read_file(self, fname):
-        with open(os.path.join(self.remote_root, fname), "r") as fp:
+        with open(os.path.join(self.remote_root, fname)) as fp:
             ret = fp.read()
         return ret
 
@@ -284,7 +295,7 @@ class LocalContext(BaseContext):
         os.kill(job_id, signal.SIGTERM)
 
     def check_finish(self, proc):
-        return proc.poll() != None
+        return proc.poll() is not None
 
     def get_return(self, proc):
         ret = proc.poll()

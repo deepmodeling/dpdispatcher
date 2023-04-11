@@ -1,5 +1,3 @@
-import subprocess as sp
-
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
@@ -118,7 +116,7 @@ class DistributedShell(Machine):
         return shell_script_header
 
     def do_submit(self, job):
-        """submit th job to yarn using distributed shell
+        """Submit th job to yarn using distributed shell.
 
         Parameters
         ----------
@@ -130,7 +128,6 @@ class DistributedShell(Machine):
         job_id: string
             submit process id
         """
-
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         job_id_name = job.job_hash + "_job_id"
@@ -161,7 +158,7 @@ class DistributedShell(Machine):
             )
         )
 
-        cmd = "{ nohup %s 1>%s 2>%s & } && echo $!" % (
+        cmd = "{{ nohup {} 1>{} 2>{} & }} && echo $!".format(
             submit_command,
             output_name,
             output_name,

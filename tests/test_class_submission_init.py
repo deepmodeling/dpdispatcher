@@ -1,16 +1,10 @@
-import glob
-import json
 import os
-import shutil
 import sys
-import time
 import unittest
-import uuid
-from unittest.mock import MagicMock, PropertyMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import PBS, Job, JobStatus, LocalContext, Resources, Submission, Task
+from .context import setUpModule  # noqa: F401
 from .sample_class import SampleClass
 
 # print('in', SampleClass.get_sample_empty_submission())

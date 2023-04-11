@@ -2,7 +2,7 @@ import json
 import pathlib
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from dargs import Argument, Variant
 
@@ -119,7 +119,7 @@ class Machine(metaclass=ABCMeta):
 
     @classmethod
     def load_from_json(cls, json_path):
-        with open(json_path, "r") as f:
+        with open(json_path) as f:
             machine_dict = json.load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
@@ -186,9 +186,7 @@ class Machine(metaclass=ABCMeta):
 
     @abstractmethod
     def do_submit(self, job):
-        """
-        submit a single job, assuming that no job is running there.
-        """
+        """Submit a single job, assuming that no job is running there."""
         raise NotImplementedError(
             "abstract method do_submit should be implemented by derived class"
         )
