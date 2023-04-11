@@ -64,7 +64,7 @@ class RunSubmission:
         # test space in file name
         task_list.append(
             Task(
-                command=f"echo dpdispatcher_unittest_space",
+                command="echo dpdispatcher_unittest_space",
                 task_work_path="test space/",
                 forward_files=["inp space.txt"],
                 backward_files=["out space.txt"],

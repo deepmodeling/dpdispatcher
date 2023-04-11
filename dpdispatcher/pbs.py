@@ -14,7 +14,7 @@ pbs_script_header_template = """
 
 class PBS(Machine):
     def gen_script(self, job):
-        pbs_script = super(PBS, self).gen_script(job)
+        pbs_script = super().gen_script(job)
         return pbs_script
 
     def gen_script_header(self, job):
@@ -28,7 +28,7 @@ class PBS(Machine):
         if resources.gpu_per_node != 0:
             pbs_script_header_dict[
                 "select_node_line"
-            ] += ":ngpus={gpu_per_node}".format(gpu_per_node=resources.gpu_per_node)
+            ] += f":ngpus={resources.gpu_per_node}"
         pbs_script_header_dict["queue_name_line"] = "#PBS -q {queue_name}".format(
             queue_name=resources.queue_name
         )
@@ -64,10 +64,7 @@ class PBS(Machine):
         ret, stdin, stdout, stderr = self.context.block_call("qstat -x " + job_id)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
-            if (
-                str("qstat: Unknown Job Id") in err_str
-                or str("Job has finished") in err_str
-            ):
+            if "qstat: Unknown Job Id" in err_str or "Job has finished" in err_str:
                 if self.check_finish_tag(job=job):
                     return JobStatus.finished
                 else:
@@ -106,10 +103,7 @@ class Torque(PBS):
         ret, stdin, stdout, stderr = self.context.block_call("qstat -l " + job_id)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
-            if (
-                str("qstat: Unknown Job Id") in err_str
-                or str("Job has finished") in err_str
-            ):
+            if "qstat: Unknown Job Id" in err_str or "Job has finished" in err_str:
                 if self.check_finish_tag(job=job):
                     return JobStatus.finished
                 else:

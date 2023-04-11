@@ -1,17 +1,13 @@
-import getpass
-import glob
 import json
 import os
-import pathlib
 import shutil
 import sys
 import tarfile
 import unittest
-import uuid
+from glob import glob
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from glob import glob
 
 from .context import HDFS, HDFSContext, Machine
 from .sample_class import SampleClass
@@ -21,7 +17,7 @@ from .sample_class import SampleClass
 class TestHDFSContext(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with open("jsons/machine_yarn.json", "r") as f:
+        with open("jsons/machine_yarn.json") as f:
             mdata = json.load(f)
         cls.machine = Machine.load_from_dict(mdata["machine"])
         cls.submission = SampleClass.get_sample_submission()

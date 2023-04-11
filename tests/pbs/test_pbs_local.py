@@ -1,15 +1,12 @@
-import glob
-import json
 import os
 import shutil
 import sys
-import time
 import unittest
 import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "pbs"
-from .context import PBS, JobStatus, LocalContext, LocalSession, setUpModule
+from .context import PBS, LocalContext, LocalSession
 
 
 @unittest.skipIf(not shutil.which("qsub"), "requires PBS")

@@ -1,25 +1,14 @@
-import glob
 import json
 import os
-import shutil
 import sys
-import time
 import unittest
-import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 # from .context import LocalSession
 # from .context import LocalContext
 from .context import (
-    PBS,
-    Job,
-    JobStatus,
-    LocalContext,
     Resources,
-    Submission,
-    Task,
-    setUpModule,
 )
 from .sample_class import SampleClass
 
@@ -47,7 +36,7 @@ class TestResources(unittest.TestCase):
         )
 
     def test_resources_json(self):
-        with open("jsons/resources.json", "r") as f:
+        with open("jsons/resources.json") as f:
             resources_json_dict = json.load(f)
         self.assertTrue(resources_json_dict, self.resources_dict)
         self.assertTrue(resources_json_dict, self.resources.serialize())

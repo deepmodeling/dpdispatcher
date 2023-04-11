@@ -89,11 +89,11 @@ class TestSSHContext(unittest.TestCase):
             }
         )
         task = Task(
-            command=f"echo dpdispatcher_unittest",
+            command="echo dpdispatcher_unittest",
             task_work_path="./",
             forward_files=[],
             backward_files=[],
-            outlog=f"out.txt",
+            outlog="out.txt",
         )
 
         submission = Submission(

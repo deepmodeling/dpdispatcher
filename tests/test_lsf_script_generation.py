@@ -1,7 +1,6 @@
 # from dpdispatcher.batch_object import BatchObject
 # from dpdispatcher.batch import Batch
 import os
-import shutil
 import sys
 import textwrap
 
@@ -11,14 +10,10 @@ import json
 import unittest
 
 from .context import (
-    Job,
-    LocalContext,
     Machine,
     Resources,
-    Shell,
     Submission,
     Task,
-    get_file_md5,
 )
 
 
@@ -27,7 +22,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
         self.maxDiff = None
 
     def test_shell_trival(self):
-        with open("jsons/machine_lazy_local_lsf.json", "r") as f:
+        with open("jsons/machine_lazy_local_lsf.json") as f:
             machine_dict = json.load(f)
 
         machine = Machine(**machine_dict["machine"])

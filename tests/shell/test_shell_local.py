@@ -1,5 +1,3 @@
-import glob
-import json
 import os
 import shutil
 import sys
@@ -15,7 +13,6 @@ from .context import (
     LocalSession,
     Shell,
     my_file_cmp,
-    setUpModule,
 )
 
 
