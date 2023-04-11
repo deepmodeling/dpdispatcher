@@ -8,6 +8,7 @@ __package__ = "lsf"
 from .context import (
     Dispatcher,
     my_file_cmp,
+    setUpModule,  # noqa: F401
 )
 
 

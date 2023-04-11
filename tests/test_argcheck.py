@@ -5,7 +5,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 
-from .context import Machine, Resources, Task
+from .context import Machine, Resources, Task, setUpModule  # noqa: F401
 
 
 class TestJob(unittest.TestCase):

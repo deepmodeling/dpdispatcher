@@ -9,6 +9,7 @@ __package__ = "tests"
 from .context import (
     Job,
     Submission,
+    setUpModule,  # noqa: F401
 )
 from .sample_class import SampleClass
 

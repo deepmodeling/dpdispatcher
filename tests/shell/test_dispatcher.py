@@ -7,6 +7,7 @@ __package__ = "shell"
 from .context import (
     Dispatcher,
     my_file_cmp,
+    setUpModule,  # noqa: F401
 )
 
 

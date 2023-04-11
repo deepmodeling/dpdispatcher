@@ -15,6 +15,7 @@ from .context import (
     Submission,
     Task,
 )
+from .context import setUpModule  # noqa: F401
 
 
 class TestLSFScriptGeneration(unittest.TestCase):

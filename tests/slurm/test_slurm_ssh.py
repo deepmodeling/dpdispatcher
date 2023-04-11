@@ -13,6 +13,7 @@ from .context import (
     LocalSession,
     Slurm,
     my_file_cmp,
+    setUpModule,  # noqa: F401
 )
 
 

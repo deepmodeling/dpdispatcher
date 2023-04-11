@@ -5,6 +5,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 from .context import dpdispatcher
+from .context import setUpModule  # noqa: F401
 
 
 class TestImportClasses(unittest.TestCase):

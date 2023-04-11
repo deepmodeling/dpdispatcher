@@ -6,7 +6,7 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "pbs"
-from .context import PBS, LocalContext, LocalSession
+from .context import PBS, LocalContext, LocalSession, setUpModule  # noqa: F401
 
 
 @unittest.skipIf(not shutil.which("qsub"), "requires PBS")

@@ -18,6 +18,7 @@ from .context import (
     Machine,
     Shell,
     Slurm,
+    setUpModule,  # noqa: F401
 )
 
 

@@ -7,7 +7,7 @@ __package__ = "tests"
 import unittest
 
 from .context import Machine, Resources, Submission, Task
-
+from .context import setUpModule  # noqa: F401
 
 class RunSubmission:
     def setUp(self):

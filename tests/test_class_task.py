@@ -10,6 +10,7 @@ __package__ = "tests"
 # from .context import Dispatcher
 from .context import Task
 from .sample_class import SampleClass
+from .context import setUpModule  # noqa: F401
 
 
 class TestTask(unittest.TestCase):

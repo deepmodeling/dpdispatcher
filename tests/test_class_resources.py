@@ -9,6 +9,7 @@ __package__ = "tests"
 # from .context import LocalContext
 from .context import (
     Resources,
+    setUpModule,  # noqa: F401
 )
 from .sample_class import SampleClass
 

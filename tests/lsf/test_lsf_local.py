@@ -7,7 +7,7 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "lsf"
-from .context import LSF, JobStatus, LocalContext, LocalSession
+from .context import LSF, JobStatus, LocalContext, LocalSession, setUpModule  # noqa: F401
 
 
 class TestLSF(unittest.TestCase):

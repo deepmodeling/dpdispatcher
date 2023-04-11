@@ -9,6 +9,7 @@ from unittest import TestCase
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 from .context import Machine, Resources, Submission, Task
+from .context import setUpModule  # noqa: F401
 
 # 99 tasks in total
 # group_size - expected_ntasks

@@ -11,6 +11,7 @@ __package__ = "tests"
 
 from .context import HDFS, HDFSContext, Machine
 from .sample_class import SampleClass
+from .context import setUpModule  # noqa: F401
 
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")

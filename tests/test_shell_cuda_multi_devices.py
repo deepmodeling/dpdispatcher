@@ -14,6 +14,7 @@ from .context import (
     Task,
     get_file_md5,
 )
+from .context import setUpModule  # noqa: F401
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
