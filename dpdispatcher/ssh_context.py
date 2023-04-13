@@ -565,9 +565,7 @@ class SSHContext(BaseContext):
         file_list = []
         directory_list = []
         for task in submission.belonging_tasks:
-            directory_list.append(
-                os.path.join(self.local_root, task.task_work_path)
-            )
+            directory_list.append(os.path.join(self.local_root, task.task_work_path))
             #     file_list.append(ii)
             self._walk_directory(
                 task.forward_files,
