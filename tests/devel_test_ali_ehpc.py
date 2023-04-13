@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # from dpdispatcher.lazy_local_context import LazyLocalContext
 
 from dpdispatcher.machine import Machine
-from dpdispatcher.submission import Job, Resources, Submission, Task
+from dpdispatcher.submission import Resources
 from tests.sample_class import SampleClass
 
 # from dpdispatcher.pbs import PBS
@@ -32,7 +32,7 @@ submission = SampleClass.get_sample_submission()
 # pbs = SampleClass.get_sample_pbs_local_context()
 # slurm = SampleClass.get_sample_slurm_local_context()
 
-with open("jsons/machine_ali_ehpc.json", "r") as f:
+with open("jsons/machine_ali_ehpc.json") as f:
     compute_dict = json.load(f)
 
 machine = Machine.load_from_dict(compute_dict["machine"])

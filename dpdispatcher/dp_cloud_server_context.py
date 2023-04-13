@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-# coding: utf-8
 # %%
 import os
 import shutil
-import time
 import uuid
 from typing import List
 
@@ -18,7 +16,6 @@ from dpdispatcher.base_context import BaseContext
 from .dpcloudserver import Client, zip_file
 
 # from zip_file import zip_files
-from .dpcloudserver.config import ALI_OSS_BUCKET_URL
 
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
@@ -247,7 +244,7 @@ class BohriumContext(BaseContext):
         return True
 
     def read_home_file(self, fname):
-        with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname), "r") as fp:
+        with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname)) as fp:
             ret = fp.read()
         return ret
 

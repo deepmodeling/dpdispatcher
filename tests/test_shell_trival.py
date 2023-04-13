@@ -10,14 +10,12 @@ import json
 import unittest
 
 from .context import (
-    Job,
-    LocalContext,
     Machine,
     Resources,
-    Shell,
     Submission,
     Task,
     get_file_md5,
+    setUpModule,  # noqa: F401
 )
 
 
@@ -31,7 +29,7 @@ class TestShellTrival(unittest.TestCase):
         # }
 
     def test_shell_trival(self):
-        with open("jsons/machine_local_shell.json", "r") as f:
+        with open("jsons/machine_local_shell.json") as f:
             machine_dict = json.load(f)
 
         machine = Machine(**machine_dict["machine"])
@@ -85,7 +83,7 @@ class TestShellTrival(unittest.TestCase):
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
     def test_shell_fail(self):
-        with open("jsons/machine_local_shell.json", "r") as f:
+        with open("jsons/machine_local_shell.json") as f:
             machine_dict = json.load(f)
 
         machine = Machine(**machine_dict["machine"])
@@ -115,7 +113,7 @@ class TestShellTrival(unittest.TestCase):
             submission.run_submission()
 
     def test_shell_recover(self):
-        with open("jsons/machine_lazylocal_shell.json", "r") as f:
+        with open("jsons/machine_lazylocal_shell.json") as f:
             machine_dict = json.load(f)
 
         machine = Machine(**machine_dict["machine"])
@@ -124,8 +122,8 @@ class TestShellTrival(unittest.TestCase):
         pass
 
     def test_dir_with_space(self):
-        """Test directory with space"""
-        with open("jsons/machine_local_shell.json", "r") as f:
+        """Test directory with space."""
+        with open("jsons/machine_local_shell.json") as f:
             machine_dict = json.load(f)
 
         machine = Machine(**machine_dict["machine"])

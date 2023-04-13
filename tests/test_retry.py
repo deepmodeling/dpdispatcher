@@ -4,12 +4,16 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import RetrySignal, retry
+from .context import (
+    RetrySignal,
+    retry,
+    setUpModule,  # noqa: F401
+)
 
 
 class TestRetry(unittest.TestCase):
     def test_retry_fail(self):
-        """Always retry"""
+        """Always retry."""
 
         @retry(max_retry=3, sleep=0.05, catch_exception=RetrySignal)
         def some_method():
@@ -19,7 +23,7 @@ class TestRetry(unittest.TestCase):
             some_method()
 
     def test_retry_success(self):
-        """Retry less than 3 times"""
+        """Retry less than 3 times."""
         retry_times = [0]
 
         @retry(max_retry=3, sleep=0.05, catch_exception=RetrySignal)

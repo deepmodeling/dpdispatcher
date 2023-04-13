@@ -8,14 +8,12 @@ __package__ = "tests"
 import unittest
 
 from .context import (
-    Job,
-    LocalContext,
     Machine,
     Resources,
-    Shell,
     Submission,
     Task,
     get_file_md5,
+    setUpModule,  # noqa: F401
 )
 
 
@@ -25,7 +23,7 @@ class TestShellCudaMultiDevices(unittest.TestCase):
         self.maxDiff = None
 
     def test_shell_cuda_multi_devices(self):
-        with open("jsons/machine_if_cuda_multi_devices.json", "r") as f:
+        with open("jsons/machine_if_cuda_multi_devices.json") as f:
             machine_dict = json.load(f)
         machine = Machine.load_from_dict(machine_dict["machine"])
         resources = Resources.load_from_dict(machine_dict["resources"])

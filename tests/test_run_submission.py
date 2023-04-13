@@ -6,7 +6,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 __package__ = "tests"
 import unittest
 
-from .context import Machine, Resources, Submission, Task
+from .context import (
+    Machine,
+    Resources,
+    Submission,
+    Task,
+    setUpModule,  # noqa: F401
+)
 
 
 class RunSubmission:
@@ -64,7 +70,7 @@ class RunSubmission:
         # test space in file name
         task_list.append(
             Task(
-                command=f"echo dpdispatcher_unittest_space",
+                command="echo dpdispatcher_unittest_space",
                 task_work_path="test space/",
                 forward_files=["inp space.txt"],
                 backward_files=["out space.txt"],

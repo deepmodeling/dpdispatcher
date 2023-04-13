@@ -19,12 +19,10 @@ lsf_script_header_template = """\
 
 
 class LSF(Machine):
-    """
-    LSF batch
-    """
+    """LSF batch."""
 
     def gen_script(self, job):
-        lsf_script = super(LSF, self).gen_script(job)
+        lsf_script = super().gen_script(job)
         return lsf_script
 
     def gen_script_header(self, job):

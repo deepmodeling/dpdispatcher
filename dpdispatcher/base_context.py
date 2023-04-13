@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from dargs import Argument
 

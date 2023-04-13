@@ -13,7 +13,7 @@ try:
     )
 except PermissionError:
     warnings.warn(
-        f"dpdispatcher.log meet permission error. redirect the log to ~/dpdispatcher.log"
+        "dpdispatcher.log meet permission error. redirect the log to ~/dpdispatcher.log"
     )
     dlogf = logging.FileHandler(
         os.path.join(os.path.expanduser("~"), "dpdispatcher.log")
@@ -56,10 +56,7 @@ from .submission import Job, Resources, Submission, Task
 
 
 def info():
-    """
-    Show basic information about dpdispatcher, its location and version.
-    """
-
+    """Show basic information about dpdispatcher, its location and version."""
     print("DeepModeling\n------------")
     print("Version: " + __version__)
     print("Path:    " + ROOT_PATH)
@@ -73,3 +70,28 @@ def info():
         except ImportError:
             print("%10s %10s Not Found" % (modui, ""))
     print()
+
+
+__all__ = [
+    "__version__",
+    "DistributedShell",
+    "DpCloudServer",
+    "DpCloudServerContext",
+    "HDFSContext",
+    "LazyLocalContext",
+    "LocalContext",
+    "LSF",
+    "Machine",
+    "PBS",
+    "Shell",
+    "Slurm",
+    "SSHContext",
+    "Submission",
+    "Task",
+    "Torque",
+    "info",
+    "Lebesgue",
+    "LebesgueContext",
+    "Job",
+    "Resources",
+]

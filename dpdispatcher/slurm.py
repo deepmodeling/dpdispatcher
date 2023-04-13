@@ -22,7 +22,7 @@ slurm_script_header_template = """\
 
 class Slurm(Machine):
     def gen_script(self, job):
-        slurm_script = super(Slurm, self).gen_script(job)
+        slurm_script = super().gen_script(job)
         return slurm_script
 
     def gen_script_header(self, job):
@@ -47,7 +47,7 @@ class Slurm(Machine):
             script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
         script_header_dict[
             "slurm_partition_line"
-        ] = "#SBATCH --partition {queue_name}".format(queue_name=resources.queue_name)
+        ] = f"#SBATCH --partition {resources.queue_name}"
         slurm_script_header = slurm_script_header_template.format(**script_header_dict)
         return slurm_script_header
 
@@ -106,7 +106,7 @@ class Slurm(Machine):
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
-            if str("Invalid job id specified") in err_str:
+            if "Invalid job id specified" in err_str:
                 if self.check_finish_tag(job):
                     dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                     return JobStatus.finished
@@ -196,7 +196,7 @@ class Slurm(Machine):
 
 
 class SlurmJobArray(Slurm):
-    """Slurm with job array enabled for multiple tasks in a job"""
+    """Slurm with job array enabled for multiple tasks in a job."""
 
     def gen_script_header(self, job):
         if job.fail_count > 0:
@@ -265,7 +265,7 @@ class SlurmJobArray(Slurm):
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
-            if str("Invalid job id specified") in err_str:
+            if "Invalid job id specified" in err_str:
                 if self.check_finish_tag(job):
                     dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                     return JobStatus.finished
