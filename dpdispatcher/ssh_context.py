@@ -565,7 +565,9 @@ class SSHContext(BaseContext):
         file_list = []
         directory_list = []
         for task in submission.belonging_tasks:
-            directory_list.append(task.task_work_path)
+            directory_list.append(
+                os.path.join(self.local_root, task.task_work_path)
+            )
             #     file_list.append(ii)
             self._walk_directory(
                 task.forward_files,
@@ -576,6 +578,9 @@ class SSHContext(BaseContext):
         self._walk_directory(
             submission.forward_common_files, self.local_root, file_list, directory_list
         )
+
+        # convert to relative path to local_root
+        directory_list = [os.path.relpath(jj, self.local_root) for jj in directory_list]
 
         # check if the same file exists on the remote file
         # only check sha256 when the job is recovered
