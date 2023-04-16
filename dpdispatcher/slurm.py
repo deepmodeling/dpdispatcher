@@ -250,7 +250,9 @@ class SlurmJobArray(Slurm):
                 script_command += f"{ii // slurm_job_size})\n"
             script_command += single_script_command
             script_command += self.gen_script_wait(resources=resources)
-            script_command += "\n;;\n"
+            script_command += "\n"
+            if ii % slurm_job_size == slurm_job_size - 1:
+                script_command += ";;\n"
         script_command += "*)\nexit 1\n;;\nesac\n"
         return script_command
 
