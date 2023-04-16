@@ -211,7 +211,7 @@ class SlurmJobArray(Slurm):
                     / (task.task_hash + "_task_tag_finished")
                 ).as_posix()
                 if not self.context.check_file_exists(task_tag_finished):
-                    job_array.add(ii % n_slurm_job)
+                    job_array.add(ii // slurm_job_size)
             return super().gen_script_header(job) + "\n#SBATCH --array=%s" % (
                 ",".join(map(str, job_array))
             )
@@ -248,7 +248,8 @@ class SlurmJobArray(Slurm):
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part,
             )
-            script_command += f"{ii % n_slurm_job})\n"
+            if ii % slurm_job_size == 0:
+                script_command += f"{ii // slurm_job_size})\n"
             script_command += single_script_command
             script_command += self.gen_script_wait(resources=resources)
             script_command += "\n;;\n"
