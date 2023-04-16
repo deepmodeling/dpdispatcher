@@ -201,7 +201,6 @@ class SlurmJobArray(Slurm):
 
     def gen_script_header(self, job):
         slurm_job_size = job.resources.kwargs.get("slurm_job_size", 1)
-        n_slurm_job = math.ceil(len(job.job_task_list) / slurm_job_size)
         if job.fail_count > 0:
             # resubmit jobs, check if some of tasks have been finished
             job_array = set()
@@ -216,13 +215,12 @@ class SlurmJobArray(Slurm):
                 ",".join(map(str, job_array))
             )
         return super().gen_script_header(job) + "\n#SBATCH --array=0-%d" % (
-            n_slurm_job - 1
+            math.ceil(len(job.job_task_list) / slurm_job_size) - 1
         )
 
     def gen_script_command(self, job):
         resources = job.resources
         slurm_job_size = resources.kwargs.get("slurm_job_size", 1)
-        n_slurm_job = math.ceil(len(job.job_task_list) / slurm_job_size)
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
         script_command = "case $SLURM_ARRAY_TASK_ID in\n"
         for ii, task in enumerate(job.job_task_list):
