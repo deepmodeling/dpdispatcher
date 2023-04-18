@@ -116,7 +116,7 @@ class SSHSession:
     #     transport = self.ssh.get_transport()
     #     transport.set_keepalive(60)
 
-    @retry(max_retry=3, sleep=1)
+    @retry(max_retry=6, sleep=1)
     def _setup_ssh(self):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
@@ -199,7 +199,7 @@ class SSHSession:
                 ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
                 # since the asynchrony of interactive authentication, one addtional try is added
-                # retry for up to 3 times
+                # retry for up to 6 times
                 raise RetrySignal("Authentication failed")
         elif key_ok:
             pass
@@ -213,7 +213,12 @@ class SSHSession:
             raise RuntimeError("Please provide at least one form of authentication")
         assert ts.is_active()
         # Opening a session creates a channel along the socket to the server
-        ts.open_session(timeout=self.timeout)
+        try:
+            ts.open_session(timeout=self.timeout)
+        except paramiko.ssh_exception.SSHException:
+            # retry for up to 6 times
+            # ref: https://github.com/paramiko/paramiko/issues/1508
+            raise RetrySignal("Opening session failed")
         ts.set_keepalive(60)
         self.ssh._transport = ts  # type: ignore
         # reset sftp
