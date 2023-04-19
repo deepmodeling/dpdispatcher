@@ -364,7 +364,7 @@ class SlurmJobArray(Slurm):
         """
         doc_slurm_job_size = "Number of tasks in a Slurm job"
         arg = super().resources_subfields()[0]
-        arg["kwargs"].extend_subfields(
+        arg.extend_subfields(
             [
                 Argument(
                     "slurm_job_size",
