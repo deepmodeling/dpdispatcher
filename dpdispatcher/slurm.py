@@ -1,3 +1,4 @@
+import math
 import pathlib
 import shlex
 from typing import List
@@ -199,25 +200,27 @@ class SlurmJobArray(Slurm):
     """Slurm with job array enabled for multiple tasks in a job."""
 
     def gen_script_header(self, job):
+        slurm_job_size = job.resources.kwargs.get("slurm_job_size", 1)
         if job.fail_count > 0:
             # resubmit jobs, check if some of tasks have been finished
-            job_array = []
+            job_array = set()
             for ii, task in enumerate(job.job_task_list):
                 task_tag_finished = (
                     pathlib.PurePath(task.task_work_path)
                     / (task.task_hash + "_task_tag_finished")
                 ).as_posix()
                 if not self.context.check_file_exists(task_tag_finished):
-                    job_array.append(ii)
+                    job_array.add(ii // slurm_job_size)
             return super().gen_script_header(job) + "\n#SBATCH --array=%s" % (
                 ",".join(map(str, job_array))
             )
         return super().gen_script_header(job) + "\n#SBATCH --array=0-%d" % (
-            len(job.job_task_list) - 1
+            math.ceil(len(job.job_task_list) / slurm_job_size) - 1
         )
 
     def gen_script_command(self, job):
         resources = job.resources
+        slurm_job_size = resources.kwargs.get("slurm_job_size", 1)
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
         script_command = "case $SLURM_ARRAY_TASK_ID in\n"
         for ii, task in enumerate(job.job_task_list):
@@ -243,10 +246,16 @@ class SlurmJobArray(Slurm):
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part,
             )
-            script_command += f"{ii})\n"
+            if ii % slurm_job_size == 0:
+                script_command += f"{ii // slurm_job_size})\n"
             script_command += single_script_command
             script_command += self.gen_script_wait(resources=resources)
-            script_command += "\n;;\n"
+            script_command += "\n"
+            if (
+                ii % slurm_job_size == slurm_job_size - 1
+                or ii == len(job.job_task_list) - 1
+            ):
+                script_command += ";;\n"
         script_command += "*)\nexit 1\n;;\nesac\n"
         return script_command
 
@@ -343,3 +352,27 @@ class SlurmJobArray(Slurm):
             ).as_posix()
             results.append(self.context.check_file_exists(task_tag_finished))
         return all(results)
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        doc_slurm_job_size = "Number of tasks in a Slurm job"
+        arg = super().resources_subfields()[0]
+        arg["kwargs"].extend_subfields(
+            [
+                Argument(
+                    "slurm_job_size",
+                    int,
+                    optional=True,
+                    default=1,
+                    doc=doc_slurm_job_size,
+                ),
+            ]
+        )
+        return [arg]

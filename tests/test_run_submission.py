@@ -123,6 +123,18 @@ class TestSlurmJobArrayRun(RunSubmission, unittest.TestCase):
 
 
 @unittest.skipIf(
+    os.environ.get("DPDISPATCHER_TEST") != "slurm",
+    "outside the slurm testing environment",
+)
+class TestSlurmJobArrayRun2(RunSubmission, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.machine_dict["batch_type"] = "SlurmJobArray"
+        self.resources_dict["queue_name"] = "normal"
+        self.resources_dict["kwargs"] = {"slurm_job_size": 2}
+
+
+@unittest.skipIf(
     os.environ.get("DPDISPATCHER_TEST") != "pbs", "outside the pbs testing environment"
 )
 class TestPBSRun(RunSubmission, unittest.TestCase):
