@@ -41,7 +41,7 @@ class TestResources(unittest.TestCase):
             resources_json_dict = json.load(f)
         self.assertTrue(resources_json_dict, self.resources_dict)
         self.assertTrue(resources_json_dict, self.resources.serialize())
-        
+
     def test_arginfo(self):
         self.resources.arginfo()
 
