@@ -61,8 +61,7 @@ class Slurm(Machine):
         self.context.write_file(fname=script_file_name, write_str=script_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
         ret, stdin, stdout, stderr = self.context.block_call(
-            "cd %s && %s %s"
-            % (
+            "cd {} && {} {}".format(
                 shlex.quote(self.context.remote_root),
                 "sbatch",
                 shlex.quote(script_file_name),
