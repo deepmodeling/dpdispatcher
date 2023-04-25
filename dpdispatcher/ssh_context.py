@@ -852,8 +852,7 @@ class SSHContext(BaseContext):
             self.ssh_session.put(from_f, to_f)
         except FileNotFoundError:
             raise FileNotFoundError(
-                "from %s to %s @ %s : %s Error!"
-                % (from_f, self.ssh_session.username, self.ssh_session.hostname, to_f)
+                f"from {from_f} to {self.ssh_session.username} @ {self.ssh_session.hostname} : {to_f} Error!"
             )
         # remote extract
         self.block_checkcall("tar xf %s" % of)
@@ -882,8 +881,7 @@ class SSHContext(BaseContext):
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
             self.block_checkcall(
-                "tar %s %s %s"
-                % (
+                "tar {} {} {}".format(
                     tar_command,
                     shlex.quote(of),
                     " ".join([shlex.quote(file) for file in files]),
@@ -895,8 +893,7 @@ class SSHContext(BaseContext):
             )
             self.write_file(file_list_file, "\n".join(files))
             self.block_checkcall(
-                "tar %s %s -T %s"
-                % (tar_command, shlex.quote(of), shlex.quote(file_list_file))
+                f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
             )
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()

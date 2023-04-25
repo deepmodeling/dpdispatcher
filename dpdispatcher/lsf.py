@@ -83,8 +83,7 @@ class LSF(Machine):
 
         try:
             stdin, stdout, stderr = self.context.block_checkcall(
-                "cd %s && %s %s"
-                % (
+                "cd {} && {} {}".format(
                     shlex.quote(self.context.remote_root),
                     "bsub < ",
                     shlex.quote(script_file_name),

@@ -136,17 +136,16 @@ class DistributedShell(Machine):
 
         resources = job.resources
         submit_command = (
-            "hadoop jar %s/hadoop-yarn-applications-distributedshell-*.jar "
+            "hadoop jar {}/hadoop-yarn-applications-distributedshell-*.jar "
             "org.apache.hadoop.yarn.applications.distributedshell.Client "
-            "-jar %s/hadoop-yarn-applications-distributedshell-*.jar "
-            '-queue %s -appname "distributedshell_dpgen_%s" '
+            "-jar {}/hadoop-yarn-applications-distributedshell-*.jar "
+            '-queue {} -appname "distributedshell_dpgen_{}" '
             "-shell_env YARN_CONTAINER_RUNTIME_TYPE=docker "
-            "-shell_env YARN_CONTAINER_RUNTIME_DOCKER_IMAGE=%s "
+            "-shell_env YARN_CONTAINER_RUNTIME_DOCKER_IMAGE={} "
             "-shell_env ENV_DOCKER_CONTAINER_SHM_SIZE='600m' "
             "-master_memory 1024 -master_vcores 2 -num_containers 1 "
-            "-container_resources memory-mb=%s,vcores=%s "
-            "-shell_script /tmp/%s"
-            % (
+            "-container_resources memory-mb={},vcores={} "
+            "-shell_script /tmp/{}".format(
                 resources.kwargs.get("yarn_path", ""),
                 resources.kwargs.get("yarn_path", ""),
                 resources.queue_name,
