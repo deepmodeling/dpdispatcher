@@ -328,14 +328,14 @@ class SSHSession:
             Argument("port", int, optional=True, default=22, doc=doc_port),
             Argument(
                 "key_filename",
-                [str, None],
+                [str, type(None)],
                 optional=True,
                 default=None,
                 doc=doc_key_filename,
             ),
             Argument(
                 "passphrase",
-                [str, None],
+                [str, type(None)],
                 optional=True,
                 default=None,
                 doc=doc_passphrase,
