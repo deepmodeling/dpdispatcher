@@ -602,10 +602,18 @@ class Task:
                 default=[],
             ),
             Argument(
-                "outlog", [type(None), str], optional=False, doc=doc_outlog, default="log"
+                "outlog",
+                [type(None), str],
+                optional=False,
+                doc=doc_outlog,
+                default="log",
             ),
             Argument(
-                "errlog", [type(None), str], optional=False, doc=doc_errlog, default="err"
+                "errlog",
+                [type(None), str],
+                optional=False,
+                doc=doc_errlog,
+                default="err",
             ),
         ]
         task_format = Argument("task", dict, task_args)
