@@ -115,6 +115,7 @@ class Slurm(Machine):
             elif (
                 "Socket timed out on send/recv operation" in err_str
                 or "Unable to contact slurm controller" in err_str
+                or "Invalid user for SlurmUser" in err_str
             ):
                 # retry 3 times
                 raise RetrySignal(
