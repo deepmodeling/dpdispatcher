@@ -196,6 +196,13 @@ class Slurm(Machine):
         ]
 
     def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
         job_id = job.job_id
         # -Q Do not report an error if the specified job is already completed.
         ret, stdin, stdout, stderr = self.context.block_call(

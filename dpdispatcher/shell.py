@@ -102,6 +102,13 @@ class Shell(Machine):
         return self.context.check_file_exists(job_tag_finished)
 
     def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
         job_id = job.job_id
         # 9 means exit, cannot be blocked
         ret, stdin, stdout, stderr = self.context.block_call("kill -9 " + str(job_id))
