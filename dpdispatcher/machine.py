@@ -443,3 +443,9 @@ class Machine(metaclass=ABCMeta):
                 "kwargs", dict, optional=True, doc="This field is empty for this batch."
             )
         ]
+
+    def kill(self, job):
+        """Kill the job.
+
+        If not implemented, pass.
+        """

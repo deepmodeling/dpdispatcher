@@ -325,10 +325,7 @@ class Submission:
         ]
         for job in removed_jobs:
             # kill unfinished jobs
-            try:
-                self.machine.context.kill(job.job_id)
-            except Exception as e:
-                dlog.info("Can not kill job %s" % job.job_id)
+            self.machine.kill(job)
 
             # remove unfinished tasks
             import os

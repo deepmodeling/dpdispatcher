@@ -195,6 +195,14 @@ class Slurm(Machine):
             )
         ]
 
+    def kill(self, job):
+        job_id = job.job_id
+        # -Q Do not report an error if the specified job is already completed.
+        ret, stdin, stdout, stderr = self.context.block_call(
+            "scancel -Q " + str(job_id)
+        )
+        # we do not need to stop here if scancel failed; just continue
+
 
 class SlurmJobArray(Slurm):
     """Slurm with job array enabled for multiple tasks in a job."""

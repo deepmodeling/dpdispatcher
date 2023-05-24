@@ -767,12 +767,6 @@ class SSHContext(BaseContext):
             retcode = cmd_pipes["stdout"].channel.recv_exit_status()
             return retcode, cmd_pipes["stdout"], cmd_pipes["stderr"]
 
-    def kill(self, cmd_pipes):
-        raise RuntimeError(
-            "dose not work! we do not know how to kill proc through paramiko.SSHClient"
-        )
-        # self.block_checkcall('kill -15 %s' % cmd_pipes['pid'])
-
     def _rmtree(self, remotepath, verbose=False):
         """Remove the remote path."""
         # The original implementation method removes files one by one using sftp.

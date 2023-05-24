@@ -1,5 +1,4 @@
 import os
-import signal
 import subprocess as sp
 
 from dpdispatcher.base_context import BaseContext
@@ -166,9 +165,6 @@ class LazyLocalContext(BaseContext):
             cmd, cwd=self.local_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
         return proc
-
-    def kill(self, job_id):
-        os.kill(job_id, signal.SIGTERM)
 
     def check_finish(self, proc):
         return proc.poll() is not None

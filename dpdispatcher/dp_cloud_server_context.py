@@ -270,9 +270,6 @@ class BohriumContext(BaseContext):
     #         retcode = cmd_pipes['stdout'].channel.recv_exit_status()
     #         return retcode, cmd_pipes['stdout'], cmd_pipes['stderr']
 
-    def kill(self, cmd_pipes):
-        pass
-
     @classmethod
     def machine_subfields(cls) -> List[Argument]:
         """Generate the machine subfields.

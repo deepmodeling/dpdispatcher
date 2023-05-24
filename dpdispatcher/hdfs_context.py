@@ -247,6 +247,3 @@ class HDFSContext(BaseContext):
 
     def read_file(self, fname):
         return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
-
-    def kill(self, job_id):
-        pass
