@@ -334,6 +334,7 @@ class Submission:
         return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
     def remove_unfinished_tasks(self):
+        dlog.info("Remove unfinished tasks")
         # kill all jobs and mark them as finished
         for job in self.belonging_jobs:
             if job.job_state != JobStatus.finished:
