@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import random
+import shutil
 import time
 import uuid
 from hashlib import sha1
@@ -236,7 +237,7 @@ class Submission:
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
             if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_jobs()
+                self.remove_unfinished_tasks()
                 break
 
             try:
@@ -333,30 +334,29 @@ class Submission:
         finished_num = status_list.count(JobStatus.finished)
         return finished_num / len(self.belonging_jobs) >= (1 - ratio_unfinished)
 
-    def remove_unfinished_jobs(self):
-        removed_jobs = [
-            job
-            for job in self.belonging_jobs
-            if job.job_state not in [JobStatus.finished]
-        ]
-        self.belonging_jobs = [
-            job for job in self.belonging_jobs if job.job_state in [JobStatus.finished]
-        ]
-        for job in removed_jobs:
-            # kill unfinished jobs
-            self.machine.kill(job)
-
-            # remove unfinished tasks
-            import os
-            import shutil
-
-            for task in job.job_task_list:
+    def remove_unfinished_tasks(self):
+        # kill all jobs and mark them as finished
+        for job in self.belonging_jobs:
+            if job.job_state != JobStatus.finished:
+                self.machine.kill(job)
+                job.job_state = JobStatus.finished
+        # remove all unfinished tasks
+        finished_tasks = []
+        for task in self.belonging_tasks:
+            if task.task_state == JobStatus.finished:
+                finished_tasks.append(task)
+            else:
                 shutil.rmtree(
                     os.path.join(self.machine.context.local_root, task.task_work_path),
                     ignore_errors=True,
                 )
-            self.belonging_tasks = [
-                task for task in self.belonging_tasks if task not in job.job_task_list
+        self.belonging_tasks = finished_tasks
+        # clean removed tasks in jobs - although this should not be necessary
+        for job in self.belonging_jobs:
+            job.job_task_list = [
+                task
+                for task in job.job_task_list
+                if task.task_state == JobStatus.finished
             ]
 
     def check_all_finished(self):
