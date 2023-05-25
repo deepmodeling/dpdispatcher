@@ -443,3 +443,15 @@ class Machine(metaclass=ABCMeta):
                 "kwargs", dict, optional=True, doc="This field is empty for this batch."
             )
         ]
+
+    def kill(self, job):
+        """Kill the job.
+
+        If not implemented, pass and let the user manually kill it.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        dlog.warning("Job %s should be manually killed" % job.job_id)

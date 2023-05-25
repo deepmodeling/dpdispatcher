@@ -1,7 +1,6 @@
 import hashlib
 import os
 import shutil
-import signal
 import subprocess as sp
 from glob import glob
 from subprocess import TimeoutExpired
@@ -290,9 +289,6 @@ class LocalContext(BaseContext):
             cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
         return proc
-
-    def kill(self, job_id):
-        os.kill(job_id, signal.SIGTERM)
 
     def check_finish(self, proc):
         return proc.poll() is not None

@@ -210,3 +210,14 @@ class LSF(Machine):
                 doc="Extra arguments.",
             )
         ]
+
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        ret, stdin, stdout, stderr = self.context.block_call("bkill " + str(job_id))

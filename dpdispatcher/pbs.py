@@ -95,6 +95,17 @@ class PBS(Machine):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        ret, stdin, stdout, stderr = self.context.block_call("qdel " + str(job_id))
+
 
 class Torque(PBS):
     def check_status(self, job):
