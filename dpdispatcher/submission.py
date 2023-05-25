@@ -331,7 +331,7 @@ class Submission:
                 task.get_task_state(self.machine.context)
                 status_list.append(task.task_state)
         finished_num = status_list.count(JobStatus.finished)
-        return finished_num / len(self.belonging_jobs) >= (1 - ratio_unfinished)
+        return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
     def remove_unfinished_tasks(self):
         # kill all jobs and mark them as finished
