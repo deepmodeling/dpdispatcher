@@ -4,7 +4,6 @@ import json
 import os
 import pathlib
 import random
-import shutil
 import time
 import uuid
 from hashlib import sha1
@@ -345,11 +344,8 @@ class Submission:
         for task in self.belonging_tasks:
             if task.task_state == JobStatus.finished:
                 finished_tasks.append(task)
-            else:
-                shutil.rmtree(
-                    os.path.join(self.machine.context.local_root, task.task_work_path),
-                    ignore_errors=True,
-                )
+            # there is no need to remove actual remote directory
+            # as it should be cleaned anyway
         self.belonging_tasks = finished_tasks
         # clean removed tasks in jobs - although this should not be necessary
         for job in self.belonging_jobs:
