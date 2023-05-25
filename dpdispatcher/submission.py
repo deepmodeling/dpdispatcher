@@ -320,6 +320,7 @@ class Submission:
         bool
             whether the ratio of unfinished tasks in the submission is larger than ratio_unfinished
         """
+        assert self.resources is not None
         if self.resources.group_size == 1:
             # if group size is 1, calculate job state is enough and faster
             status_list = [job.job_state for job in self.belonging_jobs]
