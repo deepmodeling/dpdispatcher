@@ -361,7 +361,7 @@ class SlurmJobArray(Slurm):
     def check_finish_tag(self, job):
         results = []
         for task in job.job_task_list:
-            task.get_task_state()
+            task.get_task_state(self.context)
             results.append(task.task_state == JobStatus.finished)
         return all(results)
 
