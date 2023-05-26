@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import pathlib
 import random
 import time
 import uuid
@@ -235,7 +236,7 @@ class Submission:
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
             if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_jobs()
+                self.remove_unfinished_tasks()
                 break
 
             try:
@@ -306,38 +307,53 @@ class Submission:
 
     # def update_submi
 
-    def check_ratio_unfinished(self, ratio_unfinished):
-        status_list = [job.job_state for job in self.belonging_jobs]
-        finished_num = status_list.count(JobStatus.finished)
-        if finished_num / len(self.belonging_jobs) < (1 - ratio_unfinished):
-            return False
+    def check_ratio_unfinished(self, ratio_unfinished: float) -> bool:
+        """Calculate the ratio of unfinished tasks in the submission.
+
+        Parameters
+        ----------
+        ratio_unfinished : float
+            the ratio of unfinished tasks in the submission
+
+        Returns
+        -------
+        bool
+            whether the ratio of unfinished tasks in the submission is larger than ratio_unfinished
+        """
+        assert self.resources is not None
+        if self.resources.group_size == 1:
+            # if group size is 1, calculate job state is enough and faster
+            status_list = [job.job_state for job in self.belonging_jobs]
         else:
-            return True
+            # get task state is more accurate
+            status_list = []
+            for task in self.belonging_tasks:
+                task.get_task_state(self.machine.context)
+                status_list.append(task.task_state)
+        finished_num = status_list.count(JobStatus.finished)
+        return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
-    def remove_unfinished_jobs(self):
-        removed_jobs = [
-            job
-            for job in self.belonging_jobs
-            if job.job_state not in [JobStatus.finished]
-        ]
-        self.belonging_jobs = [
-            job for job in self.belonging_jobs if job.job_state in [JobStatus.finished]
-        ]
-        for job in removed_jobs:
-            # kill unfinished jobs
-            self.machine.kill(job)
-
-            # remove unfinished tasks
-            import os
-            import shutil
-
-            for task in job.job_task_list:
-                shutil.rmtree(
-                    os.path.join(self.machine.context.local_root, task.task_work_path),
-                    ignore_errors=True,
-                )
-            self.belonging_tasks = [
-                task for task in self.belonging_tasks if task not in job.job_task_list
+    def remove_unfinished_tasks(self):
+        dlog.info("Remove unfinished tasks")
+        # kill all jobs and mark them as finished
+        for job in self.belonging_jobs:
+            if job.job_state != JobStatus.finished:
+                self.machine.kill(job)
+                job.job_state = JobStatus.finished
+        # remove all unfinished tasks
+        finished_tasks = []
+        for task in self.belonging_tasks:
+            if task.task_state == JobStatus.finished:
+                finished_tasks.append(task)
+            # there is no need to remove actual remote directory
+            # as it should be cleaned anyway
+        self.belonging_tasks = finished_tasks
+        # clean removed tasks in jobs - although this should not be necessary
+        for job in self.belonging_jobs:
+            job.job_task_list = [
+                task
+                for task in job.job_task_list
+                if task.task_state == JobStatus.finished
             ]
 
     def check_all_finished(self):
@@ -515,6 +531,7 @@ class Task:
         self.task_hash = self.get_hash()
         # self.task_need_resources="<to be completed in the future>"
         # self.uuid =
+        self.task_state = JobStatus.unsubmitted
 
     def __repr__(self):
         return str(self.serialize())
@@ -615,6 +632,27 @@ class Task:
         ]
         task_format = Argument("task", dict, task_args)
         return task_format
+
+    def get_task_state(self, context):
+        """Get the task state by checking the tag file.
+
+        Parameters
+        ----------
+        context : Context
+            the context of the task
+        """
+        if self.task_state in (JobStatus.finished, JobStatus.unsubmitted):
+            # finished task should always be finished
+            # unsubmitted task do not need to check tag
+            return
+        # check tag
+        task_tag_finished = (
+            pathlib.PurePath(self.task_work_path)
+            / (self.task_hash + "_task_tag_finished")
+        ).as_posix()
+        result = context.check_file_exists(task_tag_finished)
+        if result:
+            self.task_state = JobStatus.finished
 
 
 class Job:
@@ -720,6 +758,11 @@ class Job:
         assert self.machine is not None
         job_state = self.machine.check_status(self)
         self.job_state = job_state
+        # update general task_state, which should be faster than checking tags
+        for task in self.job_task_list:
+            # only update if the task is not finished
+            if task.task_state != JobStatus.finished:
+                task.task_state = job_state
 
     def handle_unexpected_job_state(self):
         job_state = self.job_state
@@ -843,7 +886,7 @@ class Resources:
             If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.
             Usually, this option will be used with Task.task_need_resources variable simultaneously.
         ratio_unfinished : float
-            The ratio of `jobs` that can be unfinished.
+            The ratio of `task` that can be unfinished.
     para_deg : int
         Decide how many tasks will be run in parallel.
         Usually run with `strategy['if_cuda_multi_devices']`
@@ -1015,7 +1058,7 @@ class Resources:
             "If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task."
             "Usually, this option will be used with Task.task_need_resources variable simultaneously."
         )
-        doc_ratio_unfinished = "The ratio of `jobs` that can be unfinished."
+        doc_ratio_unfinished = "The ratio of `tasks` that can be unfinished."
 
         strategy_args = [
             Argument(
