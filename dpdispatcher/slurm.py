@@ -46,9 +46,12 @@ class Slurm(Machine):
             )
         else:
             script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
-        script_header_dict[
-            "slurm_partition_line"
-        ] = f"#SBATCH --partition {resources.queue_name}"
+        if resources.queue_name != "":
+            script_header_dict[
+                "slurm_partition_line"
+            ] = f"#SBATCH --partition {resources.queue_name}"
+        else:
+            script_header_dict["slurm_partition_line"] = ""
         slurm_script_header = slurm_script_header_template.format(**script_header_dict)
         return slurm_script_header
 
