@@ -78,7 +78,12 @@ class Slurm(Machine):
                     "Get error code %d in submitting through ssh with job: %s . message: %s"
                     % (ret, job.job_hash, err_str)
                 )
-            elif "Job violates accounting/QOS policy" in err_str:
+            elif (
+                "Job violates accounting/QOS policy" in err_str
+                # the number of jobs exceeds DEFAULT_MAX_JOB_COUNT (by default 10000)
+                or "Slurm temporarily unable to accept job, sleeping and retrying"
+                in err_str
+            ):
                 # job number exceeds, skip the submitting
                 return ""
             raise RuntimeError(
