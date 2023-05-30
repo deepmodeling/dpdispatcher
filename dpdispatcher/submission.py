@@ -476,6 +476,9 @@ class Submission:
             submission.bind_machine(machine=self.machine)
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
+                self.belonging_tasks = [
+                    task for job in self.belonging_jobs for task in job.job_task_list
+                ]
                 self.bind_machine(machine=self.machine)
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
@@ -743,6 +746,8 @@ class Job:
         job.job_id = job_dict[job_hash]["job_id"]
         job.fail_count = job_dict[job_hash]["fail_count"]
         # job.job_uuid = job_dict[job_hash]['job_uuid']
+        for task in job.job_task_list:
+            task.task_state = job.job_state
         return job
 
     def get_job_state(self):
