@@ -106,7 +106,9 @@ class Bohrium(Machine):
 
         input_data = self.input_data.copy()
 
-        input_data["job_resources"] = job_resources
+        if not input_data.get("job_resources"):
+            input_data["job_resources"] = []
+        input_data["job_resources"].append(job_resources)
         input_data["command"] = f"bash {job.script_file_name}"
         if not input_data.get("backward_files"):
             input_data["backward_files"] = self._gen_backward_files_list(job)
