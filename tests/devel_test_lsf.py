@@ -3,12 +3,12 @@ import os
 import sys
 
 from dpdispatcher.machine import Machine
-from dpdispatcher.submission import Job, Resources, Submission, Task
+from dpdispatcher.submission import Resources, Submission, Task
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # task_need_resources has no effect
-with open("jsons/machine_lsf.json", "r") as f:
+with open("jsons/machine_lsf.json") as f:
     mdata = json.load(f)
 
 machine = Machine.load_from_dict(mdata["machine"])

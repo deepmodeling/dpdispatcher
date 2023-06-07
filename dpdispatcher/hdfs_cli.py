@@ -1,22 +1,20 @@
 # /usr/bin/python
-# -*- encoding=utf-8 -*-
 
 import os
-import sys
 
 from dpdispatcher.utils import run_cmd_with_all_output
 
 
-class HDFS(object):
-    """Fundamental class for HDFS basic manipulation"""
+class HDFS:
+    """Fundamental class for HDFS basic manipulation."""
 
     @staticmethod
     def exists(uri):
         """Check existence of hdfs uri
         Returns: True on exists
-        Raises: RuntimeError
+        Raises: RuntimeError.
         """
-        cmd = "hadoop fs -test -e {uri}".format(uri=uri)
+        cmd = f"hadoop fs -test -e {uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
             if ret == 0:
@@ -40,10 +38,9 @@ class HDFS(object):
     def remove(uri):
         """Check existence of hdfs uri
         Returns: True on exists
-        Raises: RuntimeError
+        Raises: RuntimeError.
         """
-
-        cmd = "hadoop fs -rm -r {uri}".format(uri=uri)
+        cmd = f"hadoop fs -rm -r {uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
             if ret == 0:
@@ -64,9 +61,9 @@ class HDFS(object):
     def mkdir(uri):
         """Make new hdfs directory
         Returns: True on success
-        Raises: RuntimeError
+        Raises: RuntimeError.
         """
-        cmd = "hadoop fs -mkdir -p {uri}".format(uri=uri)
+        cmd = f"hadoop fs -mkdir -p {uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
             if ret == 0:
@@ -85,9 +82,8 @@ class HDFS(object):
 
     @staticmethod
     def copy_from_local(local_path, to_uri):
-        """
-        Returns: True on success
-        Raises: on unexpected error
+        """Returns: True on success
+        Raises: on unexpected error.
         """
         # Make sure local_path is accessible
         if not os.path.exists(local_path) or not os.access(local_path, os.R_OK):
@@ -146,7 +142,7 @@ class HDFS(object):
 
     @staticmethod
     def read_hdfs_file(uri):
-        cmd = "hadoop fs -text {uri}".format(uri=uri)
+        cmd = f"hadoop fs -text {uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
             if ret == 0:
@@ -165,7 +161,7 @@ class HDFS(object):
 
     @staticmethod
     def move(from_uri, to_uri):
-        cmd = "hadoop fs -mv {furi} {turi}".format(furi=from_uri, turi=to_uri)
+        cmd = f"hadoop fs -mv {from_uri} {to_uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
             if ret == 0:

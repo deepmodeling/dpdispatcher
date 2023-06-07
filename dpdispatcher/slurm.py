@@ -1,3 +1,4 @@
+import math
 import pathlib
 import shlex
 from typing import List
@@ -22,7 +23,7 @@ slurm_script_header_template = """\
 
 class Slurm(Machine):
     def gen_script(self, job):
-        slurm_script = super(Slurm, self).gen_script(job)
+        slurm_script = super().gen_script(job)
         return slurm_script
 
     def gen_script_header(self, job):
@@ -45,9 +46,12 @@ class Slurm(Machine):
             )
         else:
             script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
-        script_header_dict[
-            "slurm_partition_line"
-        ] = "#SBATCH --partition {queue_name}".format(queue_name=resources.queue_name)
+        if resources.queue_name != "":
+            script_header_dict[
+                "slurm_partition_line"
+            ] = f"#SBATCH --partition {resources.queue_name}"
+        else:
+            script_header_dict["slurm_partition_line"] = ""
         slurm_script_header = slurm_script_header_template.format(**script_header_dict)
         return slurm_script_header
 
@@ -60,8 +64,7 @@ class Slurm(Machine):
         self.context.write_file(fname=script_file_name, write_str=script_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
         ret, stdin, stdout, stderr = self.context.block_call(
-            "cd %s && %s %s"
-            % (
+            "cd {} && {} {}".format(
                 shlex.quote(self.context.remote_root),
                 "sbatch",
                 shlex.quote(script_file_name),
@@ -78,7 +81,12 @@ class Slurm(Machine):
                     "Get error code %d in submitting through ssh with job: %s . message: %s"
                     % (ret, job.job_hash, err_str)
                 )
-            elif "Job violates accounting/QOS policy" in err_str:
+            elif (
+                "Job violates accounting/QOS policy" in err_str
+                # the number of jobs exceeds DEFAULT_MAX_JOB_COUNT (by default 10000)
+                or "Slurm temporarily unable to accept job, sleeping and retrying"
+                in err_str
+            ):
                 # job number exceeds, skip the submitting
                 return ""
             raise RuntimeError(
@@ -106,7 +114,7 @@ class Slurm(Machine):
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
-            if str("Invalid job id specified") in err_str:
+            if "Invalid job id specified" in err_str:
                 if self.check_finish_tag(job):
                     dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                     return JobStatus.finished
@@ -115,6 +123,7 @@ class Slurm(Machine):
             elif (
                 "Socket timed out on send/recv operation" in err_str
                 or "Unable to contact slurm controller" in err_str
+                or "Invalid user for SlurmUser" in err_str
             ):
                 # retry 3 times
                 raise RetrySignal(
@@ -194,30 +203,47 @@ class Slurm(Machine):
             )
         ]
 
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        # -Q Do not report an error if the specified job is already completed.
+        ret, stdin, stdout, stderr = self.context.block_call(
+            "scancel -Q " + str(job_id)
+        )
+        # we do not need to stop here if scancel failed; just continue
+
 
 class SlurmJobArray(Slurm):
-    """Slurm with job array enabled for multiple tasks in a job"""
+    """Slurm with job array enabled for multiple tasks in a job."""
 
     def gen_script_header(self, job):
+        slurm_job_size = job.resources.kwargs.get("slurm_job_size", 1)
         if job.fail_count > 0:
             # resubmit jobs, check if some of tasks have been finished
-            job_array = []
+            job_array = set()
             for ii, task in enumerate(job.job_task_list):
                 task_tag_finished = (
                     pathlib.PurePath(task.task_work_path)
                     / (task.task_hash + "_task_tag_finished")
                 ).as_posix()
                 if not self.context.check_file_exists(task_tag_finished):
-                    job_array.append(ii)
+                    job_array.add(ii // slurm_job_size)
             return super().gen_script_header(job) + "\n#SBATCH --array=%s" % (
                 ",".join(map(str, job_array))
             )
         return super().gen_script_header(job) + "\n#SBATCH --array=0-%d" % (
-            len(job.job_task_list) - 1
+            math.ceil(len(job.job_task_list) / slurm_job_size) - 1
         )
 
     def gen_script_command(self, job):
         resources = job.resources
+        slurm_job_size = resources.kwargs.get("slurm_job_size", 1)
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
         script_command = "case $SLURM_ARRAY_TASK_ID in\n"
         for ii, task in enumerate(job.job_task_list):
@@ -243,10 +269,16 @@ class SlurmJobArray(Slurm):
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part,
             )
-            script_command += f"{ii})\n"
+            if ii % slurm_job_size == 0:
+                script_command += f"{ii // slurm_job_size})\n"
             script_command += single_script_command
             script_command += self.gen_script_wait(resources=resources)
-            script_command += "\n;;\n"
+            script_command += "\n"
+            if (
+                ii % slurm_job_size == slurm_job_size - 1
+                or ii == len(job.job_task_list) - 1
+            ):
+                script_command += ";;\n"
         script_command += "*)\nexit 1\n;;\nesac\n"
         return script_command
 
@@ -265,7 +297,7 @@ class SlurmJobArray(Slurm):
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
-            if str("Invalid job id specified") in err_str:
+            if "Invalid job id specified" in err_str:
                 if self.check_finish_tag(job):
                     dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                     return JobStatus.finished
@@ -337,9 +369,30 @@ class SlurmJobArray(Slurm):
     def check_finish_tag(self, job):
         results = []
         for task in job.job_task_list:
-            task_tag_finished = (
-                pathlib.PurePath(task.task_work_path)
-                / (task.task_hash + "_task_tag_finished")
-            ).as_posix()
-            results.append(self.context.check_file_exists(task_tag_finished))
+            task.get_task_state(self.context)
+            results.append(task.task_state == JobStatus.finished)
         return all(results)
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        doc_slurm_job_size = "Number of tasks in a Slurm job"
+        arg = super().resources_subfields()[0]
+        arg.extend_subfields(
+            [
+                Argument(
+                    "slurm_job_size",
+                    int,
+                    optional=True,
+                    default=1,
+                    doc=doc_slurm_job_size,
+                ),
+            ]
+        )
+        return [arg]

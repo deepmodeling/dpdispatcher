@@ -1,16 +1,13 @@
-import glob
-import json
 import os
 import shutil
 import sys
 import time
 import unittest
 import uuid
-from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import LazyLocalContext, setUpModule
+from .context import LazyLocalContext
 
 
 class TestLazyLocalContext(unittest.TestCase):
@@ -84,7 +81,7 @@ class TestLazyLocalContext(unittest.TestCase):
                         + os.path.join("loc", ii, "tag_failure_download_%s" % jj),
                     )
                     continue
-                with open(os.path.join("loc", ii, jj), "r") as fp:
+                with open(os.path.join("loc", ii, jj)) as fp:
                     tmp = fp.read()
                     self.assertEqual(tmp, record_uuid[cc])
                     cc += 1
@@ -136,7 +133,7 @@ class TestLazyLocalContext(unittest.TestCase):
                         + os.path.join("loc", ii, "tag_failure_download_%s" % jj),
                     )
                     continue
-                with open(os.path.join("loc", ii, jj), "r") as fp:
+                with open(os.path.join("loc", ii, jj)) as fp:
                     tmp = fp.read()
                     self.assertEqual(tmp, record_uuid[cc])
                     cc += 1

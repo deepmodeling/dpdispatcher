@@ -1,16 +1,16 @@
-import glob
 import json
 import os
-import shutil
 import sys
-import time
 import unittest
-import uuid
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import PBS, Job, JobStatus, LocalContext, Resources, Submission, Task
+from .context import (
+    JobStatus,
+    Submission,
+    setUpModule,  # noqa: F401
+)
 from .sample_class import SampleClass
 
 
@@ -108,7 +108,3 @@ class TestSubmission(unittest.TestCase):
 
     def test_clean(self):
         pass
-
-    def test_try_recover_from_json(self):
-        pass
-        # self.submission.try_recover_from_json

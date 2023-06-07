@@ -7,7 +7,14 @@ from paramiko.ssh_exception import SSHException
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import Machine, Resources, SSHSession, Submission, Task
+from .context import (
+    Machine,
+    Resources,
+    SSHSession,
+    Submission,
+    Task,
+    setUpModule,  # noqa: F401
+)
 from .sample_class import SampleClass
 
 
@@ -89,11 +96,11 @@ class TestSSHContext(unittest.TestCase):
             }
         )
         task = Task(
-            command=f"echo dpdispatcher_unittest",
+            command="echo dpdispatcher_unittest",
             task_work_path="./",
             forward_files=[],
             backward_files=[],
-            outlog=f"out.txt",
+            outlog="out.txt",
         )
 
         submission = Submission(

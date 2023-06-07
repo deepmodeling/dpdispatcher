@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import pathlib
 import random
 import time
 import uuid
@@ -18,7 +19,7 @@ from dpdispatcher.machine import Machine
 default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
 
 
-class Submission(object):
+class Submission:
     """A submission represents a collection of tasks.
     These tasks usually locate at a common directory.
     And these Tasks may share common files to be uploaded and downloaded.
@@ -91,12 +92,14 @@ class Submission(object):
 
     @classmethod
     def deserialize(cls, submission_dict, machine=None):
-        """convert the submission_dict to a Submission class object
+        """Convert the submission_dict to a Submission class object.
 
         Parameters
         ----------
         submission_dict : dict
             path-like, the base directory of the local tasks
+        machine : Machine
+            Machine class Object to execute the jobs
 
         Returns
         -------
@@ -124,7 +127,7 @@ class Submission(object):
         return submission
 
     def serialize(self, if_static=False):
-        """convert the Submission class instance to a dictionary.
+        """Convert the Submission class instance to a dictionary.
 
         Parameters
         ----------
@@ -180,7 +183,7 @@ class Submission(object):
         ).hexdigest()
 
     def bind_machine(self, machine):
-        """bind this submission to a machine. update the machine's context remote_root and local_root.
+        """Bind this submission to a machine. update the machine's context remote_root and local_root.
 
         Parameters
         ----------
@@ -196,13 +199,14 @@ class Submission(object):
             self.local_root = machine.context.temp_local_root
         return self
 
-    def run_submission(self, *, exit_on_submit=False, clean=True):
-        """main method to execute the submission.
+    def run_submission(self, *, dry_run=False, exit_on_submit=False, clean=True):
+        """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
         Third, run the submission defined previously.
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
-        if exit_on_submit is True, submission will exit.
+        If dry_run is True, submission will be uploaded but not be executed and exit.
+        If exit_on_submit is True, submission will exit.
         """
         assert self.resources is not None
         if not self.belonging_jobs:
@@ -214,6 +218,10 @@ class Submission(object):
         else:
             dlog.info("info:check_all_finished: False")
             self.upload_jobs()
+            if dry_run is True:
+                dlog.info(f"submission succeeded: {self.submission_hash}")
+                dlog.info(f"at {self.machine.context.remote_root}")
+                return self.serialize()
             self.handle_unexpected_submission_state()
             self.submission_to_json()
             time.sleep(1)
@@ -228,7 +236,7 @@ class Submission(object):
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
             if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_jobs()
+                self.remove_unfinished_tasks()
                 break
 
             try:
@@ -253,7 +261,7 @@ class Submission(object):
         return self.serialize()
 
     def update_submission_state(self):
-        """check whether all the jobs in the submission.
+        """Check whether all the jobs in the submission.
 
         Notes
         -----
@@ -270,7 +278,7 @@ class Submission(object):
         # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):
-        """handle unexpected job state of the submission.
+        """Handle unexpected job state of the submission.
         If the job state is unsubmitted, submit the job.
         If the job state is terminated (killed unexpectly), resubmit the job.
         If the job state is unknown, raise an error.
@@ -299,45 +307,57 @@ class Submission(object):
 
     # def update_submi
 
-    def check_ratio_unfinished(self, ratio_unfinished):
-        status_list = [job.job_state for job in self.belonging_jobs]
-        finished_num = status_list.count(JobStatus.finished)
-        if finished_num / len(self.belonging_jobs) < (1 - ratio_unfinished):
-            return False
+    def check_ratio_unfinished(self, ratio_unfinished: float) -> bool:
+        """Calculate the ratio of unfinished tasks in the submission.
+
+        Parameters
+        ----------
+        ratio_unfinished : float
+            the ratio of unfinished tasks in the submission
+
+        Returns
+        -------
+        bool
+            whether the ratio of unfinished tasks in the submission is larger than ratio_unfinished
+        """
+        assert self.resources is not None
+        if self.resources.group_size == 1:
+            # if group size is 1, calculate job state is enough and faster
+            status_list = [job.job_state for job in self.belonging_jobs]
         else:
-            return True
+            # get task state is more accurate
+            status_list = []
+            for task in self.belonging_tasks:
+                task.get_task_state(self.machine.context)
+                status_list.append(task.task_state)
+        finished_num = status_list.count(JobStatus.finished)
+        return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
-    def remove_unfinished_jobs(self):
-        removed_jobs = [
-            job
-            for job in self.belonging_jobs
-            if job.job_state not in [JobStatus.finished]
-        ]
-        self.belonging_jobs = [
-            job for job in self.belonging_jobs if job.job_state in [JobStatus.finished]
-        ]
-        for job in removed_jobs:
-            # kill unfinished jobs
-            try:
-                self.machine.context.kill(job.job_id)
-            except Exception as e:
-                dlog.info("Can not kill job %s" % job.job_id)
-
-            # remove unfinished tasks
-            import os
-            import shutil
-
-            for task in job.job_task_list:
-                shutil.rmtree(
-                    os.path.join(self.machine.context.local_root, task.task_work_path),
-                    ignore_errors=True,
-                )
-            self.belonging_tasks = [
-                task for task in self.belonging_tasks if task not in job.job_task_list
+    def remove_unfinished_tasks(self):
+        dlog.info("Remove unfinished tasks")
+        # kill all jobs and mark them as finished
+        for job in self.belonging_jobs:
+            if job.job_state != JobStatus.finished:
+                self.machine.kill(job)
+                job.job_state = JobStatus.finished
+        # remove all unfinished tasks
+        finished_tasks = []
+        for task in self.belonging_tasks:
+            if task.task_state == JobStatus.finished:
+                finished_tasks.append(task)
+            # there is no need to remove actual remote directory
+            # as it should be cleaned anyway
+        self.belonging_tasks = finished_tasks
+        # clean removed tasks in jobs - although this should not be necessary
+        for job in self.belonging_jobs:
+            job.job_task_list = [
+                task
+                for task in job.job_task_list
+                if task.task_state == JobStatus.finished
             ]
 
     def check_all_finished(self):
-        """check whether all the jobs in the submission.
+        """Check whether all the jobs in the submission.
 
         Notes
         -----
@@ -432,7 +452,7 @@ class Submission(object):
 
     @classmethod
     def submission_from_json(cls, json_file_name="submission.json"):
-        with open(json_file_name, "r") as f:
+        with open(json_file_name) as f:
             submission_dict = json.load(f)
         # submission_dict = machine.context.read_file(json_file_name)
         submission = cls.deserialize(submission_dict=submission_dict, machine=None)
@@ -456,6 +476,9 @@ class Submission(object):
             submission.bind_machine(machine=self.machine)
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
+                self.belonging_tasks = [
+                    task for job in self.belonging_jobs for task in job.job_task_list
+                ]
                 self.bind_machine(machine=self.machine)
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
@@ -470,7 +493,7 @@ class Submission(object):
                 raise RuntimeError("Recover failed.")
 
 
-class Task(object):
+class Task:
     """A task is a sequential command to be executed,
     as well as the files it depends on to transmit forward and backward.
 
@@ -511,6 +534,7 @@ class Task(object):
         self.task_hash = self.get_hash()
         # self.task_need_resources="<to be completed in the future>"
         # self.uuid =
+        self.task_state = JobStatus.unsubmitted
 
     def __repr__(self):
         return str(self.serialize())
@@ -526,7 +550,7 @@ class Task(object):
 
     @classmethod
     def load_from_json(cls, json_file):
-        with open(json_file, "r") as f:
+        with open(json_file) as f:
             task_dict = json.load(f)
         return cls.load_from_dict(task_dict)
 
@@ -542,7 +566,7 @@ class Task(object):
 
     @classmethod
     def deserialize(cls, task_dict):
-        """convert the task_dict to a Task class object
+        """Convert the task_dict to a Task class object.
 
         Parameters
         ----------
@@ -595,17 +619,46 @@ class Task(object):
                 default=[],
             ),
             Argument(
-                "outlog", [None, str], optional=False, doc=doc_outlog, default="log"
+                "outlog",
+                [type(None), str],
+                optional=False,
+                doc=doc_outlog,
+                default="log",
             ),
             Argument(
-                "errlog", [None, str], optional=False, doc=doc_errlog, default="err"
+                "errlog",
+                [type(None), str],
+                optional=False,
+                doc=doc_errlog,
+                default="err",
             ),
         ]
         task_format = Argument("task", dict, task_args)
         return task_format
 
+    def get_task_state(self, context):
+        """Get the task state by checking the tag file.
 
-class Job(object):
+        Parameters
+        ----------
+        context : Context
+            the context of the task
+        """
+        if self.task_state in (JobStatus.finished, JobStatus.unsubmitted):
+            # finished task should always be finished
+            # unsubmitted task do not need to check tag
+            return
+        # check tag
+        task_tag_finished = (
+            pathlib.PurePath(self.task_work_path)
+            / (self.task_hash + "_task_tag_finished")
+        ).as_posix()
+        result = context.check_file_exists(task_tag_finished)
+        if result:
+            self.task_state = JobStatus.finished
+
+
+class Job:
     """Job is generated by Submission automatically.
     A job ususally has many tasks and it may request computing resources from job scheduler systems.
     Each Job can generate a script file to be submitted to the job scheduler system or executed locally.
@@ -654,12 +707,14 @@ class Job(object):
 
     @classmethod
     def deserialize(cls, job_dict, machine=None):
-        """convert the  job_dict to a Submission class object
+        """Convert the  job_dict to a Submission class object.
 
         Parameters
         ----------
-        submission_dict : dict
-            path-like, the base directory of the local tasks
+        job_dict : dict
+            the dictionary which contains the job information
+        machine : Machine
+            the machine object to execute the job
 
         Returns
         -------
@@ -691,10 +746,12 @@ class Job(object):
         job.job_id = job_dict[job_hash]["job_id"]
         job.fail_count = job_dict[job_hash]["fail_count"]
         # job.job_uuid = job_dict[job_hash]['job_uuid']
+        for task in job.job_task_list:
+            task.task_state = job.job_state
         return job
 
     def get_job_state(self):
-        """get the jobs. Usually, this method will query the database of slurm or pbs job scheduler system and get the results.
+        """Get the jobs. Usually, this method will query the database of slurm or pbs job scheduler system and get the results.
 
         Notes
         -----
@@ -706,12 +763,17 @@ class Job(object):
         assert self.machine is not None
         job_state = self.machine.check_status(self)
         self.job_state = job_state
+        # update general task_state, which should be faster than checking tags
+        for task in self.job_task_list:
+            # only update if the task is not finished
+            if task.task_state != JobStatus.finished:
+                task.task_state = job_state
 
     def handle_unexpected_job_state(self):
         job_state = self.job_state
 
         if job_state == JobStatus.unknown:
-            raise RuntimeError("job_state for job {job} is unknown".format(job=self))
+            raise RuntimeError(f"job_state for job {self} is unknown")
 
         if job_state == JobStatus.terminated:
             self.fail_count += 1
@@ -758,7 +820,7 @@ class Job(object):
         return str(list(self.serialize(if_static=True).keys())[0])
 
     def serialize(self, if_static=False):
-        """convert the Task class instance to a dictionary.
+        """Convert the Task class instance to a dictionary.
 
         Parameters
         ----------
@@ -805,7 +867,7 @@ class Job(object):
         )
 
 
-class Resources(object):
+class Resources:
     """Resources is used to describe the machine resources we need to do calculations.
 
     Parameters
@@ -829,7 +891,7 @@ class Resources(object):
             If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.
             Usually, this option will be used with Task.task_need_resources variable simultaneously.
         ratio_unfinished : float
-            The ratio of `jobs` that can be unfinished.
+            The ratio of `task` that can be unfinished.
     para_deg : int
         Decide how many tasks will be run in parallel.
         Usually run with `strategy['if_cuda_multi_devices']`
@@ -959,7 +1021,7 @@ class Resources(object):
 
     @classmethod
     def load_from_json(cls, json_file):
-        with open(json_file, "r") as f:
+        with open(json_file) as f:
             resources_dict = json.load(f)
         resources = cls.deserialize(resources_dict=resources_dict)
         return resources
@@ -1001,7 +1063,7 @@ class Resources(object):
             "If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task."
             "Usually, this option will be used with Task.task_need_resources variable simultaneously."
         )
-        doc_ratio_unfinished = "The ratio of `jobs` that can be unfinished."
+        doc_ratio_unfinished = "The ratio of `tasks` that can be unfinished."
 
         strategy_args = [
             Argument(

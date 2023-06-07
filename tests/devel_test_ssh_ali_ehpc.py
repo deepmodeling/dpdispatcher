@@ -10,9 +10,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # from dpdispatcher.batch import Batch
 # from dpdispatcher.pbs import PBS
 from dpdispatcher.batch_object import BatchObject
-from dpdispatcher.submission import Job, Resources, Submission, Task
+from dpdispatcher.submission import Resources, Submission, Task
 
-with open("ssh_machine.json", "r") as f:
+with open("ssh_machine.json") as f:
     jdata = json.load(f)
 
 batch = BatchObject(jdata=jdata)

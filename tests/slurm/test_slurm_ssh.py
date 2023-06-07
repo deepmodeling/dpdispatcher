@@ -1,5 +1,3 @@
-import glob
-import json
 import os
 import shutil
 import sys
@@ -15,7 +13,7 @@ from .context import (
     LocalSession,
     Slurm,
     my_file_cmp,
-    setUpModule,
+    setUpModule,  # noqa: F401
 )
 
 

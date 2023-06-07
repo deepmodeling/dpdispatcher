@@ -1,4 +1,3 @@
-import json
 import os
 import re
 import time
@@ -285,7 +284,7 @@ class Client:
         page = 0
         while True:
             ret = self.get(
-                f"/brm/v1/job/list",
+                "/brm/v1/job/list",
                 params={
                     "groupId": group_id,
                     "page": page,

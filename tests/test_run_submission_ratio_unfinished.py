@@ -1,3 +1,5 @@
+"""Set ratio_unfinished to 1.0 to test killing jobs."""
+
 import os
 import shutil
 import sys
@@ -33,6 +35,7 @@ class RunSubmission:
             "gpu_per_node": 0,
             "queue_name": "?",
             "group_size": 2,
+            "strategy": {"ratio_unfinished": 0.67},  # 2/3
         }
         os.makedirs(
             os.path.join(self.machine_dict["local_root"], "test_dir"), exist_ok=True
@@ -70,7 +73,7 @@ class RunSubmission:
         # test space in file name
         task_list.append(
             Task(
-                command="echo dpdispatcher_unittest_space",
+                command="sleep 1000 && echo dpdispatcher_unittest_space",
                 task_work_path="test space/",
                 forward_files=["inp space.txt"],
                 backward_files=["out space.txt"],
@@ -86,15 +89,6 @@ class RunSubmission:
             task_list=task_list,
         )
         submission.run_submission()
-
-        for ii in range(4):
-            self.assertTrue(
-                os.path.isfile(
-                    os.path.join(
-                        self.machine_dict["local_root"], "test_dir/", f"out{ii}.txt"
-                    )
-                )
-            )
 
     def tearDown(self):
         shutil.rmtree(os.path.join(self.machine_dict["local_root"]))

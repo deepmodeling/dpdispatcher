@@ -1,5 +1,3 @@
-import glob
-import json
 import os
 import shutil
 import sys
@@ -9,7 +7,12 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "lsf"
-from .context import LSF, JobStatus, LocalContext, LocalSession, setUpModule
+from .context import (
+    LSF,
+    JobStatus,
+    LocalContext,
+    LocalSession,
+)
 
 
 class TestLSF(unittest.TestCase):

@@ -11,7 +11,7 @@ shell_script_header_template = """
 
 class Shell(Machine):
     def gen_script(self, job):
-        shell_script = super(Shell, self).gen_script(job)
+        shell_script = super().gen_script(job)
         return shell_script
 
     def gen_script_header(self, job):
@@ -25,8 +25,7 @@ class Shell(Machine):
         output_name = job.job_hash + ".out"
         self.context.write_file(fname=script_file_name, write_str=script_str)
         ret, stdin, stdout, stderr = self.context.block_call(
-            "cd %s && { nohup bash %s 1>>%s 2>>%s & } && echo $!"
-            % (
+            "cd {} && {{ nohup bash {} 1>>{} 2>>{} & }} && echo $!".format(
                 shlex.quote(self.context.remote_root),
                 script_file_name,
                 output_name,
@@ -101,3 +100,15 @@ class Shell(Machine):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         # print('job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
+
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        # 9 means exit, cannot be blocked
+        ret, stdin, stdout, stderr = self.context.block_call("kill -9 " + str(job_id))

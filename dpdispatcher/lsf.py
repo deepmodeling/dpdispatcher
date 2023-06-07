@@ -19,12 +19,10 @@ lsf_script_header_template = """\
 
 
 class LSF(Machine):
-    """
-    LSF batch
-    """
+    """LSF batch."""
 
     def gen_script(self, job):
-        lsf_script = super(LSF, self).gen_script(job)
+        lsf_script = super().gen_script(job)
         return lsf_script
 
     def gen_script_header(self, job):
@@ -85,8 +83,7 @@ class LSF(Machine):
 
         try:
             stdin, stdout, stderr = self.context.block_checkcall(
-                "cd %s && %s %s"
-                % (
+                "cd {} && {} {}".format(
                     shlex.quote(self.context.remote_root),
                     "bsub < ",
                     shlex.quote(script_file_name),
@@ -213,3 +210,14 @@ class LSF(Machine):
                 doc="Extra arguments.",
             )
         ]
+
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        ret, stdin, stdout, stderr = self.context.block_call("bkill " + str(job_id))

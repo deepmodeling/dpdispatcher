@@ -1,11 +1,10 @@
 import os
-import signal
 import subprocess as sp
 
 from dpdispatcher.base_context import BaseContext
 
 
-class SPRetObj(object):
+class SPRetObj:
     def __init__(self, ret):
         self.data = ret
 
@@ -21,6 +20,22 @@ class SPRetObj(object):
 
 
 class LazyLocalContext(BaseContext):
+    """Run jobs in the local server and local directory.
+
+    Parameters
+    ----------
+    local_root : str
+        The local directory to store the jobs.
+    remote_root : str, optional
+        The argument takes no effect.
+    remote_profile : dict, optional
+        The remote profile. The default is {}.
+    *args
+        The arguments.
+    **kwargs
+        The keyword arguments.
+    """
+
     def __init__(
         self,
         local_root,
@@ -29,11 +44,6 @@ class LazyLocalContext(BaseContext):
         *args,
         **kwargs,
     ):
-        """
-        local_root:
-        remote_root:
-        remote_profile:
-        """
         assert type(local_root) == str
         self.init_local_root = local_root
         self.init_remote_root = remote_root
@@ -138,7 +148,7 @@ class LazyLocalContext(BaseContext):
             fp.write(write_str)
 
     def read_file(self, fname):
-        with open(os.path.join(self.remote_root, fname), "r") as fp:
+        with open(os.path.join(self.remote_root, fname)) as fp:
             ret = fp.read()
         return ret
 
@@ -156,11 +166,8 @@ class LazyLocalContext(BaseContext):
         )
         return proc
 
-    def kill(self, job_id):
-        os.kill(job_id, signal.SIGTERM)
-
     def check_finish(self, proc):
-        return proc.poll() != None
+        return proc.poll() is not None
 
     def get_return(self, proc):
         ret = proc.poll()

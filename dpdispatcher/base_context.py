@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from dargs import Argument
 
@@ -68,9 +68,6 @@ class BaseContext(metaclass=ABCMeta):
 
     @abstractmethod
     def read_file(self, fname):
-        raise NotImplementedError("abstract method")
-
-    def kill(self, proc):
         raise NotImplementedError("abstract method")
 
     def check_finish(self, proc):

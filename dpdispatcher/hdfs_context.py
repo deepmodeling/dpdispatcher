@@ -1,4 +1,3 @@
-import hashlib
 import os
 import shutil
 import tarfile
@@ -69,18 +68,19 @@ class HDFSContext(BaseContext):
         os.remove(from_f)
 
     def upload(self, submission, dereference=True):
-        """upload forward files and forward command files to HDFS root dir
+        """Upload forward files and forward command files to HDFS root dir.
 
         Parameters
         ----------
         submission : Submission class instance
             represents a collection of tasks, such as forward file names
+        dereference : bool
+            whether to dereference symbolic links
 
         Returns
         -------
         none
         """
-
         file_list = []
 
         for task in submission.belonging_tasks:
@@ -113,18 +113,23 @@ class HDFSContext(BaseContext):
     def download(
         self, submission, check_exists=False, mark_failure=True, back_error=False
     ):
-        """download backward files from HDFS root dir
+        """Download backward files from HDFS root dir.
 
         Parameters
         ----------
         submission : Submission class instance
             represents a collection of tasks, such as backward file names
+        check_exists : bool
+            whether to check if the file exists
+        mark_failure : bool
+            whether to mark the task as failed if the file does not exist
+        back_error : bool
+            whether to download error files
 
         Returns
         -------
         none
         """
-
         cwd = os.getcwd()
 
         # download all hdfs files to tmp dir
@@ -132,7 +137,7 @@ class HDFSContext(BaseContext):
         if os.path.exists(gz_dir):
             shutil.rmtree(gz_dir, ignore_errors=True)
         os.mkdir(os.path.join(self.local_root, "tmp"))
-        rfile_tgz = "%s/%s_*_download.tar.gz" % (
+        rfile_tgz = "{}/{}_*_download.tar.gz".format(
             self.remote_root,
             submission.submission_hash,
         )
@@ -173,7 +178,7 @@ class HDFSContext(BaseContext):
                         raise RuntimeError("do not find download file " + rfile)
                 else:
                     if os.path.exists(lfile):
-                        dlog.info("find existing %s, replacing by %s" % (lfile, rfile))
+                        dlog.info(f"find existing {lfile}, replacing by {rfile}")
                         if os.path.isdir(lfile):
                             shutil.rmtree(lfile, ignore_errors=True)
                         elif os.path.isfile(lfile):
@@ -206,7 +211,7 @@ class HDFSContext(BaseContext):
                     raise RuntimeError("do not find download file " + rfile)
             else:
                 if os.path.exists(lfile):
-                    dlog.info("find existing %s, replacing by %s" % (lfile, rfile))
+                    dlog.info(f"find existing {lfile}, replacing by {rfile}")
                     if os.path.isdir(lfile):
                         shutil.rmtree(lfile, ignore_errors=True)
                     elif os.path.isfile(lfile):
@@ -217,7 +222,7 @@ class HDFSContext(BaseContext):
         shutil.rmtree(gz_dir, ignore_errors=True)
 
     def check_file_exists(self, fname):
-        """check whether the given file exists, often used in checking whether the belonging job has finished
+        """Check whether the given file exists, often used in checking whether the belonging job has finished.
 
         Parameters
         ----------
@@ -242,6 +247,3 @@ class HDFSContext(BaseContext):
 
     def read_file(self, fname):
         return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
-
-    def kill(self, job_id):
-        pass

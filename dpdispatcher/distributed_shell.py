@@ -1,5 +1,3 @@
-import subprocess as sp
-
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
@@ -118,7 +116,7 @@ class DistributedShell(Machine):
         return shell_script_header
 
     def do_submit(self, job):
-        """submit th job to yarn using distributed shell
+        """Submit th job to yarn using distributed shell.
 
         Parameters
         ----------
@@ -130,7 +128,6 @@ class DistributedShell(Machine):
         job_id: string
             submit process id
         """
-
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         job_id_name = job.job_hash + "_job_id"
@@ -139,17 +136,16 @@ class DistributedShell(Machine):
 
         resources = job.resources
         submit_command = (
-            "hadoop jar %s/hadoop-yarn-applications-distributedshell-*.jar "
+            "hadoop jar {}/hadoop-yarn-applications-distributedshell-*.jar "
             "org.apache.hadoop.yarn.applications.distributedshell.Client "
-            "-jar %s/hadoop-yarn-applications-distributedshell-*.jar "
-            '-queue %s -appname "distributedshell_dpgen_%s" '
+            "-jar {}/hadoop-yarn-applications-distributedshell-*.jar "
+            '-queue {} -appname "distributedshell_dpgen_{}" '
             "-shell_env YARN_CONTAINER_RUNTIME_TYPE=docker "
-            "-shell_env YARN_CONTAINER_RUNTIME_DOCKER_IMAGE=%s "
+            "-shell_env YARN_CONTAINER_RUNTIME_DOCKER_IMAGE={} "
             "-shell_env ENV_DOCKER_CONTAINER_SHM_SIZE='600m' "
             "-master_memory 1024 -master_vcores 2 -num_containers 1 "
-            "-container_resources memory-mb=%s,vcores=%s "
-            "-shell_script /tmp/%s"
-            % (
+            "-container_resources memory-mb={},vcores={} "
+            "-shell_script /tmp/{}".format(
                 resources.kwargs.get("yarn_path", ""),
                 resources.kwargs.get("yarn_path", ""),
                 resources.queue_name,
@@ -161,7 +157,7 @@ class DistributedShell(Machine):
             )
         )
 
-        cmd = "{ nohup %s 1>%s 2>%s & } && echo $!" % (
+        cmd = "{{ nohup {} 1>{} 2>{} & }} && echo $!".format(
             submit_command,
             output_name,
             output_name,

@@ -2,7 +2,7 @@ import json
 import pathlib
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from dargs import Argument, Variant
 
@@ -119,7 +119,7 @@ class Machine(metaclass=ABCMeta):
 
     @classmethod
     def load_from_json(cls, json_path):
-        with open(json_path, "r") as f:
+        with open(json_path) as f:
             machine_dict = json.load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
@@ -186,9 +186,7 @@ class Machine(metaclass=ABCMeta):
 
     @abstractmethod
     def do_submit(self, job):
-        """
-        submit a single job, assuming that no job is running there.
-        """
+        """Submit a single job, assuming that no job is running there."""
         raise NotImplementedError(
             "abstract method do_submit should be implemented by derived class"
         )
@@ -379,8 +377,12 @@ class Machine(metaclass=ABCMeta):
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
             # TODO: add default to local_root and remote_root after refactor the code
-            Argument("local_root", [str, None], optional=False, doc=doc_local_root),
-            Argument("remote_root", [str, None], optional=True, doc=doc_remote_root),
+            Argument(
+                "local_root", [str, type(None)], optional=False, doc=doc_local_root
+            ),
+            Argument(
+                "remote_root", [str, type(None)], optional=True, doc=doc_remote_root
+            ),
             Argument(
                 "clean_asynchronously",
                 bool,
@@ -441,3 +443,15 @@ class Machine(metaclass=ABCMeta):
                 "kwargs", dict, optional=True, doc="This field is empty for this batch."
             )
         ]
+
+    def kill(self, job):
+        """Kill the job.
+
+        If not implemented, pass and let the user manually kill it.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        dlog.warning("Job %s should be manually killed" % job.job_id)

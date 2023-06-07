@@ -21,9 +21,9 @@ To avoid running multiple jobs at the same time, one could set {dargs:argument}`
 One needs to make sure slurm has been setup in the remote server and the related environment is activated.
 
 When `SlurmJobArray` is used, dpdispatcher submits Slurm jobs with [job arrays](https://slurm.schedmd.com/job_array.html).
-In this way, a dpdispatcher {class}`task <dpdispatcher.submission.Task>` maps to a Slurm job and a dpdispatcher {class}`job <dpdispatcher.submission.Job>` maps to a Slurm job array.
+In this way, several dpdispatcher {class}`task <dpdispatcher.submission.Task>`s map to a Slurm job and a dpdispatcher {class}`job <dpdispatcher.submission.Job>` maps to a Slurm job array.
 Millions of Slurm jobs can be submitted quickly and Slurm can execute all Slurm jobs at the same time.
-One can use {dargs:argument}`group_size <resources/group_size>` to control how many Slurm jobs are contained in a Slurm job array.
+One can use {dargs:argument}`group_size <resources/group_size>` and {dargs:argument}`slurm_job_size <resources[SlurmJobArray]/kwargs/slurm_job_size>` to control how many Slurm jobs are contained in a Slurm job array.
 
 ## OpenPBS or PBSPro
 

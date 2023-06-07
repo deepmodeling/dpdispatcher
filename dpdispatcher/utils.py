@@ -4,7 +4,7 @@ import hmac
 import struct
 import subprocess
 import time
-from typing import Callable, Iterable, Optional, Type, Union
+from typing import Callable, Optional, Type, Union
 
 from dpdispatcher import dlog
 
@@ -133,7 +133,7 @@ def rsync(
     ]
     ret, out, err = run_cmd_with_all_output(cmd, shell=False)
     if ret != 0:
-        raise RuntimeError("Failed to run %s: %s" % (cmd, err))
+        raise RuntimeError(f"Failed to run {cmd}: {err}")
 
 
 class RetrySignal(Exception):

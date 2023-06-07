@@ -53,7 +53,9 @@ class DPTest(unittest.TestCase):
     def test_commit_job(self):
         print("----------", sys._getframe().f_code.co_name)
         file_uuid = uuid.uuid1().hex
-        oss_task_zip = os.path.join("%s/%s/%s.zip" % ("indicate", file_uuid, file_uuid))
+        oss_task_zip = os.path.join(
+            "{}/{}/{}.zip".format("indicate", file_uuid, file_uuid)
+        )
         zip_path = "/home/felix/workplace/22_dpdispatcher/dpdispatcher-yfb/dpdispatcher/dpcloudserver/t.txt"
         zip_task_file = zip_path + ".zip"
         zip_files(zip_path, zip_task_file, [])

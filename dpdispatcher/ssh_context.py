@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 import os
 import pathlib
@@ -24,7 +23,7 @@ from dpdispatcher.base_context import BaseContext
 from dpdispatcher.utils import RetrySignal, generate_totp, get_sha256, retry, rsync
 
 
-class SSHSession(object):
+class SSHSession:
     def __init__(
         self,
         hostname,
@@ -117,7 +116,7 @@ class SSHSession(object):
     #     transport = self.ssh.get_transport()
     #     transport.set_keepalive(60)
 
-    @retry(max_retry=3, sleep=1)
+    @retry(max_retry=6, sleep=1)
     def _setup_ssh(self):
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
@@ -200,7 +199,7 @@ class SSHSession(object):
                 ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
                 # since the asynchrony of interactive authentication, one addtional try is added
-                # retry for up to 3 times
+                # retry for up to 6 times
                 raise RetrySignal("Authentication failed")
         elif key_ok:
             pass
@@ -214,15 +213,19 @@ class SSHSession(object):
             raise RuntimeError("Please provide at least one form of authentication")
         assert ts.is_active()
         # Opening a session creates a channel along the socket to the server
-        ts.open_session(timeout=self.timeout)
+        try:
+            ts.open_session(timeout=self.timeout)
+        except paramiko.ssh_exception.SSHException:
+            # retry for up to 6 times
+            # ref: https://github.com/paramiko/paramiko/issues/1508
+            raise RetrySignal("Opening session failed")
         ts.set_keepalive(60)
         self.ssh._transport = ts  # type: ignore
         # reset sftp
         self._sftp = None
 
     def inter_handler(self, title, instructions, prompt_list):
-        """
-        inter_handler: the callback for paramiko.transport.auth_interactive
+        """inter_handler: the callback for paramiko.transport.auth_interactive.
 
         The prototype for this function is defined by Paramiko, so all of the
         arguments need to be there, even though we don't use 'title' or
@@ -241,7 +244,6 @@ class SSHSession(object):
         Experiments suggest that the username prompt never happens. This makes
         sense, but the Username prompt is included here just in case.
         """
-
         resp = []  # Initialize the response container
 
         # Walk the list of prompts that the server sent that we need to answer
@@ -326,14 +328,14 @@ class SSHSession(object):
             Argument("port", int, optional=True, default=22, doc=doc_port),
             Argument(
                 "key_filename",
-                [str, None],
+                [str, type(None)],
                 optional=True,
                 default=None,
                 doc=doc_key_filename,
             ),
             Argument(
                 "passphrase",
-                [str, None],
+                [str, type(None)],
                 optional=True,
                 default=None,
                 doc=doc_passphrase,
@@ -393,7 +395,7 @@ class SSHSession(object):
 
     @property
     def remote(self) -> str:
-        return "%s@%s" % (self.username, self.hostname)
+        return f"{self.username}@{self.hostname}"
 
 
 class SSHContext(BaseContext):
@@ -410,7 +412,7 @@ class SSHContext(BaseContext):
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
-        assert os.path.isabs(remote_root), f"remote_root must be a abspath"
+        assert os.path.isabs(remote_root), "remote_root must be a abspath"
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
         self.remote_root = None
@@ -568,7 +570,7 @@ class SSHContext(BaseContext):
         file_list = []
         directory_list = []
         for task in submission.belonging_tasks:
-            directory_list.append(task.task_work_path)
+            directory_list.append(os.path.join(self.local_root, task.task_work_path))
             #     file_list.append(ii)
             self._walk_directory(
                 task.forward_files,
@@ -579,6 +581,9 @@ class SSHContext(BaseContext):
         self._walk_directory(
             submission.forward_common_files, self.local_root, file_list, directory_list
         )
+
+        # convert to relative path to local_root
+        directory_list = [os.path.relpath(jj, self.local_root) for jj in directory_list]
 
         # check if the same file exists on the remote file
         # only check sha256 when the job is recovered
@@ -673,6 +678,10 @@ class SSHContext(BaseContext):
             The command to run.
         asynchronously : bool, optional, default=False
             Run command asynchronously. If True, `nohup` will be used to run the command.
+        stderr_whitelist : list of str, optional, default=None
+            If not None, the stderr will be checked against the whitelist. If the stderr
+            contains any of the strings in the whitelist, the command will be considered
+            successful.
         """
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
@@ -717,7 +726,7 @@ class SSHContext(BaseContext):
             fp.write(write_str)
         # sftp.rename may throw OSError
         self.block_checkcall(
-            "mv %s %s" % (shlex.quote(fname + "~"), shlex.quote(fname))
+            "mv {} {}".format(shlex.quote(fname + "~"), shlex.quote(fname))
         )
 
     def read_file(self, fname):
@@ -737,7 +746,7 @@ class SSHContext(BaseContext):
                 pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
             )
             ret = True
-        except IOError:
+        except OSError:
             ret = False
         return ret
 
@@ -757,12 +766,6 @@ class SSHContext(BaseContext):
         else:
             retcode = cmd_pipes["stdout"].channel.recv_exit_status()
             return retcode, cmd_pipes["stdout"], cmd_pipes["stderr"]
-
-    def kill(self, cmd_pipes):
-        raise RuntimeError(
-            "dose not work! we do not know how to kill proc through paramiko.SSHClient"
-        )
-        # self.block_checkcall('kill -15 %s' % cmd_pipes['pid'])
 
     def _rmtree(self, remotepath, verbose=False):
         """Remove the remote path."""
@@ -843,8 +846,7 @@ class SSHContext(BaseContext):
             self.ssh_session.put(from_f, to_f)
         except FileNotFoundError:
             raise FileNotFoundError(
-                "from %s to %s @ %s : %s Error!"
-                % (from_f, self.ssh_session.username, self.ssh_session.hostname, to_f)
+                f"from {from_f} to {self.ssh_session.username} @ {self.ssh_session.hostname} : {to_f} Error!"
             )
         # remote extract
         self.block_checkcall("tar xf %s" % of)
@@ -873,8 +875,7 @@ class SSHContext(BaseContext):
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
             self.block_checkcall(
-                "tar %s %s %s"
-                % (
+                "tar {} {} {}".format(
                     tar_command,
                     shlex.quote(of),
                     " ".join([shlex.quote(file) for file in files]),
@@ -886,8 +887,7 @@ class SSHContext(BaseContext):
             )
             self.write_file(file_list_file, "\n".join(files))
             self.block_checkcall(
-                "tar %s %s -T %s"
-                % (tar_command, shlex.quote(of), shlex.quote(file_list_file))
+                f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
             )
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
