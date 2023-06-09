@@ -198,7 +198,7 @@ class Client:
     ):
         post_data = {
             "job_type": job_type,
-            "oss_path": [oss_path],
+            "oss_path": oss_path,
         }
         if program_id is not None:
             post_data["project_id"] = program_id
