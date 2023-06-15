@@ -42,6 +42,8 @@ except ImportError:
 
 from .distributed_shell import DistributedShell
 from .dp_cloud_server import DpCloudServer, Lebesgue
+from .openapi import OpenAPI
+from .openapi_context import OpenAPIContext
 from .dp_cloud_server_context import DpCloudServerContext, LebesgueContext
 from .hdfs_context import HDFSContext
 from .lazy_local_context import LazyLocalContext
@@ -76,6 +78,8 @@ __all__ = [
     "__version__",
     "DistributedShell",
     "DpCloudServer",
+    "OpenAPI",
+    "OpenAPIContext",
     "DpCloudServerContext",
     "HDFSContext",
     "LazyLocalContext",
