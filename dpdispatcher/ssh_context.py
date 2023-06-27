@@ -502,6 +502,14 @@ class SSHContext(BaseContext):
             self.block_checkcall(
                 f"mv {shlex.quote(old_remote_root)} {shlex.quote(self.remote_root)}"
             )
+        elif (
+            old_remote_root is not None
+            and old_remote_root != self.remote_root
+            and self.check_file_exists(old_remote_root)
+            and not len(self.ssh_session.sftp.listdir(old_remote_root))
+        ):
+            # if the new directory exists and the old directory does not contain files, then move the old directory
+            self._rmtree(old_remote_root)
 
         sftp = self.ssh_session.ssh.open_sftp()
         try:
