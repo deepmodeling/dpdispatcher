@@ -36,6 +36,7 @@ class TestSSHContext(unittest.TestCase):
                 "key_filename": "/root/.ssh/id_rsa",
             },
         }
+        cls.mdata = mdata
         try:
             cls.machine = Machine.load_from_dict(mdata)
         except (SSHException, socket.timeout):
@@ -146,9 +147,9 @@ class TestSSHContext(unittest.TestCase):
         except RuntimeError:
             # expected to fail, try again
             # reinit machine to test machine recover
-            machine = Machine.load_from_dict(self.machine.serialize())
+            machine = Machine.load_from_dict(self.mdata)
             resources = Resources.load_from_dict(resources.serialize())
-            task = Task(task.serialize())
+            task = Task.deserialize(task.serialize())
 
             submission = Submission(
                 work_base="./",
