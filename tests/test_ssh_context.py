@@ -113,6 +113,40 @@ class TestSSHContext(unittest.TestCase):
         )
         submission.run_submission()
 
+    def test_recover(self):
+        """Test recover from a previous submission."""
+        machine = Machine.load_from_dict(self.machine.serialize())
+        resources = Resources.load_from_dict(
+            {
+                "number_node": 1,
+                "cpu_per_node": 1,
+                "gpu_per_node": 0,
+                "queue_name": "?",
+                "group_size": 1,
+            }
+        )
+        task = Task(
+            command="touch times && echo 1 >> times && test $(wc -l < times) -gt 3 && echo done",
+            task_work_path="./",
+            forward_files=[],
+            backward_files=[],
+            outlog="out.txt",
+        )
+
+        submission = Submission(
+            work_base="./",
+            machine=machine,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            task_list=[task],
+        )
+        try:
+            submission.run_submission()
+        except RuntimeError:
+            # expected to fail, try again
+            submission.run_submission()
+
     def test_download(self):
         self.context.download(self.__class__.submission)
 
