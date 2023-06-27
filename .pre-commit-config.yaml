@@ -22,7 +22,7 @@ repos:
     -   id: black-jupyter
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
     # Ruff version.
-    rev: v0.0.270
+    rev: v0.0.275
     hooks:
     - id: ruff
       args: ["--fix"]
@@ -34,6 +34,6 @@ repos:
       args: ["--write"]
 # Python inside docs
 -   repo: https://github.com/asottile/blacken-docs
-    rev: 1.13.0
+    rev: 1.14.0
     hooks:
     -   id: blacken-docs
