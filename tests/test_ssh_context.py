@@ -145,6 +145,19 @@ class TestSSHContext(unittest.TestCase):
             submission.run_submission()
         except RuntimeError:
             # expected to fail, try again
+            # reinit machine to test machine recover
+            machine = Machine.load_from_dict(self.machine.serialize())
+            resources = Resources.load_from_dict(resources.serialize())
+            task = Task(task.serialize())
+
+            submission = Submission(
+                work_base="./",
+                machine=machine,
+                resources=resources,
+                forward_common_files=[],
+                backward_common_files=[],
+                task_list=[task],
+            )
             submission.run_submission()
 
     def test_download(self):
