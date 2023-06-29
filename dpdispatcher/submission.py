@@ -201,7 +201,9 @@ class Submission:
             self.local_root = machine.context.temp_local_root
         return self
 
-    def run_submission(self, *, dry_run=False, exit_on_submit=False, clean=True, check_interval=30):
+    def run_submission(
+        self, *, dry_run=False, exit_on_submit=False, clean=True, check_interval=30
+    ):
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -263,7 +265,7 @@ class Submission:
         return self.serialize()
 
     async def async_run_submission(self, **kwargs):
-        """Async interface of run_submission
+        """Async interface of run_submission.
 
         Examples
         --------
@@ -292,8 +294,10 @@ class Submission:
         """
         kwargs = {**{"clean": False}, **kwargs}
         if kwargs["clean"]:
-            dlog.warning("Using async submission with `clean=True`, "
-                         "job may fail in queue system")
+            dlog.warning(
+                "Using async submission with `clean=True`, "
+                "job may fail in queue system"
+            )
         loop = asyncio.get_event_loop()
         wrapped_submission = functools.partial(self.run_submission, **kwargs)
         return await loop.run_in_executor(None, wrapped_submission)
