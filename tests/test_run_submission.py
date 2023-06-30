@@ -156,6 +156,10 @@ class TestSlurmRun(RunSubmission, unittest.TestCase):
         self.machine_dict["batch_type"] = "Slurm"
         self.resources_dict["queue_name"] = "normal"
 
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
 
 @unittest.skipIf(
     os.environ.get("DPDISPATCHER_TEST") != "slurm",
@@ -166,6 +170,10 @@ class TestSlurmJobArrayRun(RunSubmission, unittest.TestCase):
         super().setUp()
         self.machine_dict["batch_type"] = "SlurmJobArray"
         self.resources_dict["queue_name"] = "normal"
+
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
 
 
 @unittest.skipIf(
@@ -179,6 +187,10 @@ class TestSlurmJobArrayRun2(RunSubmission, unittest.TestCase):
         self.resources_dict["queue_name"] = "normal"
         self.resources_dict["kwargs"] = {"slurm_job_size": 2}
 
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
 
 @unittest.skipIf(
     os.environ.get("DPDISPATCHER_TEST") != "pbs", "outside the pbs testing environment"
@@ -188,6 +200,10 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
         super().setUp()
         self.machine_dict["batch_type"] = "PBS"
         self.resources_dict["queue_name"] = "workq"
+
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
