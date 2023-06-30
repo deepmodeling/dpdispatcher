@@ -1,5 +1,7 @@
 # %%
+import asyncio
 import copy
+import functools
 import json
 import os
 import pathlib
@@ -199,7 +201,9 @@ class Submission:
             self.local_root = machine.context.temp_local_root
         return self
 
-    def run_submission(self, *, dry_run=False, exit_on_submit=False, clean=True):
+    def run_submission(
+        self, *, dry_run=False, exit_on_submit=False, clean=True, check_interval=30
+    ):
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -240,7 +244,7 @@ class Submission:
                 break
 
             try:
-                time.sleep(30)
+                time.sleep(check_interval)
             except (Exception, KeyboardInterrupt, SystemExit) as e:
                 self.submission_to_json()
                 dlog.exception(e)
@@ -259,6 +263,44 @@ class Submission:
         if clean:
             self.clean_jobs()
         return self.serialize()
+
+    async def async_run_submission(self, **kwargs):
+        """Async interface of run_submission.
+
+        Examples
+        --------
+        >>> import asyncio
+        >>> from dpdispacher import Machine, Resource, Submission
+        >>> async def run_jobs():
+        ...     backgroud_task = set()
+        ...     # task1
+        ...     task1 = Task(...)
+        ...     submission1 = Submission(..., task_list=[task1])
+        ...     background_task = asyncio.create_task(
+        ...         submission1.async_run_submission(check_interval=2, clean=False)
+        ...     )
+        ...     # task2
+        ...     task2 = Task(...)
+        ...     submission2 = Submission(..., task_list=[task1])
+        ...     background_task = asyncio.create_task(
+        ...         submission2.async_run_submission(check_interval=2, clean=False)
+        ...     )
+        ...     background_tasks.add(background_task)
+        ...     result = await asyncio.gather(*background_tasks)
+        ...     return result
+        >>> run_jobs()
+
+        May raise Error if pass `clean=True` explicitly when submit to pbs or slurm.
+        """
+        kwargs = {**{"clean": False}, **kwargs}
+        if kwargs["clean"]:
+            dlog.warning(
+                "Using async submission with `clean=True`, "
+                "job may fail in queue system"
+            )
+        loop = asyncio.get_event_loop()
+        wrapped_submission = functools.partial(self.run_submission, **kwargs)
+        return await loop.run_in_executor(None, wrapped_submission)
 
     def update_submission_state(self):
         """Check whether all the jobs in the submission.
