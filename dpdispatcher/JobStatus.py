@@ -2,6 +2,7 @@ from enum import IntEnum
 
 
 class JobStatus(IntEnum):
+    failed = -1
     unsubmitted = 1
     waiting = 2
     running = 3

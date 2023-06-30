@@ -229,7 +229,7 @@ class Bohrium(Machine):
         if isinstance(status, JobStatus):
             return status
         map_dict = {
-            -1: JobStatus.terminated,
+            -1: JobStatus.failed,
             0: JobStatus.waiting,
             1: JobStatus.running,
             2: JobStatus.finished,
