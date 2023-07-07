@@ -51,6 +51,7 @@ from .machine import Machine
 from .pbs import PBS, Torque
 from .shell import Shell
 from .slurm import Slurm
+from .fugaku import Fugaku
 from .ssh_context import SSHContext
 from .submission import Job, Resources, Submission, Task
 
