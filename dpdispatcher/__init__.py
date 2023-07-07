@@ -43,6 +43,7 @@ except ImportError:
 from .distributed_shell import DistributedShell
 from .dp_cloud_server import DpCloudServer, Lebesgue
 from .dp_cloud_server_context import DpCloudServerContext, LebesgueContext
+from .fugaku import Fugaku
 from .hdfs_context import HDFSContext
 from .lazy_local_context import LazyLocalContext
 from .local_context import LocalContext
@@ -51,7 +52,6 @@ from .machine import Machine
 from .pbs import PBS, Torque
 from .shell import Shell
 from .slurm import Slurm
-from .fugaku import Fugaku
 from .ssh_context import SSHContext
 from .submission import Job, Resources, Submission, Task
 

@@ -21,18 +21,18 @@ class Fugaku(Machine):
         fugaku_script_header_dict = {}
         fugaku_script_header_dict[
             "fugaku_node_number_line"
-        ] = "#PJM -L \"node={number_node}\" ".format(
-            number_node=resources.number_node
-        )
+        ] = f'#PJM -L "node={resources.number_node}" '
         fugaku_script_header_dict[
             "fugaku_ntasks_per_node_line"
-        ] = "#PJM --mpi \"max-proc-per-node={cpu_per_node}\"".format(
+        ] = '#PJM --mpi "max-proc-per-node={cpu_per_node}"'.format(
             cpu_per_node=resources.cpu_per_node
         )
-        fugaku_script_header_dict["queue_name_line"] = "#PJM -L \"rscgrp={queue_name}\"".format(
-            queue_name=resources.queue_name
+        fugaku_script_header_dict[
+            "queue_name_line"
+        ] = f'#PJM -L "rscgrp={resources.queue_name}"'
+        fugaku_script_header = fugaku_script_header_template.format(
+            **fugaku_script_header_dict
         )
-        fugaku_script_header = fugaku_script_header_template.format(**fugaku_script_header_dict)
         return fugaku_script_header
 
     def do_submit(self, job):
@@ -47,8 +47,7 @@ class Fugaku(Machine):
         # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'pjsub', script_file_name))
 
         stdin, stdout, stderr = self.context.block_checkcall(
-            "cd %s && %s %s"
-            % (shlex.quote(script_file_dir), "pjsub", shlex.quote(script_file_name))
+            "cd {} && {} {}".format(shlex.quote(script_file_dir), "pjsub", shlex.quote(script_file_name))
         )
         subret = stdout.readlines()
         job_id = subret[0].split()[5]
@@ -66,7 +65,7 @@ class Fugaku(Machine):
         err_str = stderr.read().decode("utf-8")
         try:
             status_line = stdout.read().decode("utf-8").split("\n")[-2]
-        #pjstat only retrun 0 if the job is not waiting or running
+        # pjstat only retrun 0 if the job is not waiting or running
         except Exception:
             ret, stdin, stdout, stderr = self.context.block_call("pjstat -H  " + job_id)
             status_line = stdout.read().decode("utf-8").split("\n")[-2]
@@ -91,4 +90,3 @@ class Fugaku(Machine):
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
-
