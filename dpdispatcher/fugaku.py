@@ -47,7 +47,9 @@ class Fugaku(Machine):
         # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'pjsub', script_file_name))
 
         stdin, stdout, stderr = self.context.block_checkcall(
-            "cd {} && {} {}".format(shlex.quote(script_file_dir), "pjsub", shlex.quote(script_file_name))
+            "cd {} && {} {}".format(
+                shlex.quote(script_file_dir), "pjsub", shlex.quote(script_file_name)
+            )
         )
         subret = stdout.readlines()
         job_id = subret[0].split()[5]
