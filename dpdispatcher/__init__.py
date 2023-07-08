@@ -86,6 +86,7 @@ __all__ = [
     "PBS",
     "Shell",
     "Slurm",
+    "Fugaku",
     "SSHContext",
     "Submission",
     "Task",
