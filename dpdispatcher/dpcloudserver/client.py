@@ -35,6 +35,7 @@ class Client:
         self.config["password"] = password
         self.base_url = base_url
         self.last_log_offset = 0
+        self.ticket = os.environ.get("BOHR_TICKET", "")
 
     def post(self, url, data=None, header=None, params=None, retry=5):
         return self._req(
@@ -52,6 +53,7 @@ class Client:
         if not self.token:
             self.refresh_token()
         header["Authorization"] = f"jwt {self.token}"
+        header["Brm-Ticket"] = self.ticket
         resp_code = None
         err = None
         for i in range(retry):
