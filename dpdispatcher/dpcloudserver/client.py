@@ -52,8 +52,7 @@ class Client:
             header = {}
         if not self.token:
             self.refresh_token()
-        if not self.ticket:
-            self.ticket = os.environ.get("BOHR_TICKET", "")
+        self.ticket = os.environ.get("BOHR_TICKET", "")
         header["Authorization"] = f"jwt {self.token}"
         header["Brm-Ticket"] = self.ticket
         resp_code = None
@@ -100,6 +99,7 @@ class Client:
         self.user_id = resp["user_id"]
 
     def refresh_token(self, retry=3):
+        self.ticket = os.environ.get("BOHR_TICKET", "")
         if self.ticket is not None:
             return
         url = "/account/login"
