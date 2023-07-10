@@ -21,7 +21,7 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
 ENDPOINT = "http://oss-cn-shenzhen.aliyuncs.com"
-BUCKET_NAME = "dpcloudserver"
+BUCKET_NAME = os.environ.get("BUCKET_NAME", "dpcloudserver")
 
 
 class BohriumContext(BaseContext):
@@ -44,7 +44,7 @@ class BohriumContext(BaseContext):
         phone = remote_profile.get("phone", None)
         password = remote_profile.get("password")
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
-        
+
         if ticket is not None:
             self.api = Client(ticket=ticket)
             return
@@ -295,7 +295,7 @@ class BohriumContext(BaseContext):
                 dict,
                 [
                     Argument("email", str, optional=True, doc="Email"),
-                    Argument("password", str, optional=False, doc="Password"),
+                    Argument("password", str, optional=True, doc="Password"),
                     Argument(
                         "program_id",
                         int,
