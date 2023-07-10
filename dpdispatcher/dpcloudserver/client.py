@@ -25,7 +25,9 @@ class RequestInfoException(Exception):
 
 
 class Client:
-    def __init__(self, email=None, password=None, debug=False, ticket=None, base_url=API_HOST):
+    def __init__(
+        self, email=None, password=None, debug=False, ticket=None, base_url=API_HOST
+    ):
         self.debug = debug
         self.debug = os.getenv("LBG_CLI_DEBUG_PRINT", debug)
         self.config = {}

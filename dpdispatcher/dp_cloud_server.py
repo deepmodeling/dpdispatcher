@@ -36,8 +36,8 @@ class Bohrium(Machine):
         if ticket:
             self.api = Client(ticket=ticket)
             self.group_id = None
-            return 
-        
+            return
+
         if email is None and username is not None:
             raise DeprecationWarning(
                 "username is no longer support in current version, "

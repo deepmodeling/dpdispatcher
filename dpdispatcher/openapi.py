@@ -1,21 +1,15 @@
 import os
 import shutil
 import time
-import uuid
-import warnings
-import requests
+
 from bohriumsdk.client import Client
 from bohriumsdk.job import Job
 from bohriumsdk.storage import Storage
 from bohriumsdk.util import Util
 
 from dpdispatcher import dlog
-
-from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-
-
 
 shell_script_header_template = """
 #!/bin/bash -l
@@ -23,7 +17,6 @@ shell_script_header_template = """
 
 
 class OpenAPI(Machine):
-
     def __init__(self, context):
         self.context = context
         self.remote_profile = context.remote_profile.copy()
@@ -35,7 +28,7 @@ class OpenAPI(Machine):
         self.group_id = None
 
     def gen_script(self, job):
-        shell_script = super(OpenAPI, self).gen_script(job)
+        shell_script = super().gen_script(job)
         return shell_script
 
     def gen_script_header(self, job):
@@ -62,25 +55,27 @@ class OpenAPI(Machine):
         self.gen_local_script(job)
 
         project_id = self.remote_profile.get("project_id", 0)
-    
+
         openapi_params = {
             "oss_path": job.upload_path,
-            'input_file_type': 3,
-            'input_file_method': 1,
+            "input_file_type": 3,
+            "input_file_method": 1,
             "job_type": "container",
             "job_name": self.remote_profile.get("job_name", "DP-GEN"),
             "project_id": project_id,
             "scass_type": self.remote_profile.get("machine_type", ""),
             "cmd": f"bash {job.script_file_name}",
-            "log_files": os.path.join(job.job_task_list[0].task_work_path, job.job_task_list[0].outlog),
+            "log_files": os.path.join(
+                job.job_task_list[0].task_work_path, job.job_task_list[0].outlog
+            ),
             "out_files": self._gen_backward_files_list(job),
             "platform": self.remote_profile.get("platform", "ali"),
             "image_address": self.remote_profile.get("image_address", ""),
-            "job_id": job.job_id
+            "job_id": job.job_id,
         }
 
         data = self.job.insert(**openapi_params)
-        
+
         job.job_id = data.get("jobId")
         # self.job_group_id = data.get("jobGroupId")
         job.job_state = JobStatus.waiting
@@ -158,8 +153,6 @@ class OpenAPI(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    
-
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         dlog.info("check if job finished: ", job.job_id, job_tag_finished)
@@ -194,4 +187,3 @@ class OpenAPI(Machine):
     # def check_finish_tag(self, job):
     #     job_tag_finished = job.job_hash + '_job_tag_finished'
     #     return self.context.check_file_exists(job_tag_finished)
-

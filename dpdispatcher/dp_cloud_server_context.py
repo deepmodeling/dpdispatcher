@@ -64,8 +64,6 @@ class BohriumContext(BaseContext):
 
         self.api = Client(account, password)
 
-        
-
     @classmethod
     def load_from_dict(cls, context_dict):
         local_root = context_dict["local_root"]

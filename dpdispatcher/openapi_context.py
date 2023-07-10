@@ -1,20 +1,24 @@
 import os
-from dpdispatcher.base_context import BaseContext
-from bohriumsdk.client import Client
-from bohriumsdk.storage import Storage
-from bohriumsdk.job import Job
-from bohriumsdk.util import Util
-import uuid
-import tqdm
 import shutil
+import uuid
+
+import tqdm
+from bohriumsdk.client import Client
+from bohriumsdk.job import Job
+from bohriumsdk.storage import Storage
+from bohriumsdk.util import Util
+
 from dpdispatcher import dlog
+from dpdispatcher.base_context import BaseContext
 from dpdispatcher.JobStatus import JobStatus
+
 # 引入一个sqlite数据库，存储job相关信息
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
-class OpenAPIContext(BaseContext):
 
+
+class OpenAPIContext(BaseContext):
     def __init__(
         self,
         local_root,
@@ -45,7 +49,7 @@ class OpenAPIContext(BaseContext):
             remote_profile=remote_profile,
         )
         return bohrium_context
-    
+
     def bind_submission(self, submission):
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
@@ -60,12 +64,12 @@ class OpenAPIContext(BaseContext):
             return job.upload_path
         else:
             project_id = self.remote_profile.get("project_id")
-        
+
             uid = uuid.uuid4()
             path = os.path.join(str(project_id), str(uid), zip_filename)
             setattr(job, "upload_path", path)
             return path
-        
+
     def upload_job(self, job, common_files=None):
         if common_files is None:
             common_files = []
@@ -87,23 +91,24 @@ class OpenAPIContext(BaseContext):
             self.local_root, zip_task_file, file_list=upload_file_list
         )
         project_id = self.remote_profile.get("project_id", 0)
-        
+
         data = self.job.create(
-            project_id=project_id, 
-            name=self.remote_profile.get("job_name", "DP-GEN"), 
-            group_id=self.jgid
+            project_id=project_id,
+            name=self.remote_profile.get("job_name", "DP-GEN"),
+            group_id=self.jgid,
         )
         self.jgid = data["jobGroupId"]
         token = data["token"]
 
         object_key = os.path.join(data["storePath"], zip_filename)
-        job.upload_path = object_key 
+        job.upload_path = object_key
         job.job_id = data["jobId"]
         job.jgid = data["jobGroupId"]
-        self.storage.upload_From_file_multi_part(object_key=object_key, file_path=upload_zip, token=token)
-        
-        # self._backup(self.local_root, upload_zip)
+        self.storage.upload_From_file_multi_part(
+            object_key=object_key, file_path=upload_zip, token=token
+        )
 
+        # self._backup(self.local_root, upload_zip)
 
     def upload(self, submission):
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
@@ -180,7 +185,7 @@ class OpenAPIContext(BaseContext):
             self.local_root, keep_backup=self.remote_profile.get("keep_backup", True)
         )
         return True
-    
+
     def write_file(self, fname, write_str):
         result = self.write_home_file(fname, write_str)
         return result
@@ -220,7 +225,7 @@ class OpenAPIContext(BaseContext):
         submission_json = os.path.join(DP_CLOUD_SERVER_HOME_DIR, submission_file_name)
         os.remove(submission_json)
         return True
-    
+
     def _check_if_job_has_already_downloaded(self, target, local_root):
         backup_file_location = os.path.join(
             local_root, "backup", os.path.split(target)[1]
@@ -229,7 +234,7 @@ class OpenAPIContext(BaseContext):
             return True
         else:
             return False
-        
+
     def _backup(self, local_root, target):
         try:
             # move to backup directory
