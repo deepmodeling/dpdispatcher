@@ -100,7 +100,7 @@ class Client:
 
     def refresh_token(self, retry=3):
         self.ticket = os.environ.get("BOHR_TICKET", "")
-        if self.ticket is not None:
+        if self.ticket:
             return
         url = "/account/login"
         post_data = {"email": self.config["email"], "password": self.config["password"]}

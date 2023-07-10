@@ -31,6 +31,13 @@ class Bohrium(Machine):
         phone = context.remote_profile.get("phone", None)
         username = context.remote_profile.get("username", None)
         password = context.remote_profile.get("password", None)
+
+        ticket = os.environ.get("BOHR_TICKET", None)
+        if ticket:
+            self.api = Client(ticket=ticket)
+            self.group_id = None
+            return 
+        
         if email is None and username is not None:
             raise DeprecationWarning(
                 "username is no longer support in current version, "
