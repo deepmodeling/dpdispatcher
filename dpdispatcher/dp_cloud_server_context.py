@@ -39,9 +39,16 @@ class BohriumContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
+        ticket = os.environ.get("BOHR_TICKET", None)
         email = remote_profile.get("email", None)
         phone = remote_profile.get("phone", None)
         password = remote_profile.get("password")
+        os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
+        
+        if ticket is not None:
+            self.api = Client(ticket=ticket)
+            return
+
         if email is None and phone is None:
             raise ValueError(
                 "can not find email/phone number in remote_profile, please check your machine file."
@@ -57,7 +64,7 @@ class BohriumContext(BaseContext):
 
         self.api = Client(account, password)
 
-        os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
+        
 
     @classmethod
     def load_from_dict(cls, context_dict):

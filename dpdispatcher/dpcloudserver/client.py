@@ -25,7 +25,7 @@ class RequestInfoException(Exception):
 
 
 class Client:
-    def __init__(self, email=None, password=None, debug=False, base_url=API_HOST):
+    def __init__(self, email=None, password=None, debug=False, ticket=None, base_url=API_HOST):
         self.debug = debug
         self.debug = os.getenv("LBG_CLI_DEBUG_PRINT", debug)
         self.config = {}
@@ -35,7 +35,7 @@ class Client:
         self.config["password"] = password
         self.base_url = base_url
         self.last_log_offset = 0
-        self.ticket = os.environ.get("BOHR_TICKET", "")
+        self.ticket = ticket
 
     def post(self, url, data=None, header=None, params=None, retry=5):
         return self._req(
@@ -50,7 +50,7 @@ class Client:
         url = urllib.parse.urljoin(self.base_url, url)
         if header is None:
             header = {}
-        if not self.token:
+        if not self.token and not self.ticket:
             self.refresh_token()
         header["Authorization"] = f"jwt {self.token}"
         header["Brm-Ticket"] = self.ticket
