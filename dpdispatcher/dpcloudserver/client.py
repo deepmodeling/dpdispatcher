@@ -50,7 +50,7 @@ class Client:
         url = urllib.parse.urljoin(self.base_url, url)
         if header is None:
             header = {}
-        if not self.token and not self.ticket:
+        if not self.token:
             self.refresh_token()
         header["Authorization"] = f"jwt {self.token}"
         header["Brm-Ticket"] = self.ticket
@@ -98,6 +98,8 @@ class Client:
         self.user_id = resp["user_id"]
 
     def refresh_token(self, retry=3):
+        if self.ticket is not None:
+            return
         url = "/account/login"
         post_data = {"email": self.config["email"], "password": self.config["password"]}
         resp_code = None
