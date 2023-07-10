@@ -8,6 +8,7 @@ import uuid
 import tqdm
 import shutil
 from dpdispatcher import dlog
+from dpdispatcher.JobStatus import JobStatus
 # 引入一个sqlite数据库，存储job相关信息
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
@@ -116,7 +117,8 @@ class OpenAPIContext(BaseContext):
         result = None
         dlog.info("checking all job has been uploaded")
         for job in submission.belonging_jobs:
-            job_to_be_uploaded.append(job)
+            if job.job_state == JobStatus.unsubmitted:
+                job_to_be_uploaded.append(job)
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")
             return result
