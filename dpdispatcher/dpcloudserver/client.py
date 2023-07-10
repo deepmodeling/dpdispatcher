@@ -52,6 +52,8 @@ class Client:
             header = {}
         if not self.token:
             self.refresh_token()
+        if not self.ticket:
+            self.ticket = os.environ.get("BOHR_TICKET", "")
         header["Authorization"] = f"jwt {self.token}"
         header["Brm-Ticket"] = self.ticket
         resp_code = None
