@@ -62,3 +62,11 @@ Read Bohrium documentation for details.
 
 `DistributedShell` is used to submit yarn jobs.
 Read [Support DPDispatcher on Yarn](dpdispatcher_on_yarn.md) for details.
+
+## Fugaku
+
+{dargs:argument}`batch_type <resources/batch_type>`: `Fugaku`
+
+[Fujitsu cloud service](https://doc.cloud.global.fujitsu.com/lib/common/jp/hpc-user-manual/) is a job scheduling system used by Fujitsu's HPCs such as Fugaku, ITO and K computer. It should be noted that although the same job scheduling system is used, there are some differences in the details, Fagaku class cannot be directly used for other HPCs.
+
+Read Fujitsu cloud service documentation for details.

@@ -45,6 +45,7 @@ from .dp_cloud_server import DpCloudServer, Lebesgue
 from .openapi import OpenAPI
 from .openapi_context import OpenAPIContext
 from .dp_cloud_server_context import DpCloudServerContext, LebesgueContext
+from .fugaku import Fugaku
 from .hdfs_context import HDFSContext
 from .lazy_local_context import LazyLocalContext
 from .local_context import LocalContext
@@ -89,6 +90,7 @@ __all__ = [
     "PBS",
     "Shell",
     "Slurm",
+    "Fugaku",
     "SSHContext",
     "Submission",
     "Task",
