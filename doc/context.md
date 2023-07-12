@@ -42,3 +42,11 @@ To use Bohrium, one needs to provide necessary parameters in {dargs:argument}`re
 
 The Hadoop Distributed File System (HDFS) is a distributed file system.
 Read [Support DPDispatcher on Yarn](dpdispatcher_on_yarn.md) for details.
+
+
+## OpenAPI
+
+{dargs:argument}`context_type <machine/context_type>`: `OpenAPI`
+
+OpenAPI is a new way to submit jobs to Bohrium. It using [AccessKey](https://bohrium.dp.tech/personal/setting) instead of username and password. Read Bohrium documentation for details.
+To use OpenAPI, one needs to provide necessary parameters in {dargs:argument}`remote_profile <machine[OpenAPIContext]/remote_profile>`.

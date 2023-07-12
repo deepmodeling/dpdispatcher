@@ -12,7 +12,6 @@ from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.JobStatus import JobStatus
 
-# 引入一个sqlite数据库，存储job相关信息
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
@@ -95,12 +94,12 @@ class OpenAPIContext(BaseContext):
         data = self.job.create(
             project_id=project_id,
             name=self.remote_profile.get("job_name", "DP-GEN"),
-            group_id=self.jgid,
+            group_id=self.jgid,  # type: ignore
         )
-        self.jgid = data["jobGroupId"]
-        token = data["token"]
+        self.jgid = data.get("jobGroupId", "")  # type: ignore
+        token = data.get("token", "")
 
-        object_key = os.path.join(data["storePath"], zip_filename)
+        object_key = os.path.join(data["storePath"], zip_filename)  # type: ignore
         job.upload_path = object_key
         job.job_id = data["jobId"]
         job.jgid = data["jobGroupId"]

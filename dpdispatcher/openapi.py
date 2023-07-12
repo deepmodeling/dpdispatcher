@@ -76,7 +76,7 @@ class OpenAPI(Machine):
 
         data = self.job.insert(**openapi_params)
 
-        job.job_id = data.get("jobId")
+        job.job_id = data.get("jobId", 0)  # type: ignore
         # self.job_group_id = data.get("jobGroupId")
         job.job_state = JobStatus.waiting
         return job.job_id
@@ -103,7 +103,7 @@ class OpenAPI(Machine):
             group_id = job.jgid
         check_return = self._get_job_detail(job_id, group_id)
         try:
-            dp_job_status = check_return["status"]
+            dp_job_status = check_return["status"]  # type: ignore
         except IndexError as e:
             dlog.error(
                 f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds"
@@ -111,7 +111,7 @@ class OpenAPI(Machine):
             time.sleep(60)
             retry_return = self._get_job_detail(job_id, group_id)
             try:
-                dp_job_status = retry_return["status"]
+                dp_job_status = retry_return["status"]  # type: ignore
             except IndexError as e:
                 raise RuntimeError(
                     f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}"
@@ -132,7 +132,7 @@ class OpenAPI(Machine):
     def _download_job(self, job):
         data = self.job.detail(job.job_id)
         # print(data)
-        job_url = data["jobFiles"]["outFiles"][0]["url"]
+        job_url = data["jobFiles"]["outFiles"][0]["url"]  # type: ignore
         if not job_url:
             return
         job_hash = job.job_hash
