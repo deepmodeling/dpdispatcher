@@ -97,12 +97,12 @@ class OpenAPIContext(BaseContext):
             group_id=self.jgid,  # type: ignore
         )
         self.jgid = data.get("jobGroupId", "")  # type: ignore
-        token = data.get("token", "") # type: ignore
+        token = data.get("token", "")  # type: ignore
 
         object_key = os.path.join(data["storePath"], zip_filename)  # type: ignore
         job.upload_path = object_key
-        job.job_id = data["jobId"] # type: ignore
-        job.jgid = data["jobGroupId"] # type: ignore
+        job.job_id = data["jobId"]  # type: ignore
+        job.jgid = data["jobGroupId"]  # type: ignore
         self.storage.upload_From_file_multi_part(
             object_key=object_key, file_path=upload_zip, token=token
         )
