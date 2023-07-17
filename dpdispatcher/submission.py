@@ -272,7 +272,7 @@ class Submission:
             try:
                 self.download_jobs()
                 success = True
-            except RuntimeError("Failed to run") as e:
+            except (EOFError, Exception) as e:
                 dlog.exception(e)
                 elapsed_time = time.time() - start_time
                 if elapsed_time < 3600:  # 1小时内
