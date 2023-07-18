@@ -3,7 +3,8 @@ import shutil
 import uuid
 
 import tqdm
-try: 
+
+try:
     from bohriumsdk.client import Client
     from bohriumsdk.job import Job
     from bohriumsdk.storage import Storage
