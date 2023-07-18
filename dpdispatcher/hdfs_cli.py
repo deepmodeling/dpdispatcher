@@ -90,9 +90,7 @@ class HDFS:
             raise RuntimeError(
                 "try to access local_path[{}] " "but failed".format(local_path)
             )
-        cmd = "hadoop fs -copyFromLocal -f {local} {remote}".format(
-            local=local_path, remote=to_uri
-        )
+        cmd = f"hadoop fs -copyFromLocal -f {local_path} {to_uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
             if ret == 0:
@@ -106,9 +104,7 @@ class HDFS:
                 )
         except Exception as e:
             raise RuntimeError(
-                "Cannot copy local[{}] to remote[{}] with cmd[{}]".format(
-                    local_path, to_uri, cmd
-                )
+                f"Cannot copy local[{local_path}] to remote[{to_uri}] with cmd[{cmd}]"
             ) from e
 
     @staticmethod
@@ -118,9 +114,7 @@ class HDFS:
             remote = from_uri
         elif isinstance(from_uri, list) or isinstance(from_uri, tuple):
             remote = " ".join(from_uri)
-        cmd = "hadoop fs -copyToLocal {remote} {local}".format(
-            remote=remote, local=local_path
-        )
+        cmd = f"hadoop fs -copyToLocal {remote} {local_path}"
 
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
@@ -135,9 +129,7 @@ class HDFS:
                 )
         except Exception as e:
             raise RuntimeError(
-                "Cannot copy remote[{}] to local[{}] with cmd[{}]".format(
-                    from_uri, local_path, cmd
-                )
+                f"Cannot copy remote[{from_uri}] to local[{local_path}] with cmd[{cmd}]"
             ) from e
 
     @staticmethod
