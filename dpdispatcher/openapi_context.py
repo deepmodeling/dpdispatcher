@@ -9,9 +9,9 @@ try:
     from bohriumsdk.job import Job
     from bohriumsdk.storage import Storage
     from bohriumsdk.util import Util
-except:
+except ImportError as e:
     print("export bohrium-sdk error!")
-    
+
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.JobStatus import JobStatus
