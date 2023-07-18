@@ -256,9 +256,7 @@ class BohriumContext(BaseContext):
         return os.path.isfile(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname))
 
     def clean(self):
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission.submission_hash
-        )
+        submission_file_name = f"{self.submission.submission_hash}.json"
         submission_json = os.path.join(DP_CLOUD_SERVER_HOME_DIR, submission_file_name)
         os.remove(submission_json)
         return True

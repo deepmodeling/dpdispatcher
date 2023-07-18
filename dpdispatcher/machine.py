@@ -208,9 +208,7 @@ class Machine(metaclass=ABCMeta):
 
     def check_if_recover(self, submission):
         submission_hash = submission.submission_hash
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=submission_hash
-        )
+        submission_file_name = f"{submission_hash}.json"
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 

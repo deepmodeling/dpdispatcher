@@ -509,9 +509,7 @@ class Submission:
     def submission_to_json(self):
         # self.update_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission_hash
-        )
+        submission_file_name = f"{self.submission_hash}.json"
         self.machine.context.write_file(submission_file_name, write_str=write_str)
 
     @classmethod
@@ -525,9 +523,7 @@ class Submission:
     # def check_if_recover()
 
     def try_recover_from_json(self):
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission_hash
-        )
+        submission_file_name = f"{self.submission_hash}.json"
         if_recover = self.machine.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
@@ -787,9 +783,7 @@ class Job:
         """
         if len(job_dict.keys()) != 1:
             raise RuntimeError(
-                "json file may be broken, len(job_dict.keys()) must be 1. {job_dict}".format(
-                    job_dict=job_dict
-                )
+                f"json file may be broken, len(job_dict.keys()) must be 1. {job_dict}"
             )
         job_hash = list(job_dict.keys())[0]
 
@@ -872,9 +866,7 @@ class Job:
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
-                    "job: {job_hash} submit; job_id is {job_id}".format(
-                        job_hash=self.job_hash, job_id=self.job_id
-                    )
+                    f"job: {self.job_hash} submit; job_id is {self.job_id}"
                 )
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)

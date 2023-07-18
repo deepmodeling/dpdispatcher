@@ -34,16 +34,12 @@ class Slurm(Machine):
         )
         script_header_dict[
             "slurm_ntasks_per_node_line"
-        ] = "#SBATCH --ntasks-per-node {cpu_per_node}".format(
-            cpu_per_node=resources.cpu_per_node
-        )
+        ] = f"#SBATCH --ntasks-per-node {resources.cpu_per_node}"
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
         if not custom_gpu_line:
             script_header_dict[
                 "slurm_number_gpu_line"
-            ] = "#SBATCH --gres=gpu:{gpu_per_node}".format(
-                gpu_per_node=resources.gpu_per_node
-            )
+            ] = f"#SBATCH --gres=gpu:{resources.gpu_per_node}"
         else:
             script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
         if resources.queue_name != "":
