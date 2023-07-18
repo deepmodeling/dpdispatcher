@@ -11,7 +11,7 @@ try:
     from bohriumsdk.util import Util
 except:
     print("export bohrium-sdk error!")
-    
+
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.JobStatus import JobStatus
