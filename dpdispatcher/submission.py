@@ -266,7 +266,7 @@ class Submission:
 
     def try_download_result(self):
         start_time = time.time()
-        retry_interval = 60  # 每1分钟重试一次
+        retry_interval = 60  # retry every 1 minute
         success = False
         while not success:
             try:
@@ -275,14 +275,14 @@ class Submission:
             except (EOFError, Exception) as e:
                 dlog.exception(e)
                 elapsed_time = time.time() - start_time
-                if elapsed_time < 3600:  # 1小时内
+                if elapsed_time < 3600:  # in 1 h
                     dlog.info("Retrying in 1 minute...")
                     time.sleep(retry_interval)
-                elif elapsed_time < 86400:  # 1小时后，但在24小时内
-                    retry_interval = 600  # 每10分钟重试一次
+                elif elapsed_time < 86400:  # 1 h ~ 24 h
+                    retry_interval = 600  # retry every 10 min
                     dlog.info("Retrying in 10 minutes...")
                     time.sleep(retry_interval)
-                else:  # 超过24小时
+                else:  # > 24 h
                     dlog.info("Maximum retries time reached. Exiting.")
                     break
 
