@@ -865,9 +865,7 @@ class Job:
             #     raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
-                dlog.info(
-                    f"job: {self.job_hash} submit; job_id is {self.job_id}"
-                )
+                dlog.info(f"job: {self.job_hash} submit; job_id is {self.job_id}")
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)
             # self.get_job_state()
