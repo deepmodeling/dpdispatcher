@@ -2,13 +2,10 @@ import os
 import shutil
 import time
 
-try:
-    from bohriumsdk.client import Client
-    from bohriumsdk.job import Job
-    from bohriumsdk.storage import Storage
-    from bohriumsdk.util import Util
-except Exception as e:
-    print("export bohrium-sdk error!")
+from bohriumsdk.client import Client
+from bohriumsdk.job import Job
+from bohriumsdk.storage import Storage
+from bohriumsdk.util import Util
 
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
