@@ -7,7 +7,7 @@ try:
     from bohriumsdk.job import Job
     from bohriumsdk.storage import Storage
     from bohriumsdk.util import Util
-except ImportError as e:
+except Exception as e:
     print("export bohrium-sdk error!")
 
 from dpdispatcher import dlog
