@@ -8,7 +8,7 @@ try:
     from bohriumsdk.storage import Storage
     from bohriumsdk.util import Util
 except:
-    pass
+    print("export bohrium-sdk error!")
 
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
