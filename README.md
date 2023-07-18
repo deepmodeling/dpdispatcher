@@ -19,6 +19,12 @@ DPDispatcher can be installed by `pip`:
 pip install dpdispatcher
 ```
 
+To add [Bohrium](https://bohrium.dp.tech/) support, execute
+
+```bash
+pip install dpdispatcher[bohrium]
+```
+
 ## Usage
 
 See [Getting Started](https://dpdispatcher.readthedocs.io/en/latest/getting-started.html) for usage.

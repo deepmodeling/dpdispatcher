@@ -3,10 +3,15 @@ import shutil
 import uuid
 
 import tqdm
-from bohriumsdk.client import Client
-from bohriumsdk.job import Job
-from bohriumsdk.storage import Storage
-from bohriumsdk.util import Util
+try:
+    from bohriumsdk.client import Client
+    from bohriumsdk.job import Job
+    from bohriumsdk.storage import Storage
+    from bohriumsdk.util import Util
+except ModuleNotFoundError:
+    found_bohriumsdk = False
+else:
+    found_bohriumsdk = True
 
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
@@ -26,6 +31,8 @@ class OpenAPIContext(BaseContext):
         *args,
         **kwargs,
     ):
+        if not found_bohriumsdk:
+            raise ModuleNotFoundError("bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`")
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
