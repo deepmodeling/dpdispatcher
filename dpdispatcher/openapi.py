@@ -24,7 +24,9 @@ shell_script_header_template = """
 class OpenAPI(Machine):
     def __init__(self, context):
         if not found_bohriumsdk:
-            raise ModuleNotFoundError("bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`")
+            raise ModuleNotFoundError(
+                "bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`"
+            )
         self.context = context
         self.remote_profile = context.remote_profile.copy()
 

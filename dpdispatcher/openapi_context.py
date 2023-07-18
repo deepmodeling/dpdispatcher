@@ -3,6 +3,7 @@ import shutil
 import uuid
 
 import tqdm
+
 try:
     from bohriumsdk.client import Client
     from bohriumsdk.job import Job
@@ -32,7 +33,9 @@ class OpenAPIContext(BaseContext):
         **kwargs,
     ):
         if not found_bohriumsdk:
-            raise ModuleNotFoundError("bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`")
+            raise ModuleNotFoundError(
+                "bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`"
+            )
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
@@ -225,9 +228,7 @@ class OpenAPIContext(BaseContext):
         return os.path.isfile(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname))
 
     def clean(self):
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission.submission_hash
-        )
+        submission_file_name = f"{self.submission.submission_hash}.json"
         submission_json = os.path.join(DP_CLOUD_SERVER_HOME_DIR, submission_file_name)
         os.remove(submission_json)
         return True
