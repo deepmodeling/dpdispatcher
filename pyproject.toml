@@ -49,7 +49,8 @@ docs = [
     'deepmodeling_sphinx>=0.1.1',
     'dargs>=0.3.1',
 ]
-cloudserver = ["oss2", "tqdm"]
+cloudserver = ["oss2", "tqdm", "bohrium-sdk"]
+bohrium = ["oss2", "tqdm", "bohrium-sdk"]
 test = []
 
 [tool.setuptools.packages.find]
