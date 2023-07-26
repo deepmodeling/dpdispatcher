@@ -61,14 +61,19 @@ class Client:
         err = None
         for i in range(retry):
             resp = None
-            if method == "GET":
-                resp = requests.get(url, params=params, headers=header)
-            else:
-                if self.debug:
-                    print(data)
-                resp = requests.post(url, json=data, params=params, headers=header)
-            if self.debug:
-                print(resp.text)
+            try:
+                if method == "GET":
+                    resp = requests.get(url, params=params, headers=header)
+                else:
+                    if self.debug:
+                        print(data)
+                    resp = requests.post(url, json=data, params=params, headers=header)
+            except Exception as e:
+                dlog.error(f"request({i}) error {e}", i, stack_info=ENABLE_STACK)
+                err = e
+                time.sleep(1 * i)
+                continue
+
             resp_code = resp.status_code
             if not resp.ok:
                 if self.debug:
