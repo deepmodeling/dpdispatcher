@@ -265,7 +265,7 @@ class Submission:
             finally:
                 pass
         self.handle_unexpected_submission_state()
-        self.try_download_result()  
+        self.try_download_result()
         self.submission_to_json()
         if clean:
             self.clean_jobs()
