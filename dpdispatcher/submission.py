@@ -294,7 +294,6 @@ class Submission:
                     break
                 
     def get_random_second(self):
-        return 0
         random_number = np.random.choice(range(1,101), 1, replace=False)  # 从不重复的数字列表中随机选择一个数
         return random_number[0]
     
