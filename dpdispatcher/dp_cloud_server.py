@@ -250,9 +250,16 @@ class Bohrium(Machine):
             return JobStatus.unknown
         return map_dict[status]
 
-    # def check_finish_tag(self, job):
-    #     job_tag_finished = job.job_hash + '_job_tag_finished'
-    #     return self.context.check_file_exists(job_tag_finished)
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        self.api.kill(job_id)
 
 
 DpCloudServer = Bohrium

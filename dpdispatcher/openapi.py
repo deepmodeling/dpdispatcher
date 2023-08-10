@@ -192,6 +192,17 @@ class OpenAPI(Machine):
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
         return map_dict[status]
+    
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        self.job.kill(job_id)
 
     # def check_finish_tag(self, job):
     #     job_tag_finished = job.job_hash + '_job_tag_finished'
