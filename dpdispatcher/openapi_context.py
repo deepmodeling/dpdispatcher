@@ -131,7 +131,7 @@ class OpenAPIContext(BaseContext):
         result = None
         dlog.info("checking all job has been uploaded")
         for job in submission.belonging_jobs:
-            if job.job_state == JobStatus.unsubmitted:
+            if job.job_state in (JobStatus.unsubmitted, JobStatus.terminated):
                 job_to_be_uploaded.append(job)
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")

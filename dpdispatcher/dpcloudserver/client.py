@@ -326,3 +326,16 @@ class Client:
         except ValueError as e:
             dlog.error(e, stack_info=ENABLE_STACK)
             return None
+
+    def kill(self, job_id):
+        try:
+            if not job_id:
+                return None
+            if "job_group_id" in job_id:
+                ids = job_id.split(":job_group_id:")
+                job_id, _ = int(ids[0]), int(ids[1])
+            ret = self.post(f"/brm/v1/job/kill/{job_id}", {})
+            return ret
+        except ValueError as e:
+            dlog.error(e, stack_info=ENABLE_STACK)
+            return None
