@@ -326,7 +326,7 @@ class Client:
         except ValueError as e:
             dlog.error(e, stack_info=ENABLE_STACK)
             return None
-        
+
     def kill(self, job_id):
         try:
             if not job_id:

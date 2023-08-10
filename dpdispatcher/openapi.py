@@ -192,7 +192,7 @@ class OpenAPI(Machine):
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
         return map_dict[status]
-    
+
     def kill(self, job):
         """Kill the job.
 
