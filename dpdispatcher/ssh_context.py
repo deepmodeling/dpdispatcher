@@ -20,7 +20,14 @@ from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
 
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils import RetrySignal, generate_totp, get_sha256, retry, rsync, get_random_second
+from dpdispatcher.utils import (
+    RetrySignal,
+    generate_totp,
+    get_random_second,
+    get_sha256,
+    retry,
+    rsync,
+)
 
 
 class SSHSession:
