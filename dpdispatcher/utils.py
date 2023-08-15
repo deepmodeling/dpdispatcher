@@ -33,9 +33,9 @@ def get_sha256(filename):
     sha256 = h.hexdigest()
     return sha256
 
-def get_random_second():
+def get_random_second(maxSec: int):
     #随机生成sleep秒数
-    random_number = np.random.choice(range(1,101), 1, replace=False)  # 从不重复的数字列表中随机选择一个数
+    random_number = np.random.choice(range(1,maxSec), 1, replace=False)  # 从不重复的数字列表中随机选择一个数
     return random_number[0]
 
 def hotp(key: str, period: int, token_length: int = 6, digest="sha1"):

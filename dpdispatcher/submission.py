@@ -245,7 +245,7 @@ class Submission:
                 break
 
             try:
-                random_sec2 = get_random_second()
+                random_sec2 = get_random_second(101)
                 sec2 = random_sec2 + check_interval
                 dlog.info(f"watch random sleep: {sec2}s")
                 time.sleep(sec2)

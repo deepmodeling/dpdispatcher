@@ -119,7 +119,7 @@ class SSHSession:
     @retry(max_retry=6, sleep=1)
     def _setup_ssh(self):
         # 随机sleep，防止并发连接
-        random_sec = get_random_second()
+        random_sec = get_random_second(16)
         dlog.info(f"setup ssh random sleep: {random_sec}s")
         time.sleep(random_sec)
         # machine = self.machine
