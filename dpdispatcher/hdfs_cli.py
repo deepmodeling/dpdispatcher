@@ -23,15 +23,13 @@ class HDFS:
                 return False
             else:
                 raise RuntimeError(
-                    "Cannot check existence of hdfs uri[{}] "
-                    "with cmd[{}]; ret[{}] stdout[{}] stderr[{}]".format(
-                        uri, cmd, ret, out, err
-                    )
+                    f"Cannot check existence of hdfs uri[{uri}] "
+                    f"with cmd[{cmd}]; ret[{ret}] stdout[{out}] stderr[{err}]"
                 )
         except Exception as e:
             raise RuntimeError(
-                "Cannot check existence of hdfs uri[{}] "
-                "with cmd[{}]".format(uri, cmd)
+                f"Cannot check existence of hdfs uri[{uri}] "
+                f"with cmd[{cmd}]"
             ) from e
 
     @staticmethod
@@ -47,14 +45,12 @@ class HDFS:
                 return True
             else:
                 raise RuntimeError(
-                    "Cannot remove hdfs uri[{}] "
-                    "with cmd[{}]; ret[{}] output[{}] stderr[{}]".format(
-                        uri, cmd, ret, out, err
-                    )
+                    f"Cannot remove hdfs uri[{uri}] "
+                    f"with cmd[{cmd}]; ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
             raise RuntimeError(
-                "Cannot remove hdfs uri[{}] " "with cmd[{}]".format(uri, cmd)
+                f"Cannot remove hdfs uri[{uri}] " f"with cmd[{cmd}]"
             ) from e
 
     @staticmethod
@@ -70,14 +66,12 @@ class HDFS:
                 return True
             else:
                 raise RuntimeError(
-                    "Cannot mkdir of hdfs uri[{}] "
-                    "with cmd[{}]; ret[{}] output[{}] stderr[{}]".format(
-                        uri, cmd, ret, out, err
-                    )
+                    f"Cannot mkdir of hdfs uri[{uri}] "
+                    f"with cmd[{cmd}]; ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
             raise RuntimeError(
-                "Cannot mkdir of hdfs uri[{}] " "with cmd[{}]".format(uri, cmd)
+                f"Cannot mkdir of hdfs uri[{uri}] " f"with cmd[{cmd}]"
             ) from e
 
     @staticmethod
@@ -88,7 +82,7 @@ class HDFS:
         # Make sure local_path is accessible
         if not os.path.exists(local_path) or not os.access(local_path, os.R_OK):
             raise RuntimeError(
-                "try to access local_path[{}] " "but failed".format(local_path)
+                f"try to access local_path[{local_path}] " "but failed"
             )
         cmd = f"hadoop fs -copyFromLocal -f {local_path} {to_uri}"
         try:
@@ -141,14 +135,12 @@ class HDFS:
                 return out
             else:
                 raise RuntimeError(
-                    "Cannot read text from uri[{}]"
-                    "cmd [{}] ret[{}] output[{}] stderr[{}]".format(
-                        uri, cmd, ret, out, err
-                    )
+                    f"Cannot read text from uri[{uri}]"
+                    f"cmd [{cmd}] ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
             raise RuntimeError(
-                "Cannot read text from uri[{}]" "cmd [{}]".format(uri, cmd)
+                f"Cannot read text from uri[{uri}]" f"cmd [{cmd}]"
             ) from e
 
     @staticmethod
@@ -160,14 +152,12 @@ class HDFS:
                 return True
             else:
                 raise RuntimeError(
-                    "Cannot move from_uri[{}] to "
-                    "to_uri[{}] with cmd[{}]; "
-                    "ret[{}] output[{}] stderr[{}]".format(
-                        from_uri, to_uri, cmd, ret, out, err
-                    )
+                    f"Cannot move from_uri[{from_uri}] to "
+                    f"to_uri[{to_uri}] with cmd[{cmd}]; "
+                    f"ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
             raise RuntimeError(
-                "Cannot move from_uri[{}] to "
-                "to_uri[{}] with cmd[{}]".format(from_uri, to_uri, cmd)
+                f"Cannot move from_uri[{from_uri}] to "
+                f"to_uri[{to_uri}] with cmd[{cmd}]"
             ) from e

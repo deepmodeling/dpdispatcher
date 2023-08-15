@@ -167,7 +167,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.append(task)
 
@@ -175,7 +175,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.extend(task_list)
 
