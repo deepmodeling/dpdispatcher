@@ -408,7 +408,7 @@ class SSHContext(BaseContext):
         *args,
         **kwargs,
     ):
-        assert type(local_root) == str
+        assert isinstance(local_root, str)
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
