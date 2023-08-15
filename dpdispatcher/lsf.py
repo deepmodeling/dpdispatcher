@@ -43,24 +43,18 @@ class LSF(Machine):
                 if gpu_new_syntax_flag is True:
                     if gpu_exclusive_flag is True:
                         script_header_dict["lsf_number_gpu_line"] = (
-                            "#BSUB -gpu 'num={gpu_per_node}:mode=shared:"
-                            "j_exclusive=yes'".format(
-                                gpu_per_node=resources.gpu_per_node
-                            )
+                            f"#BSUB -gpu 'num={resources.gpu_per_node}:mode=shared:"
+                            "j_exclusive=yes'"
                         )
                     else:
                         script_header_dict["lsf_number_gpu_line"] = (
-                            "#BSUB -gpu 'num={gpu_per_node}:mode=shared:"
-                            "j_exclusive=no'".format(
-                                gpu_per_node=resources.gpu_per_node
-                            )
+                            f"#BSUB -gpu 'num={resources.gpu_per_node}:mode=shared:"
+                            "j_exclusive=no'"
                         )
                 else:
                     script_header_dict["lsf_number_gpu_line"] = (
                         '#BSUB -R "select[ngpus >0] rusage['
-                        'ngpus_excl_p={gpu_per_node}]"'.format(
-                            gpu_per_node=resources.gpu_per_node
-                        )
+                        f'ngpus_excl_p={resources.gpu_per_node}]"'
                     )
             else:
                 script_header_dict["lsf_number_gpu_line"] = ""

@@ -167,7 +167,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.append(task)
 
@@ -175,7 +175,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.extend(task_list)
 
@@ -464,7 +464,7 @@ class Submission:
                 f"Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}"
             )
         group_size = self.resources.group_size
-        if (group_size < 0) or (type(group_size) is not int):
+        if (group_size < 0) or (not isinstance(group_size, int)):
             raise RuntimeError("group_size must be a positive number")
         task_num = len(self.belonging_tasks)
         if task_num == 0:
