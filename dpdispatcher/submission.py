@@ -6,7 +6,6 @@ import json
 import os
 import pathlib
 import random
-import numpy as np
 import time
 import uuid
 from hashlib import sha1
@@ -16,6 +15,7 @@ from dargs.dargs import Argument, Variant
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils import get_random_second
 
 # from dpdispatcher.slurm import SlurmResources
 # %%
@@ -227,9 +227,6 @@ class Submission:
                 dlog.info(f"submission succeeded: {self.submission_hash}")
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
-            random_sec = self.get_random_second()
-            dlog.info(f"submission random sleep: {random_sec}s")
-            time.sleep(random_sec)
             self.handle_unexpected_submission_state()
             self.submission_to_json()
             time.sleep(1)
@@ -248,7 +245,7 @@ class Submission:
                 break
 
             try:
-                random_sec2 = self.get_random_second()
+                random_sec2 = get_random_second()
                 sec2 = random_sec2 + check_interval
                 dlog.info(f"watch random sleep: {sec2}s")
                 time.sleep(sec2)
@@ -282,21 +279,16 @@ class Submission:
             except (EOFError, Exception) as e:
                 dlog.exception(e)
                 elapsed_time = time.time() - start_time
-                if elapsed_time < 3600:  # 1小时内
+                if elapsed_time < 1800:  # 半小时内
                     dlog.info("Retrying in 1 minute...")
                     time.sleep(retry_interval)
-                elif elapsed_time < 86400:  # 1小时后，但在24小时内
+                elif elapsed_time < 3600:  # 半小时后，但在1小时内
                     retry_interval = 600  # 每10分钟重试一次
                     dlog.info("Retrying in 10 minutes...")
                     time.sleep(retry_interval)
-                else:  # 超过24小时
+                else:  # 超过1小时
                     dlog.info("Maximum retries time reached. Exiting.")
                     break
-                
-    def get_random_second(self):
-        #随机生成sleep秒数
-        random_number = np.random.choice(range(1,101), 1, replace=False)  # 从不重复的数字列表中随机选择一个数
-        return random_number[0]
     
     async def async_run_submission(self, **kwargs):
         """Async interface of run_submission.

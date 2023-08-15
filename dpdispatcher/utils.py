@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import struct
 import subprocess
+import numpy as np
 import time
 from typing import Callable, Optional, Type, Union
 
@@ -32,6 +33,10 @@ def get_sha256(filename):
     sha256 = h.hexdigest()
     return sha256
 
+def get_random_second():
+    #随机生成sleep秒数
+    random_number = np.random.choice(range(1,101), 1, replace=False)  # 从不重复的数字列表中随机选择一个数
+    return random_number[0]
 
 def hotp(key: str, period: int, token_length: int = 6, digest="sha1"):
     key_ = base64.b32decode(key.upper() + "=" * ((8 - len(key)) % 8))
