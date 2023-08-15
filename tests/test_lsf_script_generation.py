@@ -97,7 +97,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
 
         env_str = machine.gen_script_env(test_job)
         benchmark_env = textwrap.dedent(
-            """
+            f"""
             REMOTE_ROOT={task_hash}
             echo 0 > $REMOTE_ROOT/{job_hash}_flag_if_job_task_fail
             test $? -ne 0 && exit 1
@@ -113,9 +113,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
             export DP_DISPATCHER_EXPORT=test_foo_bar_baz
 
             echo 'The summer you were there.'
-            """.format(
-                task_hash=task_hash, job_hash=job_hash
-            )
+            """
         )
         self.assertEqual(env_str.split("\n")[2:], benchmark_env.split("\n")[2:])
 

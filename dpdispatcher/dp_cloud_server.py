@@ -31,6 +31,13 @@ class Bohrium(Machine):
         phone = context.remote_profile.get("phone", None)
         username = context.remote_profile.get("username", None)
         password = context.remote_profile.get("password", None)
+
+        ticket = os.environ.get("BOHR_TICKET", None)
+        if ticket:
+            self.api = Client(ticket=ticket)
+            self.group_id = None
+            return
+
         if email is None and username is not None:
             raise DeprecationWarning(
                 "username is no longer support in current version, "
@@ -243,9 +250,16 @@ class Bohrium(Machine):
             return JobStatus.unknown
         return map_dict[status]
 
-    # def check_finish_tag(self, job):
-    #     job_tag_finished = job.job_hash + '_job_tag_finished'
-    #     return self.context.check_file_exists(job_tag_finished)
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        self.api.kill(job_id)
 
 
 DpCloudServer = Bohrium

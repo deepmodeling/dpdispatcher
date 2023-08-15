@@ -24,9 +24,7 @@ class Fugaku(Machine):
         ] = f'#PJM -L "node={resources.number_node}" '
         fugaku_script_header_dict[
             "fugaku_ntasks_per_node_line"
-        ] = '#PJM --mpi "max-proc-per-node={cpu_per_node}"'.format(
-            cpu_per_node=resources.cpu_per_node
-        )
+        ] = f'#PJM --mpi "max-proc-per-node={resources.cpu_per_node}"'
         fugaku_script_header_dict[
             "queue_name_line"
         ] = f'#PJM -L "rscgrp={resources.queue_name}"'

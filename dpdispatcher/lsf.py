@@ -31,12 +31,8 @@ class LSF(Machine):
             "lsf_nodes_line": "#BSUB -n {number_cores}".format(
                 number_cores=resources.number_node * resources.cpu_per_node
             ),
-            "lsf_ptile_line": "#BSUB -R 'span[ptile={cpu_per_node}]'".format(
-                cpu_per_node=resources.cpu_per_node
-            ),
-            "lsf_partition_line": "#BSUB -q {queue_name}".format(
-                queue_name=resources.queue_name
-            ),
+            "lsf_ptile_line": f"#BSUB -R 'span[ptile={resources.cpu_per_node}]'",
+            "lsf_partition_line": f"#BSUB -q {resources.queue_name}",
         }
         gpu_usage_flag = resources.kwargs.get("gpu_usage", False)
         gpu_new_syntax_flag = resources.kwargs.get("gpu_new_syntax", False)
