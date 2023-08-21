@@ -31,6 +31,7 @@ class Bohrium(Machine):
         phone = context.remote_profile.get("phone", None)
         username = context.remote_profile.get("username", None)
         password = context.remote_profile.get("password", None)
+        self.retry_count = context.remote_profile.get("retry_count", 3)
 
         ticket = os.environ.get("BOHR_TICKET", None)
         if ticket:
@@ -187,7 +188,7 @@ class Bohrium(Machine):
                     f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}"
                 )
 
-        job_state = self.map_dp_job_state(dp_job_status)
+        job_state = self.map_dp_job_state(dp_job_status, check_return.get("exitCode", 0))
         if job_state == JobStatus.finished:
             job_log = self.api.get_log(job_id)
             if self.input_data.get("output_log"):
@@ -232,7 +233,7 @@ class Bohrium(Machine):
         # pass
 
     @staticmethod
-    def map_dp_job_state(status):
+    def map_dp_job_state(status, exit_code):
         if isinstance(status, JobStatus):
             return status
         map_dict = {
@@ -244,10 +245,13 @@ class Bohrium(Machine):
             4: JobStatus.running,
             5: JobStatus.terminated,
             6: JobStatus.running,
+            9: JobStatus.waiting,
         }
         if status not in map_dict:
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
+        if status == -1 and exit_code != 0:
+            return JobStatus.finished
         return map_dict[status]
 
     def kill(self, job):

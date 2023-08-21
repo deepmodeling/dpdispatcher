@@ -10,7 +10,7 @@ from dargs.dargs import Argument
 
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
-
+from dpdispatcher.dpcloudserver.config import ALI_STS_BUCKET_NAME, ALI_STS_ENDPOINT
 # from dpdispatcher.submission import Machine
 # from . import dlog
 from .dpcloudserver import Client, zip_file
@@ -20,9 +20,6 @@ from .dpcloudserver import Client, zip_file
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
-ENDPOINT = "http://oss-cn-shenzhen.aliyuncs.com"
-BUCKET_NAME = os.environ.get("BUCKET_NAME", "dpcloudserver")
-
 
 class BohriumContext(BaseContext):
     alias = ("DpCloudServerContext", "LebesgueContext")
@@ -124,7 +121,7 @@ class BohriumContext(BaseContext):
         upload_zip = zip_file.zip_file_list(
             self.local_root, zip_task_file, file_list=upload_file_list
         )
-        result = self.api.upload(oss_task_zip, upload_zip, ENDPOINT, BUCKET_NAME)
+        result = self.api.upload(oss_task_zip, upload_zip, ALI_STS_ENDPOINT, ALI_STS_BUCKET_NAME)
         retry_count = 0
         self._backup(self.local_root, upload_zip)
 
