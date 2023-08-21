@@ -188,7 +188,9 @@ class Bohrium(Machine):
                     f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}"
                 )
 
-        job_state = self.map_dp_job_state(dp_job_status, check_return.get("exitCode", 0))
+        job_state = self.map_dp_job_state(
+            dp_job_status, check_return.get("exitCode", 0)
+        )
         if job_state == JobStatus.finished:
             job_log = self.api.get_log(job_id)
             if self.input_data.get("output_log"):

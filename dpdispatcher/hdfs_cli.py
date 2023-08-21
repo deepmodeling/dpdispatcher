@@ -28,8 +28,7 @@ class HDFS:
                 )
         except Exception as e:
             raise RuntimeError(
-                f"Cannot check existence of hdfs uri[{uri}] "
-                f"with cmd[{cmd}]"
+                f"Cannot check existence of hdfs uri[{uri}] " f"with cmd[{cmd}]"
             ) from e
 
     @staticmethod
@@ -81,9 +80,7 @@ class HDFS:
         """
         # Make sure local_path is accessible
         if not os.path.exists(local_path) or not os.access(local_path, os.R_OK):
-            raise RuntimeError(
-                f"try to access local_path[{local_path}] " "but failed"
-            )
+            raise RuntimeError(f"try to access local_path[{local_path}] " "but failed")
         cmd = f"hadoop fs -copyFromLocal -f {local_path} {to_uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)

@@ -127,7 +127,9 @@ class OpenAPI(Machine):
                     f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}"
                 )
 
-        job_state = self.map_dp_job_state(dp_job_status, check_return.get("exitCode", 0))
+        job_state = self.map_dp_job_state(
+            dp_job_status, check_return.get("exitCode", 0)
+        )
         if job_state == JobStatus.finished:
             job_log = self.job.log(job_id)
             if self.remote_profile.get("output_log"):

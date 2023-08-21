@@ -839,7 +839,7 @@ class Job:
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
             retry_count = 3
-            if self.machine.retry_count and self.machine.retry_count>0:
+            if self.machine.retry_count and self.machine.retry_count > 0:
                 retry_count = self.machine.retry_count
             if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 raise RuntimeError(
