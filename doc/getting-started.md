@@ -116,10 +116,7 @@ resources = Resources(
     gpu_per_node=2,
     queue_name="GPU_2080Ti",
     group_size=4,
-    custom_flags=[
-        "#SBATCH --nice=100",
-        "#SBATCH --time=24:00:00"
-    ],
+    custom_flags=["#SBATCH --nice=100", "#SBATCH --time=24:00:00"],
     strategy={
         # used when you want to add CUDA_VISIBLE_DIVECES automatically
         "if_cuda_multi_devices": True
