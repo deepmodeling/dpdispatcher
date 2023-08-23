@@ -453,3 +453,15 @@ class Machine(metaclass=ABCMeta):
             job
         """
         dlog.warning("Job %s should be manually killed" % job.job_id)
+
+    def get_exit_code(self, job):
+        """Get exit code of the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        raise NotImplementedError(
+            "abstract method get_exit_code should be implemented by derived class"
+        )

@@ -320,7 +320,6 @@ class SSHSession:
         doc_look_for_keys = (
             "enable searching for discoverable private key files in ~/.ssh/"
         )
-
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),

@@ -31,6 +31,8 @@ class OpenAPI(Machine):
         self.remote_profile = context.remote_profile.copy()
 
         self.grouped = self.remote_profile.get("grouped", True)
+        self.retry_count = self.remote_profile.get("retry_count", 3)
+        self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", True)
         self.client = Client()
         self.job = Job(client=self.client)
         self.storage = Storage(client=self.client)
@@ -80,8 +82,9 @@ class OpenAPI(Machine):
             "out_files": self._gen_backward_files_list(job),
             "platform": self.remote_profile.get("platform", "ali"),
             "image_address": self.remote_profile.get("image_address", ""),
-            "job_id": job.job_id,
         }
+        if job.job_state == JobStatus.unsubmitted:
+            openapi_params["job_id"] = job.job_id
 
         data = self.job.insert(**openapi_params)
 
@@ -126,12 +129,13 @@ class OpenAPI(Machine):
                     f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}"
                 )
 
-        job_state = self.map_dp_job_state(dp_job_status)
+        job_state = self.map_dp_job_state(
+            dp_job_status, check_return.get("exitCode", 0), self.ignore_exit_code  # type: ignore
+        )
         if job_state == JobStatus.finished:
             job_log = self.job.log(job_id)
             if self.remote_profile.get("output_log"):
                 print(job_log, end="")
-            # print(job.job_id)
             self._download_job(job)
         elif self.remote_profile.get("output_log") and job_state == JobStatus.running:
             job_log = self.job.log(job_id)
@@ -140,7 +144,6 @@ class OpenAPI(Machine):
 
     def _download_job(self, job):
         data = self.job.detail(job.job_id)
-        # print(data)
         job_url = data["jobFiles"]["outFiles"][0]["url"]  # type: ignore
         if not job_url:
             return
@@ -174,7 +177,7 @@ class OpenAPI(Machine):
         # pass
 
     @staticmethod
-    def map_dp_job_state(status):
+    def map_dp_job_state(status, exit_code, ignore_exit_code=True):
         if isinstance(status, JobStatus):
             return status
         map_dict = {
@@ -191,6 +194,8 @@ class OpenAPI(Machine):
         if status not in map_dict:
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
+        if status == -1 and exit_code != 0 and ignore_exit_code:
+            return JobStatus.finished
         return map_dict[status]
 
     def kill(self, job):
@@ -204,6 +209,18 @@ class OpenAPI(Machine):
         job_id = job.job_id
         self.job.kill(job_id)
 
-    # def check_finish_tag(self, job):
-    #     job_tag_finished = job.job_hash + '_job_tag_finished'
-    #     return self.context.check_file_exists(job_tag_finished)
+    def get_exit_code(self, job):
+        """Get exit code of the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+
+        Returns
+        -------
+        int
+            exit code
+        """
+        check_return = self.job.detail(job.job_id)
+        return check_return.get("exitCode", -999)  # type: ignore

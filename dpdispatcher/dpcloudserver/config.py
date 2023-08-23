@@ -14,4 +14,3 @@ ALI_OSS_BUCKET_URL = os.environ.get(
     "DPDISPATCHER_LEBESGUE_ALI_OSS_BUCKET_URL",
     "https://dpcloudserver.oss-cn-shenzhen.aliyuncs.com/",
 )
-# ALI_OSS_BUCKET_URL = 'https://dpcloudserver.oss-cn-shenzhen.aliyuncs.com/

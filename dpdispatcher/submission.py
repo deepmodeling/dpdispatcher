@@ -744,7 +744,6 @@ class Job:
         # self.job_work_base = job_work_base
         self.resources = resources
         self.machine = machine
-
         self.job_state = None  # JobStatus.unsubmitted
         self.job_id = ""
         self.fail_count = 0
@@ -839,7 +838,11 @@ class Job:
                 f"job: {self.job_hash} {self.job_id} terminated;"
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
-            if (self.fail_count) > 0 and (self.fail_count % 3 == 0):
+            retry_count = 3
+            assert self.machine is not None
+            if hasattr(self.machine, "retry_count") and self.machine.retry_count > 0:
+                retry_count = self.machine.retry_count
+            if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 raise RuntimeError(
                     f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}"
                 )
