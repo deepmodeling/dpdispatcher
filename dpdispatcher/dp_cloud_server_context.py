@@ -286,6 +286,11 @@ class BohriumContext(BaseContext):
         doc_remote_profile = (
             "The information used to maintain the connection with remote machine."
         )
+        doc_retry_count = "The retry count when a job is terminated"
+        doc_ignore_exit_code = (
+            """The job state will be marked as finished if the exit code is non-zero when set to True. Otherwise,
+              the job state will be designated as terminated."""
+        )
         return [
             Argument(
                 "remote_profile",
@@ -299,6 +304,20 @@ class BohriumContext(BaseContext):
                         optional=False,
                         alias=["project_id"],
                         doc="Program ID",
+                    ),
+                    Argument(
+                        "retry_count",
+                        [int, type(None)],
+                        optional=True,
+                        default=3,
+                        doc=doc_retry_count,
+                    ),
+                    Argument(
+                        "ignore_exit_code",
+                        bool,
+                        optional=True,
+                        default=True,
+                        doc=doc_ignore_exit_code,
                     ),
                     Argument(
                         "keep_backup",

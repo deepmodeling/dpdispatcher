@@ -320,11 +320,6 @@ class SSHSession:
         doc_look_for_keys = (
             "enable searching for discoverable private key files in ~/.ssh/"
         )
-        doc_retry_count = "The retry count when a job is terminated"
-        doc_ignore_exit_code = (
-            """The job state will be marked as finished if the exit code is non-zero when set to True. Otherwise,
-              the job state will be designated as terminated."""
-        )
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -357,20 +352,6 @@ class SSHSession:
                 optional=True,
                 default=True,
                 doc=doc_look_for_keys,
-            ),
-            Argument(
-                "retry_count",
-                [int, type(None)],
-                optional=True,
-                default=3,
-                doc=doc_retry_count,
-            ),
-            Argument(
-                "ignore_exit_code",
-                bool,
-                optional=True,
-                default=True,
-                doc=doc_ignore_exit_code,
             ),
         ]
         ssh_remote_profile_format = Argument(

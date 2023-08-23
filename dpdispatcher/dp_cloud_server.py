@@ -275,7 +275,7 @@ class Bohrium(Machine):
                 )
         
         check_return = self._get_job_detail(job_id, self.group_id)
-        return check_return.get("exitCode", -999)
+        return check_return.get("exitCode", -999) # type: ignore
     
     def _parse_job_id(self, str_job_id: str) -> int:
         job_id = 0
