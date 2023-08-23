@@ -32,7 +32,7 @@ class OpenAPI(Machine):
 
         self.grouped = self.remote_profile.get("grouped", True)
         self.retry_count = self.remote_profile.get("retry_count", 3)
-        self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", 0)
+        self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", True)
         self.client = Client()
         self.job = Job(client=self.client)
         self.storage = Storage(client=self.client)
@@ -130,8 +130,8 @@ class OpenAPI(Machine):
                 )
 
         job_state = self.map_dp_job_state(
-            dp_job_status, check_return.get("exitCode", 0), self.ignore_exit_code # type: ignore
-            )
+            dp_job_status, check_return.get("exitCode", 0), self.ignore_exit_code  # type: ignore
+        )
         if job_state == JobStatus.finished:
             job_log = self.job.log(job_id)
             if self.remote_profile.get("output_log"):
@@ -177,7 +177,7 @@ class OpenAPI(Machine):
         # pass
 
     @staticmethod
-    def map_dp_job_state(status, exit_code, ignore_exit_code=0):
+    def map_dp_job_state(status, exit_code, ignore_exit_code=True):
         if isinstance(status, JobStatus):
             return status
         map_dict = {
@@ -194,7 +194,7 @@ class OpenAPI(Machine):
         if status not in map_dict:
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
-        if status == -1 and exit_code != 0 and ignore_exit_code == 1:
+        if status == -1 and exit_code != 0 and ignore_exit_code:
             return JobStatus.finished
         return map_dict[status]
 
@@ -208,3 +208,21 @@ class OpenAPI(Machine):
         """
         job_id = job.job_id
         self.job.kill(job_id)
+
+    def get_exit_code(self, job):
+        """Get exit code of the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+
+        Returns
+        -------
+        int
+            exit code
+        """
+        check_return = self.job.detail(job.job_id)
+        if check_return is None:
+            return -999
+        return check_return.get("exitCode", -999)
