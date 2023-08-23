@@ -287,10 +287,8 @@ class BohriumContext(BaseContext):
             "The information used to maintain the connection with remote machine."
         )
         doc_retry_count = "The retry count when a job is terminated"
-        doc_ignore_exit_code = (
-            """The job state will be marked as finished if the exit code is non-zero when set to True. Otherwise,
+        doc_ignore_exit_code = """The job state will be marked as finished if the exit code is non-zero when set to True. Otherwise,
               the job state will be designated as terminated."""
-        )
         return [
             Argument(
                 "remote_profile",

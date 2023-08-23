@@ -223,4 +223,4 @@ class OpenAPI(Machine):
             exit code
         """
         check_return = self.job.detail(job.job_id)
-        return check_return.get("exitCode", -999) # type: ignore
+        return check_return.get("exitCode", -999)  # type: ignore
