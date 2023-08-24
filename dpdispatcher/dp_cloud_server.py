@@ -270,13 +270,11 @@ class Bohrium(Machine):
     def get_exit_code(self, job) -> int:
         job_id = self._parse_job_id(job.job_id)
         if job_id <= 0:
-            raise RuntimeError(
-                    f"cannot parse job id {job.job_id}"
-                )
-        
+            raise RuntimeError(f"cannot parse job id {job.job_id}")
+
         check_return = self._get_job_detail(job_id, self.group_id)
-        return check_return.get("exitCode", -999) # type: ignore
-    
+        return check_return.get("exitCode", -999)  # type: ignore
+
     def _parse_job_id(self, str_job_id: str) -> int:
         job_id = 0
         if "job_group_id" in str_job_id:
