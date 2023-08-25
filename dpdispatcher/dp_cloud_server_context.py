@@ -307,7 +307,7 @@ class BohriumContext(BaseContext):
                         "retry_count",
                         [int, type(None)],
                         optional=True,
-                        default=3,
+                        default=2,
                         doc=doc_retry_count,
                     ),
                     Argument(
