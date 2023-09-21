@@ -61,7 +61,10 @@ write_to = "dpdispatcher/_version.py"
 
 [tool.pyright]
 include = ['dpdispatcher']
-exclude = ['dpdispatcher/dpcloudserver/temp_test.py']
+exclude = [
+    'dpdispatcher/dpcloudserver/temp_test.py',
+    'dpdispatcher/_version.py',
+]
 
 [tool.isort]
 profile = "black"
