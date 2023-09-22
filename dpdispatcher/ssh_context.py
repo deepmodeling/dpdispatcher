@@ -542,6 +542,8 @@ class SSHContext(BaseContext):
                         directory_list.append(root)
                     for name in files:
                         file_list.append(os.path.join(root, name))
+            elif os.path.islink(file_name) and not os.path.exists(file_name):
+                raise OSError(f"{file_name} is broken symbolic link")
             elif glob(file_name):
                 # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
                 abs_file_list = glob(file_name)
