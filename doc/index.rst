@@ -22,6 +22,7 @@ DPDispatcher will monitor (poke) until these jobs finish and download the result
    machine
    resources
    task
+   cli
    api/api
 
 .. toctree::

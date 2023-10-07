@@ -37,8 +37,13 @@ Homepage = "https://github.com/deepmodeling/dpdispatcher"
 documentation = "https://docs.deepmodeling.com/projects/dpdispatcher"
 repository = "https://github.com/deepmodeling/dpdispatcher"
 
-[project.entry-points.console_scripts]
+[project.scripts]
 dpdisp = "dpdispatcher.dpdisp:main"
+
+[project.entry-points."dpgui"]
+"DPDispatcher Machine" = "dpdispatcher.arginfo:machine_dargs"
+"DPDispatcher Resources" = "dpdispatcher.arginfo:resources_dargs"
+"DPDispatcher Task" = "dpdispatcher.arginfo:task_dargs"
 
 [project.optional-dependencies]
 docs = [
@@ -51,7 +56,12 @@ docs = [
 ]
 cloudserver = ["oss2", "tqdm", "bohrium-sdk"]
 bohrium = ["oss2", "tqdm", "bohrium-sdk"]
-test = []
+dpgui = [
+    "dpgui",
+]
+test = [
+    "dpgui",
+]
 
 [tool.setuptools.packages.find]
 include = ["dpdispatcher*"]
