@@ -56,7 +56,7 @@ docs = [
 ]
 cloudserver = ["oss2", "tqdm", "bohrium-sdk"]
 bohrium = ["oss2", "tqdm", "bohrium-sdk"]
-dpgui = [
+gui = [
     "dpgui",
 ]
 test = [

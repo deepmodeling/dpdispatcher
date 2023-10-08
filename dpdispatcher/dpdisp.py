@@ -44,6 +44,7 @@ def main_parser() -> argparse.ArgumentParser:
             "to the network on both IPv4 and IPv6 (where available)."
         ),
     )
+    return parser
 
 
 def parse_args(args: Optional[List[str]] = None):
