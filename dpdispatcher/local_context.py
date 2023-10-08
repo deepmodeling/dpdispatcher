@@ -155,9 +155,7 @@ class LocalContext(BaseContext):
             flist = []
             for kk in ii.backward_files:
                 abs_flist = glob(os.path.join(remote_job, kk))
-                rel_flist = [
-                    os.path.relpath(ii, start=remote_job) for ii in abs_flist
-                ]
+                rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
                 flist.extend(rel_flist)
             if back_error:
                 flist += glob(os.path.join(remote_job, "error*"))
@@ -207,9 +205,7 @@ class LocalContext(BaseContext):
         flist = []
         for kk in submission.backward_common_files:
             abs_flist = glob(os.path.join(remote_job, kk))
-            rel_flist = [
-                os.path.relpath(ii, start=remote_job) for ii in abs_flist
-            ]
+            rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
             flist.extend(rel_flist)
         if back_error:
             flist += glob(os.path.join(remote_job, "error*"))
