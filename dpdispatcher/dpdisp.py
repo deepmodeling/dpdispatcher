@@ -6,7 +6,7 @@ from dpdispatcher.gui import start_dpgui
 
 
 def main_parser() -> argparse.ArgumentParser:
-    """dpdispatcher commandline options argument parser.
+    """Dpdispatcher commandline options argument parser.
 
     Notes
     -----
@@ -47,7 +47,7 @@ def main_parser() -> argparse.ArgumentParser:
 
 
 def parse_args(args: Optional[List[str]] = None):
-    """dpdispatcher commandline options argument parsing.
+    """Dpdispatcher commandline options argument parsing.
 
     Parameters
     ----------
