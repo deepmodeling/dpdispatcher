@@ -158,7 +158,9 @@ class LocalContext(BaseContext):
                 rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
                 flist.extend(rel_flist)
             if back_error:
-                flist += glob(os.path.join(remote_job, "error*"))
+                abs_flist = glob(os.path.join(remote_job, "error*"))
+                rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
+                flist.extend(rel_flist)
             for jj in flist:
                 rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
@@ -208,7 +210,9 @@ class LocalContext(BaseContext):
             rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
             flist.extend(rel_flist)
         if back_error:
-            flist += glob(os.path.join(remote_job, "error*"))
+            abs_flist = glob(os.path.join(remote_job, "error*"))
+            rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
+            flist.extend(rel_flist)
         for jj in flist:
             rfile = os.path.join(remote_job, jj)
             lfile = os.path.join(local_job, jj)
