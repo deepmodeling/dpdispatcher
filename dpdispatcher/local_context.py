@@ -152,7 +152,13 @@ class LocalContext(BaseContext):
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
             remote_job = os.path.join(self.remote_root, ii.task_work_path)
-            flist = ii.backward_files
+            flist = []
+            for kk in ii.backward_files:
+                abs_flist = glob(os.path.join(remote_job, kk))
+                rel_flist = [
+                    os.path.relpath(ii, start=remote_job) for ii in abs_flist
+                ]
+                flist.extend(rel_flist)
             if back_error:
                 flist += glob(os.path.join(remote_job, "error*"))
             for jj in flist:
@@ -198,7 +204,13 @@ class LocalContext(BaseContext):
                     pass
         local_job = self.local_root
         remote_job = self.remote_root
-        flist = submission.backward_common_files
+        flist = []
+        for kk in submission.backward_common_files:
+            abs_flist = glob(os.path.join(remote_job, kk))
+            rel_flist = [
+                os.path.relpath(ii, start=remote_job) for ii in abs_flist
+            ]
+            flist.extend(rel_flist)
         if back_error:
             flist += glob(os.path.join(remote_job, "error*"))
         for jj in flist:
