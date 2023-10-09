@@ -648,26 +648,27 @@ class SSHContext(BaseContext):
         # for ii in job_dirs :
         for task in submission.belonging_tasks:
             for jj in task.backward_files:
-                file_name = pathlib.PurePath(
+                file_name_list = glob(pathlib.PurePath(
                     os.path.join(task.task_work_path, jj)
-                ).as_posix()
+                ).as_posix())
                 if check_exists:
-                    if self.check_file_exists(file_name):
-                        file_list.append(file_name)
-                    elif mark_failure:
-                        with open(
-                            os.path.join(
-                                self.local_root,
-                                task.task_work_path,
-                                "tag_failure_download_%s" % jj,
-                            ),
-                            "w",
-                        ) as fp:
+                    for file_name in file_name_list:
+                        if self.check_file_exists(file_name):
+                            file_list.append(file_name)
+                        elif mark_failure:
+                            with open(
+                                os.path.join(
+                                    self.local_root,
+                                    task.task_work_path,
+                                    "tag_failure_download_%s" % jj,
+                                ),
+                                "w",
+                            ) as fp:
+                                pass
+                        else:
                             pass
-                    else:
-                        pass
                 else:
-                    file_list.append(file_name)
+                    file_list.extend(file_name_list)
             if back_error:
                 errors = glob(os.path.join(task.task_work_path, "error*"))
                 file_list.extend(errors)
