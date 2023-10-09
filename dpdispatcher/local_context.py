@@ -156,7 +156,7 @@ class LocalContext(BaseContext):
             for kk in ii.backward_files:
                 abs_flist_r = glob(os.path.join(remote_job, kk))
                 abs_flist_l = glob(os.path.join(local_job, kk))
-                if not abs_file_list_r and not abs_file_list_l:
+                if not abs_flist_r and not abs_flist_l:
                     raise RuntimeError(
                         "cannot find download file " + os.path.join(remote_job, kk)
                     )
@@ -215,7 +215,7 @@ class LocalContext(BaseContext):
         for kk in submission.backward_common_files:
             abs_flist_r = glob(os.path.join(remote_job, kk))
             abs_flist_l = glob(os.path.join(local_job, kk))
-            if not abs_file_list_r and not abs_file_list_l:
+            if not abs_flist_r and not abs_flist_l:
                 raise RuntimeError(
                     "cannot find download file " + os.path.join(remote_job, kk)
                 )
