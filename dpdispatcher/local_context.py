@@ -162,7 +162,7 @@ class LocalContext(BaseContext):
                             tag_file_path = os.path.join(
                                 self.local_root,
                                 ii.task_work_path,
-                                "tag_failure_download_%s" % kk
+                                "tag_failure_download_%s" % kk,
                             )
                             with open(tag_file_path, "w") as fp:
                                 pass
