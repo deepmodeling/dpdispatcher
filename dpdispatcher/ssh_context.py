@@ -648,9 +648,9 @@ class SSHContext(BaseContext):
         # for ii in job_dirs :
         for task in submission.belonging_tasks:
             for jj in task.backward_files:
-                file_name_list = glob(pathlib.PurePath(
-                    os.path.join(task.task_work_path, jj)
-                ).as_posix())
+                file_name_list = glob(
+                    pathlib.PurePath(os.path.join(task.task_work_path, jj)).as_posix()
+                )
                 if check_exists:
                     for file_name in file_name_list:
                         if self.check_file_exists(file_name):
