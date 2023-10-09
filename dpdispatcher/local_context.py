@@ -157,9 +157,21 @@ class LocalContext(BaseContext):
                 abs_flist_r = glob(os.path.join(remote_job, kk))
                 abs_flist_l = glob(os.path.join(local_job, kk))
                 if not abs_flist_r and not abs_flist_l:
-                    raise RuntimeError(
-                        "cannot find download file " + os.path.join(remote_job, kk)
-                    )
+                    if check_exists:
+                        if mark_failure:
+                            tag_file_path = os.path.join(
+                                self.local_root,
+                                ii.task_work_path,
+                                "tag_failure_download_%s" % kk
+                            )
+                            with open(tag_file_path, "w") as fp:
+                                pass
+                        else:
+                            pass
+                    else:
+                        raise RuntimeError(
+                            "cannot find download file " + os.path.join(remote_job, kk)
+                        )
                 rel_flist = [
                     os.path.relpath(ii, start=remote_job) for ii in abs_flist_r
                 ]
@@ -216,9 +228,19 @@ class LocalContext(BaseContext):
             abs_flist_r = glob(os.path.join(remote_job, kk))
             abs_flist_l = glob(os.path.join(local_job, kk))
             if not abs_flist_r and not abs_flist_l:
-                raise RuntimeError(
-                    "cannot find download file " + os.path.join(remote_job, kk)
-                )
+                if check_exists:
+                    if mark_failure:
+                        tag_file_path = os.path.join(
+                            self.local_root, "tag_failure_download_%s" % kk
+                        )
+                        with open(tag_file_path, "w") as fp:
+                            pass
+                    else:
+                        pass
+                else:
+                    raise RuntimeError(
+                        "cannot find download file " + os.path.join(remote_job, kk)
+                    )
             rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist_r]
             flist.extend(rel_flist)
         if back_error:
