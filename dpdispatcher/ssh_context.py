@@ -660,16 +660,16 @@ class SSHContext(BaseContext):
         self.ssh_session.ensure_alive()
         file_list = []
         # for ii in job_dirs :
-        for task in submission.belonging_tasks:
+        for ii in submission.belonging_tasks:
             remote_file_list = None
-            for jj in task.backward_files:
+            for jj in ii.backward_files:
                 if "*" in jj or "?" in jj:
                     if remote_file_list is not None:
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
                     else:
                         remote_file_list = []
                         remote_root = pathlib.PurePath(
-                            os.path.join(self.remote_root, task.task_work_path)
+                            os.path.join(self.remote_root, ii.task_work_path)
                         ).as_posix()
                         self.list_remote_dir(
                             self.sftp, remote_root, remote_root, remote_file_list
@@ -678,15 +678,15 @@ class SSHContext(BaseContext):
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
                     rel_file_list = [
                         pathlib.PurePath(
-                            os.path.join(task.task_work_path, ii)
+                            os.path.join(ii.task_work_path, kk)
                         ).as_posix()
-                        for ii in abs_file_list
+                        for kk in abs_file_list
                     ]
 
                 else:
                     rel_file_list = [
                         pathlib.PurePath(
-                            os.path.join(task.task_work_path, jj)
+                            os.path.join(ii.task_work_path, jj)
                         ).as_posix()
                     ]
                 if check_exists:
@@ -697,7 +697,7 @@ class SSHContext(BaseContext):
                             with open(
                                 os.path.join(
                                     self.local_root,
-                                    task.task_work_path,
+                                    ii.task_work_path,
                                     "tag_failure_download_%s" % jj,
                                 ),
                                 "w",
@@ -713,15 +713,15 @@ class SSHContext(BaseContext):
                 else:
                     remote_file_list = []
                     remote_root = pathlib.PurePath(
-                        os.path.join(self.remote_root, task.task_work_path)
+                        os.path.join(self.remote_root, ii.task_work_path)
                     ).as_posix()
                     self.list_remote_dir(
                         self.sftp, remote_root, remote_root, remote_file_list
                     )
                     abs_errors = fnmatch.filter(remote_file_list, "error*")
                 rel_errors = [
-                    pathlib.PurePath(os.path.join(task.task_work_path, ii)).as_posix()
-                    for ii in abs_errors
+                    pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
+                    for kk in abs_errors
                 ]
                 file_list.extend(rel_errors)
         file_list.extend(submission.backward_common_files)
