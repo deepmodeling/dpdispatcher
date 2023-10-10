@@ -416,7 +416,7 @@ class SSHContext(BaseContext):
         assert os.path.isabs(remote_root), "remote_root must be a abspath"
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
-        self.remote_root = None
+        self.remote_root = ""
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
@@ -668,11 +668,11 @@ class SSHContext(BaseContext):
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
                     else:
                         remote_file_list = []
-                        remote_root = pathlib.PurePath(
+                        remote_job = pathlib.PurePath(
                             os.path.join(self.remote_root, ii.task_work_path)
                         ).as_posix()
                         self.list_remote_dir(
-                            self.sftp, remote_root, remote_root, remote_file_list
+                            self.sftp, remote_job, remote_job, remote_file_list
                         )
 
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
@@ -708,11 +708,11 @@ class SSHContext(BaseContext):
                     abs_errors = fnmatch.filter(remote_file_list, "error*")
                 else:
                     remote_file_list = []
-                    remote_root = pathlib.PurePath(
+                    remote_job = pathlib.PurePath(
                         os.path.join(self.remote_root, ii.task_work_path)
                     ).as_posix()
                     self.list_remote_dir(
-                        self.sftp, remote_root, remote_root, remote_file_list
+                        self.sftp, remote_job, remote_job, remote_file_list
                     )
                     abs_errors = fnmatch.filter(remote_file_list, "error*")
                 rel_errors = [
