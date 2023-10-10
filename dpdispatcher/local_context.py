@@ -152,9 +152,34 @@ class LocalContext(BaseContext):
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
             remote_job = os.path.join(self.remote_root, ii.task_work_path)
-            flist = ii.backward_files
+            flist = []
+            for kk in ii.backward_files:
+                abs_flist_r = glob(os.path.join(remote_job, kk))
+                abs_flist_l = glob(os.path.join(local_job, kk))
+                if not abs_flist_r and not abs_flist_l:
+                    if check_exists:
+                        if mark_failure:
+                            tag_file_path = os.path.join(
+                                self.local_root,
+                                ii.task_work_path,
+                                "tag_failure_download_%s" % kk,
+                            )
+                            with open(tag_file_path, "w") as fp:
+                                pass
+                        else:
+                            pass
+                    else:
+                        raise RuntimeError(
+                            "cannot find download file " + os.path.join(remote_job, kk)
+                        )
+                rel_flist = [
+                    os.path.relpath(ii, start=remote_job) for ii in abs_flist_r
+                ]
+                flist.extend(rel_flist)
             if back_error:
-                flist += glob(os.path.join(remote_job, "error*"))
+                abs_flist = glob(os.path.join(remote_job, "error*"))
+                rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
+                flist.extend(rel_flist)
             for jj in flist:
                 rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
@@ -198,9 +223,30 @@ class LocalContext(BaseContext):
                     pass
         local_job = self.local_root
         remote_job = self.remote_root
-        flist = submission.backward_common_files
+        flist = []
+        for kk in submission.backward_common_files:
+            abs_flist_r = glob(os.path.join(remote_job, kk))
+            abs_flist_l = glob(os.path.join(local_job, kk))
+            if not abs_flist_r and not abs_flist_l:
+                if check_exists:
+                    if mark_failure:
+                        tag_file_path = os.path.join(
+                            self.local_root, "tag_failure_download_%s" % kk
+                        )
+                        with open(tag_file_path, "w") as fp:
+                            pass
+                    else:
+                        pass
+                else:
+                    raise RuntimeError(
+                        "cannot find download file " + os.path.join(remote_job, kk)
+                    )
+            rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist_r]
+            flist.extend(rel_flist)
         if back_error:
-            flist += glob(os.path.join(remote_job, "error*"))
+            abs_flist = glob(os.path.join(remote_job, "error*"))
+            rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
+            flist.extend(rel_flist)
         for jj in flist:
             rfile = os.path.join(remote_job, jj)
             lfile = os.path.join(local_job, jj)
