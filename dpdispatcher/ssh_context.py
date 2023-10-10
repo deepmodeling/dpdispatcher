@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import fnmatch
 import os
 import pathlib
 import shlex
@@ -647,12 +648,13 @@ class SSHContext(BaseContext):
         file_list = []
         # for ii in job_dirs :
         for task in submission.belonging_tasks:
+            remote_file_list = self.sftp.listdir(pathlib.PurePath(
+                os.path.join(self.remote_root, task.task_work_path)).as_posix())
             for jj in task.backward_files:
-                file_name_list = glob(
-                    pathlib.PurePath(os.path.join(task.task_work_path, jj)).as_posix()
-                )
+                abs_file_list = fnmatch.filter(remote_file_list, jj)
+                rel_file_list = [pathlib.PurePath(os.path.join(task.task_work_path,ii)).as_posix() for ii in abs_file_list]
                 if check_exists:
-                    for file_name in file_name_list:
+                    for file_name in rel_file_list:
                         if self.check_file_exists(file_name):
                             file_list.append(file_name)
                         elif mark_failure:
@@ -668,10 +670,11 @@ class SSHContext(BaseContext):
                         else:
                             pass
                 else:
-                    file_list.extend(file_name_list)
+                    file_list.extend(rel_file_list)
             if back_error:
-                errors = glob(os.path.join(task.task_work_path, "error*"))
-                file_list.extend(errors)
+                abs_errors = fnmatch.filter(remote_file_list,"error*")
+                rel_errors = [pathlib.PurePath(os.path.join(task.task_work_path,ii)).as_posix() for ii in abs_errors]
+                file_list.extend(rel_errors)
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
             self._get_files(
