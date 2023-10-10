@@ -718,7 +718,7 @@ class SSHContext(BaseContext):
                     self.list_remote_dir(
                         self.sftp, remote_root, remote_root, remote_file_list
                     )
-                    abs_errors = fnmatch.filter(remote_file_list, jj)
+                    abs_errors = fnmatch.filter(remote_file_list, "error*")
                 rel_errors = [
                     pathlib.PurePath(os.path.join(task.task_work_path, ii)).as_posix()
                     for ii in abs_errors
