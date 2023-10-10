@@ -41,7 +41,7 @@ class TestSSHContext(unittest.TestCase):
             cls.machine = Machine.load_from_dict(mdata)
         except (SSHException, socket.timeout):
             raise unittest.SkipTest("SSHException ssh cannot connect")
-        cls.submission = SampleClass.get_sample_submission(get_sample_submission=True)
+        cls.submission = SampleClass.get_sample_submission(backward_wildcard=True)
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
         file_list = [
@@ -188,7 +188,7 @@ class TestSSHContextNoCompress(unittest.TestCase):
             cls.machine = Machine.load_from_dict(mdata)
         except (SSHException, socket.timeout):
             raise unittest.SkipTest("SSHException ssh cannot connect")
-        cls.submission = SampleClass.get_sample_submission(get_sample_submission=True)
+        cls.submission = SampleClass.get_sample_submission(backward_wildcard=True)
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
         file_list = [
