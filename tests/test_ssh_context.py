@@ -41,7 +41,7 @@ class TestSSHContext(unittest.TestCase):
             cls.machine = Machine.load_from_dict(mdata)
         except (SSHException, socket.timeout):
             raise unittest.SkipTest("SSHException ssh cannot connect")
-        cls.submission = SampleClass.get_sample_submission()
+        cls.submission = SampleClass.get_sample_submission(get_sample_submission=True)
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
         file_list = [
@@ -50,6 +50,7 @@ class TestSSHContext(unittest.TestCase):
             "bct-3/log.lammps",
             "bct-4/log.lammps",
             "dir with space/file with space",
+            "bct-backward_wildcard/test123/test123",
         ]
         for file in file_list:
             cls.machine.context.sftp.mkdir(
@@ -187,7 +188,7 @@ class TestSSHContextNoCompress(unittest.TestCase):
             cls.machine = Machine.load_from_dict(mdata)
         except (SSHException, socket.timeout):
             raise unittest.SkipTest("SSHException ssh cannot connect")
-        cls.submission = SampleClass.get_sample_submission()
+        cls.submission = SampleClass.get_sample_submission(get_sample_submission=True)
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
         file_list = [
@@ -196,6 +197,7 @@ class TestSSHContextNoCompress(unittest.TestCase):
             "bct-3/log.lammps",
             "bct-4/log.lammps",
             "dir with space/file with space",
+            "bct-1/test123/test123",
         ]
         for file in file_list:
             cls.machine.context.sftp.mkdir(
