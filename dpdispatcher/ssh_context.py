@@ -635,20 +635,19 @@ class SSHContext(BaseContext):
             directories=directory_list,
             tar_compress=self.remote_profile.get("tar_compress", None),
         )
-    def list_remote_dir(self,
-                    sftp,
-                    remote_dir,
-                    ref_remote_root,
-                    result_list):
+
+    def list_remote_dir(self, sftp, remote_dir, ref_remote_root, result_list):
         for entry in sftp.listdir_attr(remote_dir):
-            remote_name = pathlib.PurePath(os.path.join(remote_dir,entry.filename)).as_posix()
+            remote_name = pathlib.PurePath(
+                os.path.join(remote_dir, entry.filename)
+            ).as_posix()
             st_mode = entry.st_mode
             if S_ISDIR(st_mode):
                 self.list_remote_dir(sftp, remote_name, ref_remote_root, result_list)
             elif S_ISREG(st_mode):
                 rel_remote_name = os.path.relpath(remote_name, start=ref_remote_root)
                 result_list.append(rel_remote_name)
-                
+
     def download(
         self,
         submission,
@@ -669,17 +668,27 @@ class SSHContext(BaseContext):
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
                     else:
                         remote_file_list = []
-                        remote_root = pathlib.PurePath(os.path.join(self.remote_root, task.task_work_path)).as_posix()
-                        self.list_remote_dir(self.sftp,
-                                remote_root,
-                                remote_root,
-                                remote_file_list)
+                        remote_root = pathlib.PurePath(
+                            os.path.join(self.remote_root, task.task_work_path)
+                        ).as_posix()
+                        self.list_remote_dir(
+                            self.sftp, remote_root, remote_root, remote_file_list
+                        )
 
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
-                    rel_file_list = [pathlib.PurePath(os.path.join(task.task_work_path,ii)).as_posix() for ii in abs_file_list]
+                    rel_file_list = [
+                        pathlib.PurePath(
+                            os.path.join(task.task_work_path, ii)
+                        ).as_posix()
+                        for ii in abs_file_list
+                    ]
 
                 else:
-                    rel_file_list = [pathlib.PurePath(os.path.join(task.task_work_path,jj)).as_posix()]
+                    rel_file_list = [
+                        pathlib.PurePath(
+                            os.path.join(task.task_work_path, jj)
+                        ).as_posix()
+                    ]
                 if check_exists:
                     for file_name in rel_file_list:
                         if self.check_file_exists(file_name):
@@ -703,13 +712,17 @@ class SSHContext(BaseContext):
                     abs_errors = fnmatch.filter(remote_file_list, "error*")
                 else:
                     remote_file_list = []
-                    remote_root = pathlib.PurePath(os.path.join(self.remote_root, task.task_work_path)).as_posix()
-                    self.list_remote_dir(self.sftp,
-                            remote_root,
-                            remote_root,
-                            remote_file_list)
+                    remote_root = pathlib.PurePath(
+                        os.path.join(self.remote_root, task.task_work_path)
+                    ).as_posix()
+                    self.list_remote_dir(
+                        self.sftp, remote_root, remote_root, remote_file_list
+                    )
                     abs_errors = fnmatch.filter(remote_file_list, jj)
-                rel_errors = [pathlib.PurePath(os.path.join(task.task_work_path,ii)).as_posix() for ii in abs_errors]
+                rel_errors = [
+                    pathlib.PurePath(os.path.join(task.task_work_path, ii)).as_posix()
+                    for ii in abs_errors
+                ]
                 file_list.extend(rel_errors)
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
