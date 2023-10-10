@@ -677,17 +677,13 @@ class SSHContext(BaseContext):
 
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
                     rel_file_list = [
-                        pathlib.PurePath(
-                            os.path.join(ii.task_work_path, kk)
-                        ).as_posix()
+                        pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
                         for kk in abs_file_list
                     ]
 
                 else:
                     rel_file_list = [
-                        pathlib.PurePath(
-                            os.path.join(ii.task_work_path, jj)
-                        ).as_posix()
+                        pathlib.PurePath(os.path.join(ii.task_work_path, jj)).as_posix()
                     ]
                 if check_exists:
                     for file_name in rel_file_list:
