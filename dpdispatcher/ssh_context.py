@@ -648,11 +648,14 @@ class SSHContext(BaseContext):
         file_list = []
         # for ii in job_dirs :
         for task in submission.belonging_tasks:
-            remote_file_list = self.sftp.listdir(
-                pathlib.PurePath(
-                    os.path.join(self.remote_root, task.task_work_path)
-                ).as_posix()
-            )
+            try:
+                remote_file_list = self.sftp.listdir(
+                    pathlib.PurePath(
+                        os.path.join(self.remote_root, task.task_work_path)
+                    ).as_posix()
+                )
+            except TypeError:
+                raise TypeError("The path may be wrong.")
             for jj in task.backward_files:
                 abs_file_list = fnmatch.filter(remote_file_list, jj)
                 rel_file_list = [
