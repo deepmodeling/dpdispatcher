@@ -50,6 +50,7 @@ class TestSSHContext(unittest.TestCase):
             "bct-3/log.lammps",
             "bct-4/log.lammps",
             "dir with space/file with space",
+            "bct-backward_wildcard/test456",
             "bct-backward_wildcard/test123/test123",
         ]
         for file in file_list:
@@ -197,7 +198,8 @@ class TestSSHContextNoCompress(unittest.TestCase):
             "bct-3/log.lammps",
             "bct-4/log.lammps",
             "dir with space/file with space",
-            "bct-1/test123/test123",
+            "bct-backward_wildcard/test456",
+            "bct-backward_wildcard/test123/test123",
         ]
         for file in file_list:
             cls.machine.context.sftp.mkdir(
