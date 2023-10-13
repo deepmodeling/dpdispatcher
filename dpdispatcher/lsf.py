@@ -6,7 +6,7 @@ from dargs import Argument
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-from dpdispatcher.utils import RetrySignal, retry
+from dpdispatcher.utils import RetrySignal, customized_script_header_template, retry
 
 lsf_script_header_template = """\
 #!/bin/bash -l
@@ -60,7 +60,10 @@ class LSF(Machine):
                 script_header_dict["lsf_number_gpu_line"] = ""
         else:
             script_header_dict["lsf_number_gpu_line"] = custom_gpu_line
-        lsf_script_header = lsf_script_header_template.format(**script_header_dict)
+        if resources["strategy"].get("customized_script_header_template_file") is not None:
+            lsf_script_header = customized_script_header_template(resources["strategy"]["customized_script_header_template_file"], resources)
+        else:
+            lsf_script_header = lsf_script_header_template.format(**script_header_dict)
 
         return lsf_script_header
 

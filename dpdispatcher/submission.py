@@ -949,6 +949,9 @@ class Resources:
             Usually, this option will be used with Task.task_need_resources variable simultaneously.
         ratio_unfinished : float
             The ratio of `task` that can be unfinished.
+        customized_script_header_template_file : str
+            The customized template file to generate job submitting script header,
+            which overrides the default file.
     para_deg : int
         Decide how many tasks will be run in parallel.
         Usually run with `strategy['if_cuda_multi_devices']`
@@ -1007,12 +1010,8 @@ class Resources:
         # if self.gpu_per_node > 1:
         # self.in_para_task_num = 0
 
-        if "if_cuda_multi_devices" not in self.strategy:
-            self.strategy["if_cuda_multi_devices"] = default_strategy.get(
-                "if_cuda_multi_devices"
-            )
-        if "ratio_unfinished" not in self.strategy:
-            self.strategy["ratio_unfinished"] = default_strategy.get("ratio_unfinished")
+        for kk, value in default_strategy:
+            self.strategy.setdefault(kk, value)
         if self.strategy["if_cuda_multi_devices"] is True:
             if gpu_per_node < 1:
                 raise RuntimeError(
@@ -1121,6 +1120,10 @@ class Resources:
             "Usually, this option will be used with Task.task_need_resources variable simultaneously."
         )
         doc_ratio_unfinished = "The ratio of `tasks` that can be unfinished."
+        doc_customized_script_header_template_file = (
+            "The customized template file to generate job submitting script header, "
+            "which overrides the default file."
+        )
 
         strategy_args = [
             Argument(
@@ -1137,6 +1140,12 @@ class Resources:
                 default=0.0,
                 doc=doc_ratio_unfinished,
             ),
+            Argument(
+                "customized_script_header_template_file",
+                str,
+                optional=True,
+                doc=doc_customized_script_header_template_file,
+            )
         ]
         doc_strategy = "strategies we use to generation job submitting scripts."
         strategy_format = Argument(

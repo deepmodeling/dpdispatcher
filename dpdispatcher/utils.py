@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import os
 import struct
 import subprocess
 import time
@@ -193,3 +194,11 @@ def retry(
         return wrapper
 
     return decorator
+
+
+def customized_script_header_template(filename: Optional[os.PathLike], resources: dict) -> Optional[str]:
+    if filename is None:
+        return None
+    with open(filename) as f:
+        template = f.read()
+    return template.format(**resources)
