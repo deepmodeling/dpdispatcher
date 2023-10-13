@@ -198,7 +198,7 @@ class SSHSession:
                 key_error = e
             else:
                 key_ok = True
-        if self.totp_secret is not None or 'keyboard-interactive' in allowed_types:
+        if self.totp_secret is not None or "keyboard-interactive" in allowed_types:
             try:
                 ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
