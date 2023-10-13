@@ -196,9 +196,7 @@ def retry(
     return decorator
 
 
-def customized_script_header_template(
-    filename: os.PathLike, resources: dict
-) -> str:
+def customized_script_header_template(filename: os.PathLike, resources: dict) -> str:
     with open(filename) as f:
         template = f.read()
     return template.format(**resources)
