@@ -196,7 +196,9 @@ def retry(
     return decorator
 
 
-def customized_script_header_template(filename: Optional[os.PathLike], resources: dict) -> Optional[str]:
+def customized_script_header_template(
+    filename: Optional[os.PathLike], resources: dict
+) -> Optional[str]:
     if filename is None:
         return None
     with open(filename) as f:

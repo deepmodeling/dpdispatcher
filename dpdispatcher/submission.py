@@ -1145,7 +1145,7 @@ class Resources:
                 str,
                 optional=True,
                 doc=doc_customized_script_header_template_file,
-            )
+            ),
         ]
         doc_strategy = "strategies we use to generation job submitting scripts."
         strategy_format = Argument(

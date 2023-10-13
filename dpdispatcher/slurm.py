@@ -48,10 +48,18 @@ class Slurm(Machine):
             ] = f"#SBATCH --partition {resources.queue_name}"
         else:
             script_header_dict["slurm_partition_line"] = ""
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
-            slurm_script_header = customized_script_header_template(resources["strategy"]["customized_script_header_template_file"], resources)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            slurm_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
         else:
-            slurm_script_header = slurm_script_header_template.format(**script_header_dict)
+            slurm_script_header = slurm_script_header_template.format(
+                **script_header_dict
+            )
         return slurm_script_header
 
     @retry()

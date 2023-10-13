@@ -17,8 +17,14 @@ class Shell(Machine):
 
     def gen_script_header(self, job):
         resources = job.resources
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
-            shell_script_header = customized_script_header_template(resources["strategy"]["customized_script_header_template_file"], resources)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            shell_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
         else:
             shell_script_header = shell_script_header_template
         return shell_script_header

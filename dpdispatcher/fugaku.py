@@ -29,8 +29,14 @@ class Fugaku(Machine):
         fugaku_script_header_dict[
             "queue_name_line"
         ] = f'#PJM -L "rscgrp={resources.queue_name}"'
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
-            fugaku_script_header = customized_script_header_template(resources["strategy"]["customized_script_header_template_file"], resources)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            fugaku_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
         else:
             fugaku_script_header = fugaku_script_header_template.format(
                 **fugaku_script_header_dict

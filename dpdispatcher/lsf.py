@@ -60,8 +60,14 @@ class LSF(Machine):
                 script_header_dict["lsf_number_gpu_line"] = ""
         else:
             script_header_dict["lsf_number_gpu_line"] = custom_gpu_line
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
-            lsf_script_header = customized_script_header_template(resources["strategy"]["customized_script_header_template_file"], resources)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            lsf_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
         else:
             lsf_script_header = lsf_script_header_template.format(**script_header_dict)
 

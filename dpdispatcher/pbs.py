@@ -29,10 +29,18 @@ class PBS(Machine):
                 "select_node_line"
             ] += f":ngpus={resources.gpu_per_node}"
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
-            pbs_script_header = customized_script_header_template(resources["strategy"]["customized_script_header_template_file"], resources)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            pbs_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
         else:
-            pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+            pbs_script_header = pbs_script_header_template.format(
+                **pbs_script_header_dict
+            )
         return pbs_script_header
 
     def do_submit(self, job):
@@ -153,8 +161,16 @@ class Torque(PBS):
                 gpu_per_node=resources.gpu_per_node
             )
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
-            pbs_script_header = customized_script_header_template(resources["strategy"]["customized_script_header_template_file"], resources)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            pbs_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
         else:
-            pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+            pbs_script_header = pbs_script_header_template.format(
+                **pbs_script_header_dict
+            )
         return pbs_script_header
