@@ -197,10 +197,8 @@ def retry(
 
 
 def customized_script_header_template(
-    filename: Optional[os.PathLike], resources: dict
-) -> Optional[str]:
-    if filename is None:
-        return None
+    filename: os.PathLike, resources: dict
+) -> str:
     with open(filename) as f:
         template = f.read()
     return template.format(**resources)
