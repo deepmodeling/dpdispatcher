@@ -365,7 +365,6 @@ class SSHSession:
         return ssh_remote_profile_format
 
     def put(self, from_f, to_f):
-        print(self.rsync_available)
         if self.rsync_available:
             return rsync(
                 from_f,
@@ -390,7 +389,6 @@ class SSHSession:
     @property
     @lru_cache(maxsize=None)
     def rsync_available(self) -> bool:
-        print(not self._keyboard_interactive_auth)
         return (
             shutil.which("rsync") is not None
             and self.password is None
