@@ -1010,7 +1010,7 @@ class Resources:
         # if self.gpu_per_node > 1:
         # self.in_para_task_num = 0
 
-        for kk, value in default_strategy:
+        for kk, value in default_strategy.items():
             self.strategy.setdefault(kk, value)
         if self.strategy["if_cuda_multi_devices"] is True:
             if gpu_per_node < 1:
