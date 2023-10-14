@@ -150,9 +150,9 @@ class TestLSFScriptGeneration(unittest.TestCase):
             #BSUB -gpu 'num=1:mode=shared:j_exclusive=no'"""
         )
 
-        with tempfile.NamedTemporaryFile("w") as f:
+        with tempfile.NamedTemporaryFile('w', delete_on_close=False) as f:
             f.write(benchmark_str)
-            f.flush()
+            f.close()
 
             machine_dict["resources"]["strategy"][
                 "customized_script_header_template_file"

@@ -95,9 +95,9 @@ class TestSlurmScriptGeneration(unittest.TestCase):
             #SBATCH --partition GPU_2080Ti"""
         )
 
-        with tempfile.NamedTemporaryFile("w") as f:
+        with tempfile.NamedTemporaryFile("w", delete_on_close=False) as f:
             f.write(benchmark_str)
-            f.flush()
+            f.close()
 
             machine_dict["resources"]["strategy"][
                 "customized_script_header_template_file"
