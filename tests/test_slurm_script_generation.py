@@ -81,7 +81,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         )
         self.assertEqual(str, benchmark_str)
 
-    def test_shell_trival(self):
+    def test_template(self):
         with open("jsons/machine_lazy_local_slurm.json") as f:
             machine_dict = json.load(f)
 
@@ -146,13 +146,4 @@ class TestSlurmScriptGeneration(unittest.TestCase):
             )
             submission.generate_jobs()
             str = machine.gen_script_header(submission.belonging_jobs[0])
-            benchmark_str = textwrap.dedent(
-                """\
-                #!/bin/bash -l
-                #SBATCH --parsable
-                #SBATCH --nodes 1
-                #SBATCH --ntasks-per-node 4
-                #SBATCH --gres=gpu:2080Ti:2
-                #SBATCH --partition GPU_2080Ti"""
-            )
             self.assertEqual(str, benchmark_str)
