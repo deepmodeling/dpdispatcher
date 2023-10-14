@@ -135,6 +135,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
         )
         self.assertEqual(footer_str, benchmark_footer)
 
+    @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
     def test_template(self):
         with open("jsons/machine_lazy_local_lsf.json") as f:
             machine_dict = json.load(f)

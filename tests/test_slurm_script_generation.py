@@ -81,6 +81,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         )
         self.assertEqual(str, benchmark_str)
 
+    @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
     def test_template(self):
         with open("jsons/machine_lazy_local_slurm.json") as f:
             machine_dict = json.load(f)
