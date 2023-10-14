@@ -8,6 +8,10 @@ import time
 from typing import Callable, Optional, Type, Union
 
 from dpdispatcher import dlog
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dpdispatcher import Resources
 
 
 def get_sha256(filename):
@@ -196,7 +200,7 @@ def retry(
     return decorator
 
 
-def customized_script_header_template(filename: os.PathLike, resources: dict) -> str:
+def customized_script_header_template(filename: os.PathLike, resources: "Resources") -> str:
     with open(filename) as f:
         template = f.read()
-    return template.format(**resources)
+    return template.format(**resources.serialize())
