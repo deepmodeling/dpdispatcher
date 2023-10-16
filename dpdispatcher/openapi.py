@@ -2,6 +2,8 @@ import os
 import shutil
 import time
 
+from dpdispatcher.utils import customized_script_header_template
+
 try:
     from bohriumsdk.client import Client
     from bohriumsdk.job import Job
@@ -43,7 +45,17 @@ class OpenAPI(Machine):
         return shell_script
 
     def gen_script_header(self, job):
-        shell_script_header = shell_script_header_template
+        resources = job.resources
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            shell_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            shell_script_header = shell_script_header_template
         return shell_script_header
 
     def gen_local_script(self, job):

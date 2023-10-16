@@ -2,6 +2,7 @@
 # from dpdispatcher.batch import Batch
 import os
 import sys
+import tempfile
 import textwrap
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -133,3 +134,72 @@ class TestLSFScriptGeneration(unittest.TestCase):
             """
         )
         self.assertEqual(footer_str, benchmark_footer)
+
+    @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
+    def test_template(self):
+        with open("jsons/machine_lazy_local_lsf.json") as f:
+            machine_dict = json.load(f)
+
+        benchmark_str = textwrap.dedent(
+            """\
+            #!/bin/bash -l
+            #BSUB -e %J.err
+            #BSUB -o %J.out
+            #BSUB -n 4
+            #BSUB -R 'span[ptile=4]'
+            #BSUB -q gpu
+            #BSUB -gpu 'num=1:mode=shared:j_exclusive=no'"""
+        )
+
+        with tempfile.NamedTemporaryFile("w") as f:
+            f.write(benchmark_str)
+            f.flush()
+
+            machine_dict["resources"]["strategy"][
+                "customized_script_header_template_file"
+            ] = f.name
+
+            machine = Machine(**machine_dict["machine"])
+            resources = Resources(**machine_dict["resources"])
+
+            task1 = Task(
+                command="cat example.txt",
+                task_work_path="dir1/",
+                forward_files=["example.txt"],
+                backward_files=["out.txt"],
+                outlog="out.txt",
+            )
+            task2 = Task(
+                command="cat example.txt",
+                task_work_path="dir2/",
+                forward_files=["example.txt"],
+                backward_files=["out.txt"],
+                outlog="out.txt",
+            )
+            task3 = Task(
+                command="cat example.txt",
+                task_work_path="dir3/",
+                forward_files=["example.txt"],
+                backward_files=["out.txt"],
+                outlog="out.txt",
+            )
+            task4 = Task(
+                command="cat example.txt",
+                task_work_path="dir4/",
+                forward_files=["example.txt"],
+                backward_files=["out.txt"],
+                outlog="out.txt",
+            )
+            task_list = [task1, task2, task3, task4]
+
+            submission = Submission(
+                work_base="parent_dir/",
+                machine=machine,
+                resources=resources,
+                forward_common_files=["graph.pb"],
+                backward_common_files=[],
+                task_list=task_list,
+            )
+            submission.generate_jobs()
+            str = machine.gen_script_header(submission.belonging_jobs[0])
+            self.assertEqual(str, benchmark_str)
