@@ -2,8 +2,8 @@
 # from dpdispatcher.batch import Batch
 import os
 import sys
-import textwrap
 import tempfile
+import textwrap
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -84,7 +84,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
     def test_shell_trival(self):
         with open("jsons/machine_lazy_local_slurm.json") as f:
             machine_dict = json.load(f)
-        
+
         benchmark_str = textwrap.dedent(
             """\
             #!/bin/bash -l
@@ -95,11 +95,13 @@ class TestSlurmScriptGeneration(unittest.TestCase):
             #SBATCH --partition GPU_2080Ti"""
         )
 
-        with tempfile.NamedTemporaryFile('w') as f:
+        with tempfile.NamedTemporaryFile("w") as f:
             f.write(benchmark_str)
             f.flush()
 
-            machine_dict["resources"]['strategy']["customized_script_header_template_file"] = f.name
+            machine_dict["resources"]["strategy"][
+                "customized_script_header_template_file"
+            ] = f.name
 
             machine = Machine(**machine_dict["machine"])
             resources = Resources(**machine_dict["resources"])
