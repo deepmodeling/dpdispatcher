@@ -138,7 +138,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
     def test_template(self):
         with open("jsons/machine_lazy_local_lsf.json") as f:
             machine_dict = json.load(f)
-        
+
         benchmark_str = textwrap.dedent(
             """\
             #!/bin/bash -l
@@ -150,11 +150,13 @@ class TestLSFScriptGeneration(unittest.TestCase):
             #BSUB -gpu 'num=1:mode=shared:j_exclusive=no'"""
         )
 
-        with tempfile.NamedTemporaryFile('w') as f:
+        with tempfile.NamedTemporaryFile("w") as f:
             f.write(benchmark_str)
             f.flush()
 
-            machine_dict["resources"]['strategy']["customized_script_header_template_file"] = f.name
+            machine_dict["resources"]["strategy"][
+                "customized_script_header_template_file"
+            ] = f.name
 
             machine = Machine(**machine_dict["machine"])
             resources = Resources(**machine_dict["resources"])
