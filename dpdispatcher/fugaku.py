@@ -49,6 +49,9 @@ class Fugaku(Machine):
         job_id_name = job.job_hash + "_job_id"
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
         # script_file_dir = os.path.join(self.context.submission.work_base)
         script_file_dir = self.context.remote_root

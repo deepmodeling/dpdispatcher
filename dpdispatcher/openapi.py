@@ -62,6 +62,11 @@ class OpenAPI(Machine):
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         self.context.write_local_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_local_file(
+            fname=script_run_file_name, write_str=script_run_str
+        )
         return script_file_name
 
     def _gen_backward_files_list(self, job):

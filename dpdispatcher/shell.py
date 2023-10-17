@@ -35,6 +35,9 @@ class Shell(Machine):
         job_id_name = job.job_hash + "_job_id"
         output_name = job.job_hash + ".out"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         ret, stdin, stdout, stderr = self.context.block_call(
             "cd {} && {{ nohup bash {} 1>>{} 2>>{} & }} && echo $!".format(
                 shlex.quote(self.context.remote_root),

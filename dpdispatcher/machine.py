@@ -191,17 +191,20 @@ class Machine(metaclass=ABCMeta):
             "abstract method do_submit should be implemented by derived class"
         )
 
+    def gen_script_run_command(self, job):
+        return f"source $REMOTE_ROOT/{job.script_file_name}.run"
+
     def gen_script(self, job):
         script_header = self.gen_script_header(job)
         script_custom_flags = self.gen_script_custom_flags_lines(job)
         script_env = self.gen_script_env(job)
-        script_command = self.gen_script_command(job)
+        script_run_command = self.gen_script_run_command(job)
         script_end = self.gen_script_end(job)
         script = script_template.format(
             script_header=script_header,
             script_custom_flags=script_custom_flags,
             script_env=script_env,
-            script_command=script_command,
+            script_command=script_run_command,
             script_end=script_end,
         )
         return script
