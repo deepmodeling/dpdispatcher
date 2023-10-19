@@ -79,6 +79,9 @@ class LSF(Machine):
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
 
         try:
             stdin, stdout, stderr = self.context.block_checkcall(
