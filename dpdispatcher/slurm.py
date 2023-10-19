@@ -8,7 +8,7 @@ from dargs import Argument
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine, script_command_template
-from dpdispatcher.utils import RetrySignal, retry
+from dpdispatcher.utils import RetrySignal, customized_script_header_template, retry
 
 # from dpdispatcher.submission import Resources
 
@@ -48,7 +48,18 @@ class Slurm(Machine):
             ] = f"#SBATCH --partition {resources.queue_name}"
         else:
             script_header_dict["slurm_partition_line"] = ""
-        slurm_script_header = slurm_script_header_template.format(**script_header_dict)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            slurm_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            slurm_script_header = slurm_script_header_template.format(
+                **script_header_dict
+            )
         return slurm_script_header
 
     @retry()

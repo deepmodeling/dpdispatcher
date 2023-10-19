@@ -50,6 +50,7 @@ class SSHSession:
         self.ssh = None
         self.tar_compress = tar_compress
         self.look_for_keys = look_for_keys
+        self._keyboard_interactive_auth = False
         self._setup_ssh()
 
     # @classmethod
@@ -189,20 +190,22 @@ class SSHSession:
                 if key is not None:
                     break
 
+        allowed_types = set()
         if key is not None:
             try:
-                ts.auth_publickey(self.username, key)
+                allowed_types = set(ts.auth_publickey(self.username, key))
             except paramiko.ssh_exception.AuthenticationException as e:
                 key_error = e
             else:
                 key_ok = True
-        if self.totp_secret is not None:
+        if self.totp_secret is not None or "keyboard-interactive" in allowed_types:
             try:
                 ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
                 # since the asynchrony of interactive authentication, one addtional try is added
                 # retry for up to 6 times
                 raise RetrySignal("Authentication failed")
+            self._keyboard_interactive_auth = True
         elif key_ok:
             pass
         elif self.password is not None:
@@ -392,6 +395,7 @@ class SSHSession:
             and self.exec_command("rsync --version")[1].channel.recv_exit_status() == 0
             and self.totp_secret is None
             and self.passphrase is None
+            and not self._keyboard_interactive_auth
         )
 
     @property

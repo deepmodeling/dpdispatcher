@@ -3,6 +3,7 @@ import shlex
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils import customized_script_header_template
 
 fugaku_script_header_template = """\
 {queue_name_line}
@@ -28,9 +29,18 @@ class Fugaku(Machine):
         fugaku_script_header_dict[
             "queue_name_line"
         ] = f'#PJM -L "rscgrp={resources.queue_name}"'
-        fugaku_script_header = fugaku_script_header_template.format(
-            **fugaku_script_header_dict
-        )
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            fugaku_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            fugaku_script_header = fugaku_script_header_template.format(
+                **fugaku_script_header_dict
+            )
         return fugaku_script_header
 
     def do_submit(self, job):
