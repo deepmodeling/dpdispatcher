@@ -420,7 +420,7 @@ class SSHContext(BaseContext):
         assert os.path.isabs(remote_root), "remote_root must be a abspath"
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
-        self.remote_root = ""
+        self.remote_root = None
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
@@ -661,6 +661,7 @@ class SSHContext(BaseContext):
         mark_failure=True,
         back_error=False,
     ):
+        assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         file_list = []
         # for ii in job_dirs :
