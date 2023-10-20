@@ -22,7 +22,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
             remote_profile={
                 "email": os.environ["BOHRIUM_EMAIL"],
                 "password": os.environ["BOHRIUM_PASSWORD"],
-                "project_id": os.environ["BOHRIUM_PROJECT_ID"],
+                "project_id": int(os.environ["BOHRIUM_PROJECT_ID"]),
                 "input_data": {
                     "job_type": "indicate",
                     "log_file": "log",
@@ -54,12 +54,12 @@ class TestOpenAPIRun(RunSubmission, unittest.TestCase):
             accessKey={accesskey}
             """
         ).format(accesskey=os.environ["BOHRIUM_ACCESS_KEY"])
-        Path.home().joinpath(".bohrium").write_text(bohrium_config)
+        Path.home().joinpath(".brmconfig").write_text(bohrium_config)
         self.machine_dict.update(
             batch_type="OpenAPI",
             context_type="OpenAPI",
             remote_profile={
-                "project_id": os.environ["BOHRIUM_PROJECT_ID"],
+                "project_id": int(os.environ["BOHRIUM_PROJECT_ID"]),
                 "machine_type": "c2_m4_cpu",
                 "platform": "ali",
                 "image_address": "registry.dp.tech/dptech/ubuntu:22.04-py3.10",
