@@ -113,6 +113,7 @@ class BohriumContext(BaseContext):
 
         upload_file_list = [
             job.script_file_name,
+            f"{job.script_file_name}.run",
         ]
         upload_file_list.extend(common_files)
 
