@@ -1,4 +1,4 @@
-name: Test Bohirum
+name: Test Bohrium
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    environment: bohirum
-    if: github.repository_owner == 'deepmodeling' && github.event.label.name == 'Test Bohirum' || github.event_name == 'push'
+    environment: bohrium
+    if: github.repository_owner == 'deepmodeling' && github.event.label.name == 'Test Bohrium' || github.event_name == 'push'
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.12
@@ -18,11 +18,11 @@ jobs:
       with:
         python-version: '3.12'
         cache: 'pip'
-    - run: pip install .[bohirum] coverage
+    - run: pip install .[bohrium] coverage
     - name: Test
-      run: coverage run --source=./dpdispatcher -m unittest -v tests/test_run_submission_bohirum.py && coverage report
+      run: coverage run --source=./dpdispatcher -m unittest -v tests/test_run_submission_bohrium.py && coverage report
       env:
-        DPDISPATCHER_TEST: bohirum
+        DPDISPATCHER_TEST: bohrium
         BOHRIUM_EMAIL: ${{ secrets.BOHRIUM_EMAIL }}
         BOHRIUM_PASSWORD: ${{ secrets.BOHRIUM_PASSWORD }}
         BOHRIUM_PROJECT_ID: ${{ secrets.BOHRIUM_PROJECT_ID }}

@@ -10,7 +10,7 @@ from test_run_submission import RunSubmission
 
 
 @unittest.skipIf(
-    os.environ.get("DPDISPATCHER_TEST") != "bohirum",
+    os.environ.get("DPDISPATCHER_TEST") != "bohrium",
     "outside the Bohrium testing environment",
 )
 class TestBohriumRun(RunSubmission, unittest.TestCase):
@@ -42,7 +42,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
 
 
 @unittest.skipIf(
-    os.environ.get("DPDISPATCHER_TEST") != "bohirum",
+    os.environ.get("DPDISPATCHER_TEST") != "bohrium",
     "outside the Bohrium testing environment",
 )
 class TestOpenAPIRun(RunSubmission, unittest.TestCase):

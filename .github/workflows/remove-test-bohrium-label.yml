@@ -10,9 +10,9 @@ jobs:
       pull-requests: write
     # so one can re-trigger the workflow without manually removing the label
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'deepmodeling' && github.event.label.name == 'Test Bohirum'
+    if: github.repository_owner == 'deepmodeling' && github.event.label.name == 'Test Bohrium'
     steps:
     - uses: actions-ecosystem/action-remove-labels@v1
       with:
-        labels: Test Bohirum
+        labels: Test Bohrium
         number: ${{ github.event.pull_request.number }}
