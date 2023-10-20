@@ -13,6 +13,8 @@ jobs:
     if: github.repository_owner == 'deepmodeling' && (github.event.label.name == 'Test Bohrium' || github.event_name == 'push')
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: "${{ github.event.pull_request.merge_commit_sha }}"
     - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
