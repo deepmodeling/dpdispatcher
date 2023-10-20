@@ -168,6 +168,8 @@ class SSHSession:
                         pass
                     if key is not None:
                         break
+            else:
+                raise OSError(f"{key_path} not found!")
         elif self.look_for_keys:
             for keytype, name in [
                 (paramiko.RSAKey, "rsa"),
