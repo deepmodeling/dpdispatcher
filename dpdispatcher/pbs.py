@@ -3,6 +3,7 @@ import shlex
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils import customized_script_header_template
 
 pbs_script_header_template = """
 #!/bin/bash -l
@@ -22,17 +23,24 @@ class PBS(Machine):
         pbs_script_header_dict = {}
         pbs_script_header_dict[
             "select_node_line"
-        ] = "#PBS -l select={number_node}:ncpus={cpu_per_node}".format(
-            number_node=resources.number_node, cpu_per_node=resources.cpu_per_node
-        )
+        ] = f"#PBS -l select={resources.number_node}:ncpus={resources.cpu_per_node}"
         if resources.gpu_per_node != 0:
             pbs_script_header_dict[
                 "select_node_line"
             ] += f":ngpus={resources.gpu_per_node}"
-        pbs_script_header_dict["queue_name_line"] = "#PBS -q {queue_name}".format(
-            queue_name=resources.queue_name
-        )
-        pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+        pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            pbs_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            pbs_script_header = pbs_script_header_template.format(
+                **pbs_script_header_dict
+            )
         return pbs_script_header
 
     def do_submit(self, job):
@@ -41,6 +49,9 @@ class PBS(Machine):
         job_id_name = job.job_hash + "_job_id"
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
         # script_file_dir = os.path.join(self.context.submission.work_base)
         script_file_dir = self.context.remote_root
@@ -147,15 +158,22 @@ class Torque(PBS):
         pbs_script_header_dict = {}
         pbs_script_header_dict[
             "select_node_line"
-        ] = "#PBS -l nodes={number_node}:ppn={cpu_per_node}".format(
-            number_node=resources.number_node, cpu_per_node=resources.cpu_per_node
-        )
+        ] = f"#PBS -l nodes={resources.number_node}:ppn={resources.cpu_per_node}"
         if resources.gpu_per_node != 0:
             pbs_script_header_dict["select_node_line"] += ":gpus={gpu_per_node}".format(
                 gpu_per_node=resources.gpu_per_node
             )
-        pbs_script_header_dict["queue_name_line"] = "#PBS -q {queue_name}".format(
-            queue_name=resources.queue_name
-        )
-        pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+        pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            pbs_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            pbs_script_header = pbs_script_header_template.format(
+                **pbs_script_header_dict
+            )
         return pbs_script_header

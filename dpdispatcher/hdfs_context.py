@@ -17,7 +17,7 @@ class HDFSContext(BaseContext):
         *args,
         **kwargs,
     ):
-        assert type(local_root) == str
+        assert isinstance(local_root, str)
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
@@ -137,10 +137,7 @@ class HDFSContext(BaseContext):
         if os.path.exists(gz_dir):
             shutil.rmtree(gz_dir, ignore_errors=True)
         os.mkdir(os.path.join(self.local_root, "tmp"))
-        rfile_tgz = "{}/{}_*_download.tar.gz".format(
-            self.remote_root,
-            submission.submission_hash,
-        )
+        rfile_tgz = f"{self.remote_root}/{submission.submission_hash}_*_download.tar.gz"
         lfile_tgz = "%s/tmp/" % (self.local_root)
         HDFS.copy_to_local(rfile_tgz, lfile_tgz)
 

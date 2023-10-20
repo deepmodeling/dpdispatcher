@@ -6,7 +6,7 @@ from dargs import Argument
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-from dpdispatcher.utils import RetrySignal, retry
+from dpdispatcher.utils import RetrySignal, customized_script_header_template, retry
 
 lsf_script_header_template = """\
 #!/bin/bash -l
@@ -31,12 +31,8 @@ class LSF(Machine):
             "lsf_nodes_line": "#BSUB -n {number_cores}".format(
                 number_cores=resources.number_node * resources.cpu_per_node
             ),
-            "lsf_ptile_line": "#BSUB -R 'span[ptile={cpu_per_node}]'".format(
-                cpu_per_node=resources.cpu_per_node
-            ),
-            "lsf_partition_line": "#BSUB -q {queue_name}".format(
-                queue_name=resources.queue_name
-            ),
+            "lsf_ptile_line": f"#BSUB -R 'span[ptile={resources.cpu_per_node}]'",
+            "lsf_partition_line": f"#BSUB -q {resources.queue_name}",
         }
         gpu_usage_flag = resources.kwargs.get("gpu_usage", False)
         gpu_new_syntax_flag = resources.kwargs.get("gpu_new_syntax", False)
@@ -47,30 +43,33 @@ class LSF(Machine):
                 if gpu_new_syntax_flag is True:
                     if gpu_exclusive_flag is True:
                         script_header_dict["lsf_number_gpu_line"] = (
-                            "#BSUB -gpu 'num={gpu_per_node}:mode=shared:"
-                            "j_exclusive=yes'".format(
-                                gpu_per_node=resources.gpu_per_node
-                            )
+                            f"#BSUB -gpu 'num={resources.gpu_per_node}:mode=shared:"
+                            "j_exclusive=yes'"
                         )
                     else:
                         script_header_dict["lsf_number_gpu_line"] = (
-                            "#BSUB -gpu 'num={gpu_per_node}:mode=shared:"
-                            "j_exclusive=no'".format(
-                                gpu_per_node=resources.gpu_per_node
-                            )
+                            f"#BSUB -gpu 'num={resources.gpu_per_node}:mode=shared:"
+                            "j_exclusive=no'"
                         )
                 else:
                     script_header_dict["lsf_number_gpu_line"] = (
                         '#BSUB -R "select[ngpus >0] rusage['
-                        'ngpus_excl_p={gpu_per_node}]"'.format(
-                            gpu_per_node=resources.gpu_per_node
-                        )
+                        f'ngpus_excl_p={resources.gpu_per_node}]"'
                     )
             else:
                 script_header_dict["lsf_number_gpu_line"] = ""
         else:
             script_header_dict["lsf_number_gpu_line"] = custom_gpu_line
-        lsf_script_header = lsf_script_header_template.format(**script_header_dict)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            lsf_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            lsf_script_header = lsf_script_header_template.format(**script_header_dict)
 
         return lsf_script_header
 
@@ -80,6 +79,9 @@ class LSF(Machine):
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
 
         try:
             stdin, stdout, stderr = self.context.block_checkcall(

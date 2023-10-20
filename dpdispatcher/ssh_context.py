@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import fnmatch
 import os
 import pathlib
 import shlex
@@ -10,6 +11,7 @@ import time
 import uuid
 from functools import lru_cache
 from glob import glob
+from stat import S_ISDIR, S_ISREG
 from typing import List
 
 import paramiko
@@ -48,6 +50,7 @@ class SSHSession:
         self.ssh = None
         self.tar_compress = tar_compress
         self.look_for_keys = look_for_keys
+        self._keyboard_interactive_auth = False
         self._setup_ssh()
 
     # @classmethod
@@ -187,20 +190,22 @@ class SSHSession:
                 if key is not None:
                     break
 
+        allowed_types = set()
         if key is not None:
             try:
-                ts.auth_publickey(self.username, key)
+                allowed_types = set(ts.auth_publickey(self.username, key))
             except paramiko.ssh_exception.AuthenticationException as e:
                 key_error = e
             else:
                 key_ok = True
-        if self.totp_secret is not None:
+        if self.totp_secret is not None or "keyboard-interactive" in allowed_types:
             try:
                 ts.auth_interactive(self.username, self.inter_handler)
             except paramiko.ssh_exception.AuthenticationException:
                 # since the asynchrony of interactive authentication, one addtional try is added
                 # retry for up to 6 times
                 raise RetrySignal("Authentication failed")
+            self._keyboard_interactive_auth = True
         elif key_ok:
             pass
         elif self.password is not None:
@@ -320,7 +325,6 @@ class SSHSession:
         doc_look_for_keys = (
             "enable searching for discoverable private key files in ~/.ssh/"
         )
-
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -391,6 +395,7 @@ class SSHSession:
             and self.exec_command("rsync --version")[1].channel.recv_exit_status() == 0
             and self.totp_secret is None
             and self.passphrase is None
+            and not self._keyboard_interactive_auth
         )
 
     @property
@@ -408,7 +413,7 @@ class SSHContext(BaseContext):
         *args,
         **kwargs,
     ):
-        assert type(local_root) == str
+        assert isinstance(local_root, str)
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
@@ -502,6 +507,14 @@ class SSHContext(BaseContext):
             self.block_checkcall(
                 f"mv {shlex.quote(old_remote_root)} {shlex.quote(self.remote_root)}"
             )
+        elif (
+            old_remote_root is not None
+            and old_remote_root != self.remote_root
+            and self.check_file_exists(old_remote_root)
+            and not len(self.ssh_session.sftp.listdir(old_remote_root))
+        ):
+            # if the new directory exists and the old directory does not contain files, then move the old directory
+            self._rmtree(old_remote_root)
 
         sftp = self.ssh_session.ssh.open_sftp()
         try:
@@ -535,6 +548,8 @@ class SSHContext(BaseContext):
                         directory_list.append(root)
                     for name in files:
                         file_list.append(os.path.join(root, name))
+            elif os.path.islink(file_name) and not os.path.exists(file_name):
+                raise OSError(f"{file_name} is broken symbolic link")
             elif glob(file_name):
                 # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
                 abs_file_list = glob(file_name)
@@ -625,6 +640,18 @@ class SSHContext(BaseContext):
             tar_compress=self.remote_profile.get("tar_compress", None),
         )
 
+    def list_remote_dir(self, sftp, remote_dir, ref_remote_root, result_list):
+        for entry in sftp.listdir_attr(remote_dir):
+            remote_name = pathlib.PurePath(
+                os.path.join(remote_dir, entry.filename)
+            ).as_posix()
+            st_mode = entry.st_mode
+            if S_ISDIR(st_mode):
+                self.list_remote_dir(sftp, remote_name, ref_remote_root, result_list)
+            elif S_ISREG(st_mode):
+                rel_remote_name = os.path.relpath(remote_name, start=ref_remote_root)
+                result_list.append(rel_remote_name)
+
     def download(
         self,
         submission,
@@ -634,34 +661,70 @@ class SSHContext(BaseContext):
         mark_failure=True,
         back_error=False,
     ):
+        assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         file_list = []
         # for ii in job_dirs :
-        for task in submission.belonging_tasks:
-            for jj in task.backward_files:
-                file_name = pathlib.PurePath(
-                    os.path.join(task.task_work_path, jj)
-                ).as_posix()
-                if check_exists:
-                    if self.check_file_exists(file_name):
-                        file_list.append(file_name)
-                    elif mark_failure:
-                        with open(
-                            os.path.join(
-                                self.local_root,
-                                task.task_work_path,
-                                "tag_failure_download_%s" % jj,
-                            ),
-                            "w",
-                        ) as fp:
-                            pass
+        for ii in submission.belonging_tasks:
+            remote_file_list = None
+            for jj in ii.backward_files:
+                if "*" in jj or "?" in jj:
+                    if remote_file_list is not None:
+                        abs_file_list = fnmatch.filter(remote_file_list, jj)
                     else:
-                        pass
+                        remote_file_list = []
+                        remote_job = pathlib.PurePath(
+                            os.path.join(self.remote_root, ii.task_work_path)
+                        ).as_posix()
+                        self.list_remote_dir(
+                            self.sftp, remote_job, remote_job, remote_file_list
+                        )
+
+                        abs_file_list = fnmatch.filter(remote_file_list, jj)
+                    rel_file_list = [
+                        pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
+                        for kk in abs_file_list
+                    ]
+
                 else:
-                    file_list.append(file_name)
+                    rel_file_list = [
+                        pathlib.PurePath(os.path.join(ii.task_work_path, jj)).as_posix()
+                    ]
+                if check_exists:
+                    for file_name in rel_file_list:
+                        if self.check_file_exists(file_name):
+                            file_list.append(file_name)
+                        elif mark_failure:
+                            with open(
+                                os.path.join(
+                                    self.local_root,
+                                    ii.task_work_path,
+                                    "tag_failure_download_%s" % jj,
+                                ),
+                                "w",
+                            ) as fp:
+                                pass
+                        else:
+                            pass
+                else:
+                    file_list.extend(rel_file_list)
             if back_error:
-                errors = glob(os.path.join(task.task_work_path, "error*"))
-                file_list.extend(errors)
+                if remote_file_list is not None:
+                    abs_errors = fnmatch.filter(remote_file_list, "error*")
+                else:
+                    remote_file_list = []
+                    remote_job = pathlib.PurePath(
+                        os.path.join(self.remote_root, ii.task_work_path)
+                    ).as_posix()
+                    self.list_remote_dir(
+                        self.sftp, remote_job, remote_job, remote_file_list
+                    )
+                    abs_errors = fnmatch.filter(remote_file_list, "error*")
+                rel_errors = [
+                    pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
+                    for kk in abs_errors
+                ]
+                file_list.extend(rel_errors)
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
             self._get_files(

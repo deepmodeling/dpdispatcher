@@ -9,6 +9,7 @@ from dpdispatcher.dpcloudserver import Client, zip_file
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils import customized_script_header_template
 
 shell_script_header_template = """
 #!/bin/bash -l
@@ -31,6 +32,15 @@ class Bohrium(Machine):
         phone = context.remote_profile.get("phone", None)
         username = context.remote_profile.get("username", None)
         password = context.remote_profile.get("password", None)
+        self.retry_count = context.remote_profile.get("retry_count", 3)
+        self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", True)
+
+        ticket = os.environ.get("BOHR_TICKET", None)
+        if ticket:
+            self.api = Client(ticket=ticket)
+            self.group_id = None
+            return
+
         if email is None and username is not None:
             raise DeprecationWarning(
                 "username is no longer support in current version, "
@@ -62,13 +72,28 @@ class Bohrium(Machine):
         return shell_script
 
     def gen_script_header(self, job):
-        shell_script_header = shell_script_header_template
+        resources = job.resources
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            shell_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            shell_script_header = shell_script_header_template
         return shell_script_header
 
     def gen_local_script(self, job):
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         self.context.write_local_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_local_file(
+            fname=script_run_file_name, write_str=script_run_str
+        )
         return script_file_name
 
     def _gen_backward_files_list(self, job):
@@ -103,7 +128,6 @@ class Bohrium(Machine):
         # oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
         oss_task_zip = self._gen_oss_path(job, zip_filename)
         job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
-
         input_data = self.input_data.copy()
 
         if not input_data.get("job_resources"):
@@ -180,7 +204,9 @@ class Bohrium(Machine):
                     f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}"
                 )
 
-        job_state = self.map_dp_job_state(dp_job_status)
+        job_state = self.map_dp_job_state(
+            dp_job_status, check_return.get("exitCode", 0), self.ignore_exit_code
+        )
         if job_state == JobStatus.finished:
             job_log = self.api.get_log(job_id)
             if self.input_data.get("output_log"):
@@ -225,7 +251,7 @@ class Bohrium(Machine):
         # pass
 
     @staticmethod
-    def map_dp_job_state(status):
+    def map_dp_job_state(status, exit_code, ignore_exit_code=True):
         if isinstance(status, JobStatus):
             return status
         map_dict = {
@@ -237,15 +263,40 @@ class Bohrium(Machine):
             4: JobStatus.running,
             5: JobStatus.terminated,
             6: JobStatus.running,
+            9: JobStatus.waiting,
         }
         if status not in map_dict:
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
+        if status == -1 and exit_code != 0 and ignore_exit_code:
+            return JobStatus.finished
         return map_dict[status]
 
-    # def check_finish_tag(self, job):
-    #     job_tag_finished = job.job_hash + '_job_tag_finished'
-    #     return self.context.check_file_exists(job_tag_finished)
+    def kill(self, job):
+        """Kill the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        job_id = job.job_id
+        self.api.kill(job_id)
+
+    def get_exit_code(self, job) -> int:
+        job_id = self._parse_job_id(job.job_id)
+        if job_id <= 0:
+            raise RuntimeError(f"cannot parse job id {job.job_id}")
+
+        check_return = self._get_job_detail(job_id, self.group_id)
+        return check_return.get("exitCode", -999)  # type: ignore
+
+    def _parse_job_id(self, str_job_id: str) -> int:
+        job_id = 0
+        if "job_group_id" in str_job_id:
+            ids = str_job_id.split(":job_group_id:")
+            job_id, _ = int(ids[0]), int(ids[1])
+        return job_id
 
 
 DpCloudServer = Bohrium

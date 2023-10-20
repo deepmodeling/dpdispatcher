@@ -1,0 +1,17 @@
+{
+    "command": "lmp -i in.lammps -v restart 0",
+    "machine": {
+        "batch_type": "OpenAPI",
+        "context_type": "OpenAPIContext",
+        "remote_profile": {
+            "project_id": 154,
+            "command": "lmp -i in.lammps -v restart 0",
+            "job_name": "dpgen_lammps_job",
+            "machine_type":"c4_m15_1 * NVIDIA T4",
+            "image_address":"registry.dp.tech/dev/test/deepmd-kit:2.2.1-cuda11.6"
+        }
+    },
+    "resources": {
+        "group_size": 10
+    } 
+}

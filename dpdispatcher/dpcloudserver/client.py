@@ -25,7 +25,9 @@ class RequestInfoException(Exception):
 
 
 class Client:
-    def __init__(self, email=None, password=None, debug=False, base_url=API_HOST):
+    def __init__(
+        self, email=None, password=None, debug=False, ticket=None, base_url=API_HOST
+    ):
         self.debug = debug
         self.debug = os.getenv("LBG_CLI_DEBUG_PRINT", debug)
         self.config = {}
@@ -35,6 +37,7 @@ class Client:
         self.config["password"] = password
         self.base_url = base_url
         self.last_log_offset = 0
+        self.ticket = ticket
 
     def post(self, url, data=None, header=None, params=None, retry=5):
         return self._req(
@@ -51,19 +54,26 @@ class Client:
             header = {}
         if not self.token:
             self.refresh_token()
+        self.ticket = os.environ.get("BOHR_TICKET", "")
         header["Authorization"] = f"jwt {self.token}"
+        header["Brm-Ticket"] = self.ticket
         resp_code = None
         err = None
         for i in range(retry):
             resp = None
-            if method == "GET":
-                resp = requests.get(url, params=params, headers=header)
-            else:
-                if self.debug:
-                    print(data)
-                resp = requests.post(url, json=data, params=params, headers=header)
-            if self.debug:
-                print(resp.text)
+            try:
+                if method == "GET":
+                    resp = requests.get(url, params=params, headers=header)
+                else:
+                    if self.debug:
+                        print(data)
+                    resp = requests.post(url, json=data, params=params, headers=header)
+            except Exception as e:
+                dlog.error(f"request({i}) error {e}", i, stack_info=ENABLE_STACK)
+                err = e
+                time.sleep(1 * i)
+                continue
+
             resp_code = resp.status_code
             if not resp.ok:
                 if self.debug:
@@ -96,6 +106,9 @@ class Client:
         self.user_id = resp["user_id"]
 
     def refresh_token(self, retry=3):
+        self.ticket = os.environ.get("BOHR_TICKET", "")
+        if self.ticket:
+            return
         url = "/account/login"
         post_data = {"email": self.config["email"], "password": self.config["password"]}
         resp_code = None
@@ -310,6 +323,19 @@ class Client:
                 return ret.get("resultUrl")
             else:
                 return None
+        except ValueError as e:
+            dlog.error(e, stack_info=ENABLE_STACK)
+            return None
+
+    def kill(self, job_id):
+        try:
+            if not job_id:
+                return None
+            if "job_group_id" in job_id:
+                ids = job_id.split(":job_group_id:")
+                job_id, _ = int(ids[0]), int(ids[1])
+            ret = self.post(f"/brm/v1/job/kill/{job_id}", {})
+            return ret
         except ValueError as e:
             dlog.error(e, stack_info=ENABLE_STACK)
             return None

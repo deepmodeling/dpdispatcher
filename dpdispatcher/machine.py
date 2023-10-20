@@ -191,26 +191,27 @@ class Machine(metaclass=ABCMeta):
             "abstract method do_submit should be implemented by derived class"
         )
 
+    def gen_script_run_command(self, job):
+        return f"source $REMOTE_ROOT/{job.script_file_name}.run"
+
     def gen_script(self, job):
         script_header = self.gen_script_header(job)
         script_custom_flags = self.gen_script_custom_flags_lines(job)
         script_env = self.gen_script_env(job)
-        script_command = self.gen_script_command(job)
+        script_run_command = self.gen_script_run_command(job)
         script_end = self.gen_script_end(job)
         script = script_template.format(
             script_header=script_header,
             script_custom_flags=script_custom_flags,
             script_env=script_env,
-            script_command=script_command,
+            script_command=script_run_command,
             script_end=script_end,
         )
         return script
 
     def check_if_recover(self, submission):
         submission_hash = submission.submission_hash
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=submission_hash
-        )
+        submission_file_name = f"{submission_hash}.json"
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 
@@ -455,3 +456,15 @@ class Machine(metaclass=ABCMeta):
             job
         """
         dlog.warning("Job %s should be manually killed" % job.job_id)
+
+    def get_exit_code(self, job):
+        """Get exit code of the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        raise NotImplementedError(
+            "abstract method get_exit_code should be implemented by derived class"
+        )

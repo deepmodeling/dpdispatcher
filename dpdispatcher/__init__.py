@@ -43,11 +43,14 @@ except ImportError:
 from .distributed_shell import DistributedShell
 from .dp_cloud_server import DpCloudServer, Lebesgue
 from .dp_cloud_server_context import DpCloudServerContext, LebesgueContext
+from .fugaku import Fugaku
 from .hdfs_context import HDFSContext
 from .lazy_local_context import LazyLocalContext
 from .local_context import LocalContext
 from .lsf import LSF
 from .machine import Machine
+from .openapi import OpenAPI
+from .openapi_context import OpenAPIContext
 from .pbs import PBS, Torque
 from .shell import Shell
 from .slurm import Slurm
@@ -76,6 +79,8 @@ __all__ = [
     "__version__",
     "DistributedShell",
     "DpCloudServer",
+    "OpenAPI",
+    "OpenAPIContext",
     "DpCloudServerContext",
     "HDFSContext",
     "LazyLocalContext",
@@ -85,6 +90,7 @@ __all__ = [
     "PBS",
     "Shell",
     "Slurm",
+    "Fugaku",
     "SSHContext",
     "Submission",
     "Task",

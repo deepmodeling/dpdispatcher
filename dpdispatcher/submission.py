@@ -1,5 +1,7 @@
 # %%
+import asyncio
 import copy
+import functools
 import json
 import os
 import pathlib
@@ -165,7 +167,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.append(task)
 
@@ -173,7 +175,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.extend(task_list)
 
@@ -199,7 +201,9 @@ class Submission:
             self.local_root = machine.context.temp_local_root
         return self
 
-    def run_submission(self, *, dry_run=False, exit_on_submit=False, clean=True):
+    def run_submission(
+        self, *, dry_run=False, exit_on_submit=False, clean=True, check_interval=30
+    ):
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -240,7 +244,7 @@ class Submission:
                 break
 
             try:
-                time.sleep(30)
+                time.sleep(check_interval)
             except (Exception, KeyboardInterrupt, SystemExit) as e:
                 self.submission_to_json()
                 dlog.exception(e)
@@ -254,11 +258,71 @@ class Submission:
             finally:
                 pass
         self.handle_unexpected_submission_state()
-        self.download_jobs()
+        self.try_download_result()
         self.submission_to_json()
         if clean:
             self.clean_jobs()
         return self.serialize()
+
+    def try_download_result(self):
+        start_time = time.time()
+        retry_interval = 60  # retry every 1 minute
+        success = False
+        while not success:
+            try:
+                self.download_jobs()
+                success = True
+            except (EOFError, Exception) as e:
+                dlog.exception(e)
+                elapsed_time = time.time() - start_time
+                if elapsed_time < 3600:  # in 1 h
+                    dlog.info("Retrying in 1 minute...")
+                    time.sleep(retry_interval)
+                elif elapsed_time < 86400:  # 1 h ~ 24 h
+                    retry_interval = 600  # retry every 10 min
+                    dlog.info("Retrying in 10 minutes...")
+                    time.sleep(retry_interval)
+                else:  # > 24 h
+                    dlog.info("Maximum retries time reached. Exiting.")
+                    break
+
+    async def async_run_submission(self, **kwargs):
+        """Async interface of run_submission.
+
+        Examples
+        --------
+        >>> import asyncio
+        >>> from dpdispacher import Machine, Resource, Submission
+        >>> async def run_jobs():
+        ...     backgroud_task = set()
+        ...     # task1
+        ...     task1 = Task(...)
+        ...     submission1 = Submission(..., task_list=[task1])
+        ...     background_task = asyncio.create_task(
+        ...         submission1.async_run_submission(check_interval=2, clean=False)
+        ...     )
+        ...     # task2
+        ...     task2 = Task(...)
+        ...     submission2 = Submission(..., task_list=[task1])
+        ...     background_task = asyncio.create_task(
+        ...         submission2.async_run_submission(check_interval=2, clean=False)
+        ...     )
+        ...     background_tasks.add(background_task)
+        ...     result = await asyncio.gather(*background_tasks)
+        ...     return result
+        >>> run_jobs()
+
+        May raise Error if pass `clean=True` explicitly when submit to pbs or slurm.
+        """
+        kwargs = {**{"clean": False}, **kwargs}
+        if kwargs["clean"]:
+            dlog.warning(
+                "Using async submission with `clean=True`, "
+                "job may fail in queue system"
+            )
+        loop = asyncio.get_event_loop()
+        wrapped_submission = functools.partial(self.run_submission, **kwargs)
+        return await loop.run_in_executor(None, wrapped_submission)
 
     def update_submission_state(self):
         """Check whether all the jobs in the submission.
@@ -400,7 +464,7 @@ class Submission:
                 f"Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}"
             )
         group_size = self.resources.group_size
-        if (group_size < 0) or (type(group_size) is not int):
+        if (group_size < 0) or (not isinstance(group_size, int)):
             raise RuntimeError("group_size must be a positive number")
         task_num = len(self.belonging_tasks)
         if task_num == 0:
@@ -445,9 +509,7 @@ class Submission:
     def submission_to_json(self):
         # self.update_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission_hash
-        )
+        submission_file_name = f"{self.submission_hash}.json"
         self.machine.context.write_file(submission_file_name, write_str=write_str)
 
     @classmethod
@@ -461,9 +523,7 @@ class Submission:
     # def check_if_recover()
 
     def try_recover_from_json(self):
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission_hash
-        )
+        submission_file_name = f"{self.submission_hash}.json"
         if_recover = self.machine.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
@@ -684,7 +744,6 @@ class Job:
         # self.job_work_base = job_work_base
         self.resources = resources
         self.machine = machine
-
         self.job_state = None  # JobStatus.unsubmitted
         self.job_id = ""
         self.fail_count = 0
@@ -723,9 +782,7 @@ class Job:
         """
         if len(job_dict.keys()) != 1:
             raise RuntimeError(
-                "json file may be broken, len(job_dict.keys()) must be 1. {job_dict}".format(
-                    job_dict=job_dict
-                )
+                f"json file may be broken, len(job_dict.keys()) must be 1. {job_dict}"
             )
         job_hash = list(job_dict.keys())[0]
 
@@ -781,7 +838,11 @@ class Job:
                 f"job: {self.job_hash} {self.job_id} terminated;"
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
-            if (self.fail_count) > 0 and (self.fail_count % 3 == 0):
+            retry_count = 3
+            assert self.machine is not None
+            if hasattr(self.machine, "retry_count") and self.machine.retry_count > 0:
+                retry_count = self.machine.retry_count + 1
+            if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 raise RuntimeError(
                     f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}"
                 )
@@ -807,11 +868,7 @@ class Job:
             #     raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
-                dlog.info(
-                    "job: {job_hash} submit; job_id is {job_id}".format(
-                        job_hash=self.job_hash, job_id=self.job_id
-                    )
-                )
+                dlog.info(f"job: {self.job_hash} submit; job_id is {self.job_id}")
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)
             # self.get_job_state()
@@ -892,6 +949,9 @@ class Resources:
             Usually, this option will be used with Task.task_need_resources variable simultaneously.
         ratio_unfinished : float
             The ratio of `task` that can be unfinished.
+        customized_script_header_template_file : str
+            The customized template file to generate job submitting script header,
+            which overrides the default file.
     para_deg : int
         Decide how many tasks will be run in parallel.
         Usually run with `strategy['if_cuda_multi_devices']`
@@ -950,12 +1010,8 @@ class Resources:
         # if self.gpu_per_node > 1:
         # self.in_para_task_num = 0
 
-        if "if_cuda_multi_devices" not in self.strategy:
-            self.strategy["if_cuda_multi_devices"] = default_strategy.get(
-                "if_cuda_multi_devices"
-            )
-        if "ratio_unfinished" not in self.strategy:
-            self.strategy["ratio_unfinished"] = default_strategy.get("ratio_unfinished")
+        for kk, value in default_strategy.items():
+            self.strategy.setdefault(kk, value)
         if self.strategy["if_cuda_multi_devices"] is True:
             if gpu_per_node < 1:
                 raise RuntimeError(
@@ -1064,6 +1120,10 @@ class Resources:
             "Usually, this option will be used with Task.task_need_resources variable simultaneously."
         )
         doc_ratio_unfinished = "The ratio of `tasks` that can be unfinished."
+        doc_customized_script_header_template_file = (
+            "The customized template file to generate job submitting script header, "
+            "which overrides the default file."
+        )
 
         strategy_args = [
             Argument(
@@ -1079,6 +1139,12 @@ class Resources:
                 optional=True,
                 default=0.0,
                 doc=doc_ratio_unfinished,
+            ),
+            Argument(
+                "customized_script_header_template_file",
+                str,
+                optional=True,
+                doc=doc_customized_script_header_template_file,
             ),
         ]
         doc_strategy = "strategies we use to generation job submitting scripts."

@@ -3,6 +3,7 @@ import shlex
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils import customized_script_header_template
 
 shell_script_header_template = """
 #!/bin/bash -l
@@ -15,7 +16,17 @@ class Shell(Machine):
         return shell_script
 
     def gen_script_header(self, job):
-        shell_script_header = shell_script_header_template
+        resources = job.resources
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            shell_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            shell_script_header = shell_script_header_template
         return shell_script_header
 
     def do_submit(self, job):
@@ -24,6 +35,9 @@ class Shell(Machine):
         job_id_name = job.job_hash + "_job_id"
         output_name = job.job_hash + ".out"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         ret, stdin, stdout, stderr = self.context.block_call(
             "cd {} && {{ nohup bash {} 1>>{} 2>>{} & }} && echo $!".format(
                 shlex.quote(self.context.remote_root),
@@ -65,7 +79,7 @@ class Shell(Machine):
 
         # mark defunct process as terminated
         ret, stdin, stdout, stderr = self.context.block_call(
-            f"if ps -p {job_id} > /dev/null && ! (ps -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
+            f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")

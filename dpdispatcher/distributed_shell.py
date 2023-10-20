@@ -1,7 +1,10 @@
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-from dpdispatcher.utils import run_cmd_with_all_output
+from dpdispatcher.utils import (
+    customized_script_header_template,
+    run_cmd_with_all_output,
+)
 
 shell_script_header_template = """
 #!/bin/bash -l
@@ -112,7 +115,17 @@ class DistributedShell(Machine):
         return script_end
 
     def gen_script_header(self, job):
-        shell_script_header = shell_script_header_template
+        resources = job.resources
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            shell_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            shell_script_header = shell_script_header_template
         return shell_script_header
 
     def do_submit(self, job):
@@ -133,6 +146,9 @@ class DistributedShell(Machine):
         job_id_name = job.job_hash + "_job_id"
         output_name = job.job_hash + ".out"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
 
         resources = job.resources
         submit_command = (

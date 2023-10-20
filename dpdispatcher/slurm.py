@@ -8,7 +8,7 @@ from dargs import Argument
 from dpdispatcher import dlog
 from dpdispatcher.JobStatus import JobStatus
 from dpdispatcher.machine import Machine, script_command_template
-from dpdispatcher.utils import RetrySignal, retry
+from dpdispatcher.utils import RetrySignal, customized_script_header_template, retry
 
 # from dpdispatcher.submission import Resources
 
@@ -34,16 +34,12 @@ class Slurm(Machine):
         )
         script_header_dict[
             "slurm_ntasks_per_node_line"
-        ] = "#SBATCH --ntasks-per-node {cpu_per_node}".format(
-            cpu_per_node=resources.cpu_per_node
-        )
+        ] = f"#SBATCH --ntasks-per-node {resources.cpu_per_node}"
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
         if not custom_gpu_line:
             script_header_dict[
                 "slurm_number_gpu_line"
-            ] = "#SBATCH --gres=gpu:{gpu_per_node}".format(
-                gpu_per_node=resources.gpu_per_node
-            )
+            ] = f"#SBATCH --gres=gpu:{resources.gpu_per_node}"
         else:
             script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
         if resources.queue_name != "":
@@ -52,7 +48,18 @@ class Slurm(Machine):
             ] = f"#SBATCH --partition {resources.queue_name}"
         else:
             script_header_dict["slurm_partition_line"] = ""
-        slurm_script_header = slurm_script_header_template.format(**script_header_dict)
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            slurm_script_header = customized_script_header_template(
+                resources["strategy"]["customized_script_header_template_file"],
+                resources,
+            )
+        else:
+            slurm_script_header = slurm_script_header_template.format(
+                **script_header_dict
+            )
         return slurm_script_header
 
     @retry()
@@ -62,6 +69,9 @@ class Slurm(Machine):
         job_id_name = job.job_hash + "_job_id"
         # script_str = self.sub_script(job_dirs, cmd, args=args, resources=resources, outlog=outlog, errlog=errlog)
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
         ret, stdin, stdout, stderr = self.context.block_call(
             "cd {} && {} {}".format(
