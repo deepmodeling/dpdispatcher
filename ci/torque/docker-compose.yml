@@ -7,9 +7,18 @@ services:
     build: .
     container_name: torque
     hostname: torque
+    privileged: true
+    expose:
+      - "22"
+  test:
+    image: python:3.12
+    tty: true
+    build: .
+    container_name: test
+    hostname: test
     environment:
-      - DPDISPATCHER_TEST=torque
+      DPDISPATCHER_TEST : torque
     volumes:
       - ../..:/dpdispatcher
-    tty: true
-    privileged: true
+    depends_on:
+      - torque

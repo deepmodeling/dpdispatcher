@@ -248,7 +248,17 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
 class TestTorqueRun(RunSubmission, unittest.TestCase):
     def setUp(self):
         super().setUp()
-        self.machine_dict["batch_type"] = "Torque"
+        self.machine_dict.update(**{
+            "batch_type": "Torque",
+            "context_type": "SSHContext",
+            "remote_root": "/dpdispatcher_working",
+            "remote_profile": {
+                "hostname": "torque",
+                "port": 22,
+                "username": "testuser",
+                "password": "testuser",
+            },
+        })
         self.resources_dict["queue_name"] = "debug"
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
