@@ -12,3 +12,4 @@ services:
     volumes:
       - ../..:/dpdispatcher
     tty: true
+    privileged: true
