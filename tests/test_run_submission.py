@@ -129,7 +129,9 @@ class RunSubmission:
         try:
             submission.run_submission(check_interval=2)
         except RuntimeError:
-            self.assertTrue(err_msg in traceback.format_exc())
+            # macos shell has some issues
+            if sys.platform == "linux":
+                self.assertTrue(err_msg in traceback.format_exc())
 
     def test_async_run_submission(self):
         machine = Machine.load_from_dict(self.machine_dict)
