@@ -9,6 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
+from typing import Optional
 
 from dargs.dargs import Argument, Variant
 
@@ -843,9 +844,11 @@ class Job:
             if hasattr(self.machine, "retry_count") and self.machine.retry_count > 0:
                 retry_count = self.machine.retry_count + 1
             if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
-                raise RuntimeError(
-                    f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}"
-                )
+                last_error_message = self.get_last_error_message()
+                err_msg = f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times. job_detail:{self}"
+                if last_error_message is not None:
+                    err_msg += f"\nPossible remote error message: {last_error_message}"
+                raise RuntimeError(err_msg)
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
@@ -922,6 +925,16 @@ class Job:
         self.machine.context.write_file(
             self.job_hash + "_job.json", write_str=write_str
         )
+
+    def get_last_error_message(self) -> Optional[str]:
+        """Get last error message when the job is terminated."""
+        assert self.machine is not None
+        last_err_file = self.job_hash + "_last_err_file"
+        if self.machine.context.check_file_exists(last_err_file):
+            last_error_message = self.machine.context.read_file(last_err_file)
+            # red color
+            last_error_message = "\033[31m" + last_error_message + "\033[0m"
+            return last_error_message
 
 
 class Resources:
