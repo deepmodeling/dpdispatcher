@@ -105,9 +105,11 @@ class RunSubmission:
 
         task_list = []
         err_msg = "DPDISPATCHER_TEST"
+        # prevent err_msg directly in commands; we need to check error message
+        err_msg_shell = "".join([f'"{x}"' for x in err_msg])
         for ii in range(1):
             task = Task(
-                command=f'echo "Error! {err_msg}" 1>&2 && exit 1',
+                command=f'echo "Error!" {err_msg_shell} 1>&2 && exit 1',
                 task_work_path="./",
                 forward_files=[],
                 backward_files=[f"out{ii}.txt"],
