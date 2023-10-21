@@ -139,7 +139,8 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
 
 
 @unittest.skipIf(
-    os.environ.get("DPDISPATCHER_TEST") != "torque", "outside the torque testing environment"
+    os.environ.get("DPDISPATCHER_TEST") != "torque",
+    "outside the torque testing environment",
 )
 class TestPBSRun(RunSubmission, unittest.TestCase):
     def setUp(self):
