@@ -2,7 +2,7 @@ version: "2"
 
 services:
 
-  master:
+  torque:
     image: agaveapi/torque
     build: .
     container_name: torque
