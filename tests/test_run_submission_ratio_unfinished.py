@@ -142,7 +142,7 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
     os.environ.get("DPDISPATCHER_TEST") != "torque",
     "outside the torque testing environment",
 )
-class TestPBSRun(RunSubmission, unittest.TestCase):
+class TestTorqueRun(RunSubmission, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.machine_dict["batch_type"] = "Torque"
