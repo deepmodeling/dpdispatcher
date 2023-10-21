@@ -252,7 +252,7 @@ class TestTorqueRun(RunSubmission, unittest.TestCase):
             **{
                 "batch_type": "Torque",
                 "context_type": "SSHContext",
-                "remote_root": "/dpdispatcher_working",
+                "remote_root": "/home/testuser/dpdispatcher_working",
                 "remote_profile": {
                     "hostname": "torque",
                     "port": 22,
