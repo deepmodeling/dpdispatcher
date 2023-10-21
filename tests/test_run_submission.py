@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import sys
+import traceback
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -97,6 +98,36 @@ class RunSubmission:
                     )
                 )
             )
+
+    def test_failed_submission(self):
+        machine = Machine.load_from_dict(self.machine_dict)
+        resources = Resources.load_from_dict(self.resources_dict)
+
+        task_list = []
+        err_msg = "DPDISPATCHER_TEST"
+        for ii in range(1):
+            task = Task(
+                command=f'echo "Error! {err_msg}" 1>&2 && exit 1',
+                task_work_path="./",
+                forward_files=[],
+                backward_files=[f"out{ii}.txt"],
+                outlog=f"out{ii}.txt",
+                errlog=f"err{ii}.txt",
+            )
+            task_list.append(task)
+
+        submission = Submission(
+            work_base="test_dir/",
+            machine=machine,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            task_list=task_list,
+        )
+        try:
+            submission.run_submission(check_interval=2)
+        except RuntimeError:
+            self.assertTrue(err_msg in traceback.format_exc())
 
     def test_async_run_submission(self):
         machine = Machine.load_from_dict(self.machine_dict)
