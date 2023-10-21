@@ -11,3 +11,4 @@ services:
       - DPDISPATCHER_TEST=torque
     volumes:
       - ../..:/dpdispatcher
+    tty: true
