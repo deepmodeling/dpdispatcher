@@ -49,7 +49,7 @@ class TestOpenAPIRun(RunSubmission, unittest.TestCase):
     def setUp(self):
         super().setUp()
         bohrium_config = textwrap.dedent(
-            r"""\
+            """\
             [Credentials]
             accessKey={accesskey}
             """
