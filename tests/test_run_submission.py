@@ -241,6 +241,20 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
         return super().test_async_run_submission()
 
 
+@unittest.skipIf(
+    os.environ.get("DPDISPATCHER_TEST") != "torque", "outside the torque testing environment"
+)
+class TestPBSRun(RunSubmission, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.machine_dict["batch_type"] = "Torque"
+        self.resources_dict["queue_name"] = "debug"
+
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
+
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestLazyLocalContext(RunSubmission, unittest.TestCase):
     def setUp(self):

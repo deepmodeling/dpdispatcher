@@ -1,0 +1,13 @@
+version: "2"
+
+services:
+
+  master:
+    image: agaveapi/torque
+    build: .
+    container_name: torque
+    hostname: torque
+    environment:
+      - DPDISPATCHER_TEST=torque
+    volumes:
+      - ../..:/dpdispatcher

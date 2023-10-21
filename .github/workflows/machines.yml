@@ -14,6 +14,7 @@ jobs:
           - pbs
           - ssh
           - ssh_rsync
+          - torque
     steps:
     - uses: actions/checkout@v2
     - run: ./ci/${{ matrix.machine }}.sh
