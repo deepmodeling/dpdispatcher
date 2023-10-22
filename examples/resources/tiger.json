@@ -1,0 +1,12 @@
+{
+  "number_node": 1,
+  "cpu_per_node": 32,
+  "kwargs":{
+    "qos": "tiger-vshort"
+  },
+  "source_list": ["activate abacus_env"],
+  "strategy": {
+    "customized_script_header_template_file": "./template.slurm"
+  },
+  "group_size": 2000
+}
