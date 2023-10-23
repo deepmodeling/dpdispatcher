@@ -9,8 +9,7 @@ When submitting jobs to some clusters, such as the [Tiger Cluster](https://resea
 
 `template.slurm` is the template file, where {meth}`str.format` is used to format the template with [Resources Parameters](resources):
 
-```{literalinclude} ../../examples/resources/tiger.json
-:language: json
+```{literalinclude} ../../examples/resources/template.slurm
 :linenos:
 ```
 
