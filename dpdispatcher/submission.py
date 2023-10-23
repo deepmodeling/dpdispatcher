@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import Optional
+from typing import List, Optional
 
 from dargs.dargs import Argument, Variant
 
@@ -670,26 +670,26 @@ class Task:
             Argument("command", str, optional=False, doc=doc_command),
             Argument("task_work_path", str, optional=False, doc=doc_task_work_path),
             Argument(
-                "forward_files", list, optional=False, doc=doc_forward_files, default=[]
+                "forward_files", List[str], optional=True, doc=doc_forward_files, default=[]
             ),
             Argument(
                 "backward_files",
-                list,
-                optional=False,
+                List[str],
+                optional=True,
                 doc=doc_backward_files,
                 default=[],
             ),
             Argument(
                 "outlog",
                 [type(None), str],
-                optional=False,
+                optional=True,
                 doc=doc_outlog,
                 default="log",
             ),
             Argument(
                 "errlog",
                 [type(None), str],
-                optional=False,
+                optional=True,
                 doc=doc_errlog,
                 default="err",
             ),
@@ -1175,36 +1175,36 @@ class Resources:
             ),
             Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
-            Argument("custom_flags", list, optional=True, doc=doc_custom_flags),
+            Argument("custom_flags", List[str], optional=True, doc=doc_custom_flags),
             # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
             strategy_format,
             Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
             Argument(
-                "source_list", list, optional=True, doc=doc_source_list, default=[]
+                "source_list", List[str], optional=True, doc=doc_source_list, default=[]
             ),
             Argument(
                 "module_purge", bool, optional=True, doc=doc_module_purge, default=False
             ),
             Argument(
                 "module_unload_list",
-                list,
+                List[str],
                 optional=True,
                 doc=doc_module_unload_list,
                 default=[],
             ),
             Argument(
-                "module_list", list, optional=True, doc=doc_module_list, default=[]
+                "module_list", List[str], optional=True, doc=doc_module_list, default=[]
             ),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
             Argument(
                 "prepend_script",
-                list,
+                List[str],
                 optional=True,
                 doc=doc_prepend_script,
                 default=[],
             ),
             Argument(
-                "append_script", list, optional=True, doc=doc_append_script, default=[]
+                "append_script", List[str], optional=True, doc=doc_append_script, default=[]
             ),
             Argument(
                 "wait_time", [int, float], optional=True, doc=doc_wait_time, default=0
