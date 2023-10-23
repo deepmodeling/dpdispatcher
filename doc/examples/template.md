@@ -1,6 +1,6 @@
-# Customized the submission script header
+# Customizing the submission script header
 
-When submitting jobs to some clusters, such as the [Tiger Cluster](https://researchcomputing.princeton.edu/systems/tiger) in Princeton University, the Slurm header is quite different from the standard one. In this case, DPDispatcher allows to customize the templates by setting {dargs:argument}`strategy/customized_script_header_template_file <resources/strategy/customized_script_header_template_file>` to a template file:
+When submitting jobs to some clusters, such as the [Tiger Cluster](https://researchcomputing.princeton.edu/systems/tiger) at Princeton University, the Slurm header is quite different from the standard one. In this case, DPDispatcher allows users to customize the templates by setting {dargs:argument}`strategy/customized_script_header_template_file <resources/strategy/customized_script_header_template_file>` to a template file:
 
 ```{literalinclude} ../../examples/resources/tiger.json
 :language: json
