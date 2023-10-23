@@ -10,6 +10,10 @@ services:
     privileged: true
     expose:
       - "22"
+    networks:
+      default:
+        aliases:
+          - localhost
   test:
     image: python:3.12
     tty: true
