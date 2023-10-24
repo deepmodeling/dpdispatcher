@@ -4,7 +4,7 @@ could pass the argument checking.
 import json
 import unittest
 from pathlib import Path
-from typing import Tuple, Sequence
+from typing import Sequence, Tuple
 
 from dargs import Argument
 

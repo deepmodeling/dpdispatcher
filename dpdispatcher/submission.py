@@ -670,7 +670,11 @@ class Task:
             Argument("command", str, optional=False, doc=doc_command),
             Argument("task_work_path", str, optional=False, doc=doc_task_work_path),
             Argument(
-                "forward_files", List[str], optional=True, doc=doc_forward_files, default=[]
+                "forward_files",
+                List[str],
+                optional=True,
+                doc=doc_forward_files,
+                default=[],
             ),
             Argument(
                 "backward_files",
@@ -1204,7 +1208,11 @@ class Resources:
                 default=[],
             ),
             Argument(
-                "append_script", List[str], optional=True, doc=doc_append_script, default=[]
+                "append_script",
+                List[str],
+                optional=True,
+                doc=doc_append_script,
+                default=[],
             ),
             Argument(
                 "wait_time", [int, float], optional=True, doc=doc_wait_time, default=0
