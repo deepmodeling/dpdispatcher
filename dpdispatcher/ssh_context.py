@@ -140,7 +140,7 @@ class SSHSession:
         # Make a Paramiko Transport object using the socket
         ts = paramiko.Transport(sock)
         ts.banner_timeout = 60
-        ts.auth_timeout = self.timeout
+        ts.auth_timeout = self.timeout + 20
         ts.use_compression(compress=True)
 
         # Tell Paramiko that the Transport is going to be used as a client
