@@ -4,6 +4,7 @@ import shlex
 from abc import ABCMeta, abstractmethod
 from typing import List, Tuple
 
+import yaml
 from dargs import Argument, Variant
 
 from dpdispatcher import dlog
@@ -121,6 +122,13 @@ class Machine(metaclass=ABCMeta):
     def load_from_json(cls, json_path):
         with open(json_path) as f:
             machine_dict = json.load(f)
+        machine = cls.load_from_dict(machine_dict=machine_dict)
+        return machine
+
+    @classmethod
+    def load_from_yaml(cls, yaml_path):
+        with open(yaml_path) as f:
+            machine_dict = yaml.safe_load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 

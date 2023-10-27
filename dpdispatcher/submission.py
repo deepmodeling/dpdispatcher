@@ -11,6 +11,7 @@ import uuid
 from hashlib import sha1
 from typing import List, Optional
 
+import yaml
 from dargs.dargs import Argument, Variant
 
 from dpdispatcher import dlog
@@ -616,6 +617,13 @@ class Task:
         return cls.load_from_dict(task_dict)
 
     @classmethod
+    def load_from_yaml(cls, yaml_file):
+        with open(yaml_file) as f:
+            task_dict = yaml.safe_load(f)
+        task = cls.load_from_dict(task_dict=task_dict)
+        return task
+
+    @classmethod
     def load_from_dict(cls, task_dict: dict) -> "Task":
         # check dict
         base = cls.arginfo()
@@ -1096,7 +1104,14 @@ class Resources:
     def load_from_json(cls, json_file):
         with open(json_file) as f:
             resources_dict = json.load(f)
-        resources = cls.deserialize(resources_dict=resources_dict)
+        resources = cls.load_from_dict(resources_dict=resources_dict)
+        return resources
+
+    @classmethod
+    def load_from_yaml(cls, yaml_file):
+        with open(yaml_file) as f:
+            resources_dict = yaml.safe_load(f)
+        resources = cls.load_from_dict(resources_dict=resources_dict)
         return resources
 
     @classmethod
