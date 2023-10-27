@@ -3,7 +3,6 @@ import asyncio
 import copy
 import functools
 import json
-import yaml
 import os
 import pathlib
 import random
@@ -12,6 +11,7 @@ import uuid
 from hashlib import sha1
 from typing import List, Optional
 
+import yaml
 from dargs.dargs import Argument, Variant
 
 from dpdispatcher import dlog
@@ -616,12 +616,12 @@ class Task:
             task_dict = json.load(f)
         return cls.load_from_dict(task_dict)
 
-    @classmethod                                                                
-    def load_from_yaml(cls, yaml_file):                                         
-        with open(yaml_file, 'r') as f:                                         
-            task_dict = yaml.safe_load(f)                                       
-        task = cls.deserialize(task_dict=task_dict)                             
-        return task 
+    @classmethod
+    def load_from_yaml(cls, yaml_file):
+        with open(yaml_file) as f:
+            task_dict = yaml.safe_load(f)
+        task = cls.deserialize(task_dict=task_dict)
+        return task
 
     @classmethod
     def load_from_dict(cls, task_dict: dict) -> "Task":
@@ -1107,11 +1107,11 @@ class Resources:
         resources = cls.deserialize(resources_dict=resources_dict)
         return resources
 
-    @classmethod                                                                
-    def load_from_yaml(cls, yaml_file):                                         
-        with open(yaml_file, 'r') as f:                                         
-            resources_dict = yaml.safe_load(f)                                  
-        resources = cls.deserialize(resources_dict=resources_dict)              
+    @classmethod
+    def load_from_yaml(cls, yaml_file):
+        with open(yaml_file) as f:
+            resources_dict = yaml.safe_load(f)
+        resources = cls.deserialize(resources_dict=resources_dict)
         return resources
 
     @classmethod
