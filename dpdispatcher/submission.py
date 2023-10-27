@@ -3,6 +3,7 @@ import asyncio
 import copy
 import functools
 import json
+import yaml
 import os
 import pathlib
 import random
@@ -615,6 +616,13 @@ class Task:
             task_dict = json.load(f)
         return cls.load_from_dict(task_dict)
 
+    @classmethod                                                                
+    def load_from_yaml(cls, yaml_file):                                         
+        with open(yaml_file, 'r') as f:                                         
+            task_dict = yaml.safe_load(f)                                       
+        task = cls.deserialize(task_dict=task_dict)                             
+        return task 
+
     @classmethod
     def load_from_dict(cls, task_dict: dict) -> "Task":
         # check dict
@@ -1097,6 +1105,13 @@ class Resources:
         with open(json_file) as f:
             resources_dict = json.load(f)
         resources = cls.deserialize(resources_dict=resources_dict)
+        return resources
+
+    @classmethod                                                                
+    def load_from_yaml(cls, yaml_file):                                         
+        with open(yaml_file, 'r') as f:                                         
+            resources_dict = yaml.safe_load(f)                                  
+        resources = cls.deserialize(resources_dict=resources_dict)              
         return resources
 
     @classmethod
