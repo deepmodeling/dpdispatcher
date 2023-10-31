@@ -82,7 +82,6 @@ exclude = [
 profile = "black"
 
 [tool.ruff]
-target-version = "py37"
 select = [
     "E", # errors
     "F", # pyflakes
@@ -111,3 +110,6 @@ ignore = [
     "D404", # TODO: first word of the docstring should not be This
 ]
 ignore-init-module-imports = true
+
+[tool.ruff.pydocstyle]
+convention = "numpy"
