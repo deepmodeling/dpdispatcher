@@ -20,6 +20,12 @@ slurm_script_header_template = """\
 {slurm_number_gpu_line}
 {slurm_partition_line}"""
 
+slurm_job_array_script_end_template = """
+wait
+
+{append_script_part}
+"""
+
 
 class Slurm(Machine):
     def gen_script(self, job):
@@ -293,9 +299,11 @@ class SlurmJobArray(Slurm):
         return script_command
 
     def gen_script_end(self, job):
-        # We cannot have a end script for job array
+        # We cannot touch tag for job array
         # we may check task tag instead
-        return ""
+        return slurm_job_array_script_end_template.format(
+            append_script_part=append_script_part,
+        )
 
     @retry()
     def check_status(self, job):
