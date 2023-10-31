@@ -301,6 +301,8 @@ class SlurmJobArray(Slurm):
     def gen_script_end(self, job):
         # We cannot touch tag for job array
         # we may check task tag instead
+        append_script = job.resources.append_script
+        append_script_part = "\n".join(append_script)
         return slurm_job_array_script_end_template.format(
             append_script_part=append_script_part,
         )
