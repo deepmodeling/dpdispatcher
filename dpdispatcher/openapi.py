@@ -148,8 +148,8 @@ class OpenAPI(Machine):
 
         job_state = self.map_dp_job_state(
             dp_job_status,
-            check_return.get("exitCode", 0),
-            self.ignore_exit_code,  # type: ignore
+            check_return.get("exitCode", 0),  # type: ignore
+            self.ignore_exit_code,
         )
         if job_state == JobStatus.finished:
             job_log = self.job.log(job_id)
