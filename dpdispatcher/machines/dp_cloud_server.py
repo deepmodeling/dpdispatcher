@@ -4,7 +4,7 @@ import time
 import uuid
 import warnings
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.dpcloudserver import Client, zip_file
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
 from dpdispatcher.utils.JobStatus import JobStatus

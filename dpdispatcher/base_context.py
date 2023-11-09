@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 from dargs import Argument
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 
 
 class BaseContext(metaclass=ABCMeta):

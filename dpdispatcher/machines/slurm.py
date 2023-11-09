@@ -5,7 +5,7 @@ from typing import List
 
 from dargs import Argument
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.utils.JobStatus import JobStatus
 from dpdispatcher.machine import Machine, script_command_template
 from dpdispatcher.utils.utils import RetrySignal, customized_script_header_template, retry

@@ -8,7 +8,7 @@ from typing import List
 import tqdm
 from dargs.dargs import Argument
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dpcloudserver.config import ALI_STS_BUCKET_NAME, ALI_STS_ENDPOINT
 

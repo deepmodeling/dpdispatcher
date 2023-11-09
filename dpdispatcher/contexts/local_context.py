@@ -5,7 +5,7 @@ import subprocess as sp
 from glob import glob
 from subprocess import TimeoutExpired
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
 
 

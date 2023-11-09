@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 else:
     found_bohriumsdk = True
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.utils.JobStatus import JobStatus
 

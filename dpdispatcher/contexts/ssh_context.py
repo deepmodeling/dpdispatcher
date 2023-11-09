@@ -18,7 +18,7 @@ import paramiko
 import paramiko.ssh_exception
 from dargs.dargs import Argument
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
 
 # from dpdispatcher.submission import Machine

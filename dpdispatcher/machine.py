@@ -7,7 +7,7 @@ from typing import List, Tuple
 import yaml
 from dargs import Argument, Variant
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
 
 script_template = """\

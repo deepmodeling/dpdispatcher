@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 import requests
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 
 from .config import API_HOST, API_LOGGER_STACK_INFO, HTTP_TIME_OUT
 from .retcode import RETCODE

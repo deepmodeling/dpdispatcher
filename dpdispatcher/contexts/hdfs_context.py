@@ -3,7 +3,7 @@ import shutil
 import tarfile
 from glob import glob
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.utils.hdfs_cli import HDFS
 

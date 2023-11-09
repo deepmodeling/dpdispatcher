@@ -7,7 +7,7 @@ import subprocess
 import time
 from typing import TYPE_CHECKING, Callable, Optional, Type, Union
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 
 if TYPE_CHECKING:
     from dpdispatcher import Resources
