@@ -4,8 +4,8 @@ import sys
 import unittest
 import uuid
 
-from dpdispatcher.urils.dpcloudserver import api
-from dpdispatcher.urils.dpcloudserver.zip_file import zip_files
+from dpdispatcher.utils.dpcloudserver import api
+from dpdispatcher.utils.dpcloudserver.zip_file import zip_files
 
 # import api
 # from zip_file import zip_files
