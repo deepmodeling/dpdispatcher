@@ -4,6 +4,7 @@ import shutil
 import sys
 import unittest
 import uuid
+import hashlib
 from unittest.mock import MagicMock
 
 # %%
@@ -12,12 +13,18 @@ __package__ = "tests"
 # from .context import LocalSession
 from .context import (
     LocalContext,
-    _identical_files,
     get_file_md5,
     setUpModule,  # noqa: F401
 )
 
 # from .context import dpd
+
+def _identical_files(fname0, fname1):
+    with open(fname0) as fp:
+        code0 = hashlib.sha1(fp.read().encode("utf-8")).hexdigest()
+    with open(fname1) as fp:
+        code1 = hashlib.sha1(fp.read().encode("utf-8")).hexdigest()
+    return code0 == code1
 
 
 class TestIdFile(unittest.TestCase):
