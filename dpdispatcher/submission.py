@@ -17,8 +17,8 @@ from dargs.dargs import Argument, Variant
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
+from dpdispatcher.utils.record import record
 
-# from dpdispatcher.slurm import SlurmResources
 # %%
 default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
 
@@ -249,9 +249,11 @@ class Submission:
                 time.sleep(check_interval)
             except (Exception, KeyboardInterrupt, SystemExit) as e:
                 self.submission_to_json()
+                record_path = record.write(self)
                 dlog.exception(e)
                 dlog.info(f"submission exit: {self.submission_hash}")
                 dlog.info(f"at {self.machine.context.remote_root}")
+                dlog.info(f"Submission information is saved in {str(record_path)}.")
                 dlog.debug(self.serialize())
                 raise e
             else:
@@ -344,7 +346,6 @@ class Submission:
             dlog.debug(
                 f"debug:update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}"
             )
-        # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):
         """Handle unexpected job state of the submission.
@@ -357,24 +358,14 @@ class Submission:
                 job.handle_unexpected_job_state()
         except Exception as e:
             self.submission_to_json()
+            record_path = record.write(self)
             raise RuntimeError(
                 f"Meet errors will handle unexpected submission state.\n"
                 f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
-                f"Please check the dirs and scripts in remote_root. "
-                f"The job information mentioned above may help."
+                f"Please check error messages above and in remote_root. "
+                f"The submission information is saved in {str(record_path)}."
             ) from e
-
-    # not used here, submitting job is in handle_unexpected_submission_state.
-
-    # def submit_submission(self):
-    #     """submit the job belonging to the submission.
-    #     """
-    #     for job in self.belonging_jobs:
-    #         job.submit_job()
-    #     self.get_submission_state()
-
-    # def update_submi
 
     def check_ratio_unfinished(self, ratio_unfinished: float) -> bool:
         """Calculate the ratio of unfinished tasks in the submission.
@@ -510,6 +501,7 @@ class Submission:
 
     def clean_jobs(self):
         self.machine.context.clean()
+        record.remove(self.submission_hash)
 
     def submission_to_json(self):
         # self.update_submission_state()
@@ -851,7 +843,7 @@ class Job:
         if job_state == JobStatus.terminated:
             self.fail_count += 1
             dlog.info(
-                f"job: {self.job_hash} {self.job_id} terminated;"
+                f"job: {self.job_hash} {self.job_id} terminated; "
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
             retry_count = 3
@@ -860,7 +852,7 @@ class Job:
                 retry_count = self.machine.retry_count + 1
             if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 last_error_message = self.get_last_error_message()
-                err_msg = f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times. job_detail:{self}"
+                err_msg = f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
                 raise RuntimeError(err_msg)

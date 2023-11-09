@@ -14,6 +14,7 @@ from .context import (
     Resources,
     Submission,
     Task,
+    record,
     setUpModule,  # noqa: F401
 )
 
@@ -132,6 +133,7 @@ class RunSubmission:
             # macos shell has some issues
             if sys.platform == "linux":
                 self.assertTrue(err_msg in traceback.format_exc())
+            self.assertTrue(record.get_submission(submission.submission_hash).is_file())
 
     def test_async_run_submission(self):
         machine = Machine.load_from_dict(self.machine_dict)
