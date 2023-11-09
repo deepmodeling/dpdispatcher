@@ -501,6 +501,7 @@ class Submission:
 
     def clean_jobs(self):
         self.machine.context.clean()
+        assert self.submission_hash is not None
         record.remove(self.submission_hash)
 
     def submission_to_json(self):

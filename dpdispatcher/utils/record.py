@@ -38,7 +38,7 @@ class Record:
             Path to submission data.
         """
         submission_path = self.record_directory / f"{submission.submission_hash}.json"
-        submission_path.write_text(json.dumps(self.serialize(), indent=2))
+        submission_path.write_text(json.dumps(submission.serialize(), indent=2))
         return submission_path
 
     def get_submission(self, hash: str, not_exist_ok: bool = False) -> Path:
