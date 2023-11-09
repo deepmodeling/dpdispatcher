@@ -69,7 +69,9 @@ class Record:
         hash : str
             Hash of submission data.
         """
-        self.get_submission(hash, not_exist_ok=True).unlink(missing_ok=True)
+        path = self.get_submission(hash, not_exist_ok=True)
+        if path.is_file():
+            path.unlink()
 
 
 # the record object can be globally used
