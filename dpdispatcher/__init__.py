@@ -45,24 +45,6 @@ from dpdispatcher.submission import Job, Resources, Submission, Task
 import dpdispatcher.machines as _  # noqa: F401
 import dpdispatcher.contexts as _  # noqa: F401
 
-
-def info():
-    """Show basic information about dpdispatcher, its location and version."""
-    print("DeepModeling\n------------")
-    print("Version: " + __version__)
-    print("Path:    " + ROOT_PATH)
-    print("")
-    print("Dependency")
-    print("------------")
-    for modui in ["psutil", "paramiko", "dargs", "oss2"]:
-        try:
-            mm = __import__(modui)
-            print("%10s %10s   %s" % (modui, mm.__version__, mm.__path__[0]))
-        except ImportError:
-            print("%10s %10s Not Found" % (modui, ""))
-    print()
-
-
 __all__ = [
     "__version__",
     "Machine",
