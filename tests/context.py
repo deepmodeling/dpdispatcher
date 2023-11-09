@@ -10,7 +10,7 @@ from dpdispatcher.base_context import BaseContext  # noqa: F401
 from dpdispatcher.contexts.hdfs_context import HDFSContext  # noqa: F401
 from dpdispatcher.contexts.lazy_local_context import LazyLocalContext  # noqa: F401
 from dpdispatcher.contexts.local_context import LocalContext  # noqa: F401
-from dpdispatcher.contexts.ssh_context import SSHContext  # noqa: F401
+from dpdispatcher.contexts.ssh_context import SSHContext, SSHSession  # noqa: F401
 from dpdispatcher.machine import Machine  # noqa: F401
 from dpdispatcher.machines.distributed_shell import DistributedShell  # noqa: F401
 from dpdispatcher.machines.dp_cloud_server import Lebesgue  # noqa: F401
@@ -21,6 +21,7 @@ from dpdispatcher.machines.slurm import Slurm  # noqa: F401
 from dpdispatcher.submission import Job, Resources, Submission, Task  # noqa: F401
 from dpdispatcher.utils.job_status import JobStatus  # noqa: F401
 from dpdispatcher.utils.utils import RetrySignal, retry  # noqa: F401
+from dpdispatcher.utils.hdfs_cli import HDFS
 
 
 def setUpModule():
