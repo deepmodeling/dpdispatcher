@@ -13,12 +13,11 @@ from dpdispatcher.dlog import dlog
 
 # from dpdispatcher.submission import Machine
 # from . import dlog
-from dpdispatcher.utils.dpcloudserver.client import Client
+from dpdispatcher.utils.dpcloudserver import Client, zip_file
 from dpdispatcher.utils.dpcloudserver.config import (
     ALI_STS_BUCKET_NAME,
     ALI_STS_ENDPOINT,
 )
-from dpdispatcher.utils.dpcloudserver.zip_file import zip_file
 
 # from zip_file import zip_files
 
