@@ -275,7 +275,7 @@ class Submission:
                 self.download_jobs()
                 success = True
             except FileNotFoundError as e:
-                # useless to retry if the file is not found
+                # retry will never success if the file is not found
                 raise e
             except (EOFError, Exception) as e:
                 dlog.exception(e)

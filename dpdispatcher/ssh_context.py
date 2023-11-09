@@ -949,7 +949,7 @@ class SSHContext(BaseContext):
                     )
                 )
             except RuntimeError as e:
-                if "No such file or directory" in e:
+                if "No such file or directory" in str(e):
                     raise FileNotFoundError(
                         "Any of the backward files does not exist in the remote directory."
                     ) from e
@@ -964,7 +964,7 @@ class SSHContext(BaseContext):
                     f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
                 )
             except RuntimeError as e:
-                if "No such file or directory" in e:
+                if "No such file or directory" in str(e):
                     raise FileNotFoundError(
                         "Any of the backward files does not exist in the remote directory."
                     ) from e
