@@ -15,7 +15,7 @@ import yaml
 from dargs.dargs import Argument, Variant
 
 from dpdispatcher.dlog import dlog
-from dpdispatcher.utils.JobStatus import JobStatus
+from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.machine import Machine
 
 # from dpdispatcher.slurm import SlurmResources

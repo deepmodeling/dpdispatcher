@@ -16,7 +16,7 @@ else:
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
-from dpdispatcher.utils.JobStatus import JobStatus
+from dpdispatcher.utils.job_status import JobStatus
 
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"

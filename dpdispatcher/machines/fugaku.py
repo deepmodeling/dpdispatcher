@@ -1,7 +1,7 @@
 import shlex
 
 from dpdispatcher.dlog import dlog
-from dpdispatcher.utils.JobStatus import JobStatus
+from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.utils import customized_script_header_template
 

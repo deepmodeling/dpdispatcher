@@ -7,7 +7,7 @@ import warnings
 from dpdispatcher.dlog import dlog
 from dpdispatcher.dpcloudserver import Client, zip_file
 from dpdispatcher.dpcloudserver.config import ALI_OSS_BUCKET_URL
-from dpdispatcher.utils.JobStatus import JobStatus
+from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.utils import customized_script_header_template
 
