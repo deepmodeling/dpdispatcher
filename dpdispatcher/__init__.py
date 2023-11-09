@@ -16,7 +16,6 @@ __all__ = [
     "Machine",
     "Submission",
     "Task",
-    "info",
     "Job",
     "Resources",
 ]
