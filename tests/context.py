@@ -13,6 +13,7 @@ from dpdispatcher.contexts.local_context import LocalContext  # noqa: F401
 from dpdispatcher.contexts.ssh_context import SSHContext  # noqa: F401
 from dpdispatcher.machine import Machine  # noqa: F401
 from dpdispatcher.machines.distributed_shell import DistributedShell  # noqa: F401
+from dpdispatcher.machines.dp_cloud_server import Lebesgue # noqa: F401
 from dpdispatcher.machines.lsf import LSF  # noqa: F401
 from dpdispatcher.machines.pbs import PBS  # noqa: F401
 from dpdispatcher.machines.shell import Shell  # noqa: F401
