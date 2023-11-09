@@ -4,9 +4,9 @@ from typing import List
 from dargs import Argument
 
 from dpdispatcher import dlog
-from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.utils.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-from dpdispatcher.utils import RetrySignal, customized_script_header_template, retry
+from dpdispatcher.utils.utils import RetrySignal, customized_script_header_template, retry
 
 lsf_script_header_template = """\
 #!/bin/bash -l

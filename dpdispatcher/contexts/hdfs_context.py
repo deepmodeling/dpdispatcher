@@ -5,7 +5,7 @@ from glob import glob
 
 from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
-from dpdispatcher.hdfs_cli import HDFS
+from dpdispatcher.utils.hdfs_cli import HDFS
 
 
 class HDFSContext(BaseContext):

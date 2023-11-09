@@ -2,7 +2,7 @@ import os
 import shutil
 import time
 
-from dpdispatcher.utils import customized_script_header_template
+from dpdispatcher.utils.utils import customized_script_header_template
 
 try:
     from bohriumsdk.client import Client
@@ -15,7 +15,7 @@ else:
     found_bohriumsdk = True
 
 from dpdispatcher import dlog
-from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.utils.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
 
 shell_script_header_template = """

@@ -2,7 +2,7 @@
 
 import os
 
-from dpdispatcher.utils import run_cmd_with_all_output
+from dpdispatcher.utils.utils import run_cmd_with_all_output
 
 
 class HDFS:

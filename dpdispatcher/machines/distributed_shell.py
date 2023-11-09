@@ -1,7 +1,7 @@
 from dpdispatcher import dlog
-from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.utils.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-from dpdispatcher.utils import (
+from dpdispatcher.utils.utils import (
     customized_script_header_template,
     run_cmd_with_all_output,
 )

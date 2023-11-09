@@ -40,21 +40,21 @@ try:
 except ImportError:
     __version__ = "unkown"
 
-from .distributed_shell import DistributedShell
-from .dp_cloud_server import DpCloudServer, Lebesgue
-from .dp_cloud_server_context import DpCloudServerContext, LebesgueContext
-from .fugaku import Fugaku
-from .hdfs_context import HDFSContext
-from .lazy_local_context import LazyLocalContext
-from .local_context import LocalContext
-from .lsf import LSF
-from .machine import Machine
-from .openapi import OpenAPI
-from .openapi_context import OpenAPIContext
-from .pbs import PBS, Torque
-from .shell import Shell
-from .slurm import Slurm
-from .ssh_context import SSHContext
+from .machines.distributed_shell import DistributedShell
+from .machines.dp_cloud_server import DpCloudServer, Lebesgue
+from .contexts.dp_cloud_server_context import DpCloudServerContext, LebesgueContext
+from .machines.fugaku import Fugaku
+from .contexts.hdfs_context import HDFSContext
+from .contexts.lazy_local_context import LazyLocalContext
+from .contexts.local_context import LocalContext
+from .machines.lsf import LSF
+from .machines import Machine
+from .machines.openapi import OpenAPI
+from .contexts.openapi_context import OpenAPIContext
+from .machines.pbs import PBS, Torque
+from .machines.shell import Shell
+from .machines.slurm import Slurm
+from .contexts.ssh_context import SSHContext
 from .submission import Job, Resources, Submission, Task
 
 

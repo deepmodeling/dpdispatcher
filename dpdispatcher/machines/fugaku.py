@@ -1,9 +1,9 @@
 import shlex
 
 from dpdispatcher import dlog
-from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.utils.JobStatus import JobStatus
 from dpdispatcher.machine import Machine
-from dpdispatcher.utils import customized_script_header_template
+from dpdispatcher.utils.utils import customized_script_header_template
 
 fugaku_script_header_template = """\
 {queue_name_line}
