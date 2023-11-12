@@ -7,9 +7,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import dpdispatcher  # noqa: F401
 from dpdispatcher.base_context import BaseContext  # noqa: F401
-from dpdispatcher.utils.job_status import JobStatus  # noqa: F401
 from dpdispatcher.machine import Machine  # noqa: F401
 from dpdispatcher.submission import Job, Resources, Submission, Task  # noqa: F401
+from dpdispatcher.utils.job_status import JobStatus  # noqa: F401
 from dpdispatcher.utils.utils import RetrySignal, retry  # noqa: F401
 
 
