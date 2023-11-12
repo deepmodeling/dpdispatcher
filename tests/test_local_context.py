@@ -1,10 +1,10 @@
 # %%
+import hashlib
 import os
 import shutil
 import sys
 import unittest
 import uuid
-import hashlib
 from unittest.mock import MagicMock
 
 # %%
@@ -18,6 +18,7 @@ from .context import (
 )
 
 # from .context import dpd
+
 
 def _identical_files(fname0, fname1):
     with open(fname0) as fp:
