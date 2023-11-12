@@ -940,21 +940,35 @@ class SSHContext(BaseContext):
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
-            self.block_checkcall(
-                "tar {} {} {}".format(
-                    tar_command,
-                    shlex.quote(of),
-                    " ".join([shlex.quote(file) for file in files]),
+            try:
+                self.block_checkcall(
+                    "tar {} {} {}".format(
+                        tar_command,
+                        shlex.quote(of),
+                        " ".join([shlex.quote(file) for file in files]),
+                    )
                 )
-            )
+            except RuntimeError as e:
+                if "No such file or directory" in str(e):
+                    raise FileNotFoundError(
+                        "Any of the backward files does not exist in the remote directory."
+                    ) from e
+                raise e
         else:
             file_list_file = os.path.join(
                 self.remote_root, ".tmp.tar." + str(uuid.uuid4())
             )
             self.write_file(file_list_file, "\n".join(files))
-            self.block_checkcall(
-                f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
-            )
+            try:
+                self.block_checkcall(
+                    f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
+                )
+            except RuntimeError as e:
+                if "No such file or directory" in str(e):
+                    raise FileNotFoundError(
+                        "Any of the backward files does not exist in the remote directory."
+                    ) from e
+                raise e
         # trans
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()

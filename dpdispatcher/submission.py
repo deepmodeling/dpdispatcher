@@ -274,6 +274,9 @@ class Submission:
             try:
                 self.download_jobs()
                 success = True
+            except FileNotFoundError as e:
+                # retry will never success if the file is not found
+                raise e
             except (EOFError, Exception) as e:
                 dlog.exception(e)
                 elapsed_time = time.time() - start_time
