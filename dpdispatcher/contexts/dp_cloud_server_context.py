@@ -10,14 +10,14 @@ from dargs.dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
-from dpdispatcher.utils.dpcloudserver.config import (
-    ALI_STS_BUCKET_NAME,
-    ALI_STS_ENDPOINT,
-)
 
 # from dpdispatcher.submission import Machine
 # from . import dlog
 from dpdispatcher.utils.dpcloudserver.client import Client
+from dpdispatcher.utils.dpcloudserver.config import (
+    ALI_STS_BUCKET_NAME,
+    ALI_STS_ENDPOINT,
+)
 from dpdispatcher.utils.dpcloudserver.zip_file import zip_file
 
 # from zip_file import zip_files
