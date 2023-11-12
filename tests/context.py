@@ -7,19 +7,19 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import dpdispatcher  # noqa: F401
 from dpdispatcher.base_context import BaseContext  # noqa: F401
+from dpdispatcher.contexts.hdfs_context import HDFSContext  # noqa: F401
+from dpdispatcher.contexts.lazy_local_context import LazyLocalContext  # noqa: F401
+from dpdispatcher.contexts.local_context import LocalContext  # noqa: F401
+from dpdispatcher.contexts.ssh_context import SSHContext  # noqa: F401
 from dpdispatcher.machine import Machine  # noqa: F401
+from dpdispatcher.machines.distributed_shell import DistributedShell  # noqa: F401
+from dpdispatcher.machines.lsf import LSF  # noqa: F401
+from dpdispatcher.machines.pbs import PBS  # noqa: F401
+from dpdispatcher.machines.shell import Shell  # noqa: F401
+from dpdispatcher.machines.slurm import Slurm  # noqa: F401
 from dpdispatcher.submission import Job, Resources, Submission, Task  # noqa: F401
 from dpdispatcher.utils.job_status import JobStatus  # noqa: F401
 from dpdispatcher.utils.utils import RetrySignal, retry  # noqa: F401
-from dpdispatcher.machines.pbs import PBS  # noqa: F401
-from dpdispatcher.machines.slurm import Slurm  # noqa: F401
-from dpdispatcher.machines.lsf import LSF  # noqa: F401
-from dpdispatcher.machines.shell import Shell  # noqa: F401
-from dpdispatcher.machines.distributed_shell import DistributedShell  # noqa: F401
-from dpdispatcher.contexts.local_context import LocalContext  # noqa: F401
-from dpdispatcher.contexts.lazy_local_context import LazyLocalContext  # noqa: F401
-from dpdispatcher.contexts.ssh_context import SSHContext  # noqa: F401
-from dpdispatcher.contexts.hdfs_context import HDFSContext  # noqa: F401
 
 
 def setUpModule():
