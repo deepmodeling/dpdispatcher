@@ -14,8 +14,8 @@ except ModuleNotFoundError:
 else:
     found_bohriumsdk = True
 
-from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
+from dpdispatcher.dlog import dlog
 from dpdispatcher.utils.job_status import JobStatus
 
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(

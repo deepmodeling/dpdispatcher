@@ -5,8 +5,8 @@ import subprocess as sp
 from glob import glob
 from subprocess import TimeoutExpired
 
-from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
+from dpdispatcher.dlog import dlog
 
 
 class SPRetObj:

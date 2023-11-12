@@ -18,11 +18,17 @@ import paramiko
 import paramiko.ssh_exception
 from dargs.dargs import Argument
 
-from dpdispatcher.dlog import dlog
 from dpdispatcher.base_context import BaseContext
+from dpdispatcher.dlog import dlog
 
 # from dpdispatcher.submission import Machine
-from dpdispatcher.utils.utils import RetrySignal, generate_totp, get_sha256, retry, rsync
+from dpdispatcher.utils.utils import (
+    RetrySignal,
+    generate_totp,
+    get_sha256,
+    retry,
+    rsync,
+)
 
 
 class SSHSession:

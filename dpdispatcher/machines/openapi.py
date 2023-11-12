@@ -15,8 +15,8 @@ else:
     found_bohriumsdk = True
 
 from dpdispatcher.dlog import dlog
-from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils.job_status import JobStatus
 
 shell_script_header_template = """
 #!/bin/bash -l
