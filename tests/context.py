@@ -19,9 +19,9 @@ from dpdispatcher.machines.pbs import PBS  # noqa: F401
 from dpdispatcher.machines.shell import Shell  # noqa: F401
 from dpdispatcher.machines.slurm import Slurm  # noqa: F401
 from dpdispatcher.submission import Job, Resources, Submission, Task  # noqa: F401
+from dpdispatcher.utils.hdfs_cli import HDFS  # noqa: F401
 from dpdispatcher.utils.job_status import JobStatus  # noqa: F401
 from dpdispatcher.utils.utils import RetrySignal, retry  # noqa: F401
-from dpdispatcher.utils.hdfs_cli import HDFS # noqa: F401
 
 
 def setUpModule():
