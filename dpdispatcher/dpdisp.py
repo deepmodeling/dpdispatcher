@@ -2,7 +2,7 @@
 import argparse
 from typing import List, Optional
 
-from dpdispatcher.gui import start_dpgui
+from dpdispatcher.entrypoints.gui import start_dpgui
 
 
 def main_parser() -> argparse.ArgumentParser:
