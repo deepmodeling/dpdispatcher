@@ -1,6 +1,6 @@
+import json
 from pathlib import Path
 from typing import List
-import json
 
 
 class Record:
@@ -63,7 +63,7 @@ class Record:
         """Remove submission data by hash.
 
         Call this method when the remote directory is cleaned.
-        
+
         Parameters
         ----------
         hash : str

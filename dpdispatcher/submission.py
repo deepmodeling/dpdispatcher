@@ -852,7 +852,9 @@ class Job:
                 retry_count = self.machine.retry_count + 1
             if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 last_error_message = self.get_last_error_message()
-                err_msg = f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
+                err_msg = (
+                    f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
+                )
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
                 raise RuntimeError(err_msg)
