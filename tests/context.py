@@ -11,6 +11,7 @@ from dpdispatcher.contexts.hdfs_context import HDFSContext  # noqa: F401
 from dpdispatcher.contexts.lazy_local_context import LazyLocalContext  # noqa: F401
 from dpdispatcher.contexts.local_context import LocalContext  # noqa: F401
 from dpdispatcher.contexts.ssh_context import SSHContext, SSHSession  # noqa: F401
+from dpdispatcher.entrypoints.submission import handle_submission  # noqa: F401
 from dpdispatcher.machine import Machine  # noqa: F401
 from dpdispatcher.machines.distributed_shell import DistributedShell  # noqa: F401
 from dpdispatcher.machines.dp_cloud_server import Lebesgue  # noqa: F401
