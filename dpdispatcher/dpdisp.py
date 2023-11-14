@@ -3,6 +3,7 @@ import argparse
 from typing import List, Optional
 
 from dpdispatcher.entrypoints.gui import start_dpgui
+from dpdispatcher.entrypoints.submission import handle_submission
 
 
 def main_parser() -> argparse.ArgumentParser:
@@ -22,6 +23,37 @@ def main_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     subparsers = parser.add_subparsers(title="Valid subcommands", dest="command")
+    ##########################################
+    # backward
+    parser_submission = subparsers.add_parser(
+        "submission",
+        help="Handle terminated submission.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser_submission.add_argument(
+        "SUBMISSION_HASH",
+        type=str,
+        help="Submission hash to download.",
+    )
+    parser_submission_action = parser_submission.add_argument_group(
+        "Actions",
+        description="One or more actions to take on submission.",
+    )
+    parser_submission_action.add_argument(
+        "--download-terminated-log",
+        action="store_true",
+        help="Download log files of terminated tasks.",
+    )
+    parser_submission_action.add_argument(
+        "--download-finished-task",
+        action="store_true",
+        help="Download finished tasks.",
+    )
+    parser_submission_action.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clean submission.",
+    )
     ##########################################
     # gui
     parser_gui = subparsers.add_parser(
@@ -67,7 +99,14 @@ def parse_args(args: Optional[List[str]] = None):
 
 def main():
     args = parse_args()
-    if args.command == "gui":
+    if args.command == "submission":
+        handle_submission(
+            submission_hash=args.SUBMISSION_HASH,
+            download_terminated_log=args.download_terminated_log,
+            download_finished_task=args.download_finished_task,
+            clean=args.clean,
+        )
+    elif args.command == "gui":
         start_dpgui(
             port=args.port,
             bind_all=args.bind_all,

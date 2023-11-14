@@ -14,6 +14,7 @@ from .context import (
     Resources,
     Submission,
     Task,
+    handle_submission,
     record,
     setUpModule,  # noqa: F401
 )
@@ -134,6 +135,13 @@ class RunSubmission:
             if sys.platform == "linux":
                 self.assertTrue(err_msg in traceback.format_exc())
             self.assertTrue(record.get_submission(submission.submission_hash).is_file())
+            # post processing
+            handle_submission(
+                submission_hash=submission.submission_hash,
+                download_finished_task=True,
+                download_terminated_log=True,
+                clean=True,
+            )
 
     def test_async_run_submission(self):
         machine = Machine.load_from_dict(self.machine_dict)
