@@ -35,7 +35,7 @@ def handle_submission(
         raise ValueError("At least one action should be specified.")
 
     submission_file = record.get_submission(submission_hash)
-    submission = Submission.submission_from_json(submission_file)
+    submission = Submission.submission_from_json(str(submission_file))
     submission.belonging_tasks = [
         task for job in submission.belonging_jobs for task in job.job_task_list
     ]
@@ -66,6 +66,7 @@ def handle_submission(
     if download_terminated_log:
         terminated_log_files = []
         for task in terminated_tasks:
+            assert submission.local_root is not None
             terminated_log_files.append(
                 Path(submission.local_root) / task.task_work_path / task.outlog
             )
