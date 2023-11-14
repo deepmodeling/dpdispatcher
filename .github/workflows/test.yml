@@ -27,7 +27,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - run: pip install .[test] coverage
     - name: Test
-      run: coverage run --source=./dpdispatcher -m unittest -v && coverage report
+      run: |
+        coverage run --source=./dpdispatcher -m unittest -v
+        coverage run --source=./dpdispatcher -m dpdispatcher -h
+        coverage report
     - uses: codecov/codecov-action@v3
   pass:
     needs: [test]
