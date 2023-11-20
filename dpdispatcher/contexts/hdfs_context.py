@@ -170,7 +170,9 @@ class HDFSContext(BaseContext):
                             ) as fp:
                                 pass
                         else:
-                            raise FileNotFoundError("do not find download file " + rfile)
+                            raise FileNotFoundError(
+                                "do not find download file " + rfile
+                            )
                     else:
                         raise FileNotFoundError("do not find download file " + rfile)
                 else:

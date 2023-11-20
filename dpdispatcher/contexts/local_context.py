@@ -188,7 +188,9 @@ class LocalContext(BaseContext):
                             else:
                                 pass
                         else:
-                            raise FileNotFoundError("do not find download file " + rfile)
+                            raise FileNotFoundError(
+                                "do not find download file " + rfile
+                            )
                     elif (not os.path.exists(rfile)) and (os.path.exists(lfile)):
                         # already downloaded
                         pass
