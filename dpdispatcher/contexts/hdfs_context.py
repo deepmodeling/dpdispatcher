@@ -88,7 +88,7 @@ class HDFSContext(BaseContext):
             for ff in task.forward_files:
                 abs_file_list = glob(os.path.join(local_job, ff))
                 if not abs_file_list:
-                    raise RuntimeError(
+                    raise FileNotFoundError(
                         "cannot find upload file " + os.path.join(local_job, ff)
                     )
                 rel_file_list = [
@@ -100,7 +100,7 @@ class HDFSContext(BaseContext):
         for fc in submission.forward_common_files:
             abs_file_list = glob(os.path.join(local_job, fc))
             if not abs_file_list:
-                raise RuntimeError(
+                raise FileNotFoundError(
                     "cannot find upload file " + os.path.join(local_job, fc)
                 )
             rel_file_list = [
@@ -170,9 +170,9 @@ class HDFSContext(BaseContext):
                             ) as fp:
                                 pass
                         else:
-                            raise RuntimeError("do not find download file " + rfile)
+                            raise FileNotFoundError("do not find download file " + rfile)
                     else:
-                        raise RuntimeError("do not find download file " + rfile)
+                        raise FileNotFoundError("do not find download file " + rfile)
                 else:
                     if os.path.exists(lfile):
                         dlog.info(f"find existing {lfile}, replacing by {rfile}")
@@ -203,9 +203,9 @@ class HDFSContext(BaseContext):
                         ) as fp:
                             pass
                     else:
-                        raise RuntimeError("do not find download file " + rfile)
+                        raise FileNotFoundError("do not find download file " + rfile)
                 else:
-                    raise RuntimeError("do not find download file " + rfile)
+                    raise FileNotFoundError("do not find download file " + rfile)
             else:
                 if os.path.exists(lfile):
                     dlog.info(f"find existing {lfile}, replacing by {rfile}")
