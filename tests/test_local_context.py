@@ -69,7 +69,7 @@ class TestLocalContext(unittest.TestCase):
 
         self.local_context.bind_submission(submission)
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(FileNotFoundError):
             self.local_context.upload(submission)
 
     def test_upload(self):
@@ -236,7 +236,7 @@ class TestLocalContextDownload(unittest.TestCase):
             submission_hash="0_md/",
         )
         self.local_context.bind_submission(submission)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(FileNotFoundError):
             self.local_context.download(submission, check_exists=False)
 
     def test_download_mark_failure_tag(self):

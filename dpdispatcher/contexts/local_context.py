@@ -94,7 +94,7 @@ class LocalContext(BaseContext):
             for kk in ii.forward_files:
                 abs_file_list = glob(os.path.join(local_job, kk))
                 if not abs_file_list:
-                    raise RuntimeError(
+                    raise FileNotFoundError(
                         "cannot find upload file " + os.path.join(local_job, kk)
                     )
                 rel_file_list = [
@@ -104,7 +104,7 @@ class LocalContext(BaseContext):
 
             for jj in file_list:
                 if not os.path.exists(os.path.join(local_job, jj)):
-                    raise RuntimeError(
+                    raise FileNotFoundError(
                         "cannot find upload file " + os.path.join(local_job, jj)
                     )
                 if os.path.exists(os.path.join(remote_job, jj)):
@@ -119,7 +119,7 @@ class LocalContext(BaseContext):
         for kk in submission.forward_common_files:
             abs_file_list = glob(os.path.join(local_job, kk))
             if not abs_file_list:
-                raise RuntimeError(
+                raise FileNotFoundError(
                     "cannot find upload file " + os.path.join(local_job, kk)
                 )
             rel_file_list = [
@@ -129,7 +129,7 @@ class LocalContext(BaseContext):
 
         for jj in file_list:
             if not os.path.exists(os.path.join(local_job, jj)):
-                raise RuntimeError(
+                raise FileNotFoundError(
                     "cannot find upload file " + os.path.join(local_job, jj)
                 )
             if os.path.exists(os.path.join(remote_job, jj)):
@@ -160,7 +160,7 @@ class LocalContext(BaseContext):
                         else:
                             pass
                     else:
-                        raise RuntimeError(
+                        raise FileNotFoundError(
                             "cannot find download file " + os.path.join(remote_job, kk)
                         )
                 rel_flist = [
@@ -188,7 +188,9 @@ class LocalContext(BaseContext):
                             else:
                                 pass
                         else:
-                            raise RuntimeError("do not find download file " + rfile)
+                            raise FileNotFoundError(
+                                "do not find download file " + rfile
+                            )
                     elif (not os.path.exists(rfile)) and (os.path.exists(lfile)):
                         # already downloaded
                         pass
@@ -229,7 +231,7 @@ class LocalContext(BaseContext):
                     else:
                         pass
                 else:
-                    raise RuntimeError(
+                    raise FileNotFoundError(
                         "cannot find download file " + os.path.join(remote_job, kk)
                     )
             rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist_r]
@@ -255,7 +257,7 @@ class LocalContext(BaseContext):
                         else:
                             pass
                     else:
-                        raise RuntimeError("do not find download file " + rfile)
+                        raise FileNotFoundError("do not find download file " + rfile)
                 elif (not os.path.exists(rfile)) and (os.path.exists(lfile)):
                     # already downloaded
                     pass

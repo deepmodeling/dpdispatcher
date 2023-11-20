@@ -569,7 +569,7 @@ class SSHContext(BaseContext):
                     rel_file_list, work_path, file_list, directory_list
                 )
             else:
-                raise RuntimeError(f"cannot find upload file {work_path} {jj}")
+                raise FileNotFoundError(f"cannot find upload file {work_path} {jj}")
 
     def upload(
         self,
