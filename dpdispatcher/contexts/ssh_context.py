@@ -295,7 +295,7 @@ class SSHSession:
         assert self.ssh is not None
         try:
             return self.ssh.exec_command(cmd)
-        except (paramiko.ssh_exception.SSHException, socket.timeout) as e:
+        except (paramiko.ssh_exception.SSHException, socket.timeout, EOFError) as e:
             # SSH session not active
             # retry for up to 3 times
             # ensure alive
