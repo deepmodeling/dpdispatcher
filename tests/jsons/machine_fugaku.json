@@ -1,0 +1,24 @@
+{
+    "machine": {
+        "batch_type": "fugaku",
+        "context_type": "SSHContext",
+        "local_root" : "./",
+        "remote_profile": {
+                "hostname": "login.****.jp",
+                "key_filename":"/home/***/.ssh/***",
+                "passphrase":"******",
+                "username": "u*****"
+        },
+        "remote_root": "/vol*****/data/****"
+},
+    "resources": {
+            "number_node": 1,
+            "cpu_per_node": 48,
+            "source_list": [""],
+            "queue_name": "small",
+            "group_size": 1,
+            "custom_flags" : ["#PJM -L \"elapse=4:00:00\"",
+            "#PJM -x PJM_LLIO_GFSCACHE=/vol0004",
+            "#PJM -g hp******"]
+    }
+}

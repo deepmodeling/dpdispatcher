@@ -1,19 +1,24 @@
 # %%
+import asyncio
 import copy
+import functools
 import json
 import os
+import pathlib
 import random
 import time
 import uuid
 from hashlib import sha1
+from typing import List, Optional
 
+import yaml
 from dargs.dargs import Argument, Variant
 
-from dpdispatcher import dlog
-from dpdispatcher.JobStatus import JobStatus
+from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
+from dpdispatcher.utils.job_status import JobStatus
+from dpdispatcher.utils.record import record
 
-# from dpdispatcher.slurm import SlurmResources
 # %%
 default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
 
@@ -164,7 +169,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.append(task)
 
@@ -172,7 +177,7 @@ class Submission:
         if self.belonging_jobs:
             raise RuntimeError(
                 "Not allowed to register tasks after generating jobs. "
-                "submission hash error {self}".format(self=self)
+                f"submission hash error {self}"
             )
         self.belonging_tasks.extend(task_list)
 
@@ -198,7 +203,9 @@ class Submission:
             self.local_root = machine.context.temp_local_root
         return self
 
-    def run_submission(self, *, dry_run=False, exit_on_submit=False, clean=True):
+    def run_submission(
+        self, *, dry_run=False, exit_on_submit=False, clean=True, check_interval=30
+    ):
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -235,16 +242,18 @@ class Submission:
                 dlog.info(f"at {self.machine.context.remote_root}")
                 return self.serialize()
             if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_jobs()
+                self.remove_unfinished_tasks()
                 break
 
             try:
-                time.sleep(30)
+                time.sleep(check_interval)
             except (Exception, KeyboardInterrupt, SystemExit) as e:
                 self.submission_to_json()
+                record_path = record.write(self)
                 dlog.exception(e)
                 dlog.info(f"submission exit: {self.submission_hash}")
                 dlog.info(f"at {self.machine.context.remote_root}")
+                dlog.info(f"Submission information is saved in {str(record_path)}.")
                 dlog.debug(self.serialize())
                 raise e
             else:
@@ -253,11 +262,74 @@ class Submission:
             finally:
                 pass
         self.handle_unexpected_submission_state()
-        self.download_jobs()
+        self.try_download_result()
         self.submission_to_json()
         if clean:
             self.clean_jobs()
         return self.serialize()
+
+    def try_download_result(self):
+        start_time = time.time()
+        retry_interval = 60  # retry every 1 minute
+        success = False
+        while not success:
+            try:
+                self.download_jobs()
+                success = True
+            except FileNotFoundError as e:
+                # retry will never success if the file is not found
+                raise e
+            except (EOFError, Exception) as e:
+                dlog.exception(e)
+                elapsed_time = time.time() - start_time
+                if elapsed_time < 3600:  # in 1 h
+                    dlog.info("Retrying in 1 minute...")
+                    time.sleep(retry_interval)
+                elif elapsed_time < 86400:  # 1 h ~ 24 h
+                    retry_interval = 600  # retry every 10 min
+                    dlog.info("Retrying in 10 minutes...")
+                    time.sleep(retry_interval)
+                else:  # > 24 h
+                    dlog.info("Maximum retries time reached. Exiting.")
+                    break
+
+    async def async_run_submission(self, **kwargs):
+        """Async interface of run_submission.
+
+        Examples
+        --------
+        >>> import asyncio
+        >>> from dpdispacher import Machine, Resource, Submission
+        >>> async def run_jobs():
+        ...     backgroud_task = set()
+        ...     # task1
+        ...     task1 = Task(...)
+        ...     submission1 = Submission(..., task_list=[task1])
+        ...     background_task = asyncio.create_task(
+        ...         submission1.async_run_submission(check_interval=2, clean=False)
+        ...     )
+        ...     # task2
+        ...     task2 = Task(...)
+        ...     submission2 = Submission(..., task_list=[task1])
+        ...     background_task = asyncio.create_task(
+        ...         submission2.async_run_submission(check_interval=2, clean=False)
+        ...     )
+        ...     background_tasks.add(background_task)
+        ...     result = await asyncio.gather(*background_tasks)
+        ...     return result
+        >>> run_jobs()
+
+        May raise Error if pass `clean=True` explicitly when submit to pbs or slurm.
+        """
+        kwargs = {**{"clean": False}, **kwargs}
+        if kwargs["clean"]:
+            dlog.warning(
+                "Using async submission with `clean=True`, "
+                "job may fail in queue system"
+            )
+        loop = asyncio.get_event_loop()
+        wrapped_submission = functools.partial(self.run_submission, **kwargs)
+        return await loop.run_in_executor(None, wrapped_submission)
 
     def update_submission_state(self):
         """Check whether all the jobs in the submission.
@@ -274,7 +346,6 @@ class Submission:
             dlog.debug(
                 f"debug:update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}"
             )
-        # self.submission_to_json()
 
     def handle_unexpected_submission_state(self):
         """Handle unexpected job state of the submission.
@@ -287,60 +358,63 @@ class Submission:
                 job.handle_unexpected_job_state()
         except Exception as e:
             self.submission_to_json()
+            record_path = record.write(self)
             raise RuntimeError(
                 f"Meet errors will handle unexpected submission state.\n"
                 f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
-                f"Please check the dirs and scripts in remote_root. "
-                f"The job information mentioned above may help."
+                f"Please check error messages above and in remote_root. "
+                f"The submission information is saved in {str(record_path)}.\n"
+                f"For furthur actions, run the following command with proper flags: dpdisp submission {self.submission_hash}"
             ) from e
 
-    # not used here, submitting job is in handle_unexpected_submission_state.
+    def check_ratio_unfinished(self, ratio_unfinished: float) -> bool:
+        """Calculate the ratio of unfinished tasks in the submission.
 
-    # def submit_submission(self):
-    #     """submit the job belonging to the submission.
-    #     """
-    #     for job in self.belonging_jobs:
-    #         job.submit_job()
-    #     self.get_submission_state()
+        Parameters
+        ----------
+        ratio_unfinished : float
+            the ratio of unfinished tasks in the submission
 
-    # def update_submi
-
-    def check_ratio_unfinished(self, ratio_unfinished):
-        status_list = [job.job_state for job in self.belonging_jobs]
-        finished_num = status_list.count(JobStatus.finished)
-        if finished_num / len(self.belonging_jobs) < (1 - ratio_unfinished):
-            return False
+        Returns
+        -------
+        bool
+            whether the ratio of unfinished tasks in the submission is larger than ratio_unfinished
+        """
+        assert self.resources is not None
+        if self.resources.group_size == 1:
+            # if group size is 1, calculate job state is enough and faster
+            status_list = [job.job_state for job in self.belonging_jobs]
         else:
-            return True
+            # get task state is more accurate
+            status_list = []
+            for task in self.belonging_tasks:
+                task.get_task_state(self.machine.context)
+                status_list.append(task.task_state)
+        finished_num = status_list.count(JobStatus.finished)
+        return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
-    def remove_unfinished_jobs(self):
-        removed_jobs = [
-            job
-            for job in self.belonging_jobs
-            if job.job_state not in [JobStatus.finished]
-        ]
-        self.belonging_jobs = [
-            job for job in self.belonging_jobs if job.job_state in [JobStatus.finished]
-        ]
-        for job in removed_jobs:
-            # kill unfinished jobs
-            try:
-                self.machine.context.kill(job.job_id)
-            except Exception as e:
-                dlog.info("Can not kill job %s" % job.job_id)
-
-            # remove unfinished tasks
-            import os
-            import shutil
-
-            for task in job.job_task_list:
-                shutil.rmtree(
-                    os.path.join(self.machine.context.local_root, task.task_work_path),
-                    ignore_errors=True,
-                )
-            self.belonging_tasks = [
-                task for task in self.belonging_tasks if task not in job.job_task_list
+    def remove_unfinished_tasks(self):
+        dlog.info("Remove unfinished tasks")
+        # kill all jobs and mark them as finished
+        for job in self.belonging_jobs:
+            if job.job_state != JobStatus.finished:
+                self.machine.kill(job)
+                job.job_state = JobStatus.finished
+        # remove all unfinished tasks
+        finished_tasks = []
+        for task in self.belonging_tasks:
+            if task.task_state == JobStatus.finished:
+                finished_tasks.append(task)
+            # there is no need to remove actual remote directory
+            # as it should be cleaned anyway
+        self.belonging_tasks = finished_tasks
+        # clean removed tasks in jobs - although this should not be necessary
+        for job in self.belonging_jobs:
+            job.job_task_list = [
+                task
+                for task in job.job_task_list
+                if task.task_state == JobStatus.finished
             ]
 
     def check_all_finished(self):
@@ -387,7 +461,7 @@ class Submission:
                 f"Can not generate jobs when submission.belonging_jobs is not empty. debug:{self}"
             )
         group_size = self.resources.group_size
-        if (group_size < 0) or (type(group_size) is not int):
+        if (group_size < 0) or (not isinstance(group_size, int)):
             raise RuntimeError("group_size must be a positive number")
         task_num = len(self.belonging_tasks)
         if task_num == 0:
@@ -428,13 +502,13 @@ class Submission:
 
     def clean_jobs(self):
         self.machine.context.clean()
+        assert self.submission_hash is not None
+        record.remove(self.submission_hash)
 
     def submission_to_json(self):
         # self.update_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission_hash
-        )
+        submission_file_name = f"{self.submission_hash}.json"
         self.machine.context.write_file(submission_file_name, write_str=write_str)
 
     @classmethod
@@ -448,9 +522,7 @@ class Submission:
     # def check_if_recover()
 
     def try_recover_from_json(self):
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=self.submission_hash
-        )
+        submission_file_name = f"{self.submission_hash}.json"
         if_recover = self.machine.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
@@ -463,6 +535,9 @@ class Submission:
             submission.bind_machine(machine=self.machine)
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
+                self.belonging_tasks = [
+                    task for job in self.belonging_jobs for task in job.job_task_list
+                ]
                 self.bind_machine(machine=self.machine)
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
@@ -518,6 +593,7 @@ class Task:
         self.task_hash = self.get_hash()
         # self.task_need_resources="<to be completed in the future>"
         # self.uuid =
+        self.task_state = JobStatus.unsubmitted
 
     def __repr__(self):
         return str(self.serialize())
@@ -536,6 +612,13 @@ class Task:
         with open(json_file) as f:
             task_dict = json.load(f)
         return cls.load_from_dict(task_dict)
+
+    @classmethod
+    def load_from_yaml(cls, yaml_file):
+        with open(yaml_file) as f:
+            task_dict = yaml.safe_load(f)
+        task = cls.load_from_dict(task_dict=task_dict)
+        return task
 
     @classmethod
     def load_from_dict(cls, task_dict: dict) -> "Task":
@@ -592,24 +675,57 @@ class Task:
             Argument("command", str, optional=False, doc=doc_command),
             Argument("task_work_path", str, optional=False, doc=doc_task_work_path),
             Argument(
-                "forward_files", list, optional=False, doc=doc_forward_files, default=[]
+                "forward_files",
+                List[str],
+                optional=True,
+                doc=doc_forward_files,
+                default=[],
             ),
             Argument(
                 "backward_files",
-                list,
-                optional=False,
+                List[str],
+                optional=True,
                 doc=doc_backward_files,
                 default=[],
             ),
             Argument(
-                "outlog", [None, str], optional=False, doc=doc_outlog, default="log"
+                "outlog",
+                [type(None), str],
+                optional=True,
+                doc=doc_outlog,
+                default="log",
             ),
             Argument(
-                "errlog", [None, str], optional=False, doc=doc_errlog, default="err"
+                "errlog",
+                [type(None), str],
+                optional=True,
+                doc=doc_errlog,
+                default="err",
             ),
         ]
         task_format = Argument("task", dict, task_args)
         return task_format
+
+    def get_task_state(self, context):
+        """Get the task state by checking the tag file.
+
+        Parameters
+        ----------
+        context : Context
+            the context of the task
+        """
+        if self.task_state in (JobStatus.finished, JobStatus.unsubmitted):
+            # finished task should always be finished
+            # unsubmitted task do not need to check tag
+            return
+        # check tag
+        task_tag_finished = (
+            pathlib.PurePath(self.task_work_path)
+            / (self.task_hash + "_task_tag_finished")
+        ).as_posix()
+        result = context.check_file_exists(task_tag_finished)
+        if result:
+            self.task_state = JobStatus.finished
 
 
 class Job:
@@ -638,7 +754,6 @@ class Job:
         # self.job_work_base = job_work_base
         self.resources = resources
         self.machine = machine
-
         self.job_state = None  # JobStatus.unsubmitted
         self.job_id = ""
         self.fail_count = 0
@@ -677,9 +792,7 @@ class Job:
         """
         if len(job_dict.keys()) != 1:
             raise RuntimeError(
-                "json file may be broken, len(job_dict.keys()) must be 1. {job_dict}".format(
-                    job_dict=job_dict
-                )
+                f"json file may be broken, len(job_dict.keys()) must be 1. {job_dict}"
             )
         job_hash = list(job_dict.keys())[0]
 
@@ -700,6 +813,8 @@ class Job:
         job.job_id = job_dict[job_hash]["job_id"]
         job.fail_count = job_dict[job_hash]["fail_count"]
         # job.job_uuid = job_dict[job_hash]['job_uuid']
+        for task in job.job_task_list:
+            task.task_state = job.job_state
         return job
 
     def get_job_state(self):
@@ -715,6 +830,11 @@ class Job:
         assert self.machine is not None
         job_state = self.machine.check_status(self)
         self.job_state = job_state
+        # update general task_state, which should be faster than checking tags
+        for task in self.job_task_list:
+            # only update if the task is not finished
+            if task.task_state != JobStatus.finished:
+                task.task_state = job_state
 
     def handle_unexpected_job_state(self):
         job_state = self.job_state
@@ -725,13 +845,21 @@ class Job:
         if job_state == JobStatus.terminated:
             self.fail_count += 1
             dlog.info(
-                f"job: {self.job_hash} {self.job_id} terminated;"
+                f"job: {self.job_hash} {self.job_id} terminated; "
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
-            if (self.fail_count) > 0 and (self.fail_count % 3 == 0):
-                raise RuntimeError(
-                    f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times.job_detail:{self}"
+            retry_count = 3
+            assert self.machine is not None
+            if hasattr(self.machine, "retry_count") and self.machine.retry_count >= 0:
+                retry_count = self.machine.retry_count + 1
+            if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
+                last_error_message = self.get_last_error_message()
+                err_msg = (
+                    f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
                 )
+                if last_error_message is not None:
+                    err_msg += f"\nPossible remote error message: {last_error_message}"
+                raise RuntimeError(err_msg)
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
@@ -754,11 +882,7 @@ class Job:
             #     raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
-                dlog.info(
-                    "job: {job_hash} submit; job_id is {job_id}".format(
-                        job_hash=self.job_hash, job_id=self.job_id
-                    )
-                )
+                dlog.info(f"job: {self.job_hash} submit; job_id is {self.job_id}")
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)
             # self.get_job_state()
@@ -813,6 +937,16 @@ class Job:
             self.job_hash + "_job.json", write_str=write_str
         )
 
+    def get_last_error_message(self) -> Optional[str]:
+        """Get last error message when the job is terminated."""
+        assert self.machine is not None
+        last_err_file = self.job_hash + "_last_err_file"
+        if self.machine.context.check_file_exists(last_err_file):
+            last_error_message = self.machine.context.read_file(last_err_file)
+            # red color
+            last_error_message = "\033[31m" + last_error_message + "\033[0m"
+            return last_error_message
+
 
 class Resources:
     """Resources is used to describe the machine resources we need to do calculations.
@@ -838,7 +972,10 @@ class Resources:
             If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.
             Usually, this option will be used with Task.task_need_resources variable simultaneously.
         ratio_unfinished : float
-            The ratio of `jobs` that can be unfinished.
+            The ratio of `task` that can be unfinished.
+        customized_script_header_template_file : str
+            The customized template file to generate job submitting script header,
+            which overrides the default file.
     para_deg : int
         Decide how many tasks will be run in parallel.
         Usually run with `strategy['if_cuda_multi_devices']`
@@ -897,12 +1034,8 @@ class Resources:
         # if self.gpu_per_node > 1:
         # self.in_para_task_num = 0
 
-        if "if_cuda_multi_devices" not in self.strategy:
-            self.strategy["if_cuda_multi_devices"] = default_strategy.get(
-                "if_cuda_multi_devices"
-            )
-        if "ratio_unfinished" not in self.strategy:
-            self.strategy["ratio_unfinished"] = default_strategy.get("ratio_unfinished")
+        for kk, value in default_strategy.items():
+            self.strategy.setdefault(kk, value)
         if self.strategy["if_cuda_multi_devices"] is True:
             if gpu_per_node < 1:
                 raise RuntimeError(
@@ -970,7 +1103,14 @@ class Resources:
     def load_from_json(cls, json_file):
         with open(json_file) as f:
             resources_dict = json.load(f)
-        resources = cls.deserialize(resources_dict=resources_dict)
+        resources = cls.load_from_dict(resources_dict=resources_dict)
+        return resources
+
+    @classmethod
+    def load_from_yaml(cls, yaml_file):
+        with open(yaml_file) as f:
+            resources_dict = yaml.safe_load(f)
+        resources = cls.load_from_dict(resources_dict=resources_dict)
         return resources
 
     @classmethod
@@ -1010,7 +1150,11 @@ class Resources:
             "If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task."
             "Usually, this option will be used with Task.task_need_resources variable simultaneously."
         )
-        doc_ratio_unfinished = "The ratio of `jobs` that can be unfinished."
+        doc_ratio_unfinished = "The ratio of `tasks` that can be unfinished."
+        doc_customized_script_header_template_file = (
+            "The customized template file to generate job submitting script header, "
+            "which overrides the default file."
+        )
 
         strategy_args = [
             Argument(
@@ -1026,6 +1170,12 @@ class Resources:
                 optional=True,
                 default=0.0,
                 doc=doc_ratio_unfinished,
+            ),
+            Argument(
+                "customized_script_header_template_file",
+                str,
+                optional=True,
+                doc=doc_customized_script_header_template_file,
             ),
         ]
         doc_strategy = "strategies we use to generation job submitting scripts."
@@ -1043,36 +1193,40 @@ class Resources:
             ),
             Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
-            Argument("custom_flags", list, optional=True, doc=doc_custom_flags),
+            Argument("custom_flags", List[str], optional=True, doc=doc_custom_flags),
             # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
             strategy_format,
             Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
             Argument(
-                "source_list", list, optional=True, doc=doc_source_list, default=[]
+                "source_list", List[str], optional=True, doc=doc_source_list, default=[]
             ),
             Argument(
                 "module_purge", bool, optional=True, doc=doc_module_purge, default=False
             ),
             Argument(
                 "module_unload_list",
-                list,
+                List[str],
                 optional=True,
                 doc=doc_module_unload_list,
                 default=[],
             ),
             Argument(
-                "module_list", list, optional=True, doc=doc_module_list, default=[]
+                "module_list", List[str], optional=True, doc=doc_module_list, default=[]
             ),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
             Argument(
                 "prepend_script",
-                list,
+                List[str],
                 optional=True,
                 doc=doc_prepend_script,
                 default=[],
             ),
             Argument(
-                "append_script", list, optional=True, doc=doc_append_script, default=[]
+                "append_script",
+                List[str],
+                optional=True,
+                doc=doc_append_script,
+                default=[],
             ),
             Argument(
                 "wait_time", [int, float], optional=True, doc=doc_wait_time, default=0

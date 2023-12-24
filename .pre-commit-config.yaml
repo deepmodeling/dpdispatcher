@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
     -   id: trailing-whitespace
         exclude: "^tests/"
@@ -16,16 +16,13 @@ repos:
     -   id: check-symlinks
     -   id: check-toml
 # Python
--   repo: https://github.com/psf/black
-    rev: 23.3.0
-    hooks:
-    -   id: black-jupyter
--   repo: https://github.com/charliermarsh/ruff-pre-commit
+-   repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.0.260
+    rev: v0.1.7
     hooks:
     - id: ruff
       args: ["--fix"]
+    - id: ruff-format
 # numpydoc
 -   repo: https://github.com/Carreau/velin
     rev: 0.0.12
@@ -34,6 +31,6 @@ repos:
       args: ["--write"]
 # Python inside docs
 -   repo: https://github.com/asottile/blacken-docs
-    rev: 1.13.0
+    rev: 1.16.0
     hooks:
     -   id: blacken-docs

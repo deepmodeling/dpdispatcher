@@ -83,7 +83,7 @@ class SampleClass:
         return task_dict
 
     @classmethod
-    def get_sample_task_list(cls):
+    def get_sample_task_list(cls, backward_wildcard=False):
         task1 = Task(
             command="lmp -i input.lammps",
             task_work_path="bct-1/",
@@ -109,6 +109,16 @@ class SampleClass:
             backward_files=["log.lammps"],
         )
         task_list = [task1, task2, task3, task4]
+        if backward_wildcard:
+            task_wildcard = Task(
+                command="lmp -i input.lammps",
+                task_work_path="bct-backward_wildcard/",
+                forward_files=[],
+                backward_files=["test*/test*"],
+                outlog="wildcard.log",
+                errlog="wildcard.err",
+            )
+            task_list.append(task_wildcard)
         return task_list
 
     @classmethod
@@ -127,9 +137,9 @@ class SampleClass:
         return empty_submission
 
     @classmethod
-    def get_sample_submission(cls):
+    def get_sample_submission(cls, backward_wildcard=False):
         submission = cls.get_sample_empty_submission()
-        task_list = cls.get_sample_task_list()
+        task_list = cls.get_sample_task_list(backward_wildcard=backward_wildcard)
         submission.register_task_list(task_list)
         submission.generate_jobs()
         return submission

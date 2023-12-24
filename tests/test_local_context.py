@@ -1,4 +1,5 @@
 # %%
+import hashlib
 import os
 import shutil
 import sys
@@ -12,12 +13,19 @@ __package__ = "tests"
 # from .context import LocalSession
 from .context import (
     LocalContext,
-    _identical_files,
     get_file_md5,
     setUpModule,  # noqa: F401
 )
 
 # from .context import dpd
+
+
+def _identical_files(fname0, fname1):
+    with open(fname0) as fp:
+        code0 = hashlib.sha1(fp.read().encode("utf-8")).hexdigest()
+    with open(fname1) as fp:
+        code1 = hashlib.sha1(fp.read().encode("utf-8")).hexdigest()
+    return code0 == code1
 
 
 class TestIdFile(unittest.TestCase):
@@ -61,7 +69,7 @@ class TestLocalContext(unittest.TestCase):
 
         self.local_context.bind_submission(submission)
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(FileNotFoundError):
             self.local_context.upload(submission)
 
     def test_upload(self):
@@ -228,7 +236,7 @@ class TestLocalContextDownload(unittest.TestCase):
             submission_hash="0_md/",
         )
         self.local_context.bind_submission(submission)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(FileNotFoundError):
             self.local_context.download(submission, check_exists=False)
 
     def test_download_mark_failure_tag(self):

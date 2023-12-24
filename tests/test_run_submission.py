@@ -1,6 +1,9 @@
+import asyncio
 import os
+import random
 import shutil
 import sys
+import traceback
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -11,6 +14,8 @@ from .context import (
     Resources,
     Submission,
     Task,
+    handle_submission,
+    record,
     setUpModule,  # noqa: F401
 )
 
@@ -85,7 +90,93 @@ class RunSubmission:
             backward_common_files=[],
             task_list=task_list,
         )
-        submission.run_submission()
+        submission.run_submission(check_interval=2)
+
+        for ii in range(4):
+            self.assertTrue(
+                os.path.isfile(
+                    os.path.join(
+                        self.machine_dict["local_root"], "test_dir/", f"out{ii}.txt"
+                    )
+                )
+            )
+
+    def test_failed_submission(self):
+        machine = Machine.load_from_dict(self.machine_dict)
+        resources = Resources.load_from_dict(self.resources_dict)
+
+        task_list = []
+        err_msg = "DPDISPATCHER_TEST"
+        # prevent err_msg directly in commands; we need to check error message
+        err_msg_shell = "".join([f'"{x}"' for x in err_msg])
+        for ii in range(1):
+            task = Task(
+                command=f'echo "Error!" {err_msg_shell} 1>&2 && exit 1',
+                task_work_path="./",
+                forward_files=[],
+                backward_files=[f"out{ii}.txt"],
+                outlog=f"out{ii}.txt",
+                errlog=f"err{ii}.txt",
+            )
+            task_list.append(task)
+
+        submission = Submission(
+            work_base="test_dir/",
+            machine=machine,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            task_list=task_list,
+        )
+        try:
+            submission.run_submission(check_interval=2)
+        except RuntimeError:
+            # macos shell has some issues
+            if sys.platform == "linux":
+                self.assertTrue(err_msg in traceback.format_exc())
+            self.assertTrue(record.get_submission(submission.submission_hash).is_file())
+            # post processing
+            handle_submission(
+                submission_hash=submission.submission_hash,
+                download_finished_task=True,
+                download_terminated_log=True,
+                clean=True,
+            )
+
+    def test_async_run_submission(self):
+        machine = Machine.load_from_dict(self.machine_dict)
+        resources = Resources.load_from_dict(self.resources_dict)
+        ntask = 4
+
+        async def run_jobs(ntask):
+            background_tasks = set()
+            for ii in range(ntask):
+                sleep_time = random.random() * 5 + 2
+                task = Task(
+                    command=f"echo dpdispatcher_unittest_{ii} && sleep {sleep_time}",
+                    task_work_path="./",
+                    forward_files=[],
+                    backward_files=[f"out{ii}.txt"],
+                    outlog=f"out{ii}.txt",
+                )
+                submission = Submission(
+                    work_base="test_dir/",
+                    machine=machine,
+                    resources=resources,
+                    forward_common_files=[],
+                    backward_common_files=[],
+                    task_list=[task],
+                )
+                background_task = asyncio.create_task(
+                    submission.async_run_submission(check_interval=2, clean=False)
+                )
+                background_tasks.add(background_task)
+                # background_task.add_done_callback(background_tasks.discard)
+            res = await asyncio.gather(*background_tasks)
+            return res
+
+        res = asyncio.run(run_jobs(ntask=ntask))
+        print(res)
 
         for ii in range(4):
             self.assertTrue(
@@ -110,6 +201,10 @@ class TestSlurmRun(RunSubmission, unittest.TestCase):
         self.machine_dict["batch_type"] = "Slurm"
         self.resources_dict["queue_name"] = "normal"
 
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
 
 @unittest.skipIf(
     os.environ.get("DPDISPATCHER_TEST") != "slurm",
@@ -121,6 +216,26 @@ class TestSlurmJobArrayRun(RunSubmission, unittest.TestCase):
         self.machine_dict["batch_type"] = "SlurmJobArray"
         self.resources_dict["queue_name"] = "normal"
 
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
+
+@unittest.skipIf(
+    os.environ.get("DPDISPATCHER_TEST") != "slurm",
+    "outside the slurm testing environment",
+)
+class TestSlurmJobArrayRun2(RunSubmission, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.machine_dict["batch_type"] = "SlurmJobArray"
+        self.resources_dict["queue_name"] = "normal"
+        self.resources_dict["kwargs"] = {"slurm_job_size": 2}
+
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
 
 @unittest.skipIf(
     os.environ.get("DPDISPATCHER_TEST") != "pbs", "outside the pbs testing environment"
@@ -130,6 +245,10 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
         super().setUp()
         self.machine_dict["batch_type"] = "PBS"
         self.resources_dict["queue_name"] = "workq"
+
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")

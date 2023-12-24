@@ -21,9 +21,9 @@ To avoid running multiple jobs at the same time, one could set {dargs:argument}`
 One needs to make sure slurm has been setup in the remote server and the related environment is activated.
 
 When `SlurmJobArray` is used, dpdispatcher submits Slurm jobs with [job arrays](https://slurm.schedmd.com/job_array.html).
-In this way, a dpdispatcher {class}`task <dpdispatcher.submission.Task>` maps to a Slurm job and a dpdispatcher {class}`job <dpdispatcher.submission.Job>` maps to a Slurm job array.
+In this way, several dpdispatcher {class}`task <dpdispatcher.submission.Task>`s map to a Slurm job and a dpdispatcher {class}`job <dpdispatcher.submission.Job>` maps to a Slurm job array.
 Millions of Slurm jobs can be submitted quickly and Slurm can execute all Slurm jobs at the same time.
-One can use {dargs:argument}`group_size <resources/group_size>` to control how many Slurm jobs are contained in a Slurm job array.
+One can use {dargs:argument}`group_size <resources/group_size>` and {dargs:argument}`slurm_job_size <resources[SlurmJobArray]/kwargs/slurm_job_size>` to control how many Slurm jobs are contained in a Slurm job array.
 
 ## OpenPBS or PBSPro
 
@@ -62,3 +62,17 @@ Read Bohrium documentation for details.
 
 `DistributedShell` is used to submit yarn jobs.
 Read [Support DPDispatcher on Yarn](dpdispatcher_on_yarn.md) for details.
+
+## Fugaku
+
+{dargs:argument}`batch_type <resources/batch_type>`: `Fugaku`
+
+[Fujitsu cloud service](https://doc.cloud.global.fujitsu.com/lib/common/jp/hpc-user-manual/) is a job scheduling system used by Fujitsu's HPCs such as Fugaku, ITO and K computer. It should be noted that although the same job scheduling system is used, there are some differences in the details, Fagaku class cannot be directly used for other HPCs.
+
+Read Fujitsu cloud service documentation for details.
+
+
+## OpenAPI
+
+{dargs:argument}`batcy_type <resources/batch_type>`: `OpenAPI`
+OpenAPI is a new way to submit jobs to Bohrium. It using [AccessKey](https://bohrium.dp.tech/personal/setting) instead of username and password. Read Bohrium documentation for details.

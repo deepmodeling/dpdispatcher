@@ -1,0 +1,44 @@
+name: Test Bohrium
+
+on:
+  push:
+  pull_request_target:
+    types:
+      - "labeled"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: bohrium
+    if: github.repository_owner == 'deepmodeling' && (github.event.label.name == 'Test Bohrium' || github.event_name == 'push')
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: "${{ github.event.pull_request.merge_commit_sha }}"
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+    - run: pip install .[bohrium] coverage
+    - name: Test
+      run: coverage run --source=./dpdispatcher -m unittest -v tests/test_run_submission_bohrium.py && coverage report
+      env:
+        DPDISPATCHER_TEST: bohrium
+        BOHRIUM_EMAIL: ${{ secrets.BOHRIUM_EMAIL }}
+        BOHRIUM_PASSWORD: ${{ secrets.BOHRIUM_PASSWORD }}
+        BOHRIUM_PROJECT_ID: ${{ secrets.BOHRIUM_PROJECT_ID }}
+        BOHRIUM_ACCESS_KEY: ${{ secrets.BOHRIUM_ACCESS_KEY }}
+    - uses: codecov/codecov-action@v3
+  remove_label:
+    permissions:
+      contents: read
+      pull-requests: write
+    # so one can re-trigger the workflow without manually removing the label
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'deepmodeling' && github.event.label.name == 'Test Bohrium'
+    steps:
+    - uses: actions-ecosystem/action-remove-labels@v1
+      with:
+        labels: Test Bohrium
+        number: ${{ github.event.pull_request.number }}

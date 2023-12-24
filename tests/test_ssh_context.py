@@ -36,11 +36,12 @@ class TestSSHContext(unittest.TestCase):
                 "key_filename": "/root/.ssh/id_rsa",
             },
         }
+        cls.mdata = mdata
         try:
             cls.machine = Machine.load_from_dict(mdata)
         except (SSHException, socket.timeout):
             raise unittest.SkipTest("SSHException ssh cannot connect")
-        cls.submission = SampleClass.get_sample_submission()
+        cls.submission = SampleClass.get_sample_submission(backward_wildcard=True)
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
         file_list = [
@@ -49,6 +50,8 @@ class TestSSHContext(unittest.TestCase):
             "bct-3/log.lammps",
             "bct-4/log.lammps",
             "dir with space/file with space",
+            "bct-backward_wildcard/test456",
+            "bct-backward_wildcard/test123/test123",
         ]
         for file in file_list:
             cls.machine.context.sftp.mkdir(
@@ -113,6 +116,53 @@ class TestSSHContext(unittest.TestCase):
         )
         submission.run_submission()
 
+    def test_recover(self):
+        """Test recover from a previous submission."""
+        machine = Machine.load_from_dict(self.machine.serialize())
+        resources = Resources.load_from_dict(
+            {
+                "number_node": 1,
+                "cpu_per_node": 1,
+                "gpu_per_node": 0,
+                "queue_name": "?",
+                "group_size": 1,
+            }
+        )
+        task = Task(
+            command="touch times && echo 1 >> times && test $(wc -l < times) -gt 3 && echo done",
+            task_work_path="./",
+            forward_files=[],
+            backward_files=[],
+            outlog="out.txt",
+        )
+
+        submission = Submission(
+            work_base="./",
+            machine=machine,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            task_list=[task],
+        )
+        try:
+            submission.run_submission()
+        except RuntimeError:
+            # expected to fail, try again
+            # reinit machine to test machine recover
+            machine = Machine.load_from_dict(self.mdata)
+            resources = Resources.load_from_dict(resources.serialize())
+            task = Task.deserialize(task.serialize())
+
+            submission = Submission(
+                work_base="./",
+                machine=machine,
+                resources=resources,
+                forward_common_files=[],
+                backward_common_files=[],
+                task_list=[task],
+            )
+            submission.run_submission()
+
     def test_download(self):
         self.context.download(self.__class__.submission)
 
@@ -139,7 +189,7 @@ class TestSSHContextNoCompress(unittest.TestCase):
             cls.machine = Machine.load_from_dict(mdata)
         except (SSHException, socket.timeout):
             raise unittest.SkipTest("SSHException ssh cannot connect")
-        cls.submission = SampleClass.get_sample_submission()
+        cls.submission = SampleClass.get_sample_submission(backward_wildcard=True)
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
         file_list = [
@@ -148,6 +198,8 @@ class TestSSHContextNoCompress(unittest.TestCase):
             "bct-3/log.lammps",
             "bct-4/log.lammps",
             "dir with space/file with space",
+            "bct-backward_wildcard/test456",
+            "bct-backward_wildcard/test123/test123",
         ]
         for file in file_list:
             cls.machine.context.sftp.mkdir(

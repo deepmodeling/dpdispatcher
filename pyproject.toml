@@ -23,10 +23,11 @@ classifiers = [
 ]
 dependencies = [
     'paramiko',
-    'dargs>=0.2.9',
+    'dargs>=0.4.1',
     'requests',
     'tqdm>=4.9.0',
     'typing_extensions; python_version < "3.7"',
+    'pyyaml',
 ]
 requires-python = ">=3.7"
 readme = "README.md"
@@ -37,8 +38,13 @@ Homepage = "https://github.com/deepmodeling/dpdispatcher"
 documentation = "https://docs.deepmodeling.com/projects/dpdispatcher"
 repository = "https://github.com/deepmodeling/dpdispatcher"
 
-[project.entry-points.console_scripts]
+[project.scripts]
 dpdisp = "dpdispatcher.dpdisp:main"
+
+[project.entry-points."dpgui"]
+"DPDispatcher Machine" = "dpdispatcher.arginfo:machine_dargs"
+"DPDispatcher Resources" = "dpdispatcher.arginfo:resources_dargs"
+"DPDispatcher Task" = "dpdispatcher.arginfo:task_dargs"
 
 [project.optional-dependencies]
 docs = [
@@ -48,9 +54,16 @@ docs = [
     'numpydoc',
     'deepmodeling_sphinx>=0.1.1',
     'dargs>=0.3.1',
+    'sphinx-argparse',
 ]
-cloudserver = ["oss2", "tqdm"]
-test = []
+cloudserver = ["oss2", "tqdm", "bohrium-sdk"]
+bohrium = ["oss2", "tqdm", "bohrium-sdk"]
+gui = [
+    "dpgui",
+]
+test = [
+    "dpgui",
+]
 
 [tool.setuptools.packages.find]
 include = ["dpdispatcher*"]
@@ -60,13 +73,15 @@ write_to = "dpdispatcher/_version.py"
 
 [tool.pyright]
 include = ['dpdispatcher']
-exclude = ['dpdispatcher/dpcloudserver/temp_test.py']
+exclude = [
+    'dpdispatcher/dpcloudserver/temp_test.py',
+    'dpdispatcher/_version.py',
+]
 
 [tool.isort]
 profile = "black"
 
 [tool.ruff]
-target-version = "py37"
 select = [
     "E", # errors
     "F", # pyflakes
@@ -95,3 +110,6 @@ ignore = [
     "D404", # TODO: first word of the docstring should not be This
 ]
 ignore-init-module-imports = true
+
+[tool.ruff.pydocstyle]
+convention = "numpy"

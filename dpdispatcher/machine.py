@@ -4,10 +4,11 @@ import shlex
 from abc import ABCMeta, abstractmethod
 from typing import List, Tuple
 
+import yaml
 from dargs import Argument, Variant
 
-from dpdispatcher import dlog
 from dpdispatcher.base_context import BaseContext
+from dpdispatcher.dlog import dlog
 
 script_template = """\
 {script_header}
@@ -35,7 +36,7 @@ cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
   {command_env} ( {command} ) {log_err_part}
-  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > $REMOTE_ROOT/{flag_if_job_task_fail};fi
+  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > $REMOTE_ROOT/{flag_if_job_task_fail};tail -v -c 1000 $REMOTE_ROOT/{task_work_path}/{err_file} > $REMOTE_ROOT/{last_err_file};fi
 fi &
 """
 
@@ -125,6 +126,13 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     @classmethod
+    def load_from_yaml(cls, yaml_path):
+        with open(yaml_path) as f:
+            machine_dict = yaml.safe_load(f)
+        machine = cls.load_from_dict(machine_dict=machine_dict)
+        return machine
+
+    @classmethod
     def load_from_dict(cls, machine_dict):
         batch_type = machine_dict["batch_type"]
         try:
@@ -191,26 +199,27 @@ class Machine(metaclass=ABCMeta):
             "abstract method do_submit should be implemented by derived class"
         )
 
+    def gen_script_run_command(self, job):
+        return f"source $REMOTE_ROOT/{job.script_file_name}.run"
+
     def gen_script(self, job):
         script_header = self.gen_script_header(job)
         script_custom_flags = self.gen_script_custom_flags_lines(job)
         script_env = self.gen_script_env(job)
-        script_command = self.gen_script_command(job)
+        script_run_command = self.gen_script_run_command(job)
         script_end = self.gen_script_end(job)
         script = script_template.format(
             script_header=script_header,
             script_custom_flags=script_custom_flags,
             script_env=script_env,
-            script_command=script_command,
+            script_command=script_run_command,
             script_end=script_end,
         )
         return script
 
     def check_if_recover(self, submission):
         submission_hash = submission.submission_hash
-        submission_file_name = "{submission_hash}.json".format(
-            submission_hash=submission_hash
-        )
+        submission_file_name = f"{submission_hash}.json"
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 
@@ -297,6 +306,7 @@ class Machine(metaclass=ABCMeta):
                 log_err_part += f"2>>{shlex.quote(task.errlog)} "
 
             flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
+            last_err_file = job.job_hash + "_last_err_file"
             single_script_command = script_command_template.format(
                 flag_if_job_task_fail=flag_if_job_task_fail,
                 command_env=command_env,
@@ -306,6 +316,8 @@ class Machine(metaclass=ABCMeta):
                 command=task.command,
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part,
+                err_file=shlex.quote(task.errlog),
+                last_err_file=shlex.quote(last_err_file),
             )
             script_command += single_script_command
 
@@ -377,8 +389,12 @@ class Machine(metaclass=ABCMeta):
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
             # TODO: add default to local_root and remote_root after refactor the code
-            Argument("local_root", [str, None], optional=False, doc=doc_local_root),
-            Argument("remote_root", [str, None], optional=True, doc=doc_remote_root),
+            Argument(
+                "local_root", [str, type(None)], optional=False, doc=doc_local_root
+            ),
+            Argument(
+                "remote_root", [str, type(None)], optional=True, doc=doc_remote_root
+            ),
             Argument(
                 "clean_asynchronously",
                 bool,
@@ -439,3 +455,27 @@ class Machine(metaclass=ABCMeta):
                 "kwargs", dict, optional=True, doc="This field is empty for this batch."
             )
         ]
+
+    def kill(self, job):
+        """Kill the job.
+
+        If not implemented, pass and let the user manually kill it.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        dlog.warning("Job %s should be manually killed" % job.job_id)
+
+    def get_exit_code(self, job):
+        """Get exit code of the job.
+
+        Parameters
+        ----------
+        job : Job
+            job
+        """
+        raise NotImplementedError(
+            "abstract method get_exit_code should be implemented by derived class"
+        )

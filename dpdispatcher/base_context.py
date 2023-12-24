@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 from dargs import Argument
 
-from dpdispatcher import dlog
+from dpdispatcher.dlog import dlog
 
 
 class BaseContext(metaclass=ABCMeta):
@@ -68,9 +68,6 @@ class BaseContext(metaclass=ABCMeta):
 
     @abstractmethod
     def read_file(self, fname):
-        raise NotImplementedError("abstract method")
-
-    def kill(self, proc):
         raise NotImplementedError("abstract method")
 
     def check_finish(self, proc):
