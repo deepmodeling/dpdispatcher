@@ -258,8 +258,8 @@ class SGE(PBS):
             while count <= 6:
                 if self.check_finish_tag(job=job):
                     return JobStatus.finished
-                print(
-                    "INFO: not tag_finished detected, execute sync command and wait. count "
+                dlog.info(
+                    "not tag_finished detected, execute sync command and wait. count "
                     + str(count)
                 )
                 self.context.block_call("sync")
