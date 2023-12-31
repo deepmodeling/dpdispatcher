@@ -252,7 +252,7 @@ class SGE(PBS):
         for txt in status_text_list:
             if job_id in txt:
                 status_line = txt
-        
+
         if status_line is None:
             count = 0
             while count <= 6:
