@@ -177,7 +177,6 @@ class SGE(PBS):
             remote_profile,
             context=context,
         )
-        self.status_record_list = []
 
     def gen_script_header(self, job):
         resources = job.resources
@@ -223,9 +222,8 @@ class SGE(PBS):
         for txt in status_text_list:
             if job_id in txt:
                 status_line = txt
-        print("status_line", status_line)
-        self.status_record_list.append(status_line)
-        if (status_line is None) and (self.status_record_list != []):
+        
+        if status_line is None:
             count = 0
             while count <= 6:
                 if self.check_finish_tag(job=job):
