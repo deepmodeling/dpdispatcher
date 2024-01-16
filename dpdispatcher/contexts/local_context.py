@@ -208,7 +208,10 @@ class LocalContext(BaseContext):
                             shutil.rmtree(lfile, ignore_errors=True)
                         elif os.path.isfile(lfile) or os.path.islink(lfile):
                             os.remove(lfile)
-                        shutil.copyfile(rfile, lfile)
+                        if not os.path.islink(rfile):
+                            shutil.move(rfile, lfile)
+                        else:
+                            shutil.copyfile(rfile, lfile)
                     else:
                         raise RuntimeError("should not reach here!")
                 else:
@@ -275,7 +278,10 @@ class LocalContext(BaseContext):
                         shutil.rmtree(lfile, ignore_errors=True)
                     elif os.path.isfile(lfile) or os.path.islink(lfile):
                         os.remove(lfile)
-                    shutil.copyfile(rfile, lfile)
+                    if not os.path.islink(rfile):
+                        shutil.move(rfile, lfile)
+                    else:
+                        shutil.copyfile(rfile, lfile)
                 else:
                     raise RuntimeError("should not reach here!")
             else:
