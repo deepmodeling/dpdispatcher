@@ -54,6 +54,11 @@ def main_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Clean submission.",
     )
+    parser_submission_action.add_argument(
+        "--reset-fail-count",
+        action="store_true",
+        help="Reset fail count of all jobs to zero.",
+    )
     ##########################################
     # gui
     parser_gui = subparsers.add_parser(
@@ -105,6 +110,7 @@ def main():
             download_terminated_log=args.download_terminated_log,
             download_finished_task=args.download_finished_task,
             clean=args.clean,
+            reset_fail_count=args.reset_fail_count,
         )
     elif args.command == "gui":
         start_dpgui(

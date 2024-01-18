@@ -12,6 +12,7 @@ def handle_submission(
     download_terminated_log: bool = False,
     download_finished_task: bool = False,
     clean: bool = False,
+    reset_fail_count: bool = False,
 ):
     """Handle terminated submission.
 
@@ -25,13 +26,21 @@ def handle_submission(
         Download finished tasks.
     clean : bool, optional
         Clean submission.
+    reset_fail_count : bool, optional
+        Reset fail count of all jobs to zero.
 
     Raises
     ------
     ValueError
         At least one action should be specified.
     """
-    if int(download_terminated_log) + int(download_finished_task) + int(clean) == 0:
+    if (
+        int(download_terminated_log)
+        + int(download_finished_task)
+        + int(clean)
+        + int(reset_fail_count)
+        == 0
+    ):
         raise ValueError("At least one action should be specified.")
 
     submission_file = record.get_submission(submission_hash)
@@ -42,7 +51,18 @@ def handle_submission(
     # TODO: for unclear reason, the submission_hash may be changed
     submission.submission_hash = submission_hash
     submission.machine.context.bind_submission(submission)
+    if reset_fail_count:
+        for job in submission.belonging_jobs:
+            job.fail_count = 0
+        # save to remote and local
+        submission.submission_to_json()
+        record.write(submission)
+    if int(download_terminated_log) + int(download_finished_task) + int(clean) == 0:
+        # if only reset_fail_count, no need to update submission state (expensive)
+        return
     submission.update_submission_state()
+    submission.submission_to_json()
+    record.write(submission)
 
     terminated_tasks = []
     finished_tasks = []
