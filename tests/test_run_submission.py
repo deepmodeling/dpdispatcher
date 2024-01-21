@@ -279,7 +279,7 @@ class TestLocalContext(RunSubmission, unittest.TestCase):
         super().tearDown()
         self.temp_dir.cleanup()
 
-    @unittest.skipIf(sys.platform == "darwin", "TODO: Error on macos")
+    @unittest.skip("It seems the remote file may be deleted")
     def test_async_run_submission(self):
         return super().test_async_run_submission()
 
