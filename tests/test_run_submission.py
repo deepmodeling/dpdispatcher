@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import sys
+import tempfile
 import traceback
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -72,6 +73,16 @@ class RunSubmission:
             )
             task_list.append(task)
 
+        for ii in range(2):
+            task = Task(
+                command=f"mkdir -p out_dir{ii} && touch out_dir{ii}/out{ii}",
+                task_work_path="./",
+                forward_files=[],
+                backward_files=[f"out_dir{ii}"],
+                outlog=f"out_dir{ii}.txt",
+            )
+            task_list.append(task)
+
         # test space in file name
         task_list.append(
             Task(
@@ -89,6 +100,11 @@ class RunSubmission:
             forward_common_files=[],
             backward_common_files=[],
             task_list=task_list,
+        )
+        # test override directory
+        os.makedirs(
+            os.path.join(self.machine_dict["local_root"], "test_dir", "out_dir1"),
+            exist_ok=True,
         )
         submission.run_submission(check_interval=2)
 
@@ -247,6 +263,23 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
         self.resources_dict["queue_name"] = "workq"
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
+
+@unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
+class TestLocalContext(RunSubmission, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.machine_dict["context_type"] = "LocalContext"
+        self.machine_dict["remote_root"] = self.temp_dir.name
+
+    def tearDown(self):
+        super().tearDown()
+        self.temp_dir.cleanup()
+
+    @unittest.skipIf(sys.platform == "darwin", "TODO: Error on macos")
     def test_async_run_submission(self):
         return super().test_async_run_submission()
 
