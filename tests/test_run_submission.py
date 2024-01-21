@@ -102,7 +102,10 @@ class RunSubmission:
             task_list=task_list,
         )
         # test override directory
-        os.makedirs(os.path.join(self.machine_dict["local_root"], "test_dir", "out_dir1"), exist_ok=True)
+        os.makedirs(
+            os.path.join(self.machine_dict["local_root"], "test_dir", "out_dir1"),
+            exist_ok=True,
+        )
         submission.run_submission(check_interval=2)
 
         for ii in range(4):
