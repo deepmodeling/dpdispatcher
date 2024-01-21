@@ -72,6 +72,16 @@ class RunSubmission:
             )
             task_list.append(task)
 
+        for ii in range(2):
+            task = Task(
+                command=f"mkdir -p out_dir{ii} && touch out_dir{ii}/out{ii}",
+                task_work_path="./",
+                forward_files=[],
+                backward_files=[f"out_dir{ii}"],
+                outlog=f"out_dir{ii}.txt",
+            )
+            task_list.append(task)
+
         # test space in file name
         task_list.append(
             Task(
@@ -90,6 +100,8 @@ class RunSubmission:
             backward_common_files=[],
             task_list=task_list,
         )
+        # test override directory
+        os.makedirs(os.path.join("test_dir", "out_dir1"), exist_ok=True)
         submission.run_submission(check_interval=2)
 
         for ii in range(4):
