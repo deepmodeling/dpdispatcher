@@ -264,7 +264,7 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
-class TestLazyLocalContext(RunSubmission, unittest.TestCase):
+class TestLocalContext(RunSubmission, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.machine_dict["context_type"] = "LocalContext"
