@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import sys
+import tempfile
 import traceback
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -267,7 +268,13 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
 class TestLocalContext(RunSubmission, unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.temp_dir = tempfile.TemporaryDirectory()
         self.machine_dict["context_type"] = "LocalContext"
+        self.machine_dict["remote_root"] = self.temp_dir.name
+
+    def tearDown(self):
+        super().tearDown()
+        self.temp_dir.cleanup()
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
