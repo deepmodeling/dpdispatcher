@@ -32,7 +32,7 @@ jobs:
         coverage run -p --source=./dpdispatcher -m dpdispatcher -h
         coverage combine
         coverage report
-    - uses: codecov/codecov-action@v3
+    - uses: codecov/codecov-action@v4
   pass:
     needs: [test]
     runs-on: ubuntu-latest

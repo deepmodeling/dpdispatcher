@@ -29,7 +29,7 @@ jobs:
         BOHRIUM_PASSWORD: ${{ secrets.BOHRIUM_PASSWORD }}
         BOHRIUM_PROJECT_ID: ${{ secrets.BOHRIUM_PROJECT_ID }}
         BOHRIUM_ACCESS_KEY: ${{ secrets.BOHRIUM_ACCESS_KEY }}
-    - uses: codecov/codecov-action@v3
+    - uses: codecov/codecov-action@v4
   remove_label:
     permissions:
       contents: read
