@@ -17,3 +17,5 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - run: ./ci/${{ matrix.machine }}.sh
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
