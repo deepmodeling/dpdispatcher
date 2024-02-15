@@ -298,8 +298,8 @@ class LocalContext(BaseContext):
         code = proc.returncode
         if code != 0:
             raise RuntimeError(
-                "Get error code %d in locally calling %s with job: %s ",
-                (code, cmd, self.submission.submission_hash),
+                f"Get error code {code} in locally calling {cmd} with job: {self.submission.submission_hash}"
+                f"\nStandard error: {stderr}"
             )
         return None, stdout, stderr
 
