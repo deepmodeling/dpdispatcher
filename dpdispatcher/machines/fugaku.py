@@ -20,15 +20,15 @@ class Fugaku(Machine):
     def gen_script_header(self, job):
         resources = job.resources
         fugaku_script_header_dict = {}
-        fugaku_script_header_dict[
-            "fugaku_node_number_line"
-        ] = f'#PJM -L "node={resources.number_node}" '
-        fugaku_script_header_dict[
-            "fugaku_ntasks_per_node_line"
-        ] = f'#PJM --mpi "max-proc-per-node={resources.cpu_per_node}"'
-        fugaku_script_header_dict[
-            "queue_name_line"
-        ] = f'#PJM -L "rscgrp={resources.queue_name}"'
+        fugaku_script_header_dict["fugaku_node_number_line"] = (
+            f'#PJM -L "node={resources.number_node}" '
+        )
+        fugaku_script_header_dict["fugaku_ntasks_per_node_line"] = (
+            f'#PJM --mpi "max-proc-per-node={resources.cpu_per_node}"'
+        )
+        fugaku_script_header_dict["queue_name_line"] = (
+            f'#PJM -L "rscgrp={resources.queue_name}"'
+        )
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None

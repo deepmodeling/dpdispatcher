@@ -39,12 +39,7 @@ class Shell(Machine):
         script_run_file_name = f"{job.script_file_name}.run"
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         ret, stdin, stdout, stderr = self.context.block_call(
-            "cd {} && {{ nohup bash {} 1>>{} 2>>{} & }} && echo $!".format(
-                shlex.quote(self.context.remote_root),
-                script_file_name,
-                output_name,
-                output_name,
-            )
+            f"cd {shlex.quote(self.context.remote_root)} && {{ nohup bash {script_file_name} 1>>{output_name} 2>>{output_name} & }} && echo $!"
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")

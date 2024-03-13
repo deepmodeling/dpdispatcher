@@ -21,13 +21,13 @@ class PBS(Machine):
     def gen_script_header(self, job):
         resources = job.resources
         pbs_script_header_dict = {}
-        pbs_script_header_dict[
-            "select_node_line"
-        ] = f"#PBS -l select={resources.number_node}:ncpus={resources.cpu_per_node}"
+        pbs_script_header_dict["select_node_line"] = (
+            f"#PBS -l select={resources.number_node}:ncpus={resources.cpu_per_node}"
+        )
         if resources.gpu_per_node != 0:
-            pbs_script_header_dict[
-                "select_node_line"
-            ] += f":ngpus={resources.gpu_per_node}"
+            pbs_script_header_dict["select_node_line"] += (
+                f":ngpus={resources.gpu_per_node}"
+            )
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
         if (
             resources["strategy"].get("customized_script_header_template_file")
@@ -156,12 +156,12 @@ class Torque(PBS):
         # ref: https://support.adaptivecomputing.com/wp-content/uploads/2021/02/torque/torque.htm#topics/torque/2-jobs/requestingRes.htm
         resources = job.resources
         pbs_script_header_dict = {}
-        pbs_script_header_dict[
-            "select_node_line"
-        ] = f"#PBS -l nodes={resources.number_node}:ppn={resources.cpu_per_node}"
+        pbs_script_header_dict["select_node_line"] = (
+            f"#PBS -l nodes={resources.number_node}:ppn={resources.cpu_per_node}"
+        )
         if resources.gpu_per_node != 0:
-            pbs_script_header_dict["select_node_line"] += ":gpus={gpu_per_node}".format(
-                gpu_per_node=resources.gpu_per_node
+            pbs_script_header_dict["select_node_line"] += (
+                f":gpus={resources.gpu_per_node}"
             )
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
         if (
@@ -212,9 +212,9 @@ class SGE(PBS):
         resources = job.resources
         sge_script_header_dict = {}
         # resources.number_node is not used
-        sge_script_header_dict[
-            "select_node_line"
-        ] = f"#$ -pe mpi {resources.cpu_per_node} "
+        sge_script_header_dict["select_node_line"] = (
+            f"#$ -pe mpi {resources.cpu_per_node} "
+        )
         # resources.queue_name is not necessary
         sge_script_header = sge_script_header_template.format(**sge_script_header_dict)
         return sge_script_header
