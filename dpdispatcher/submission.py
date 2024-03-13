@@ -863,9 +863,7 @@ class Job:
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
-                    "job:{job_hash} re-submit after terminated; new job_id is {job_id}".format(
-                        job_hash=self.job_hash, job_id=self.job_id
-                    )
+                    f"job:{self.job_hash} re-submit after terminated; new job_id is {self.job_id}"
                 )
                 time.sleep(0.2)
                 self.get_job_state()

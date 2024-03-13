@@ -173,10 +173,8 @@ class DistributedShell(Machine):
             )
         )
 
-        cmd = "{{ nohup {} 1>{} 2>{} & }} && echo $!".format(
-            submit_command,
-            output_name,
-            output_name,
+        cmd = (
+            f"{{ nohup {submit_command} 1>{output_name} 2>{output_name} & }} && echo $!"
         )
         ret, stdout, stderr = run_cmd_with_all_output(cmd)
 

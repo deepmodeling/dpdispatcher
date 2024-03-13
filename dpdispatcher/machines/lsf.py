@@ -32,9 +32,7 @@ class LSF(Machine):
     def gen_script_header(self, job):
         resources = job.resources
         script_header_dict = {
-            "lsf_nodes_line": "#BSUB -n {number_cores}".format(
-                number_cores=resources.number_node * resources.cpu_per_node
-            ),
+            "lsf_nodes_line": f"#BSUB -n {resources.number_node * resources.cpu_per_node}",
             "lsf_ptile_line": f"#BSUB -R 'span[ptile={resources.cpu_per_node}]'",
             "lsf_partition_line": f"#BSUB -q {resources.queue_name}",
         }

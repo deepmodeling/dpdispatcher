@@ -88,10 +88,8 @@ class HDFS:
                 return True, out
             else:
                 raise RuntimeError(
-                    "Cannot copy local[{}] to remote[{}] with cmd[{}]; "
-                    "ret[{}] output[{}] stderr[{}]".format(
-                        local_path, to_uri, cmd, ret, out, err
-                    )
+                    f"Cannot copy local[{local_path}] to remote[{to_uri}] with cmd[{cmd}]; "
+                    f"ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
             raise RuntimeError(
@@ -113,10 +111,8 @@ class HDFS:
                 return True
             else:
                 raise RuntimeError(
-                    "Cannot copy remote[{}] to local[{}] with cmd[{}]; "
-                    "ret[{}] output[{}] stderr[{}]".format(
-                        from_uri, local_path, cmd, ret, out, err
-                    )
+                    f"Cannot copy remote[{from_uri}] to local[{local_path}] with cmd[{cmd}]; "
+                    f"ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
             raise RuntimeError(

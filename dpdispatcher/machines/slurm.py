@@ -39,23 +39,23 @@ class Slurm(Machine):
     def gen_script_header(self, job):
         resources = job.resources
         script_header_dict = {}
-        script_header_dict["slurm_nodes_line"] = "#SBATCH --nodes {number_node}".format(
-            number_node=resources.number_node
+        script_header_dict["slurm_nodes_line"] = (
+            f"#SBATCH --nodes {resources.number_node}"
         )
-        script_header_dict[
-            "slurm_ntasks_per_node_line"
-        ] = f"#SBATCH --ntasks-per-node {resources.cpu_per_node}"
+        script_header_dict["slurm_ntasks_per_node_line"] = (
+            f"#SBATCH --ntasks-per-node {resources.cpu_per_node}"
+        )
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
         if not custom_gpu_line:
-            script_header_dict[
-                "slurm_number_gpu_line"
-            ] = f"#SBATCH --gres=gpu:{resources.gpu_per_node}"
+            script_header_dict["slurm_number_gpu_line"] = (
+                f"#SBATCH --gres=gpu:{resources.gpu_per_node}"
+            )
         else:
             script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
         if resources.queue_name != "":
-            script_header_dict[
-                "slurm_partition_line"
-            ] = f"#SBATCH --partition {resources.queue_name}"
+            script_header_dict["slurm_partition_line"] = (
+                f"#SBATCH --partition {resources.queue_name}"
+            )
         else:
             script_header_dict["slurm_partition_line"] = ""
         if (
