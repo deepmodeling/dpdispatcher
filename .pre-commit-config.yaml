@@ -34,3 +34,11 @@ repos:
     rev: 1.16.0
     hooks:
     -   id: blacken-docs
+# markdown, yaml
+-   repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [markdown, yaml]
+        # workflow files cannot be modified by pre-commit.ci
+        exclude: ^(\.github/workflows|conda)
