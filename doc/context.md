@@ -43,7 +43,6 @@ To use Bohrium, one needs to provide necessary parameters in {dargs:argument}`re
 The Hadoop Distributed File System (HDFS) is a distributed file system.
 Read [Support DPDispatcher on Yarn](dpdispatcher_on_yarn.md) for details.
 
-
 ## OpenAPI
 
 {dargs:argument}`context_type <machine/context_type>`: `OpenAPI`

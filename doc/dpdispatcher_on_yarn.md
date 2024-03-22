@@ -1,14 +1,19 @@
 # Support DPDispatcher on Yarn
+
 ## Background
+
 Currently, DPGen(or other DP softwares) supports for HPC systems like Slurm, PBS, LSF and cloud machines. In order to run DPGen jobs on ByteDance internal platform, we need to extend it to support yarn resources. Hadoop Ecosystem is a very commonly used platform to process the big data, and in the process of developing the new interface, we found it can be implemented by only using hadoop opensource components. So for the convenience of the masses, we decided to contribute the codes to opensource community.
 
 ## Design
+
 We use DistributedShell and HDFS to implement it. The control flow shows as follows:
 ![image](https://github.com/shazj99/dpdispatcher/blob/yarn/doc/dpgen_yarn.jpg?raw=true)
+
 - Use DistributedShell to submit yarn jobs. It contains generating shell script and submitting it to yarn queues.
 - Use HDFS to save input files and output results. For performance reasons, we choose to pack forward files to a tar.gz file and upload it to HDFS directory. Accordingly, the task will download the tar file before running and upload result tar file to HDFS after it has done.
 
 ## Implement
+
 We only need to add two Class which are HDFSContext and DistributedShell:
 
 ```
@@ -106,6 +111,7 @@ class DistributedShell(Machine):
 ```
 
 The following is an example of generated shell script. It will be executed in a yarn container:
+
 ```
 #!/bin/bash
 
@@ -146,6 +152,7 @@ hadoop fs -put -f uuid_download.tar.gz /root/uuid/sys-0001-0015
 ## mark the job has finished
 hadoop fs -touchz /root/uuid/uuid_tag_finished
 ```
+
 An example of machine.json is as follows, whose batch_type is `DistributedShell`，and context_type is `HDFSContext`:
 
 ```

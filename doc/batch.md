@@ -71,12 +71,10 @@ Read [Support DPDispatcher on Yarn](dpdispatcher_on_yarn.md) for details.
 
 Read Fujitsu cloud service documentation for details.
 
-
 ## OpenAPI
 
 {dargs:argument}`batcy_type <resources/batch_type>`: `OpenAPI`
 OpenAPI is a new way to submit jobs to Bohrium. It using [AccessKey](https://bohrium.dp.tech/personal/setting) instead of username and password. Read Bohrium documentation for details.
-
 
 ## SGE
 

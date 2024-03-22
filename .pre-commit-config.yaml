@@ -1,41 +1,41 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-    -   id: trailing-whitespace
+      - id: trailing-whitespace
         exclude: "^tests/"
-    -   id: end-of-file-fixer
+      - id: end-of-file-fixer
         exclude: "^tests/"
-    -   id: check-yaml
+      - id: check-yaml
         exclude: "^conda/"
-    -   id: check-json
-    -   id: check-added-large-files
-    -   id: check-merge-conflict
-    -   id: check-symlinks
-    -   id: check-toml
-# Python
--   repo: https://github.com/astral-sh/ruff-pre-commit
+      - id: check-json
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+  # Python
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.3.3
     hooks:
-    - id: ruff
-      args: ["--fix"]
-    - id: ruff-format
-# numpydoc
--   repo: https://github.com/Carreau/velin
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+  # numpydoc
+  - repo: https://github.com/Carreau/velin
     rev: 0.0.12
     hooks:
-    - id: velin
-      args: ["--write"]
-# Python inside docs
--   repo: https://github.com/asottile/blacken-docs
+      - id: velin
+        args: ["--write"]
+  # Python inside docs
+  - repo: https://github.com/asottile/blacken-docs
     rev: 1.16.0
     hooks:
-    -   id: blacken-docs
-# markdown, yaml
--   repo: https://github.com/pre-commit/mirrors-prettier
+      - id: blacken-docs
+  # markdown, yaml
+  - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier

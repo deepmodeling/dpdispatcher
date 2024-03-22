@@ -40,7 +40,7 @@ services:
     hostname: slurmctld
     environment:
       CI_SHARED_SPACE: /data
-      DPDISPATCHER_TEST : slurm
+      DPDISPATCHER_TEST: slurm
     volumes:
       - etc_munge:/etc/munge
       - etc_slurm:/etc/slurm

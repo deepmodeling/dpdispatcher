@@ -4,12 +4,12 @@ DPDispatcher provides the following classes:
 
 - {class}`Task <dpdispatcher.submission.Task>` class, which represents a command to be run on batch job system, as well as the essential files need by the command.
 - {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a collection of jobs defined by the HPC system.
-And there may be common files to be uploaded by them.
-DPDispatcher will create and submit these jobs when a `submission` instance execute {meth}`run_submission <dpdispatcher.submission.Submission.run_submission>` method.
-This method will poke until the jobs finish and return.
+  And there may be common files to be uploaded by them.
+  DPDispatcher will create and submit these jobs when a `submission` instance execute {meth}`run_submission <dpdispatcher.submission.Submission.run_submission>` method.
+  This method will poke until the jobs finish and return.
 - {class}`Job <dpdispatcher.submission.Job>` class, a class used by {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a job on the HPC system.
-{class}`Submission <dpdispatcher.submission.Submission>` will generate `job`s' submitting scripts used by HPC systems automatically with the {class}`Task <dpdispatcher.submission.Task>` and {class}`Resources <dpdispatcher.submission.Resources>`
-- {class}`Resources <dpdispatcher.submission.Resources>` class, which represents the computing resources for each job  within a `submission`.
+  {class}`Submission <dpdispatcher.submission.Submission>` will generate `job`s' submitting scripts used by HPC systems automatically with the {class}`Task <dpdispatcher.submission.Task>` and {class}`Resources <dpdispatcher.submission.Resources>`
+- {class}`Resources <dpdispatcher.submission.Resources>` class, which represents the computing resources for each job within a `submission`.
 
 You can use DPDispatcher in a Python script to submit five tasks:
 
@@ -65,50 +65,50 @@ submission.run_submission()
 ```
 
 where `machine.json` is
+
 ```json
 {
-    "batch_type": "Slurm",
-    "context_type": "SSHContext",
-    "local_root" : "/home/user123/workplace/22_new_project/",
-    "remote_root": "/home/user123/dpdispatcher_work_dir/",
-    "remote_profile":{
-        "hostname": "39.106.xx.xxx",
-        "username": "user123",
-        "port": 22,
-        "timeout": 10
-    }
+  "batch_type": "Slurm",
+  "context_type": "SSHContext",
+  "local_root": "/home/user123/workplace/22_new_project/",
+  "remote_root": "/home/user123/dpdispatcher_work_dir/",
+  "remote_profile": {
+    "hostname": "39.106.xx.xxx",
+    "username": "user123",
+    "port": 22,
+    "timeout": 10
+  }
 }
 ```
 
 `resources.json` is
+
 ```json
 {
-    "number_node": 1,
-    "cpu_per_node": 4,
-    "gpu_per_node": 1,
-    "queue_name": "GPUV100",
-    "group_size": 5
+  "number_node": 1,
+  "cpu_per_node": 4,
+  "gpu_per_node": 1,
+  "queue_name": "GPUV100",
+  "group_size": 5
 }
 ```
 
 and `task.json` is
+
 ```json
 {
-    "command": "lmp -i input.lammps",
-    "task_work_path": "bct-0/",
-    "forward_files": [
-        "conf.lmp",
-        "input.lammps"
-    ],
-    "backward_files": [
-        "log.lammps"
-    ],
-    "outlog": "log",
-    "errlog": "err",
+  "command": "lmp -i input.lammps",
+  "task_work_path": "bct-0/",
+  "forward_files": ["conf.lmp", "input.lammps"],
+  "backward_files": ["log.lammps"],
+  "outlog": "log",
+  "errlog": "err"
 }
 ```
+
 You may also submit mutiple GPU jobs:
 complex resources example
+
 ```python3
 resources = Resources(
     number_node=1,
