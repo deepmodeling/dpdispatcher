@@ -1,5 +1,4 @@
-Install DPDispatcher
-====================
+# Install DPDispatcher
 
 DPDispatcher can installed by `pip`:
 

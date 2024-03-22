@@ -19,7 +19,7 @@ services:
     container_name: test
     hostname: test
     environment:
-      DPDISPATCHER_TEST : ssh
+      DPDISPATCHER_TEST: ssh
     volumes:
       - ssh_config:/root/.ssh
       - ../..:/dpdispatcher
