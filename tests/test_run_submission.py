@@ -267,6 +267,33 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
         return super().test_async_run_submission()
 
 
+@unittest.skipIf(
+    os.environ.get("DPDISPATCHER_TEST") != "torque",
+    "outside the torque testing environment",
+)
+class TestTorqueRun(RunSubmission, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.machine_dict.update(
+            **{
+                "batch_type": "Torque",
+                "context_type": "SSHContext",
+                "remote_root": "/home/testuser/dpdispatcher_working",
+                "remote_profile": {
+                    "hostname": "torque",
+                    "port": 22,
+                    "username": "testuser",
+                    "password": "testuser",
+                },
+            }
+        )
+        self.resources_dict["queue_name"] = "debug"
+
+    @unittest.skip("Manaually skip")  # comment this line to open unittest
+    def test_async_run_submission(self):
+        return super().test_async_run_submission()
+
+
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestLocalContext(RunSubmission, unittest.TestCase):
     def setUp(self):

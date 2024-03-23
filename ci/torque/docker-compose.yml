@@ -1,0 +1,28 @@
+version: "2"
+
+services:
+
+  torque:
+    image: agaveapi/torque
+    build: .
+    container_name: torque
+    hostname: torque
+    privileged: true
+    expose:
+      - "22"
+    networks:
+      default:
+        aliases:
+          - localhost
+  test:
+    image: python:3.12
+    tty: true
+    build: .
+    container_name: test
+    hostname: test
+    environment:
+      DPDISPATCHER_TEST : torque
+    volumes:
+      - ../..:/dpdispatcher
+    depends_on:
+      - torque
