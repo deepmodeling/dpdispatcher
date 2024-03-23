@@ -9,12 +9,16 @@ One needs to set {dargs:argument}`context_type <machine/context_type>` to one of
 
 `LazyLocal` directly runs jobs in the local server and local directory.
 
+Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environmental variables. Therefore, it's advisable to explicitly set the environmental variables using {dargs:argument}`envs <resources/envs>` or {dargs:argument}`source_list <resources/source_list>`.
+
 ## Local
 
 {dargs:argument}`context_type <machine/context_type>`: `Local`
 
 `Local` runs jobs in the local server, but in a different directory.
 Files will be copied to the remote directory before jobs start and copied back after jobs finish.
+
+Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environmental variables. Therefore, it's advisable to explicitly set the environmental variables using {dargs:argument}`envs <resources/envs>` or {dargs:argument}`source_list <resources/source_list>`.
 
 ## SSH
 
@@ -26,7 +30,7 @@ To use SSH, one needs to provide necessary parameters in {dargs:argument}`remote
 
 It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/OpenSSH/Keys) and transfer the public key to the remote server in advance, which is more secure than password authentication.
 
-Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed.
+Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.
 
 ## Bohrium
 
