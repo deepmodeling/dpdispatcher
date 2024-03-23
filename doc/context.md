@@ -9,7 +9,7 @@ One needs to set {dargs:argument}`context_type <machine/context_type>` to one of
 
 `LazyLocal` directly runs jobs in the local server and local directory.
 
-Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environmental variables. Therefore, it's advisable to explicitly set the environmental variables using `{dargs:argument}`envs <resources/envs>` or `{dargs:argument}`source_list <resources/source_list>`.
+Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environmental variables. Therefore, it's advisable to explicitly set the environmental variables using `{dargs:argument}`envs <resources/envs>`or`{dargs:argument}`source_list <resources/source_list>`.
 
 ## Local
 
@@ -18,7 +18,7 @@ Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Ba
 `Local` runs jobs in the local server, but in a different directory.
 Files will be copied to the remote directory before jobs start and copied back after jobs finish.
 
-Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environmental variables. Therefore, it's advisable to explicitly set the environmental variables using `{dargs:argument}`envs <resources/envs>` or `{dargs:argument}`source_list <resources/source_list>`.
+Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environmental variables. Therefore, it's advisable to explicitly set the environmental variables using `{dargs:argument}`envs <resources/envs>`or`{dargs:argument}`source_list <resources/source_list>`.
 
 ## SSH
 
