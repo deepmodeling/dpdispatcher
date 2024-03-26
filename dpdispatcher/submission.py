@@ -1095,7 +1095,7 @@ class Resources:
             prepend_script=resources_dict.get("prepend_script", []),
             append_script=resources_dict.get("append_script", []),
             wait_time=resources_dict.get("wait_time", 0),
-            sge_pe_name=resources_dict.get("sge_pe_name", ""),
+            sge_pe_name=resources_dict.get("sge_pe_name", "mpi"),
             **resources_dict.get("kwargs", {}),
         )
         return resources
