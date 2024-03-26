@@ -42,7 +42,7 @@ def hotp(key: str, period: int, token_length: int = 6, digest="sha1"):
     period_ = struct.pack(">Q", period)
     mac = hmac.new(key_, period_, digest).digest()
     offset = mac[-1] & 0x0F
-    binary = struct.unpack(">L", mac[offset : offset + 4])[0] & 0x7FFFFFFF
+    binary = struct.unpack(">L", mac[offset: offset + 4])[0] & 0x7FFFFFFF
     return str(binary)[-token_length:].zfill(token_length)
 
 

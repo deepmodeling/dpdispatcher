@@ -181,10 +181,10 @@ class Torque(PBS):
 
 sge_script_header_template = """
 #!/bin/bash
-#$ -N dpdispatcher_submit
-{select_node_line}
+#$ -S /bin/bash
 #$ -cwd
-
+#$ -N dp_job
+{select_node_line}
 """
 
 
@@ -230,6 +230,7 @@ class SGE(PBS):
     def do_submit(self, job):
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
+        script_str = script_str.replace(f"source $REMOTE_ROOT/{job.script_file_name}.run", f"source $REMOTE_ROOT/{job.script_file_name}")
         job_id_name = job.job_hash + "_job_id"
         self.context.write_file(fname=script_file_name, write_str=script_str)
         script_file_dir = self.context.remote_root
