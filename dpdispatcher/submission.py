@@ -473,7 +473,7 @@ class Submission:
         random_task_index = list(range(task_num))
         random.shuffle(random_task_index)
         random_task_index_ll = [
-            random_task_index[ii: ii + group_size]
+            random_task_index[ii : ii + group_size]
             for ii in range(0, task_num, group_size)
         ]
 
@@ -1196,7 +1196,12 @@ class Resources:
                 "gpu_per_node", int, optional=True, doc=doc_gpu_per_node, default=0
             ),
             Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
-            Argument("sge_pe_name", str, optional=True, doc="The name of sge's parallel environment."),
+            Argument(
+                "sge_pe_name",
+                str,
+                optional=True,
+                doc="The name of sge's parallel environment.",
+            ),
             Argument("group_size", int, optional=False, doc=doc_group_size),
             Argument("custom_flags", List[str], optional=True, doc=doc_custom_flags),
             # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
