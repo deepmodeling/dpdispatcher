@@ -189,20 +189,24 @@ sge_script_header_template = """
 
 
 class SGE(PBS):
-    def __init__(self,
-                 batch_type=None,
-                 context_type=None,
-                 local_root=None,
-                 remote_root=None,
-                 remote_profile={},
-                 *,
-                 context=None,):
-        super(PBS, self).__init__(batch_type,
-                                  context_type,
-                                  local_root,
-                                  remote_root,
-                                  remote_profile,
-                                  context=context,)
+    def __init__(
+        self,
+        batch_type=None,
+        context_type=None,
+        local_root=None,
+        remote_root=None,
+        remote_profile={},
+        *,
+        context=None,
+    ):
+        super(PBS, self).__init__(
+            batch_type,
+            context_type,
+            local_root,
+            remote_root,
+            remote_profile,
+            context=context,
+        )
 
     def gen_script_header(self, job):
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
@@ -212,10 +216,11 @@ class SGE(PBS):
         sge_script_header_dict["select_node_line"] = (
             f"#$ -pe {resources.sge_pe_name} {resources.cpu_per_node}\n"
         )
-        if resources.queue_name != '':
+        if resources.queue_name != "":
             sge_script_header_dict["select_node_line"] += (
                 f"#$ -q {resources.queue_name}"
             )
+
 
         if (resources["strategy"].get("customized_script_header_template_file")
                 is not None):
@@ -223,7 +228,8 @@ class SGE(PBS):
             sge_script_header = customized_script_header_template(filename, resources)
         else:
             sge_script_header = sge_script_header_template.format(
-                **sge_script_header_dict)
+                **sge_script_header_dict
+            )
         return sge_script_header
 
     def do_submit(self, job):
