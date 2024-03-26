@@ -221,14 +221,11 @@ class SGE(PBS):
                 f"#$ -q {resources.queue_name}"
             )
 
-        if (
-            resources["strategy"].get("customized_script_header_template_file")
-            is not None
-        ):
-            sge_script_header = customized_script_header_template(
-                resources["strategy"]["customized_script_header_template_file"],
-                resources,
-            )
+
+        if (resources["strategy"].get("customized_script_header_template_file")
+                is not None):
+            filename = resources["strategy"]["customized_script_header_template_file"]
+            sge_script_header = customized_script_header_template(filename, resources)
         else:
             sge_script_header = sge_script_header_template.format(
                 **sge_script_header_dict
@@ -238,12 +235,11 @@ class SGE(PBS):
     def do_submit(self, job):
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
-        script_str = script_str.replace(
-            f"source $REMOTE_ROOT/{job.script_file_name}.run",
-            f"source $REMOTE_ROOT/{job.script_file_name}",
-        )
         job_id_name = job.job_hash + "_job_id"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         script_file_dir = self.context.remote_root
         stdin, stdout, stderr = self.context.block_checkcall(
             "cd {} && {} {}".format(script_file_dir, "qsub", script_file_name)
