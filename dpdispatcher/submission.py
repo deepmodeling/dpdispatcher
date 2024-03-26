@@ -473,7 +473,7 @@ class Submission:
         random_task_index = list(range(task_num))
         random.shuffle(random_task_index)
         random_task_index_ll = [
-            random_task_index[ii : ii + group_size]
+            random_task_index[ii: ii + group_size]
             for ii in range(0, task_num, group_size)
         ]
 
@@ -981,6 +981,8 @@ class Resources:
         The env file to be sourced before the command execution.
     wait_time : int
         The waitting time in second after a single task submitted. Default: 0.
+    sge_pe_name : str
+        The parallel environment name of SGE.
     """
 
     def __init__(
@@ -1002,6 +1004,7 @@ class Resources:
         prepend_script=[],
         append_script=[],
         wait_time=0,
+        sge_pe_name="",
         **kwargs,
     ):
         self.number_node = number_node
@@ -1022,6 +1025,7 @@ class Resources:
         self.prepend_script = prepend_script
         self.append_script = append_script
         self.wait_time = wait_time
+        self.sge_pe_name = sge_pe_name
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
         self.kwargs = kwargs.get("kwargs", kwargs)
@@ -1068,6 +1072,7 @@ class Resources:
         resources_dict["prepend_script"] = self.prepend_script
         resources_dict["append_script"] = self.append_script
         resources_dict["wait_time"] = self.wait_time
+        resources_dict["sge_pe_name"] = self.sge_pe_name
         resources_dict["kwargs"] = self.kwargs
         return resources_dict
 
@@ -1090,6 +1095,7 @@ class Resources:
             prepend_script=resources_dict.get("prepend_script", []),
             append_script=resources_dict.get("append_script", []),
             wait_time=resources_dict.get("wait_time", 0),
+            sge_pe_name=resources_dict.get("sge_pe_name", ""),
             **resources_dict.get("kwargs", {}),
         )
         return resources
@@ -1229,6 +1235,7 @@ class Resources:
             Argument(
                 "wait_time", [int, float], optional=True, doc=doc_wait_time, default=0
             ),
+            Argument("sge_pe_name", str, optional=True, doc="The name of sge's parallel environment."),
         ]
 
         if detail_kwargs:
