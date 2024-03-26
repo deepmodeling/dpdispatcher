@@ -4,7 +4,6 @@ from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.utils import customized_script_header_template
-from pathlib import Path
 
 pbs_script_header_template = """
 #!/bin/bash -l
@@ -220,8 +219,8 @@ class SGE(PBS):
 
         if (resources["strategy"].get("customized_script_header_template_file")
                 is not None):
-            filename = self.context.remote_root / Path(resources["strategy"]["customized_script_header_template_file"])
-            sge_script_header = customized_script_header_template(str(filename.as_posix()), resources)
+            filename = resources["strategy"]["customized_script_header_template_file"]
+            sge_script_header = customized_script_header_template(filename, resources)
         else:
             sge_script_header = sge_script_header_template.format(
                 **sge_script_header_dict)
