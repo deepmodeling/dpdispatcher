@@ -196,13 +196,15 @@ class SGE(PBS):
                  remote_root=None,
                  remote_profile={},
                  *,
-                 context=None):
+                 context=None,
+                 sge_pe_name = '',):
         super(PBS, self).__init__(batch_type,
                                   context_type,
                                   local_root,
                                   remote_root,
                                   remote_profile,
-                                  context=context)
+                                  context=context,
+                                  sge_pe_name = sge_pe_name)
 
     def gen_script_header(self, job):
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
