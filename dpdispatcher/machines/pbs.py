@@ -214,7 +214,7 @@ class SGE(PBS):
         else:
             sge_pe_name = "mpi"
         sge_script_header_dict["select_node_line"] = (
-            f"#$ -pe {sge_pe_name} {resources.cpu_per_node} "
+            f"#$ -pe {sge_pe_name} {resources.cpu_per_node}\n"
         )
         if resources.queue_name != '':
             sge_script_header_dict["select_node_line"] += (
