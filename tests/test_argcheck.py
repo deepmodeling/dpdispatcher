@@ -60,6 +60,7 @@ class TestJob(unittest.TestCase):
             "para_deg": 1,
             "prepend_script": [],
             "queue_name": "haha",
+            'sge_pe_name': 'mpi',
             "source_list": [],
             "strategy": {"if_cuda_multi_devices": False, "ratio_unfinished": 0.0},
             "wait_time": 0,

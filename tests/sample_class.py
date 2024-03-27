@@ -42,6 +42,7 @@ class SampleClass:
             "cpu_per_node": 4,
             "gpu_per_node": 1,
             "queue_name": "T4_4_15",
+            "sge_pe_name": "mpi",
             "group_size": 2,
             "custom_flags": [],
             "strategy": {"if_cuda_multi_devices": False, "ratio_unfinished": 0.0},
