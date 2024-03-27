@@ -473,7 +473,7 @@ class Submission:
         random_task_index = list(range(task_num))
         random.shuffle(random_task_index)
         random_task_index_ll = [
-            random_task_index[ii: ii + group_size]
+            random_task_index[ii : ii + group_size]
             for ii in range(0, task_num, group_size)
         ]
 

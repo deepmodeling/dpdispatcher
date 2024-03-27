@@ -25,7 +25,7 @@ class SampleClass:
             gpu_per_node=1,
             queue_name="T4_4_15",
             group_size=2,
-            sge_pe_name= "mpi",
+            sge_pe_name="mpi",
             custom_flags=[],
             strategy={"if_cuda_multi_devices": False},
             para_deg=1,
