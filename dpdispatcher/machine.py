@@ -261,8 +261,7 @@ class Machine(metaclass=ABCMeta):
 
         source_list = job.resources.source_list
         for ii in source_list:
-            line = "{ source %s; } \n" % ii
-            source_files_part += line
+            source_files_part += f"source {ii}\n"
 
         export_envs_part = ""
         envs = job.resources.envs

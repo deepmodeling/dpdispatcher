@@ -181,10 +181,10 @@ class Torque(PBS):
 
 sge_script_header_template = """
 #!/bin/bash
-#$ -N dpdispatcher_submit
-{select_node_line}
+#$ -S /bin/bash
 #$ -cwd
-
+#$ -N dp_job
+{select_node_line}
 """
 
 
@@ -209,14 +209,27 @@ class SGE(PBS):
         )
 
     def gen_script_header(self, job):
+        ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
+        # resources.number_node is not used in SGE
         resources = job.resources
         sge_script_header_dict = {}
-        # resources.number_node is not used
         sge_script_header_dict["select_node_line"] = (
-            f"#$ -pe mpi {resources.cpu_per_node} "
+            f"#$ -pe {resources.sge_pe_name} {resources.cpu_per_node}\n"
         )
-        # resources.queue_name is not necessary
-        sge_script_header = sge_script_header_template.format(**sge_script_header_dict)
+        if resources.queue_name != "":
+            sge_script_header_dict["select_node_line"] += (
+                f"#$ -q {resources.queue_name}"
+            )
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            file_name = resources["strategy"]["customized_script_header_template_file"]
+            sge_script_header = customized_script_header_template(file_name, resources)
+        else:
+            sge_script_header = sge_script_header_template.format(
+                **sge_script_header_dict
+            )
         return sge_script_header
 
     def do_submit(self, job):
@@ -224,6 +237,9 @@ class SGE(PBS):
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         script_file_dir = self.context.remote_root
         stdin, stdout, stderr = self.context.block_checkcall(
             "cd {} && {} {}".format(script_file_dir, "qsub", script_file_name)
