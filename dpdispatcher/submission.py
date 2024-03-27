@@ -473,7 +473,7 @@ class Submission:
         random_task_index = list(range(task_num))
         random.shuffle(random_task_index)
         random_task_index_ll = [
-            random_task_index[ii : ii + group_size]
+            random_task_index[ii: ii + group_size]
             for ii in range(0, task_num, group_size)
         ]
 
@@ -961,6 +961,8 @@ class Resources:
         The queue name of batch job scheduler system.
     group_size : int
         The number of `tasks` in a `job`.
+    sge_pe_name : str
+        The parallel environment name of SGE.
     custom_flags : list of Str
         The extra lines pass to job submitting script header
     strategy : dict
@@ -981,8 +983,6 @@ class Resources:
         The env file to be sourced before the command execution.
     wait_time : int
         The waitting time in second after a single task submitted. Default: 0.
-    sge_pe_name : str
-        The parallel environment name of SGE.
     """
 
     def __init__(
@@ -991,9 +991,9 @@ class Resources:
         cpu_per_node,
         gpu_per_node,
         queue_name,
-        sge_pe_name,
         group_size,
         *,
+        sge_pe_name="mpi",
         custom_flags=[],
         strategy=default_strategy,
         para_deg=1,
@@ -1014,6 +1014,7 @@ class Resources:
         self.group_size = group_size
 
         # self.extra_specification = extra_specification
+        self.sge_pe_name = sge_pe_name
         self.custom_flags = custom_flags
         self.strategy = strategy
         self.para_deg = para_deg
@@ -1025,7 +1026,6 @@ class Resources:
         self.prepend_script = prepend_script
         self.append_script = append_script
         self.wait_time = wait_time
-        self.sge_pe_name = sge_pe_name
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
         self.kwargs = kwargs.get("kwargs", kwargs)
@@ -1059,9 +1059,9 @@ class Resources:
         resources_dict["cpu_per_node"] = self.cpu_per_node
         resources_dict["gpu_per_node"] = self.gpu_per_node
         resources_dict["queue_name"] = self.queue_name
-        resources_dict["sge_pe_name"] = self.sge_pe_name
         resources_dict["group_size"] = self.group_size
 
+        resources_dict["sge_pe_name"] = self.sge_pe_name
         resources_dict["custom_flags"] = self.custom_flags
         resources_dict["strategy"] = self.strategy
         resources_dict["para_deg"] = self.para_deg
@@ -1083,8 +1083,8 @@ class Resources:
             cpu_per_node=resources_dict.get("cpu_per_node", 1),
             gpu_per_node=resources_dict.get("gpu_per_node", 0),
             queue_name=resources_dict.get("queue_name", ""),
-            sge_pe_name=resources_dict.get("sge_pe_name", "mpi"),
             group_size=resources_dict["group_size"],
+            sge_pe_name=resources_dict.get("sge_pe_name", "mpi"),
             custom_flags=resources_dict.get("custom_flags", []),
             strategy=resources_dict.get("strategy", default_strategy),
             para_deg=resources_dict.get("para_deg", 1),
@@ -1133,6 +1133,7 @@ class Resources:
         doc_gpu_per_node = "gpu numbers of each node assigned to each job."
         doc_queue_name = "The queue name of batch job scheduler system."
         doc_group_size = "The number of `tasks` in a `job`. 0 means infinity."
+        doc_sge_pe_name = "The parallel environment name of SGE."
         doc_custom_flags = "The extra lines pass to job submitting script header"
         doc_para_deg = "Decide how many tasks will be run in parallel."
         doc_source_list = "The env file to be sourced before the command execution."
@@ -1196,13 +1197,8 @@ class Resources:
                 "gpu_per_node", int, optional=True, doc=doc_gpu_per_node, default=0
             ),
             Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
-            Argument(
-                "sge_pe_name",
-                str,
-                optional=True,
-                doc="The name of sge's parallel environment.",
-            ),
             Argument("group_size", int, optional=False, doc=doc_group_size),
+            Argument("sge_pe_name", str, optional=True, doc=doc_sge_pe_name),
             Argument("custom_flags", List[str], optional=True, doc=doc_custom_flags),
             # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
             strategy_format,
