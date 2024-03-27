@@ -220,7 +220,10 @@ class SGE(PBS):
             sge_script_header_dict["select_node_line"] += (
                 f"#$ -q {resources.queue_name}"
             )
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
             file_name = resources["strategy"]["customized_script_header_template_file"]
             sge_script_header = customized_script_header_template(file_name, resources)
         else:
