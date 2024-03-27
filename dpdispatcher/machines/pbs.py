@@ -221,7 +221,6 @@ class SGE(PBS):
                 f"#$ -q {resources.queue_name}"
             )
 
-
         if (resources["strategy"].get("customized_script_header_template_file")
                 is not None):
             filename = resources["strategy"]["customized_script_header_template_file"]
