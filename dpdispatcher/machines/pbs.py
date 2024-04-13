@@ -183,7 +183,7 @@ sge_script_header_template = """
 #!/bin/bash
 #$ -S /bin/bash
 #$ -cwd
-#$ -N dp_job
+#$ -N DPjob
 {select_node_line}
 """
 
