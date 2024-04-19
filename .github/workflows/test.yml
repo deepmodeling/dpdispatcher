@@ -26,9 +26,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      if: matrix.platform != "windows-latest"
+      if: matrix.platform != 'windows-latest'
     - run: powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-      if: matrix.platform == "windows-latest"
+      if: matrix.platform == 'windows-latest'
     - run: uv pip install --system .[test] coverage
     - name: Test
       run: |
