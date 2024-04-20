@@ -32,12 +32,10 @@ jobs:
     - run: uv pip install --system .[test] coverage
     - name: Test
       run: |
-        coverage run -p --source=./dpdispatcher -m unittest -v
-        coverage run -p --source=./dpdispatcher -m dpdispatcher -h
-        coverage combine
-        coverage report
-      env:
-        PYTHONUTF8: 1
+        python -m coverage run -p --source=./dpdispatcher -m unittest -v
+        python -m coverage run -p --source=./dpdispatcher -m dpdispatcher -h
+        python -m coverage combine
+        python -m coverage report
     - uses: codecov/codecov-action@v4
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
