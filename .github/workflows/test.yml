@@ -36,6 +36,8 @@ jobs:
         coverage run -p --source=./dpdispatcher -m dpdispatcher -h
         coverage combine
         coverage report
+      env:
+        PYTHONUTF8: 1
     - uses: codecov/codecov-action@v4
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
