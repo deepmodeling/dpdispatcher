@@ -153,7 +153,7 @@ class LocalContext(BaseContext):
                             tag_file_path = os.path.join(
                                 self.local_root,
                                 ii.task_work_path,
-                                "tag_failure_download_%s" % kk,
+                                f"tag_failure_download_{kk}",
                             )
                             with open(tag_file_path, "w") as fp:
                                 pass
@@ -181,7 +181,7 @@ class LocalContext(BaseContext):
                                 tag_file_path = os.path.join(
                                     self.local_root,
                                     ii.task_work_path,
-                                    "tag_failure_download_%s" % jj,
+                                    f"tag_failure_download_{jj}",
                                 )
                                 with open(tag_file_path, "w") as fp:
                                     pass
@@ -227,7 +227,7 @@ class LocalContext(BaseContext):
                 if check_exists:
                     if mark_failure:
                         tag_file_path = os.path.join(
-                            self.local_root, "tag_failure_download_%s" % kk
+                            self.local_root, f"tag_failure_download_{kk}"
                         )
                         with open(tag_file_path, "w") as fp:
                             pass
@@ -252,7 +252,7 @@ class LocalContext(BaseContext):
                         if mark_failure:
                             with open(
                                 os.path.join(
-                                    self.local_root, "tag_failure_download_%s" % jj
+                                    self.local_root, f"tag_failure_download_{jj}"
                                 ),
                                 "w",
                             ) as fp:
