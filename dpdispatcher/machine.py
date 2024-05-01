@@ -261,7 +261,7 @@ class Machine(metaclass=ABCMeta):
 
         source_list = job.resources.source_list
         for ii in source_list:
-            line = "{ source %s; } \n" % ii
+            line = f"{{ source {ii}; }} \n"
             source_files_part += line
 
         export_envs_part = ""
@@ -466,7 +466,7 @@ class Machine(metaclass=ABCMeta):
         job : Job
             job
         """
-        dlog.warning("Job %s should be manually killed" % job.job_id)
+        dlog.warning(f"Job {job.job_id} should be manually killed")
 
     def get_exit_code(self, job):
         """Get exit code of the job.
