@@ -254,7 +254,7 @@ class SlurmJobArray(Slurm):
                 ).as_posix()
                 if not self.context.check_file_exists(task_tag_finished):
                     job_array.add(ii // slurm_job_size)
-            return super().gen_script_header(job) + "\n#SBATCH --array=%s" % (
+            return super().gen_script_header(job) + "\n#SBATCH --array={}".format(
                 ",".join(map(str, job_array))
             )
         return super().gen_script_header(job) + "\n#SBATCH --array=0-%d" % (

@@ -64,7 +64,7 @@ class DistributedShell(Machine):
 
         source_list = job.resources.source_list
         for ii in source_list:
-            line = "{ source %s; } \n" % ii
+            line = f"{{ source {ii}; }} \n"
             source_files_part += line
 
         export_envs_part = ""
@@ -96,7 +96,7 @@ class DistributedShell(Machine):
     def gen_script_end(self, job):
         all_task_dirs = ""
         for task in job.job_task_list:
-            all_task_dirs += "%s " % task.task_work_path
+            all_task_dirs += f"{task.task_work_path} "
         job_tag_finished = job.job_hash + "_job_tag_finished"
         flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 

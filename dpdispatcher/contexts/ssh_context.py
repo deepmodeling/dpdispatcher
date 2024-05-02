@@ -300,7 +300,7 @@ class SSHSession:
             # retry for up to 3 times
             # ensure alive
             self.ensure_alive()
-            raise RetrySignal("SSH session not active in calling %s" % cmd) from e
+            raise RetrySignal(f"SSH session not active in calling {cmd}") from e
 
     @property
     def sftp(self):
@@ -628,8 +628,7 @@ class SSHContext(BaseContext):
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
             _, stdout, _ = self.block_checkcall(
-                "sha256sum -c %s --quiet >.sha256sum_stdout 2>/dev/null || :"
-                % shlex.quote(sha256_file)
+                f"sha256sum -c {shlex.quote(sha256_file)} --quiet >.sha256sum_stdout 2>/dev/null || :"
             )
             self.sftp.remove(sha256_file)
             # regenerate file list
@@ -708,7 +707,7 @@ class SSHContext(BaseContext):
                                 os.path.join(
                                     self.local_root,
                                     ii.task_work_path,
-                                    "tag_failure_download_%s" % jj,
+                                    f"tag_failure_download_{jj}",
                                 ),
                                 "w",
                             ) as fp:
@@ -758,9 +757,9 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         if asynchronously:
-            cmd = "nohup %s >/dev/null &" % cmd
+            cmd = f"nohup {cmd} >/dev/null &"
         stdin, stdout, stderr = self.ssh_session.exec_command(
-            ("cd %s ;" % shlex.quote(self.remote_root)) + cmd
+            (f"cd {shlex.quote(self.remote_root)} ;") + cmd
         )
         exit_status = stdout.channel.recv_exit_status()
         if exit_status != 0:
@@ -779,7 +778,7 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         stdin, stdout, stderr = self.ssh_session.exec_command(
-            ("cd %s ;" % shlex.quote(self.remote_root)) + cmd
+            (f"cd {shlex.quote(self.remote_root)} ;") + cmd
         )
         exit_status = stdout.channel.recv_exit_status()
         return exit_status, stdin, stdout, stderr
@@ -846,12 +845,12 @@ class SSHContext(BaseContext):
         # Thus, it's better to use system's `rm` to remove a directory, which may
         # save a lot of time.
         if verbose:
-            dlog.info("removing %s" % remotepath)
+            dlog.info(f"removing {remotepath}")
         # In some supercomputers, it's very slow to remove large numbers of files
         # (e.g. directory containing trajectory) due to bad I/O performance.
         # So an asynchronously option is provided.
         self.block_checkcall(
-            "rm -rf %s" % shlex.quote(remotepath),
+            f"rm -rf {shlex.quote(remotepath)}",
             asynchronously=self.clean_asynchronously,
         )
 
@@ -921,7 +920,7 @@ class SSHContext(BaseContext):
                 f"from {from_f} to {self.ssh_session.username} @ {self.ssh_session.hostname} : {to_f} Error!"
             )
         # remote extract
-        self.block_checkcall("tar xf %s" % of)
+        self.block_checkcall(f"tar xf {of}")
         # clean up
         os.remove(from_f)
         self.sftp.remove(to_f)

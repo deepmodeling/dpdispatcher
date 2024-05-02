@@ -121,7 +121,7 @@ class LSF(Machine):
             return JobStatus.unsubmitted
         ret, stdin, stdout, stderr = self.context.block_call("bjobs " + job_id)
         err_str = stderr.read().decode("utf-8")
-        if ("Job <%s> is not found" % job_id) in err_str:
+        if (f"Job <{job_id}> is not found") in err_str:
             if self.check_finish_tag(job):
                 return JobStatus.finished
             else:
