@@ -14,4 +14,8 @@ An example of the script is shown below.
 :linenos:
 ```
 
-The PEP 723 metadata entries for `tool.dpdispatcher` are defined on [this page](pep723.rst).
+The PEP 723 metadata entries for `tool.dpdispatcher` are defined below.
+
+```{eval-rst}
+.. include:: pep723.rst
+```
