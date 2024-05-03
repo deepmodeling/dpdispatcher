@@ -1,0 +1,6 @@
+PEP 723 Metadata
+================
+
+.. dargs::
+   :module: dpdispatcher.run
+   :func: pep723_args
