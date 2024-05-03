@@ -1,12 +1,11 @@
-from hashlib import sha1
+import os
 import re
 import sys
-import os
+from glob import glob
+from hashlib import sha1
 
 from dpdispatcher.machine import Machine
 from dpdispatcher.submission import Resources, Submission, Task
-
-from glob import glob
 
 if sys.version_info >= (3, 11):
     import tomllib

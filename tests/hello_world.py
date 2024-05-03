@@ -19,7 +19,7 @@
 # [[tool.dpdispatcher.task_list]]
 # # no need to contain the script filename
 # command = "python"
-# # can be a glob pattern 
+# # can be a glob pattern
 # task_work_path = "./"
 # forward_files = []
 # backward_files = ["log"]

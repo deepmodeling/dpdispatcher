@@ -3,8 +3,8 @@ import argparse
 from typing import List, Optional
 
 from dpdispatcher.entrypoints.gui import start_dpgui
-from dpdispatcher.entrypoints.submission import handle_submission
 from dpdispatcher.entrypoints.run import run
+from dpdispatcher.entrypoints.submission import handle_submission
 
 
 def main_parser() -> argparse.ArgumentParser:
