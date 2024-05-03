@@ -70,7 +70,7 @@ def pep723_args() -> Argument:
     task_args.name = "task_list"
     task_args.doc = "List of tasks to execute."
     task_args.repeat = True
-    task_args.dtype = List[dict]
+    task_args.dtype = list
     return Argument(
         "pep723",
         dtype=dict,
@@ -157,9 +157,12 @@ def run_pep723(script: str):
     script : str
         Script content.
     """
-    metadata = read_pep723(script)["tool"]["dpdispatcher"]
+    metadata = read_pep723(script)
+    if metadata is None:
+        raise ValueError("No PEP 723 metadata found.")
+    dpdispatcher_metadata = metadata["tool"]["dpdispatcher"]
     script_hash = sha1(script.encode("utf-8")).hexdigest()
-    submission = create_submission(metadata, script_hash)
+    submission = create_submission(dpdispatcher_metadata, script_hash)
     submission.machine.context.write_file(f"script_{script_hash}.py", script)
     # write script
     submission.run_submission()
