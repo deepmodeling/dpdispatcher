@@ -1,12 +1,12 @@
 # Run Python scripts
 
-DPDispatcher can be used to run a single Python script directly:
+DPDispatcher can be used to directly run a single Python script:
 
 ```sh
 dpdisp run script.py
 ```
 
-The script must contain [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/) in the style of [PEP 723](https://peps.python.org/pep-0723/).
+The script must include [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/) compliant with [PEP 723](https://peps.python.org/pep-0723/).
 An example of the script is shown below.
 
 ```{literalinclude} ../examples/dpdisp_run.py
@@ -14,7 +14,7 @@ An example of the script is shown below.
 :linenos:
 ```
 
-The PEP 723 metadata entries for `tool.dpdispatcher` are defined below.
+The PEP 723 metadata entries for `tool.dpdispatcher` are defined as follows:
 
 ```{eval-rst}
 .. include:: pep723.rst

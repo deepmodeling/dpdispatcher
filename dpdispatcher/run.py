@@ -38,6 +38,7 @@ def read_pep723(script: str) -> Optional[dict]:
         filter(lambda m: m.group("type") == name, re.finditer(REGEX, script))
     )
     if len(matches) > 1:
+        # TODO: Add tests for scenarios where multiple script blocks are found
         raise ValueError(f"Multiple {name} blocks found")
     elif len(matches) == 1:
         content = "".join(
@@ -46,6 +47,7 @@ def read_pep723(script: str) -> Optional[dict]:
         )
         return tomllib.loads(content)
     else:
+        # TODO: Add tests for scenarios where no metadata is found
         return None
 
 
@@ -137,7 +139,9 @@ def create_submission(metadata: dict, hash: str) -> Submission:
         elif glob(task_work_path):
             for file in glob(task_work_path):
                 tasks.append(Task.load_from_dict({**task, "task_work_path": file}))
+        # TODO: Add tests for scenarios where the task work path is a glob pattern
         else:
+            # TODO: Add tests for scenarios where the task work path is not found
             raise FileNotFoundError(f"Task work path {task_work_path} not found.")
     return Submission(
         work_base=metadata["work_base"],
