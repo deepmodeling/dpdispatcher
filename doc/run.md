@@ -1,6 +1,6 @@
 # Run Python scripts
 
-Dpdispatcher can be used to run a single Python script directly:
+DPDispatcher can be used to run a single Python script directly:
 
 ```sh
 dpdisp run script.py
@@ -14,7 +14,7 @@ An example of the script is shown below.
 :linenos:
 ```
 
-The PEP 723 metadata `tool.dpdispatcher` is defined as below:
+The PEP 723 metadata entries for `tool.dpdispatcher` are defined as below:
 
 ```{dargs}
 :module: dpdispatcher.run
