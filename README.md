@@ -36,4 +36,4 @@ See [Contributing Guide](CONTRIBUTING.md) to become a contributor! 🤓
 
 ## References
 
-DPDispatcher is derivated from the [DP-GEN](https://github.com/deepmodeling/dpgen) package. To mention DPDispatcher in a scholarly publication, please read Section 3.3 in the [DP-GEN paper](https://doi.org/10.1016/j.cpc.2020.107206).
+DPDispatcher is derived from the [DP-GEN](https://github.com/deepmodeling/dpgen) package. To mention DPDispatcher in a scholarly publication, please read Section 3.3 in the [DP-GEN paper](https://doi.org/10.1016/j.cpc.2020.107206).
