@@ -70,7 +70,7 @@ def pep723_args() -> Argument:
     task_args.name = "task_list"
     task_args.doc = "List of tasks to execute."
     task_args.repeat = True
-    task_args.dtype = [list]
+    task_args.dtype = (list,)
     return Argument(
         "pep723",
         dtype=dict,
