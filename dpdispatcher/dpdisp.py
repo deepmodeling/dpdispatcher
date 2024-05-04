@@ -3,6 +3,7 @@ import argparse
 from typing import List, Optional
 
 from dpdispatcher.entrypoints.gui import start_dpgui
+from dpdispatcher.entrypoints.run import run
 from dpdispatcher.entrypoints.submission import handle_submission
 
 
@@ -81,6 +82,18 @@ def main_parser() -> argparse.ArgumentParser:
             "to the network on both IPv4 and IPv6 (where available)."
         ),
     )
+    ##########################################
+    # run
+    parser_run = subparsers.add_parser(
+        "run",
+        help="Run a Python script.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser_run.add_argument(
+        "filename",
+        type=str,
+        help="Python script to run. PEP 723 metadata should be contained in this file.",
+    )
     return parser
 
 
@@ -117,6 +130,8 @@ def main():
             port=args.port,
             bind_all=args.bind_all,
         )
+    elif args.command == "run":
+        run(filename=args.filename)
     elif args.command is None:
         pass
     else:
