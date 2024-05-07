@@ -1,0 +1,3 @@
+.. dargs::
+   :module: dpdispatcher.run
+   :func: pep723_args
