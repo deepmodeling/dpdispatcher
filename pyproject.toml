@@ -32,7 +32,7 @@ dependencies = [
 ]
 requires-python = ">=3.7"
 readme = "README.md"
-keywords = ["dispatcher", "hpc", "slurm", "lsf", "pbs", "ssh"]
+keywords = ["dispatcher", "hpc", "slurm", "lsf", "pbs", "ssh", "jh_unischeduler"]
 
 [project.urls]
 Homepage = "https://github.com/deepmodeling/dpdispatcher"
