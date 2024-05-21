@@ -12,13 +12,13 @@ from .context import (
     PBS,
     BaseContext,
     DistributedShell,
+    JH_UniScheduler,
     LazyLocalContext,
     Lebesgue,
     LocalContext,
     Machine,
     Shell,
     Slurm,
-    JH_UniScheduler,
     setUpModule,  # noqa: F401
 )
 
@@ -154,6 +154,7 @@ class TestMachineDispatch(unittest.TestCase):
         }
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, Slurm)
+
     def test_jh_unischeduler(self):
         machine_dict = {
             "batch_type": "JH_Unischeduler",
@@ -162,6 +163,7 @@ class TestMachineDispatch(unittest.TestCase):
         }
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, JH_UniScheduler)
+
     def test_shell(self):
         machine_dict = {
             "batch_type": "Shell",

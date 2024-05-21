@@ -38,8 +38,8 @@ class JH_UniScheduler(Machine):
         }
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
         if not custom_gpu_line:
-            script_header_dict["JH_UniScheduler_number_gpu_line"] = (""
-                f"#JSUB -gpgpu {resources.gpu_per_node}"
+            script_header_dict["JH_UniScheduler_number_gpu_line"] = (
+                "" f"#JSUB -gpgpu {resources.gpu_per_node}"
             )
         else:
             script_header_dict["JH_UniScheduler_number_gpu_line"] = custom_gpu_line
@@ -52,7 +52,9 @@ class JH_UniScheduler(Machine):
                 resources,
             )
         else:
-            JH_UniScheduler_script_header = JH_UniScheduler_script_header_template.format(**script_header_dict)
+            JH_UniScheduler_script_header = (
+                JH_UniScheduler_script_header_template.format(**script_header_dict)
+            )
 
         return JH_UniScheduler_script_header
 
@@ -167,4 +169,6 @@ class JH_UniScheduler(Machine):
             job
         """
         job_id = job.job_id
-        ret, stdin, stdout, stderr = self.context.block_call("jctrl kill " + str(job_id))
+        ret, stdin, stdout, stderr = self.context.block_call(
+            "jctrl kill " + str(job_id)
+        )
