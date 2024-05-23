@@ -7,20 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 __package__ = "tests"
 from dargs.dargs import ArgumentValueError
 
-from .context import (
-    LSF,
-    PBS,
-    BaseContext,
-    DistributedShell,
-    JH_UniScheduler,
-    LazyLocalContext,
-    Lebesgue,
-    LocalContext,
-    Machine,
-    Shell,
-    Slurm,
-    setUpModule,  # noqa: F401
-)
+from .context import LSF, PBS, BaseContext, DistributedShell, JH_UniScheduler, LazyLocalContext, Lebesgue, LocalContext, Machine, Shell, Slurm, setUpModule  # noqa: F401
 
 
 class TestMachineDispatch(unittest.TestCase):
