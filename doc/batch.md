@@ -47,7 +47,7 @@ One needs to make sure TORQUE has been setup in the remote server and the relate
 {dargs:argument}`batch_type <resources/batch_type>`: `LSF`
 
 [IBM Spectrum LSF Suites](https://www.ibm.com/products/hpc-workload-management) is a comprehensive workload management solution used by HPCs.
-One needs to make sure LSF has been setup in the remote server and the related environment is activated.
+One needs to make sure LSF has been set up in the remote server and the related environment is activated.
 
 ## JH UniScheduler
 
@@ -55,7 +55,7 @@ One needs to make sure LSF has been setup in the remote server and the related e
 
 [JH UniScheduler](http://www.jhinno.com/m/custom_case_05.html) was developed by China's JHINNO company and uses "jsub" to submit tasks. 
 Its overall architecture is similar to that of IBM's LSF. However, there are still some differences between them.  One needs to 
-make sure JH UniScheduler has been setup in the remote server and the related environment is activated.
+make sure JH UniScheduler has been set up in the remote server and the related environment is activated.
 
 ## Bohrium
 
