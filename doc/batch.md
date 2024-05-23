@@ -55,7 +55,7 @@ One needs to make sure LSF has been setup in the remote server and the related e
 
 [JH UniScheduler](http://www.jhinno.com/m/custom_case_05.html) was developed by JHINNO company and uses "jsub" to submit tasks. 
 Its overall architecture is similar to that of IBM's LSF. However, there are still some differences between them.  One needs to 
-make sure LSF has been setup in the remote server and the related environment is activated.
+make sure JH UniScheduler has been setup in the remote server and the related environment is activated.
 
 ## Bohrium
 
