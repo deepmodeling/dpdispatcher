@@ -8,7 +8,7 @@ from dpdispatcher.submission import Resources, Submission, Task
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # task_need_resources has no effect
-with open("jsons/machine_JH_UniScheduler.json") as f:
+with open("jsons/machine_jh_unischeduler.json") as f:
     mdata = json.load(f)
 
 machine = Machine.load_from_dict(mdata["machine"])
