@@ -83,7 +83,7 @@ class TestJHUniSchedulerScriptGeneration(unittest.TestCase):
             #JSUB -n 4
             #JSUB -R 'span[ptile=4]'
             #JSUB -q gpu
-            #JSUB -ggpu 1 """
+            #JSUB -gpgpu 1 """
         )
         self.assertEqual(header_str, benchmark_header)
 
@@ -148,7 +148,7 @@ class TestJHUniSchedulerScriptGeneration(unittest.TestCase):
         # JSUB -n 4
         # JSUB -R 'span[ptile=4]'
         # JSUB -q gpu
-        # JSUB -ggpu 1 """
+        # JSUB -gpgpu 1 """
         )
 
         with tempfile.NamedTemporaryFile("w") as f:
