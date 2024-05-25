@@ -24,7 +24,7 @@ class TestJHUniSchedulerScriptGeneration(unittest.TestCase):
         self.maxDiff = None
 
     def test_shell_trival(self):
-        with open("jsons/machine_lazy_local_JH_UniScheduler.json") as f:
+        with open("jsons/machine_lazy_local_jh_unischeduler.json") as f:
             machine_dict = json.load(f)
 
         machine = Machine(**machine_dict["machine"])
@@ -137,7 +137,7 @@ class TestJHUniSchedulerScriptGeneration(unittest.TestCase):
 
     @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
     def test_template(self):
-        with open("jsons/machine_lazy_local_JH_UniScheduler.json") as f:
+        with open("jsons/machine_lazy_local_jh_unischeduler.json") as f:
             machine_dict = json.load(f)
 
         benchmark_str = textwrap.dedent(
