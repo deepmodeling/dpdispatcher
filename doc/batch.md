@@ -18,7 +18,7 @@ To avoid running multiple jobs at the same time, one could set {dargs:argument}`
 {dargs:argument}`batch_type <resources/batch_type>`: `Slurm`, `SlurmJobArray`
 
 [Slurm](https://slurm.schedmd.com/) is a job scheduling system used by lots of HPCs.
-One needs to make sure slurm has been setup in the remote server and the related environment is activated.
+One needs to make sure slurm has been set up in the remote server and the related environment is activated.
 
 When `SlurmJobArray` is used, dpdispatcher submits Slurm jobs with [job arrays](https://slurm.schedmd.com/job_array.html).
 In this way, several dpdispatcher {class}`task <dpdispatcher.submission.Task>`s map to a Slurm job and a dpdispatcher {class}`job <dpdispatcher.submission.Job>` maps to a Slurm job array.
@@ -30,7 +30,7 @@ One can use {dargs:argument}`group_size <resources/group_size>` and {dargs:argum
 {dargs:argument}`batch_type <resources/batch_type>`: `PBS`
 
 [OpenPBS](https://www.openpbs.org/) is an open-source job scheduling of the Linux Foundation and [PBS Profession](https://www.altair.com/pbs-professional/) is its commercial solution.
-One needs to make sure OpenPBS has been setup in the remote server and the related environment is activated.
+One needs to make sure OpenPBS has been set up in the remote server and the related environment is activated.
 
 Note that do not use `PBS` for Torque.
 
@@ -40,7 +40,7 @@ Note that do not use `PBS` for Torque.
 
 The [Terascale Open-source Resource and QUEue Manager (TORQUE)](https://adaptivecomputing.com/cherry-services/torque-resource-manager/) is a distributed resource manager based on standard OpenPBS.
 However, not all OpenPBS flags are still supported in TORQUE.
-One needs to make sure TORQUE has been setup in the remote server and the related environment is activated.
+One needs to make sure TORQUE has been set up in the remote server and the related environment is activated.
 
 ## LSF
 
