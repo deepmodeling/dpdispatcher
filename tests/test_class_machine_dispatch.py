@@ -157,7 +157,7 @@ class TestMachineDispatch(unittest.TestCase):
 
     def test_jh_unischeduler(self):
         machine_dict = {
-            "batch_type": "JH_Unischeduler",
+            "batch_type": "JH_UniScheduler",
             "context_type": "LazyLocalContext",
             "local_root": "./",
         }
