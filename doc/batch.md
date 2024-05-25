@@ -82,10 +82,10 @@ Read Fujitsu cloud service documentation for details.
 ## OpenAPI
 
 {dargs:argument}`batcy_type <resources/batch_type>`: `OpenAPI`
-OpenAPI is a new way to submit jobs to Bohrium. It using [AccessKey](https://bohrium.dp.tech/personal/setting) instead of username and password. Read Bohrium documentation for details.
+OpenAPI is a new way to submit jobs to Bohrium. It is using [AccessKey](https://bohrium.dp.tech/personal/setting) instead of username and password. Read Bohrium documentation for details.
 
 ## SGE
 
 {dargs:argument}`batch_type <resources/batch_type>`: `SGE`
 
-The [Sun Grid Engine (SGE) scheduler](https://gridscheduler.sourceforge.net) is a batch-queueing system distributed resource management. The commands and flags of SGE share a lot similarity with PBS except when checking job status. Use this argument if one is submitting job to SGE based batch system.
+The [Sun Grid Engine (SGE) scheduler](https://gridscheduler.sourceforge.net) is a batch-queueing system distributed resource management. The commands and flags of SGE share a lot of similarity with PBS except when checking job status. Use this argument if one is submitting job to an SGE-based batch system.
