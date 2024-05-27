@@ -8,9 +8,7 @@ dlog.propagate = False
 dlog.setLevel(logging.INFO)
 try:
     cwd_logfile_path = os.path.join(os.getcwd(), "dpdispatcher.log")
-    dlogf = logging.FileHandler(
-        cwd_logfile_path, delay=True
-    )
+    dlogf = logging.FileHandler(cwd_logfile_path, delay=True)
     dlog.addHandler(dlogf)
     dlog.info(f"LOG INIT:dpdispatcher log direct to {cwd_logfile_path}")
 except PermissionError:
