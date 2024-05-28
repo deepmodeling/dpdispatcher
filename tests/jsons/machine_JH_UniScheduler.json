@@ -1,0 +1,16 @@
+{
+    "machine": {
+        "batch_type": "JH_UniScheduler",
+        "context_type": "local",
+        "local_root": "./",
+        "remote_root": "/data/home/wangsimin/machine_learning/dpgen/task/test/dpgen_example/run1"
+    },
+    "resources":{
+        "number_node": 1,
+        "cpu_per_node": 4,
+        "gpu_per_node": 1,
+        "queue_name": "gpu",
+        "group_size": 4,
+        "source_list": ["/public/software/deepmd-kit/bin/activate /public/software/deepmd-kit"]
+    }
+}

@@ -1,0 +1,18 @@
+{
+	"machine": {
+		"batch_type": "JH_UniScheduler",
+		"context_type": "LazyLocalContext",
+		"local_root": "./test_jh_unischeduler"
+	},
+	"resources": {
+		"number_node": 1,
+		"cpu_per_node": 4,
+		"queue_name": "gpu",
+		"gpu_per_node": 1,
+		"group_size": 4,
+		"strategy": {
+            "if_cuda_multi_devices": false
+        },
+		"source_list": ["./slurm_test.env"]
+	}
+}
