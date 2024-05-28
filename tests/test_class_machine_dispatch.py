@@ -7,18 +7,19 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 __package__ = "tests"
 from dargs.dargs import ArgumentValueError
 
-from .context import (
+from .context import (  # noqa: F401
     LSF,
     PBS,
     BaseContext,
     DistributedShell,
+    JH_UniScheduler,
     LazyLocalContext,
     Lebesgue,
     LocalContext,
     Machine,
     Shell,
     Slurm,
-    setUpModule,  # noqa: F401
+    setUpModule,
 )
 
 
@@ -153,6 +154,15 @@ class TestMachineDispatch(unittest.TestCase):
         }
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, Slurm)
+
+    def test_jh_unischeduler(self):
+        machine_dict = {
+            "batch_type": "JH_UniScheduler",
+            "context_type": "LazyLocalContext",
+            "local_root": "./",
+        }
+        machine = Machine.load_from_dict(machine_dict=machine_dict)
+        self.assertIsInstance(machine, JH_UniScheduler)
 
     def test_shell(self):
         machine_dict = {

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=61", "setuptools_scm[toml]>=7"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -28,10 +28,11 @@ dependencies = [
     'tqdm>=4.9.0',
     'typing_extensions; python_version < "3.7"',
     'pyyaml',
+    'tomli >= 1.1.0; python_version < "3.11"',
 ]
 requires-python = ">=3.7"
 readme = "README.md"
-keywords = ["dispatcher", "hpc", "slurm", "lsf", "pbs", "ssh"]
+keywords = ["dispatcher", "hpc", "slurm", "lsf", "pbs", "ssh", "jh_unischeduler"]
 
 [project.urls]
 Homepage = "https://github.com/deepmodeling/dpdispatcher"

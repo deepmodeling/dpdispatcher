@@ -138,7 +138,7 @@ class HDFSContext(BaseContext):
             shutil.rmtree(gz_dir, ignore_errors=True)
         os.mkdir(os.path.join(self.local_root, "tmp"))
         rfile_tgz = f"{self.remote_root}/{submission.submission_hash}_*_download.tar.gz"
-        lfile_tgz = "%s/tmp/" % (self.local_root)
+        lfile_tgz = f"{self.local_root}/tmp/"
         HDFS.copy_to_local(rfile_tgz, lfile_tgz)
 
         tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar.gz"))
@@ -164,7 +164,7 @@ class HDFSContext(BaseContext):
                                 os.path.join(
                                     self.local_root,
                                     task.task_work_path,
-                                    "tag_failure_download_%s" % jj,
+                                    f"tag_failure_download_{jj}",
                                 ),
                                 "w",
                             ) as fp:
@@ -198,9 +198,7 @@ class HDFSContext(BaseContext):
                 if check_exists:
                     if mark_failure:
                         with open(
-                            os.path.join(
-                                self.local_root, "tag_failure_download_%s" % jj
-                            ),
+                            os.path.join(self.local_root, f"tag_failure_download_{jj}"),
                             "w",
                         ) as fp:
                             pass
