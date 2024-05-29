@@ -321,8 +321,14 @@ class SGE(PBS):
                 "kwargs",
                 dict,
                 [
-            Argument("sge_pe_name", str, optional=True, default="mpi", doc=doc_sge_pe_name),
-        ],
+                    Argument(
+                        "sge_pe_name",
+                        str,
+                        optional=True,
+                        default="mpi",
+                        doc=doc_sge_pe_name,
+                    ),
+                ],
                 optional=False,
                 doc="Extra arguments.",
             )
