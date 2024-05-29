@@ -961,8 +961,6 @@ class Resources:
         The queue name of batch job scheduler system.
     group_size : int
         The number of `tasks` in a `job`.
-    sge_pe_name : str
-        The parallel environment name of SGE.
     custom_flags : list of Str
         The extra lines pass to job submitting script header
     strategy : dict
@@ -993,7 +991,6 @@ class Resources:
         queue_name,
         group_size,
         *,
-        sge_pe_name="mpi",
         custom_flags=[],
         strategy=default_strategy,
         para_deg=1,
@@ -1014,7 +1011,6 @@ class Resources:
         self.group_size = group_size
 
         # self.extra_specification = extra_specification
-        self.sge_pe_name = sge_pe_name
         self.custom_flags = custom_flags
         self.strategy = strategy
         self.para_deg = para_deg
@@ -1061,7 +1057,6 @@ class Resources:
         resources_dict["queue_name"] = self.queue_name
         resources_dict["group_size"] = self.group_size
 
-        resources_dict["sge_pe_name"] = self.sge_pe_name
         resources_dict["custom_flags"] = self.custom_flags
         resources_dict["strategy"] = self.strategy
         resources_dict["para_deg"] = self.para_deg
@@ -1084,7 +1079,6 @@ class Resources:
             gpu_per_node=resources_dict.get("gpu_per_node", 0),
             queue_name=resources_dict.get("queue_name", ""),
             group_size=resources_dict["group_size"],
-            sge_pe_name=resources_dict.get("sge_pe_name", "mpi"),
             custom_flags=resources_dict.get("custom_flags", []),
             strategy=resources_dict.get("strategy", default_strategy),
             para_deg=resources_dict.get("para_deg", 1),
@@ -1133,7 +1127,6 @@ class Resources:
         doc_gpu_per_node = "gpu numbers of each node assigned to each job."
         doc_queue_name = "The queue name of batch job scheduler system."
         doc_group_size = "The number of `tasks` in a `job`. 0 means infinity."
-        doc_sge_pe_name = "The parallel environment name of SGE."
         doc_custom_flags = "The extra lines pass to job submitting script header"
         doc_para_deg = "Decide how many tasks will be run in parallel."
         doc_source_list = "The env file to be sourced before the command execution."
@@ -1198,7 +1191,6 @@ class Resources:
             ),
             Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
-            Argument("sge_pe_name", str, optional=True, doc=doc_sge_pe_name),
             Argument("custom_flags", List[str], optional=True, doc=doc_custom_flags),
             # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
             strategy_format,

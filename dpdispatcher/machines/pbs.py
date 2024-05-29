@@ -1,4 +1,7 @@
 import shlex
+from typing import List
+
+from dargs import Argument
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
@@ -212,9 +215,10 @@ class SGE(PBS):
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
         # resources.number_node is not used in SGE
         resources = job.resources
+        sge_pe_name = resources.kwargs.get("sge_pe_name", "mpi")
         sge_script_header_dict = {}
         sge_script_header_dict["select_node_line"] = (
-            f"#$ -pe {resources.sge_pe_name} {resources.cpu_per_node}\n"
+            f"#$ -pe {sge_pe_name} {resources.cpu_per_node}\n"
         )
         if resources.queue_name != "":
             sge_script_header_dict["select_node_line"] += (
@@ -297,3 +301,29 @@ class SGE(PBS):
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+
+            sge_pe_name : str
+        The parallel environment name of SGE.
+
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        doc_sge_pe_name = "The parallel environment name of SGE."
+
+        return [
+            Argument(
+                "kwargs",
+                dict,
+                [
+            Argument("sge_pe_name", str, optional=True, default="mpi", doc=doc_sge_pe_name),
+        ],
+                optional=False,
+                doc="Extra arguments.",
+            )
+        ]
