@@ -108,8 +108,8 @@ class TestLSFScriptGeneration(unittest.TestCase):
             module load use.own
             module load deepmd/1.3
 
-            {{ source /data/home/ypliu/scripts/avail_gpu.sh; }} 
-            {{ source /data/home/ypliu/dprun/tf_envs.sh; }} 
+            source /data/home/ypliu/scripts/avail_gpu.sh
+            source /data/home/ypliu/dprun/tf_envs.sh
 
             export DP_DISPATCHER_EXPORT=test_foo_bar_baz
 
