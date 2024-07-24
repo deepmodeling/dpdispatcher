@@ -186,7 +186,6 @@ sge_script_header_template = """
 #!/bin/bash
 #$ -S /bin/bash
 #$ -cwd
-#$ -N DPjob
 {select_node_line}
 """
 
@@ -215,9 +214,11 @@ class SGE(PBS):
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
         # resources.number_node is not used in SGE
         resources = job.resources
+        job_name = resources.kwargs.get("job_name", "wDPjob")
         sge_pe_name = resources.kwargs.get("sge_pe_name", "mpi")
         sge_script_header_dict = {}
-        sge_script_header_dict["select_node_line"] = (
+        sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
+        sge_script_header_dict["select_node_line"] += (
             f"#$ -pe {sge_pe_name} {resources.cpu_per_node}\n"
         )
         if resources.queue_name != "":
@@ -315,6 +316,7 @@ class SGE(PBS):
             resources subfields
         """
         doc_sge_pe_name = "The parallel environment name of SGE."
+        doc_job_name = "The name of SGE's job."
 
         return [
             Argument(
@@ -327,6 +329,13 @@ class SGE(PBS):
                         optional=True,
                         default="mpi",
                         doc=doc_sge_pe_name,
+                    ),
+                    Argument(
+                        "job_name",
+                        str,
+                        optional=True,
+                        default="wDPjob",
+                        doc=doc_job_name,
                     ),
                 ],
                 optional=False,
