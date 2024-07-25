@@ -87,10 +87,7 @@ class SSHSession:
         count = 1
         while not self._check_alive():
             if count == max_check:
-                raise RuntimeError(
-                    "cannot connect ssh after %d failures at interval %d s"
-                    % (max_check, sleep_time)
-                )
+                raise RuntimeError("cannot connect ssh after %d failures at interval %d s" % (max_check, sleep_time))
             dlog.info("connection check failed, try to reconnect to " + self.hostname)
             self._setup_ssh()
             count += 1
@@ -168,9 +165,7 @@ class SSHSession:
                 ):
                     try:
                         # passing empty passphrase would not raise error.
-                        key = pkey_class.from_private_key_file(
-                            key_path, self.passphrase
-                        )
+                        key = pkey_class.from_private_key_file(key_path, self.passphrase)
                     except paramiko.SSHException as e:
                         pass
                     if key is not None:
@@ -185,9 +180,7 @@ class SSHSession:
                 (paramiko.Ed25519Key, "ed25519"),
             ]:
                 for directory in [".ssh", "ssh"]:
-                    full_path = os.path.join(
-                        os.path.expanduser("~"), directory, f"id_{name}"
-                    )
+                    full_path = os.path.join(os.path.expanduser("~"), directory, f"id_{name}")
                     if os.path.isfile(full_path):
                         keyfiles.append((keytype, full_path))
                         # TODO: supporting cert
@@ -220,9 +213,7 @@ class SSHSession:
         elif self.password is not None:
             ts.auth_password(self.username, self.password)
         elif key_error is not None:
-            raise RuntimeError(
-                "Authentication failed, try to provide password"
-            ) from key_error
+            raise RuntimeError("Authentication failed, try to provide password") from key_error
         else:
             raise RuntimeError("Please provide at least one form of authentication")
         assert ts.is_active()
@@ -269,11 +260,7 @@ class SSHSession:
                 resp.append(self.username)
             elif "password" in pr_str:
                 resp.append(self.password)
-            elif (
-                "verification" in pr_str
-                or "token" in pr_str
-                and self.totp_secret is not None
-            ):
+            elif "verification" in pr_str or "token" in pr_str and self.totp_secret is not None:
                 assert self.totp_secret is not None
                 resp.append(generate_totp(self.totp_secret))
 
@@ -321,19 +308,17 @@ class SSHSession:
         )
         doc_port = "ssh connection port."
         doc_key_filename = (
-            "key filename used by ssh connection. If left None, find key in ~/.ssh or "
-            "use password for login"
+            "key filename used by ssh connection. If left None, find key in ~/.ssh or " "use password for login"
         )
         doc_passphrase = "passphrase of key used by ssh connection"
         doc_timeout = "timeout of ssh connection"
         doc_totp_secret = (
-            "Time-based one time password secret. It should be a base32-encoded string"
-            " extracted from the 2D code."
+            "Time-based one time password secret. It should be a base32-encoded string" " extracted from the 2D code."
         )
-        doc_tar_compress = "The archive will be compressed in upload and download if it is True. If not, compression will be skipped."
-        doc_look_for_keys = (
-            "enable searching for discoverable private key files in ~/.ssh/"
+        doc_tar_compress = (
+            "The archive will be compressed in upload and download if it is True. If not, compression will be skipped."
         )
+        doc_look_for_keys = "enable searching for discoverable private key files in ~/.ssh/"
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -354,12 +339,8 @@ class SSHSession:
                 doc=doc_passphrase,
             ),
             Argument("timeout", int, optional=True, default=10, doc=doc_timeout),
-            Argument(
-                "totp_secret", str, optional=True, default=None, doc=doc_totp_secret
-            ),
-            Argument(
-                "tar_compress", bool, optional=True, default=True, doc=doc_tar_compress
-            ),
+            Argument("totp_secret", str, optional=True, default=None, doc=doc_totp_secret),
+            Argument("tar_compress", bool, optional=True, default=True, doc=doc_tar_compress),
             Argument(
                 "look_for_keys",
                 bool,
@@ -368,9 +349,7 @@ class SSHSession:
                 doc=doc_look_for_keys,
             ),
         ]
-        ssh_remote_profile_format = Argument(
-            "ssh_session", dict, ssh_remote_profile_args
-        )
+        ssh_remote_profile_format = Argument("ssh_session", dict, ssh_remote_profile_args)
         return ssh_remote_profile_format
 
     def put(self, from_f, to_f):
@@ -498,9 +477,7 @@ class SSHContext(BaseContext):
         assert self.ssh_session is not None
         assert self.ssh_session.ssh is not None
         self.submission = submission
-        self.local_root = pathlib.PurePath(
-            os.path.join(self.temp_local_root, submission.work_base)
-        ).as_posix()
+        self.local_root = pathlib.PurePath(os.path.join(self.temp_local_root, submission.work_base)).as_posix()
         old_remote_root = self.remote_root
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = pathlib.PurePath(
@@ -513,9 +490,7 @@ class SSHContext(BaseContext):
             and self.check_file_exists(old_remote_root)
             and not self.check_file_exists(self.remote_root)
         ):
-            self.block_checkcall(
-                f"mv {shlex.quote(old_remote_root)} {shlex.quote(self.remote_root)}"
-            )
+            self.block_checkcall(f"mv {shlex.quote(old_remote_root)} {shlex.quote(self.remote_root)}")
         elif (
             old_remote_root is not None
             and old_remote_root != self.remote_root
@@ -550,9 +525,7 @@ class SSHContext(BaseContext):
             if os.path.isfile(file_name):
                 file_list.append(file_name)
             elif os.path.isdir(file_name):
-                for root, dirs, files in os.walk(
-                    file_name, topdown=False, followlinks=True
-                ):
+                for root, dirs, files in os.walk(file_name, topdown=False, followlinks=True):
                     if not files:
                         directory_list.append(root)
                     for name in files:
@@ -562,12 +535,8 @@ class SSHContext(BaseContext):
             elif glob(file_name):
                 # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
                 abs_file_list = glob(file_name)
-                rel_file_list = [
-                    os.path.relpath(ii, start=work_path) for ii in abs_file_list
-                ]
-                self._walk_directory(
-                    rel_file_list, work_path, file_list, directory_list
-                )
+                rel_file_list = [os.path.relpath(ii, start=work_path) for ii in abs_file_list]
+                self._walk_directory(rel_file_list, work_path, file_list, directory_list)
             else:
                 raise FileNotFoundError(f"cannot find upload file {work_path} {jj}")
 
@@ -602,9 +571,7 @@ class SSHContext(BaseContext):
                 file_list,
                 directory_list,
             )
-        self._walk_directory(
-            submission.forward_common_files, self.local_root, file_list, directory_list
-        )
+        self._walk_directory(submission.forward_common_files, self.local_root, file_list, directory_list)
 
         # convert to relative path to local_root
         directory_list = [os.path.relpath(jj, self.local_root) for jj in directory_list]
@@ -616,14 +583,10 @@ class SSHContext(BaseContext):
             sha256_list = []
             for jj in file_list:
                 sha256 = get_sha256(jj)
-                jj_rel = pathlib.PurePath(
-                    os.path.relpath(jj, self.local_root)
-                ).as_posix()
+                jj_rel = pathlib.PurePath(os.path.relpath(jj, self.local_root)).as_posix()
                 sha256_list.append(f"{sha256}  {jj_rel}")
             # write to remote
-            sha256_file = os.path.join(
-                self.remote_root, ".tmp.sha256." + str(uuid.uuid4())
-            )
+            sha256_file = os.path.join(self.remote_root, ".tmp.sha256." + str(uuid.uuid4()))
             self.write_file(sha256_file, "\n".join(sha256_list))
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
@@ -650,9 +613,7 @@ class SSHContext(BaseContext):
 
     def list_remote_dir(self, sftp, remote_dir, ref_remote_root, result_list):
         for entry in sftp.listdir_attr(remote_dir):
-            remote_name = pathlib.PurePath(
-                os.path.join(remote_dir, entry.filename)
-            ).as_posix()
+            remote_name = pathlib.PurePath(os.path.join(remote_dir, entry.filename)).as_posix()
             st_mode = entry.st_mode
             if S_ISDIR(st_mode):
                 self.list_remote_dir(sftp, remote_name, ref_remote_root, result_list)
@@ -681,23 +642,16 @@ class SSHContext(BaseContext):
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
                     else:
                         remote_file_list = []
-                        remote_job = pathlib.PurePath(
-                            os.path.join(self.remote_root, ii.task_work_path)
-                        ).as_posix()
-                        self.list_remote_dir(
-                            self.sftp, remote_job, remote_job, remote_file_list
-                        )
+                        remote_job = pathlib.PurePath(os.path.join(self.remote_root, ii.task_work_path)).as_posix()
+                        self.list_remote_dir(self.sftp, remote_job, remote_job, remote_file_list)
 
                         abs_file_list = fnmatch.filter(remote_file_list, jj)
                     rel_file_list = [
-                        pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
-                        for kk in abs_file_list
+                        pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix() for kk in abs_file_list
                     ]
 
                 else:
-                    rel_file_list = [
-                        pathlib.PurePath(os.path.join(ii.task_work_path, jj)).as_posix()
-                    ]
+                    rel_file_list = [pathlib.PurePath(os.path.join(ii.task_work_path, jj)).as_posix()]
                 if check_exists:
                     for file_name in rel_file_list:
                         if self.check_file_exists(file_name):
@@ -721,23 +675,14 @@ class SSHContext(BaseContext):
                     abs_errors = fnmatch.filter(remote_file_list, "error*")
                 else:
                     remote_file_list = []
-                    remote_job = pathlib.PurePath(
-                        os.path.join(self.remote_root, ii.task_work_path)
-                    ).as_posix()
-                    self.list_remote_dir(
-                        self.sftp, remote_job, remote_job, remote_file_list
-                    )
+                    remote_job = pathlib.PurePath(os.path.join(self.remote_root, ii.task_work_path)).as_posix()
+                    self.list_remote_dir(self.sftp, remote_job, remote_job, remote_file_list)
                     abs_errors = fnmatch.filter(remote_file_list, "error*")
-                rel_errors = [
-                    pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
-                    for kk in abs_errors
-                ]
+                rel_errors = [pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix() for kk in abs_errors]
                 file_list.extend(rel_errors)
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
-            self._get_files(
-                file_list, tar_compress=self.remote_profile.get("tar_compress", None)
-            )
+            self._get_files(file_list, tar_compress=self.remote_profile.get("tar_compress", None))
 
     def block_checkcall(self, cmd, asynchronously=False, stderr_whitelist=None):
         """Run command with arguments. Wait for command to complete. If the return code
@@ -758,9 +703,7 @@ class SSHContext(BaseContext):
         self.ssh_session.ensure_alive()
         if asynchronously:
             cmd = f"nohup {cmd} >/dev/null &"
-        stdin, stdout, stderr = self.ssh_session.exec_command(
-            (f"cd {shlex.quote(self.remote_root)} ;") + cmd
-        )
+        stdin, stdout, stderr = self.ssh_session.exec_command((f"cd {shlex.quote(self.remote_root)} ;") + cmd)
         exit_status = stdout.channel.recv_exit_status()
         if exit_status != 0:
             raise RuntimeError(
@@ -777,9 +720,7 @@ class SSHContext(BaseContext):
     def block_call(self, cmd):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
-        stdin, stdout, stderr = self.ssh_session.exec_command(
-            (f"cd {shlex.quote(self.remote_root)} ;") + cmd
-        )
+        stdin, stdout, stderr = self.ssh_session.exec_command((f"cd {shlex.quote(self.remote_root)} ;") + cmd)
         exit_status = stdout.channel.recv_exit_status()
         return exit_status, stdin, stdout, stderr
 
@@ -793,19 +734,21 @@ class SSHContext(BaseContext):
         fname = pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
         # to prevent old file from being overwritten but cancelled, create a temporary file first
         # when it is fully written, rename it to the original file name
-        with self.sftp.open(fname + "~", "w") as fp:
-            fp.write(write_str)
+        temp_fname = fname + "_tmp"
+        try:
+            with self.sftp.open(temp_fname, "w") as fp:
+                fp.write(write_str)
+            # Rename the temporary file
+            self.block_checkcall(f"mv {shlex.quote(temp_fname)} {shlex.quote(fname)}")
         # sftp.rename may throw OSError
-        self.block_checkcall(
-            "mv {} {}".format(shlex.quote(fname + "~"), shlex.quote(fname))
-        )
+        except OSError as e:
+            print(f"Error writing to file {fname}")
+            raise e
 
     def read_file(self, fname):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
-        with self.sftp.open(
-            pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(), "r"
-        ) as fp:
+        with self.sftp.open(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(), "r") as fp:
             ret = fp.read().decode("utf-8")
         return ret
 
@@ -813,9 +756,7 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         try:
-            self.sftp.stat(
-                pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
-            )
+            self.sftp.stat(pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix())
             ret = True
         except OSError:
             ret = False
@@ -945,36 +886,24 @@ class SSHContext(BaseContext):
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
-            try:
-                self.block_checkcall(
-                    "tar {} {} {}".format(
-                        tar_command,
-                        shlex.quote(of),
-                        " ".join([shlex.quote(file) for file in files]),
-                    )
-                )
-            except RuntimeError as e:
-                if "No such file or directory" in str(e):
-                    raise FileNotFoundError(
-                        "Any of the backward files does not exist in the remote directory."
-                    ) from e
-                raise e
+            file_list = " ".join([shlex.quote(file) for file in files])
+            tar_cmd = f"tar {tar_command} {shlex.quote(of)} {file_list}"
         else:
-            file_list_file = os.path.join(
-                self.remote_root, ".tmp.tar." + str(uuid.uuid4())
-            )
+            file_list_file = pathlib.PurePath(os.path.join(self.remote_root, f"tmp_tar_{uuid.uuid4()}")).as_posix()
             self.write_file(file_list_file, "\n".join(files))
-            try:
-                self.block_checkcall(
-                    f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
-                )
-            except RuntimeError as e:
-                if "No such file or directory" in str(e):
-                    raise FileNotFoundError(
-                        "Any of the backward files does not exist in the remote directory."
-                    ) from e
-                raise e
-        # trans
+            # if not os.path.exists(file_list_file):
+            #     raise FileNotFoundError(f"File list was not created at {file_list_file}")
+            tar_cmd = f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
+
+        # Execute the tar command remotely
+        try:
+            self.block_checkcall(tar_cmd)
+        except RuntimeError as e:
+            if "No such file or directory" in str(e):
+                raise FileNotFoundError("Backward files do not exist in the remote directory.") from e
+            raise e
+
+        # Transfer the archive from remote to local
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         if os.path.isfile(to_f):
@@ -996,9 +925,7 @@ class SSHContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = (
-            "The information used to maintain the connection with remote machine."
-        )
+        doc_remote_profile = "The information used to maintain the connection with remote machine."
         remote_profile_format = SSHSession.arginfo()
         remote_profile_format.name = "remote_profile"
         remote_profile_format.doc = doc_remote_profile
