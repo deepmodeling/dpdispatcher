@@ -295,7 +295,11 @@ class SSHSession:
         assert self.ssh is not None
         try:
             return self.ssh.exec_command(cmd)
-        except (paramiko.ssh_exception.SSHException, socket.timeout, EOFError) as e:
+        except (
+            paramiko.ssh_exception.SSHException,
+            socket.timeout,
+            EOFError,
+        ) as e:
             # SSH session not active
             # retry for up to 3 times
             # ensure alive
@@ -355,10 +359,18 @@ class SSHSession:
             ),
             Argument("timeout", int, optional=True, default=10, doc=doc_timeout),
             Argument(
-                "totp_secret", str, optional=True, default=None, doc=doc_totp_secret
+                "totp_secret",
+                str,
+                optional=True,
+                default=None,
+                doc=doc_totp_secret,
             ),
             Argument(
-                "tar_compress", bool, optional=True, default=True, doc=doc_tar_compress
+                "tar_compress",
+                bool,
+                optional=True,
+                default=True,
+                doc=doc_tar_compress,
             ),
             Argument(
                 "look_for_keys",
@@ -603,7 +615,10 @@ class SSHContext(BaseContext):
                 directory_list,
             )
         self._walk_directory(
-            submission.forward_common_files, self.local_root, file_list, directory_list
+            submission.forward_common_files,
+            self.local_root,
+            file_list,
+            directory_list,
         )
 
         # convert to relative path to local_root
@@ -736,7 +751,8 @@ class SSHContext(BaseContext):
         file_list.extend(submission.backward_common_files)
         if len(file_list) > 0:
             self._get_files(
-                file_list, tar_compress=self.remote_profile.get("tar_compress", None)
+                file_list,
+                tar_compress=self.remote_profile.get("tar_compress", None),
             )
 
     def block_checkcall(self, cmd, asynchronously=False, stderr_whitelist=None):
@@ -793,18 +809,23 @@ class SSHContext(BaseContext):
         fname = pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
         # to prevent old file from being overwritten but cancelled, create a temporary file first
         # when it is fully written, rename it to the original file name
-        with self.sftp.open(fname + "~", "w") as fp:
-            fp.write(write_str)
+        temp_fname = fname + "_tmp"
+        try:
+            with self.sftp.open(temp_fname, "w") as fp:
+                fp.write(write_str)
+            # Rename the temporary file
+            self.block_checkcall(f"mv {shlex.quote(temp_fname)} {shlex.quote(fname)}")
         # sftp.rename may throw OSError
-        self.block_checkcall(
-            "mv {} {}".format(shlex.quote(fname + "~"), shlex.quote(fname))
-        )
+        except OSError as e:
+            dlog.exception(f"Error writing to file {fname}")
+            raise e
 
     def read_file(self, fname):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         with self.sftp.open(
-            pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(), "r"
+            pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(),
+            "r",
         ) as fp:
             ret = fp.read().decode("utf-8")
         return ret
@@ -945,36 +966,28 @@ class SSHContext(BaseContext):
         per_nfile = 100
         ntar = len(files) // per_nfile + 1
         if ntar <= 1:
-            try:
-                self.block_checkcall(
-                    "tar {} {} {}".format(
-                        tar_command,
-                        shlex.quote(of),
-                        " ".join([shlex.quote(file) for file in files]),
-                    )
-                )
-            except RuntimeError as e:
-                if "No such file or directory" in str(e):
-                    raise FileNotFoundError(
-                        "Any of the backward files does not exist in the remote directory."
-                    ) from e
-                raise e
+            file_list = " ".join([shlex.quote(file) for file in files])
+            tar_cmd = f"tar {tar_command} {shlex.quote(of)} {file_list}"
         else:
-            file_list_file = os.path.join(
-                self.remote_root, ".tmp.tar." + str(uuid.uuid4())
-            )
+            file_list_file = pathlib.PurePath(
+                os.path.join(self.remote_root, f".tmp_tar_{uuid.uuid4()}")
+            ).as_posix()
             self.write_file(file_list_file, "\n".join(files))
-            try:
-                self.block_checkcall(
-                    f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
-                )
-            except RuntimeError as e:
-                if "No such file or directory" in str(e):
-                    raise FileNotFoundError(
-                        "Any of the backward files does not exist in the remote directory."
-                    ) from e
-                raise e
-        # trans
+            tar_cmd = (
+                f"tar {tar_command} {shlex.quote(of)} -T {shlex.quote(file_list_file)}"
+            )
+
+        # Execute the tar command remotely
+        try:
+            self.block_checkcall(tar_cmd)
+        except RuntimeError as e:
+            if "No such file or directory" in str(e):
+                raise FileNotFoundError(
+                    "Backward files do not exist in the remote directory."
+                ) from e
+            raise e
+
+        # Transfer the archive from remote to local
         from_f = pathlib.PurePath(os.path.join(self.remote_root, of)).as_posix()
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         if os.path.isfile(to_f):

@@ -215,12 +215,13 @@ class SGE(PBS):
         # resources.number_node is not used in SGE
         resources = job.resources
         job_name = resources.kwargs.get("job_name", "wDPjob")
-        sge_pe_name = resources.kwargs.get("sge_pe_name", "mpi")
+        pe_name = resources.kwargs.get("pe_name", "mpi")
         sge_script_header_dict = {}
         sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
         sge_script_header_dict["select_node_line"] += (
-            f"#$ -pe {sge_pe_name} {resources.cpu_per_node}\n"
+            f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
         )
+
         if resources.queue_name != "":
             sge_script_header_dict["select_node_line"] += (
                 f"#$ -q {resources.queue_name}"
@@ -266,8 +267,7 @@ class SGE(PBS):
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             raise RuntimeError(
-                "status command qstat fails to execute. erro info: %s return code %d"
-                % (err_str, ret)
+                f"status command qstat fails to execute. erro info: {err_str} return code {ret}"
             )
         status_text_list = stdout.read().decode("utf-8").split("\n")
         for txt in status_text_list:
@@ -280,8 +280,7 @@ class SGE(PBS):
                 if self.check_finish_tag(job=job):
                     return JobStatus.finished
                 dlog.info(
-                    "not tag_finished detected, execute sync command and wait. count "
-                    + str(count)
+                    f"not tag_finished detected, execute sync command and wait. count {count}"
                 )
                 self.context.block_call("sync")
                 import time
@@ -307,7 +306,7 @@ class SGE(PBS):
     def resources_subfields(cls) -> List[Argument]:
         """Generate the resources subfields.
 
-            sge_pe_name : str
+            pe_name : str
         The parallel environment name of SGE.
 
         Returns
@@ -315,7 +314,7 @@ class SGE(PBS):
         list[Argument]
             resources subfields
         """
-        doc_sge_pe_name = "The parallel environment name of SGE."
+        doc_pe_name = "The parallel environment name of SGE system."
         doc_job_name = "The name of SGE's job."
 
         return [
@@ -324,11 +323,12 @@ class SGE(PBS):
                 dict,
                 [
                     Argument(
-                        "sge_pe_name",
+                        "pe_name",
                         str,
                         optional=True,
                         default="mpi",
-                        doc=doc_sge_pe_name,
+                        doc=doc_pe_name,
+                        alias=["sge_pe_name"],
                     ),
                     Argument(
                         "job_name",
