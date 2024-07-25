@@ -621,9 +621,9 @@ class SSHContext(BaseContext):
                 ).as_posix()
                 sha256_list.append(f"{sha256}  {jj_rel}")
             # write to remote
-            sha256_file = pathlib.PurePath(os.path.join(
-                self.remote_root, ".tmp.sha256." + str(uuid.uuid4())
-            )).as_posix()
+            sha256_file = pathlib.PurePath(
+                os.path.join(self.remote_root, ".tmp.sha256." + str(uuid.uuid4()))
+            ).as_posix()
             self.write_file(sha256_file, "\n".join(sha256_list))
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
@@ -960,9 +960,9 @@ class SSHContext(BaseContext):
                     ) from e
                 raise e
         else:
-            file_list_file = pathlib.PurePath(os.path.join(
-                self.remote_root, ".tmp.tar." + str(uuid.uuid4())
-            )).as_posix()
+            file_list_file = pathlib.PurePath(
+                os.path.join(self.remote_root, ".tmp.tar." + str(uuid.uuid4()))
+            ).as_posix()
             self.write_file(file_list_file, "\n".join(files))
             try:
                 self.block_checkcall(
