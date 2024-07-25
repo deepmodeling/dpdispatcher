@@ -623,7 +623,7 @@ class SSHContext(BaseContext):
             # write to remote
             sha256_file = pathlib.PurePath(os.path.join(
                 self.remote_root, ".tmp.sha256." + str(uuid.uuid4())
-            ).as_posix()
+            )).as_posix()
             self.write_file(sha256_file, "\n".join(sha256_list))
             # check sha256
             # `:` means pass: https://stackoverflow.com/a/2421592/9567349
