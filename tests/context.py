@@ -19,6 +19,7 @@ from dpdispatcher.entrypoints.submission import handle_submission  # noqa: F401
 from dpdispatcher.machine import Machine  # noqa: F401
 from dpdispatcher.machines.distributed_shell import DistributedShell  # noqa: F401
 from dpdispatcher.machines.dp_cloud_server import Lebesgue  # noqa: F401
+from dpdispatcher.machines.JH_UniScheduler import JH_UniScheduler  # noqa: F401
 from dpdispatcher.machines.lsf import LSF  # noqa: F401
 from dpdispatcher.machines.pbs import PBS  # noqa: F401
 from dpdispatcher.machines.shell import Shell  # noqa: F401

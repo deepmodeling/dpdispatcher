@@ -1,4 +1,7 @@
 import shlex
+from typing import List
+
+from dargs import Argument
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
@@ -181,10 +184,9 @@ class Torque(PBS):
 
 sge_script_header_template = """
 #!/bin/bash
-#$ -N dpdispatcher_submit
-{select_node_line}
+#$ -S /bin/bash
 #$ -cwd
-
+{select_node_line}
 """
 
 
@@ -209,14 +211,31 @@ class SGE(PBS):
         )
 
     def gen_script_header(self, job):
+        ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
+        # resources.number_node is not used in SGE
         resources = job.resources
+        job_name = resources.kwargs.get("job_name", "wDPjob")
+        pe_name = resources.kwargs.get("pe_name", "mpi")
         sge_script_header_dict = {}
-        # resources.number_node is not used
-        sge_script_header_dict["select_node_line"] = (
-            f"#$ -pe mpi {resources.cpu_per_node} "
+        sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
+        sge_script_header_dict["select_node_line"] += (
+            f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
         )
-        # resources.queue_name is not necessary
-        sge_script_header = sge_script_header_template.format(**sge_script_header_dict)
+
+        if resources.queue_name != "":
+            sge_script_header_dict["select_node_line"] += (
+                f"#$ -q {resources.queue_name}"
+            )
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
+            file_name = resources["strategy"]["customized_script_header_template_file"]
+            sge_script_header = customized_script_header_template(file_name, resources)
+        else:
+            sge_script_header = sge_script_header_template.format(
+                **sge_script_header_dict
+            )
         return sge_script_header
 
     def do_submit(self, job):
@@ -224,6 +243,9 @@ class SGE(PBS):
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
         self.context.write_file(fname=script_file_name, write_str=script_str)
+        script_run_str = self.gen_script_command(job)
+        script_run_file_name = f"{job.script_file_name}.run"
+        self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         script_file_dir = self.context.remote_root
         stdin, stdout, stderr = self.context.block_checkcall(
             "cd {} && {} {}".format(script_file_dir, "qsub", script_file_name)
@@ -245,8 +267,7 @@ class SGE(PBS):
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             raise RuntimeError(
-                "status command qstat fails to execute. erro info: %s return code %d"
-                % (err_str, ret)
+                f"status command qstat fails to execute. erro info: {err_str} return code {ret}"
             )
         status_text_list = stdout.read().decode("utf-8").split("\n")
         for txt in status_text_list:
@@ -259,8 +280,7 @@ class SGE(PBS):
                 if self.check_finish_tag(job=job):
                     return JobStatus.finished
                 dlog.info(
-                    "not tag_finished detected, execute sync command and wait. count "
-                    + str(count)
+                    f"not tag_finished detected, execute sync command and wait. count {count}"
                 )
                 self.context.block_call("sync")
                 import time
@@ -281,3 +301,44 @@ class SGE(PBS):
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
+
+    @classmethod
+    def resources_subfields(cls) -> List[Argument]:
+        """Generate the resources subfields.
+
+            pe_name : str
+        The parallel environment name of SGE.
+
+        Returns
+        -------
+        list[Argument]
+            resources subfields
+        """
+        doc_pe_name = "The parallel environment name of SGE system."
+        doc_job_name = "The name of SGE's job."
+
+        return [
+            Argument(
+                "kwargs",
+                dict,
+                [
+                    Argument(
+                        "pe_name",
+                        str,
+                        optional=True,
+                        default="mpi",
+                        doc=doc_pe_name,
+                        alias=["sge_pe_name"],
+                    ),
+                    Argument(
+                        "job_name",
+                        str,
+                        optional=True,
+                        default="wDPjob",
+                        doc=doc_job_name,
+                    ),
+                ],
+                optional=False,
+                doc="Extra arguments.",
+            )
+        ]

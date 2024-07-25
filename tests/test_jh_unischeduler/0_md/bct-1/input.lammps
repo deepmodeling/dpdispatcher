@@ -1,0 +1,31 @@
+clear
+units   metal
+dimension       3
+boundary        p       p    p
+atom_style      atomic
+# box         tilt large
+read_data       conf.lmp
+mass            1 118.71
+neigh_modify    every 1 delay 0 check no
+pair_style 	deepmd ../graph.pb
+pair_coeff
+compute         mype all pe
+compute         mymsd all  msd
+
+thermo          20
+thermo_style    custom step temp  pe pxx pyy pzz pxy pxz pyz lx ly lz vol c_mymsd[*] spcpu
+min_style       cg
+fix             1 all box/relax iso 0.0
+minimize        1.000000e-12 1.000000e-06 5000 500000
+
+# timestep      0.002
+# velocity        all create 2.0 7369221
+
+# fix           2 all  npt temp 2.0 200.0 $(100.0*dt)  aniso 0.0 200000.0 $(1000.0*dt)
+# run           2000
+# unfix         2
+
+dump            1  all custom 1 final.dump.relax id type xs ys zs fx fy fz
+run             10000
+
+write_data	out.lmp
