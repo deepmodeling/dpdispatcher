@@ -201,6 +201,7 @@ class SGE(PBS):
         sge_script_header_dict = {}
         sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
         sge_script_header_dict["select_node_line"] += f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
+
         if resources.queue_name != "":
             sge_script_header_dict["select_node_line"] += f"#$ -q {resources.queue_name}"
         if resources["strategy"].get("customized_script_header_template_file") is not None:
@@ -304,6 +305,7 @@ class SGE(PBS):
                         default="wDPjob",
                         doc=doc_job_name,
                     ),
+     
                 ],
                 optional=False,
                 doc="Extra arguments.",
