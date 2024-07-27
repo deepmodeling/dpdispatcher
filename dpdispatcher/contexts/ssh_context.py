@@ -44,6 +44,7 @@ class SSHSession:
         totp_secret=None,
         tar_compress=True,
         look_for_keys=True,
+        execute_command=None,
     ):
         self.hostname = hostname
         self.username = username
@@ -56,6 +57,7 @@ class SSHSession:
         self.ssh = None
         self.tar_compress = tar_compress
         self.look_for_keys = look_for_keys
+        self.execute_command = execute_command
         self._keyboard_interactive_auth = False
         self._setup_ssh()
 
@@ -237,6 +239,8 @@ class SSHSession:
         self.ssh._transport = ts  # type: ignore
         # reset sftp
         self._sftp = None
+        if self.execute_command is not None:
+            self.exec_command(self.execute_command)
 
     def inter_handler(self, title, instructions, prompt_list):
         """inter_handler: the callback for paramiko.transport.auth_interactive.
@@ -338,6 +342,7 @@ class SSHSession:
         doc_look_for_keys = (
             "enable searching for discoverable private key files in ~/.ssh/"
         )
+        doc_execute_command = "execute command after ssh connection is established."
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -378,6 +383,13 @@ class SSHSession:
                 optional=True,
                 default=True,
                 doc=doc_look_for_keys,
+            ),
+            Argument(
+                "execute_command",
+                str,
+                optional=True,
+                default=None,
+                doc=doc_execute_command,
             ),
         ]
         ssh_remote_profile_format = Argument(
