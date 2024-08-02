@@ -32,4 +32,4 @@ The number of tasks in a job. 0 means infinity.
 
 :::
 
-These environment variables can be used in the command, for example, `mpirun -n ${DPDISPATCHER_CPU_PER_NODE} xx.run`.
+These environment variables can be used in the {dargs:argument}`command <task/command>`, for example, `mpirun -n ${DPDISPATCHER_CPU_PER_NODE} xx.run`.
