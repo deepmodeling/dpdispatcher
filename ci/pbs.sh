@@ -2,7 +2,7 @@
 set -e
 
 cd ./ci/pbs
-docker-compose pull
+docker compose pull
 ./start-pbs.sh
 cd -
 
