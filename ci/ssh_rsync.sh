@@ -2,7 +2,7 @@
 set -e
 
 cd ./ci/ssh
-docker-compose pull
+docker compose pull
 ./start-ssh.sh
 cd -
 
