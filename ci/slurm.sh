@@ -2,7 +2,7 @@
 set -e
 
 cd ./ci/slurm
-docker-compose pull
+docker compose pull
 ./start-slurm.sh
 cd -
 
