@@ -1122,9 +1122,9 @@ class Resources:
 
     @staticmethod
     def arginfo(detail_kwargs=True):
-        doc_number_node = "The number of node need for each `job`"
-        doc_cpu_per_node = "cpu numbers of each node assigned to each job."
-        doc_gpu_per_node = "gpu numbers of each node assigned to each job."
+        doc_number_node = "The number of nodes required for each `job`."
+        doc_cpu_per_node = "CPU numbers of each node assigned to each job."
+        doc_gpu_per_node = "GPU numbers of each node assigned to each job."
         doc_queue_name = "The queue name of batch job scheduler system."
         doc_group_size = "The number of `tasks` in a `job`. 0 means infinity."
         doc_custom_flags = "The extra lines pass to job submitting script header"
