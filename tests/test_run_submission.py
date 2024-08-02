@@ -65,7 +65,14 @@ class RunSubmission:
         task_list = []
         for ii in range(4):
             task = Task(
-                command=f"echo dpdispatcher_unittest_{ii}",
+                command=(
+                    f"[[ $DPDISPATCHER_NUMBER_NODE -eq {self.resources_dict['number_node']} ]] &&"
+                    f"[[ $DPDISPATCHER_CPU_PER_NODE -eq {self.resources_dict['cpu_per_node']} ]] &&"
+                    f"[[ $DPDISPATCHER_GPU_PER_NODE -eq {self.resources_dict['gpu_per_node']} ]] &&"
+                    f"[[ $DPDISPATCHER_QUEUE_NAME == {self.resources_dict['queue_name']} ]] &&"
+                    f"[[ $DPDISPATCHER_GROUP_SIZE -eq {self.resources_dict['group_size']} ]] &&"
+                    f"echo dpdispatcher_unittest_{ii}"
+                ),
                 task_work_path="./",
                 forward_files=[],
                 backward_files=[f"out{ii}.txt"],

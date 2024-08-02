@@ -111,6 +111,11 @@ class TestLSFScriptGeneration(unittest.TestCase):
             source /data/home/ypliu/scripts/avail_gpu.sh
             source /data/home/ypliu/dprun/tf_envs.sh
 
+            export DPDISPATCHER_NUMBER_NODE=1
+            export DPDISPATCHER_CPU_PER_NODE=4
+            export DPDISPATCHER_GPU_PER_NODE=1
+            export DPDISPATCHER_QUEUE_NAME=gpu
+            export DPDISPATCHER_GROUP_SIZE=4
             export DP_DISPATCHER_EXPORT=test_foo_bar_baz
 
             echo 'The summer you were there.'
