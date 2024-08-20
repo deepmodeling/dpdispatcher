@@ -74,7 +74,10 @@ class Shell(Machine):
             return JobStatus.unsubmitted
 
         # mark defunct process as terminated
-        cmd = f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
+        cmd = (
+            r"""command -v ps >/dev/null 2>&1 || { echo >&2 "I require ps but it's not installed. Aborting."; exit 1; };"""
+            f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
+        )
         ret, stdin, stdout, stderr = self.context.block_call(
             cmd
         )
