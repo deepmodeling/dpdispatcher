@@ -82,7 +82,7 @@ class BaseContext(metaclass=ABCMeta):
             The command to run.
         asynchronously : bool, optional, default=False
             Run command asynchronously. If True, `nohup` will be used to run the command.
-    
+
         Returns
         -------
         stdin
@@ -120,7 +120,7 @@ class BaseContext(metaclass=ABCMeta):
         ----------
         cmd : str
             The command to run.
-    
+
         Returns
         -------
         exit_status
@@ -133,7 +133,6 @@ class BaseContext(metaclass=ABCMeta):
             standard error
         """
         return exit_status, stdin, stdout, stderr
-        
 
     @classmethod
     def machine_arginfo(cls) -> Argument:
