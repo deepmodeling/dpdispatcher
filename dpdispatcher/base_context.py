@@ -132,7 +132,6 @@ class BaseContext(metaclass=ABCMeta):
         stderr
             standard error
         """
-        return exit_status, stdin, stdout, stderr
 
     @classmethod
     def machine_arginfo(cls) -> Argument:
