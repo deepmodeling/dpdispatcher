@@ -288,21 +288,6 @@ class LocalContext(BaseContext):
                 # no nothing in the case of linked files
                 pass
 
-    def block_checkcall(self, cmd):
-        proc = sp.Popen(
-            cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
-        )
-        o, e = proc.communicate()
-        stdout = SPRetObj(o)
-        stderr = SPRetObj(e)
-        code = proc.returncode
-        if code != 0:
-            raise RuntimeError(
-                f"Get error code {code} in locally calling {cmd} with job: {self.submission.submission_hash}"
-                f"\nStandard error: {stderr}"
-            )
-        return None, stdout, stderr
-
     def block_call(self, cmd):
         proc = sp.Popen(
             cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE

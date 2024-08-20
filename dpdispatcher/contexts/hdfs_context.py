@@ -244,3 +244,8 @@ class HDFSContext(BaseContext):
 
     def read_file(self, fname):
         return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
+
+    def block_call(self, cmd):
+        raise RuntimeError(
+            "Unsupported method. You may use an unsupported combination of the machine and the context."
+        )
