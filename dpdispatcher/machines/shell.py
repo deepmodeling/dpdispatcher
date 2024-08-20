@@ -77,7 +77,8 @@ class Shell(Machine):
             return JobStatus.unsubmitted
 
         if self._has_ps is None:
-            ret, stdin, stdout, stderr = self.context.block_call("which ps")
+            # avoid which; see https://stackoverflow.com/a/677212/9567349
+            ret, stdin, stdout, stderr = self.context.block_call("command -v ps")
             if ret != 0:
                 err_str = stderr.read().decode("utf-8")
                 raise RuntimeError(
