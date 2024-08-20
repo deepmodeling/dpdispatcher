@@ -76,7 +76,8 @@ class PBS(Machine):
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
-        ret, stdin, stdout, stderr = self.context.block_call("qstat -x " + job_id)
+        command = "qstat -x " + job_id
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             if "qstat: Unknown Job Id" in err_str or "Job has finished" in err_str:
@@ -86,8 +87,8 @@ class PBS(Machine):
                     return JobStatus.terminated
             else:
                 raise RuntimeError(
-                    "status command qstat fails to execute. erro info: %s return code %d"
-                    % (err_str, ret)
+                    "status command %s fails to execute. erro info: %s return code %d"
+                    % (command, err_str, ret)
                 )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-2]
@@ -126,7 +127,8 @@ class Torque(PBS):
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
-        ret, stdin, stdout, stderr = self.context.block_call("qstat -l " + job_id)
+        command = "qstat -l " + job_id
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             if "qstat: Unknown Job Id" in err_str or "Job has finished" in err_str:
@@ -136,8 +138,8 @@ class Torque(PBS):
                     return JobStatus.terminated
             else:
                 raise RuntimeError(
-                    "status command qstat fails to execute. erro info: %s return code %d"
-                    % (err_str, ret)
+                    "status command %s fails to execute. erro info: %s return code %d"
+                    % (command, err_str, ret)
                 )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-2]
@@ -263,11 +265,12 @@ class SGE(PBS):
         status_line = None
         if job_id == "":
             return JobStatus.unsubmitted
-        ret, stdin, stdout, stderr = self.context.block_call("qstat")
+        command = "qstat"
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             raise RuntimeError(
-                f"status command qstat fails to execute. erro info: {err_str} return code {ret}"
+                f"status command {command} fails to execute. erro info: {err_str} return code {ret}"
             )
         status_text_list = stdout.read().decode("utf-8").split("\n")
         for txt in status_text_list:

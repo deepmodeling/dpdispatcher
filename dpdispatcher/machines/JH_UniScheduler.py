@@ -105,7 +105,7 @@ class JH_UniScheduler(Machine):
         elif ret != 0:
             # just retry when any unknown error raised.
             raise RetrySignal(
-                "Get error code %d in checking status through ssh with job: %s . message: %s"
+                "Get error code %d in checking status with job: %s . message: %s"
                 % (ret, job.job_hash, err_str)
             )
         status_out = stdout.read().decode("utf-8").split("\n")
