@@ -129,9 +129,7 @@ class Slurm(Machine):
         if job_id == "":
             return JobStatus.unsubmitted
         command = 'squeue -o "%.18i %.2t" -j ' + job_id
-        ret, stdin, stdout, stderr = self.context.block_call(
-            command
-        )
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             if "Invalid job id specified" in err_str:
