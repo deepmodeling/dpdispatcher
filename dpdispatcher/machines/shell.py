@@ -38,14 +38,15 @@ class Shell(Machine):
         script_run_str = self.gen_script_command(job)
         script_run_file_name = f"{job.script_file_name}.run"
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
+        cmd = f"cd {shlex.quote(self.context.remote_root)} && {{ nohup bash {script_file_name} 1>>{output_name} 2>>{output_name} & }} && echo $!"
         ret, stdin, stdout, stderr = self.context.block_call(
-            f"cd {shlex.quote(self.context.remote_root)} && {{ nohup bash {script_file_name} 1>>{output_name} 2>>{output_name} & }} && echo $!"
+            cmd
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             raise RuntimeError(
-                "status command squeue fails to execute\nerror message:%s\nreturn code %d\n"
-                % (err_str, ret)
+                "status command %s fails to execute\nerror message:%s\nreturn code %d\n"
+                % (cmd, err_str, ret)
             )
         job_id = int(stdout.read().decode("utf-8").strip())
         self.context.write_file(job_id_name, str(job_id))
@@ -73,14 +74,15 @@ class Shell(Machine):
             return JobStatus.unsubmitted
 
         # mark defunct process as terminated
+        cmd = f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
         ret, stdin, stdout, stderr = self.context.block_call(
-            f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
+            cmd
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             raise RuntimeError(
-                "status command squeue fails to execute\nerror message:%s\nreturn code %d\n"
-                % (err_str, ret)
+                "status command %s fails to execute\nerror message:%s\nreturn code %d\n"
+                % (cmd, err_str, ret)
             )
 
         if_job_exists = bool(stdout.read().decode("utf-8").strip())

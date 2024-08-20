@@ -83,12 +83,13 @@ class Slurm(Machine):
         script_run_file_name = f"{job.script_file_name}.run"
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
-        ret, stdin, stdout, stderr = self.context.block_call(
-            "cd {} && {} {}".format(
+        command = "cd {} && {} {}".format(
                 shlex.quote(self.context.remote_root),
                 "sbatch",
                 shlex.quote(script_file_name),
             )
+        ret, stdin, stdout, stderr = self.context.block_call(
+            command
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
@@ -110,8 +111,8 @@ class Slurm(Machine):
                 # job number exceeds, skip the submitting
                 return ""
             raise RuntimeError(
-                "status command squeue fails to execute\nerror message:%s\nreturn code %d\n"
-                % (err_str, ret)
+                "status command %s fails to execute\nerror message:%s\nreturn code %d\n"
+                % (command, err_str, ret)
             )
         subret = stdout.readlines()
         # --parsable
@@ -151,9 +152,9 @@ class Slurm(Machine):
                     % (ret, job.job_hash, err_str)
                 )
             raise RuntimeError(
-                "status command squeue fails to execute."
+                "status command %s fails to execute."
                 "job_id:%s \n error message:%s\n return code %d\n"
-                % (job_id, err_str, ret)
+                % (command, job_id, err_str, ret)
             )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-1]
@@ -319,8 +320,9 @@ class SlurmJobArray(Slurm):
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
+        command = 'squeue -h -o "%.18i %.2t" -j ' + job_id
         ret, stdin, stdout, stderr = self.context.block_call(
-            'squeue -h -o "%.18i %.2t" -j ' + job_id
+            
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
@@ -340,9 +342,9 @@ class SlurmJobArray(Slurm):
                     % (ret, job.job_hash, err_str)
                 )
             raise RuntimeError(
-                "status command squeue fails to execute."
+                "status command %s fails to execute."
                 "job_id:%s \n error message:%s\n return code %d\n"
-                % (job_id, err_str, ret)
+                % (command, job_id, err_str, ret)
             )
         status_lines = stdout.read().decode("utf-8").split("\n")[:-1]
         status = []
