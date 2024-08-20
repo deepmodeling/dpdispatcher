@@ -74,7 +74,7 @@ class Shell(Machine):
 
         # mark defunct process as terminated
         ret, stdin, stdout, stderr = self.context.block_call(
-            'command -v ps >/dev/null 2>&1 || { echo >&2 "I require ps but it's not installed. Aborting."; exit 1; };'
+            r"""command -v ps >/dev/null 2>&1 || { echo >&2 "I require ps but it's not installed. Aborting."; exit 1; };"""
             f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
         )
         if ret != 0:
