@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 from dargs import Argument
 
@@ -73,7 +73,7 @@ class BaseContext(metaclass=ABCMeta):
     def check_finish(self, proc):
         raise NotImplementedError("abstract method")
 
-    def block_checkcall(self, cmd, asynchronously=False):
+    def block_checkcall(self, cmd, asynchronously=False) -> Tuple[Any, Any, Any]:
         """Run command with arguments. Wait for command to complete.
 
         Parameters
@@ -113,7 +113,7 @@ class BaseContext(metaclass=ABCMeta):
         return stdin, stdout, stderr
 
     @abstractmethod
-    def block_call(self, cmd):
+    def block_call(self, cmd) -> Tuple[int, Any, Any, Any]:
         """Run command with arguments. Wait for command to complete.
 
         Parameters
