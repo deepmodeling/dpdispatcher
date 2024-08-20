@@ -84,13 +84,11 @@ class Slurm(Machine):
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
         command = "cd {} && {} {}".format(
-                shlex.quote(self.context.remote_root),
-                "sbatch",
-                shlex.quote(script_file_name),
-            )
-        ret, stdin, stdout, stderr = self.context.block_call(
-            command
+            shlex.quote(self.context.remote_root),
+            "sbatch",
+            shlex.quote(script_file_name),
         )
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             if (
@@ -321,9 +319,7 @@ class SlurmJobArray(Slurm):
         if job_id == "":
             return JobStatus.unsubmitted
         command = 'squeue -h -o "%.18i %.2t" -j ' + job_id
-        ret, stdin, stdout, stderr = self.context.block_call(
-            
-        )
+        ret, stdin, stdout, stderr = self.context.block_call()
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             if "Invalid job id specified" in err_str:

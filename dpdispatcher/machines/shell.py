@@ -39,9 +39,7 @@ class Shell(Machine):
         script_run_file_name = f"{job.script_file_name}.run"
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         cmd = f"cd {shlex.quote(self.context.remote_root)} && {{ nohup bash {script_file_name} 1>>{output_name} 2>>{output_name} & }} && echo $!"
-        ret, stdin, stdout, stderr = self.context.block_call(
-            cmd
-        )
+        ret, stdin, stdout, stderr = self.context.block_call(cmd)
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             raise RuntimeError(
@@ -78,9 +76,7 @@ class Shell(Machine):
             r"""command -v ps >/dev/null 2>&1 || { echo >&2 "I require ps but it's not installed. Aborting."; exit 1; };"""
             f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
         )
-        ret, stdin, stdout, stderr = self.context.block_call(
-            cmd
-        )
+        ret, stdin, stdout, stderr = self.context.block_call(cmd)
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             raise RuntimeError(
