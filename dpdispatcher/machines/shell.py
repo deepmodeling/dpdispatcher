@@ -11,6 +11,10 @@ shell_script_header_template = """
 
 
 class Shell(Machine):
+    def bind_context(self, context):
+        super().bind_context(context)
+        self._has_ps = None
+
     def gen_script(self, job):
         shell_script = super().gen_script(job)
         return shell_script
@@ -72,6 +76,15 @@ class Shell(Machine):
         if job_id == "":
             return JobStatus.unsubmitted
 
+        if self._has_ps is None:
+            ret, stdin, stdout, stderr = self.context.block_call("which ps")
+            if ret != 0:
+                err_str = stderr.read().decode("utf-8")
+                raise RuntimeError(
+                    "ps command is not found. Consider installing it using `apt-get install procps` or `yum install procps`\nerror message:%s\nreturn code %d\n"
+                    % (err_str, ret)
+                )
+            self._has_ps = True
         # mark defunct process as terminated
         ret, stdin, stdout, stderr = self.context.block_call(
             f"if ps -p {job_id} > /dev/null && ! (ps -o command -p {job_id} | grep defunct >/dev/null) ; then echo 1; fi"
