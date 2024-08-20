@@ -73,6 +73,68 @@ class BaseContext(metaclass=ABCMeta):
     def check_finish(self, proc):
         raise NotImplementedError("abstract method")
 
+    def block_checkcall(self, cmd, asynchronously=False):
+        """Run command with arguments. Wait for command to complete.
+
+        Parameters
+        ----------
+        cmd : str
+            The command to run.
+        asynchronously : bool, optional, default=False
+            Run command asynchronously. If True, `nohup` will be used to run the command.
+    
+        Returns
+        -------
+        stdin
+            standard inout
+        stdout
+            standard output
+        stderr
+            standard error
+
+        Raises
+        ------
+        RuntimeError
+            when the return code is not zero
+        """
+        if asynchronously:
+            cmd = f"nohup {cmd} >/dev/null &"
+        exit_status, stdin, stdout, stderr = self.block_call(cmd)
+        if exit_status != 0:
+            raise RuntimeError(
+                "Get error code %d in calling %s with job: %s . message: %s"
+                % (
+                    exit_status,
+                    cmd,
+                    self.submission.submission_hash,
+                    stderr.read().decode("utf-8"),
+                )
+            )
+        return stdin, stdout, stderr
+
+    @abstractmethod
+    def block_call(self, cmd):
+        """Run command with arguments. Wait for command to complete.
+
+        Parameters
+        ----------
+        cmd : str
+            The command to run.
+    
+        Returns
+        -------
+        exit_status
+            exit code
+        stdin
+            standard inout
+        stdout
+            standard output
+        stderr
+            standard error
+        """
+        return exit_status, stdin, stdout, stderr
+        
+
     @classmethod
     def machine_arginfo(cls) -> Argument:
         """Generate the machine arginfo.

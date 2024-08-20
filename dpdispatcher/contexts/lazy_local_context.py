@@ -112,23 +112,6 @@ class LazyLocalContext(BaseContext):
     #                else:
     #                    raise RuntimeError('do not find download file ' + fname)
 
-    def block_checkcall(self, cmd):
-        # script_dir = os.path.join(self.local_root, self.submission.work_base)
-        # os.chdir(script_dir)
-        proc = sp.Popen(
-            cmd, cwd=self.local_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
-        )
-        o, e = proc.communicate()
-        stdout = SPRetObj(o)
-        stderr = SPRetObj(e)
-        code = proc.returncode
-        if code != 0:
-            raise RuntimeError(
-                "Get error code %d in locally calling %s with job: %s ",
-                (code, cmd, self.submission.submission_hash),
-            )
-        return None, stdout, stderr
-
     def block_call(self, cmd):
         proc = sp.Popen(
             cmd, cwd=self.local_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE

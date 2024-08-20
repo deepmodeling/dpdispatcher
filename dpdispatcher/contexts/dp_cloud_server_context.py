@@ -335,6 +335,9 @@ class BohriumContext(BaseContext):
             )
         ]
 
+    def block_call(self, cmd):
+        raise RuntimeError("Unsupported method. You may use an unsupported combination of the machine and the context.")
+
 
 DpCloudServerContext = BohriumContext
 LebesgueContext = BohriumContext

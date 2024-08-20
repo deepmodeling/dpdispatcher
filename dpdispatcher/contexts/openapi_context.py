@@ -258,3 +258,6 @@ class OpenAPIContext(BaseContext):
             dir_to_be_removed = os.path.join(local_root, "backup")
             if os.path.exists(dir_to_be_removed):
                 shutil.rmtree(dir_to_be_removed)
+
+    def block_call(self, cmd):
+        raise RuntimeError("Unsupported method. You may use an unsupported combination of the machine and the context.")
