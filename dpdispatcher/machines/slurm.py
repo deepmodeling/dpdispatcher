@@ -109,7 +109,7 @@ class Slurm(Machine):
                 # job number exceeds, skip the submitting
                 return ""
             raise RuntimeError(
-                "status command %s fails to execute\nerror message:%s\nreturn code %d\n"
+                "command %s fails to execute\nerror message:%s\nreturn code %d\n"
                 % (command, err_str, ret)
             )
         subret = stdout.readlines()
@@ -128,8 +128,9 @@ class Slurm(Machine):
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
+        command = 'squeue -o "%.18i %.2t" -j ' + job_id
         ret, stdin, stdout, stderr = self.context.block_call(
-            'squeue -o "%.18i %.2t" -j ' + job_id
+            command
         )
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
