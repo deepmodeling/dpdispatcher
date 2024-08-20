@@ -97,7 +97,7 @@ class Slurm(Machine):
             ):
                 # server network error, retry 3 times
                 raise RetrySignal(
-                    "Get error code %d in submitting through ssh with job: %s . message: %s"
+                    "Get error code %d in submitting with job: %s . message: %s"
                     % (ret, job.job_hash, err_str)
                 )
             elif (
@@ -145,7 +145,7 @@ class Slurm(Machine):
             ):
                 # retry 3 times
                 raise RetrySignal(
-                    "Get error code %d in checking status through ssh with job: %s . message: %s"
+                    "Get error code %d in checking status with job: %s . message: %s"
                     % (ret, job.job_hash, err_str)
                 )
             raise RuntimeError(
@@ -333,7 +333,7 @@ class SlurmJobArray(Slurm):
             ):
                 # retry 3 times
                 raise RetrySignal(
-                    "Get error code %d in checking status through ssh with job: %s . message: %s"
+                    "Get error code %d in checking status with job: %s . message: %s"
                     % (ret, job.job_hash, err_str)
                 )
             raise RuntimeError(
