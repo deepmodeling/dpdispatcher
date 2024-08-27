@@ -181,8 +181,8 @@ class DistributedShell(Machine):
         if ret != 0:
             err_str = stderr.decode("utf-8")
             raise RuntimeError(
-                "Command squeue fails to execute, error message:%s\nreturn code %d\n"
-                % (err_str, ret)
+                "Command %s fails to execute, error message:%s\nreturn code %d\n"
+                % (cmd, err_str, ret)
             )
         job_id = int(stdout.decode("utf-8").strip())
 

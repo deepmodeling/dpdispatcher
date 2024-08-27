@@ -767,41 +767,6 @@ class SSHContext(BaseContext):
                 tar_compress=self.remote_profile.get("tar_compress", None),
             )
 
-    def block_checkcall(self, cmd, asynchronously=False, stderr_whitelist=None):
-        """Run command with arguments. Wait for command to complete. If the return code
-        was zero then return, otherwise raise RuntimeError.
-
-        Parameters
-        ----------
-        cmd : str
-            The command to run.
-        asynchronously : bool, optional, default=False
-            Run command asynchronously. If True, `nohup` will be used to run the command.
-        stderr_whitelist : list of str, optional, default=None
-            If not None, the stderr will be checked against the whitelist. If the stderr
-            contains any of the strings in the whitelist, the command will be considered
-            successful.
-        """
-        assert self.remote_root is not None
-        self.ssh_session.ensure_alive()
-        if asynchronously:
-            cmd = f"nohup {cmd} >/dev/null &"
-        stdin, stdout, stderr = self.ssh_session.exec_command(
-            (f"cd {shlex.quote(self.remote_root)} ;") + cmd
-        )
-        exit_status = stdout.channel.recv_exit_status()
-        if exit_status != 0:
-            raise RuntimeError(
-                "Get error code %d in calling %s through ssh with job: %s . message: %s"
-                % (
-                    exit_status,
-                    cmd,
-                    self.submission.submission_hash,
-                    stderr.read().decode("utf-8"),
-                )
-            )
-        return stdin, stdout, stderr
-
     def block_call(self, cmd):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()

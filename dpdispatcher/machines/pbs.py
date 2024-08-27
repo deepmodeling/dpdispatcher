@@ -28,15 +28,22 @@ class PBS(Machine):
             f"#PBS -l select={resources.number_node}:ncpus={resources.cpu_per_node}"
         )
         if resources.gpu_per_node != 0:
-            pbs_script_header_dict["select_node_line"] += f":ngpus={resources.gpu_per_node}"
+            pbs_script_header_dict["select_node_line"] += (
+                f":ngpus={resources.gpu_per_node}"
+            )
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
             pbs_script_header = customized_script_header_template(
                 resources["strategy"]["customized_script_header_template_file"],
                 resources,
             )
         else:
-            pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+            pbs_script_header = pbs_script_header_template.format(
+                **pbs_script_header_dict
+            )
         return pbs_script_header
 
     def do_submit(self, job):
@@ -53,7 +60,9 @@ class PBS(Machine):
         script_file_dir = self.context.remote_root
         # stdin, stdout, stderr = self.context.block_checkcall('cd %s && %s %s' % (self.context.remote_root, 'qsub', script_file_name))
         stdin, stdout, stderr = self.context.block_checkcall(
-            "cd {} && {} {}".format(shlex.quote(script_file_dir), "qsub", shlex.quote(script_file_name))
+            "cd {} && {} {}".format(
+                shlex.quote(script_file_dir), "qsub", shlex.quote(script_file_name)
+            )
         )
         subret = stdout.readlines()
         job_id = subret[0].split()[0]
@@ -67,7 +76,8 @@ class PBS(Machine):
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
-        ret, stdin, stdout, stderr = self.context.block_call("qstat -x " + job_id)
+        command = "qstat -x " + job_id
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             if "qstat: Unknown Job Id" in err_str or "Job has finished" in err_str:
@@ -77,7 +87,8 @@ class PBS(Machine):
                     return JobStatus.terminated
             else:
                 raise RuntimeError(
-                    "status command qstat fails to execute. erro info: %s return code %d" % (err_str, ret)
+                    "status command %s fails to execute. erro info: %s return code %d"
+                    % (command, err_str, ret)
                 )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-2]
@@ -116,7 +127,8 @@ class Torque(PBS):
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
-        ret, stdin, stdout, stderr = self.context.block_call("qstat -l " + job_id)
+        command = "qstat -l " + job_id
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             if "qstat: Unknown Job Id" in err_str or "Job has finished" in err_str:
@@ -126,7 +138,8 @@ class Torque(PBS):
                     return JobStatus.terminated
             else:
                 raise RuntimeError(
-                    "status command qstat fails to execute. erro info: %s return code %d" % (err_str, ret)
+                    "status command %s fails to execute. erro info: %s return code %d"
+                    % (command, err_str, ret)
                 )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-2]
@@ -152,15 +165,22 @@ class Torque(PBS):
             f"#PBS -l nodes={resources.number_node}:ppn={resources.cpu_per_node}"
         )
         if resources.gpu_per_node != 0:
-            pbs_script_header_dict["select_node_line"] += f":gpus={resources.gpu_per_node}"
+            pbs_script_header_dict["select_node_line"] += (
+                f":gpus={resources.gpu_per_node}"
+            )
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
             pbs_script_header = customized_script_header_template(
                 resources["strategy"]["customized_script_header_template_file"],
                 resources,
             )
         else:
-            pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
+            pbs_script_header = pbs_script_header_template.format(
+                **pbs_script_header_dict
+            )
         return pbs_script_header
 
 
@@ -200,15 +220,24 @@ class SGE(PBS):
         pe_name = resources.kwargs.get("pe_name", "mpi")
         sge_script_header_dict = {}
         sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
-        sge_script_header_dict["select_node_line"] += f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
+        sge_script_header_dict["select_node_line"] += (
+            f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
+        )
 
         if resources.queue_name != "":
-            sge_script_header_dict["select_node_line"] += f"#$ -q {resources.queue_name}"
-        if resources["strategy"].get("customized_script_header_template_file") is not None:
+            sge_script_header_dict["select_node_line"] += (
+                f"#$ -q {resources.queue_name}"
+            )
+        if (
+            resources["strategy"].get("customized_script_header_template_file")
+            is not None
+        ):
             file_name = resources["strategy"]["customized_script_header_template_file"]
             sge_script_header = customized_script_header_template(file_name, resources)
         else:
-            sge_script_header = sge_script_header_template.format(**sge_script_header_dict)
+            sge_script_header = sge_script_header_template.format(
+                **sge_script_header_dict
+            )
         return sge_script_header
 
     def do_submit(self, job):
@@ -237,10 +266,13 @@ class SGE(PBS):
         status_line = None
         if job_id == "":
             return JobStatus.unsubmitted
-        ret, stdin, stdout, stderr = self.context.block_call("qstat")
+        command = "qstat"
+        ret, stdin, stdout, stderr = self.context.block_call(command)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
-            raise RuntimeError(f"status command qstat fails to execute. erro info: {err_str} return code {ret}")
+            raise RuntimeError(
+                f"status command {command} fails to execute. erro info: {err_str} return code {ret}"
+            )
         status_text_list = stdout.read().decode("utf-8").split("\n")
         for txt in status_text_list:
             if job_id in txt:
@@ -251,7 +283,9 @@ class SGE(PBS):
             while count <= 6:
                 if self.check_finish_tag(job=job):
                     return JobStatus.finished
-                dlog.info(f"not tag_finished detected, execute sync command and wait. count {count}")
+                dlog.info(
+                    f"not tag_finished detected, execute sync command and wait. count {count}"
+                )
                 self.context.block_call("sync")
                 import time
 

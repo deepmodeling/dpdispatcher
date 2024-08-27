@@ -21,7 +21,7 @@ from datetime import date
 
 project = "DPDispatcher"
 copyright = "2020-%d, Deep Modeling" % date.today().year
-author = "Deep Modeling"
+author = "DeepModeling"
 
 
 # -- General configuration ---------------------------------------------------
@@ -97,3 +97,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/", None),
     "dargs": ("https://docs.deepmodeling.com/projects/dargs/en/latest/", None),
 }
+
+myst_enable_extensions = [
+    "colon_fence",
+]

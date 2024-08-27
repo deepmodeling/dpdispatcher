@@ -265,6 +265,15 @@ class Machine(metaclass=ABCMeta):
 
         export_envs_part = ""
         envs = job.resources.envs
+        envs = {
+            # export resources information to the environment variables
+            "DPDISPATCHER_NUMBER_NODE": job.resources.number_node,
+            "DPDISPATCHER_CPU_PER_NODE": job.resources.cpu_per_node,
+            "DPDISPATCHER_GPU_PER_NODE": job.resources.gpu_per_node,
+            "DPDISPATCHER_QUEUE_NAME": job.resources.queue_name,
+            "DPDISPATCHER_GROUP_SIZE": job.resources.group_size,
+            **envs,
+        }
         for k, v in envs.items():
             if isinstance(v, list):
                 for each_value in v:
