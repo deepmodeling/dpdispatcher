@@ -23,7 +23,10 @@ class TestJob(unittest.TestCase):
             "context_type": "LocalContext",
             "local_root": "./",
             "remote_root": "/some/path",
-            "remote_profile": {},
+            "remote_profile": {
+                "symlink": True,
+            },
+            "clean_asynchronously": False,
         }
         self.assertDictEqual(norm_dict, expected_dict)
 

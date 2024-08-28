@@ -161,6 +161,9 @@ class Machine(metaclass=ABCMeta):
             machine_dict["remote_profile"] = self.context.remote_profile
         else:
             machine_dict["remote_profile"] = {}
+        # normalize the dict
+        base = self.arginfo()
+        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
         return machine_dict
 
     def __eq__(self, other):
