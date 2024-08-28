@@ -26,6 +26,7 @@ class TestJob(unittest.TestCase):
             "remote_profile": {
                 "symlink": True,
             },
+            "clean_asynchronously": False,
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
