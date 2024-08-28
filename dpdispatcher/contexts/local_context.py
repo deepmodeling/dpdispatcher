@@ -3,6 +3,9 @@ import shutil
 import subprocess as sp
 from glob import glob
 from subprocess import TimeoutExpired
+from typing import List
+
+from dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
@@ -60,6 +63,7 @@ class LocalContext(BaseContext):
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(remote_root)
         self.remote_profile = remote_profile
+        self.symlink = remote_profile.get("symlink", True)
 
     @classmethod
     def load_from_dict(cls, context_dict):
@@ -83,6 +87,25 @@ class LocalContext(BaseContext):
             self.temp_remote_root, submission.submission_hash
         )
 
+    def _copy_from_local_to_remote(self, local_path, remote_path):
+        if not os.path.exists(local_path):
+            raise FileNotFoundError(
+                f"cannot find uploaded file {os.path.join(local_path)}"
+            )
+        if os.path.exists(remote_path):
+            os.remove(remote_path)
+        _check_file_path(remote_path)
+
+        if self.symlink:
+            # ensure the file exist
+            os.symlink(local_path, remote_path)
+        elif os.path.isfile(local_path):
+            shutil.copyfile(local_path, remote_path)
+        elif os.path.isdir(local_path):
+            shutil.copytree(local_path, remote_path)
+        else:
+            raise ValueError(f"Unknown file type: {local_path}")
+
     def upload(self, submission):
         os.makedirs(self.remote_root, exist_ok=True)
         for ii in submission.belonging_tasks:
@@ -103,14 +126,9 @@ class LocalContext(BaseContext):
                 file_list.extend(rel_file_list)
 
             for jj in file_list:
-                if not os.path.exists(os.path.join(local_job, jj)):
-                    raise FileNotFoundError(
-                        "cannot find upload file " + os.path.join(local_job, jj)
-                    )
-                if os.path.exists(os.path.join(remote_job, jj)):
-                    os.remove(os.path.join(remote_job, jj))
-                _check_file_path(os.path.join(remote_job, jj))
-                os.symlink(os.path.join(local_job, jj), os.path.join(remote_job, jj))
+                self._copy_from_local_to_remote(
+                    os.path.join(local_job, jj), os.path.join(remote_job, jj)
+                )
 
         local_job = self.local_root
         remote_job = self.remote_root
@@ -128,14 +146,9 @@ class LocalContext(BaseContext):
             file_list.extend(rel_file_list)
 
         for jj in file_list:
-            if not os.path.exists(os.path.join(local_job, jj)):
-                raise FileNotFoundError(
-                    "cannot find upload file " + os.path.join(local_job, jj)
-                )
-            if os.path.exists(os.path.join(remote_job, jj)):
-                os.remove(os.path.join(remote_job, jj))
-            _check_file_path(os.path.join(remote_job, jj))
-            os.symlink(os.path.join(local_job, jj), os.path.join(remote_job, jj))
+            self._copy_from_local_to_remote(
+                os.path.join(local_job, jj), os.path.join(remote_job, jj)
+            )
 
     def download(
         self, submission, check_exists=False, mark_failure=True, back_error=False
@@ -336,3 +349,31 @@ class LocalContext(BaseContext):
                 stdout = None
                 stderr = None
         return ret, stdout, stderr
+
+    @classmethod
+    def machine_subfields(cls) -> List[Argument]:
+        """Generate the machine subfields.
+
+        Returns
+        -------
+        list[Argument]
+            machine subfields
+        """
+        doc_remote_profile = "The information used to maintain the local machine."
+        return [
+            Argument(
+                "remote_profile",
+                dict,
+                optional=True,
+                doc=doc_remote_profile,
+                sub_fields=[
+                    Argument(
+                        "symlink",
+                        bool,
+                        optional=True,
+                        default=True,
+                        doc="Whether to use symbolic links to replace copy. This option should be turned off if the local directory is not accessible on the Batch system.",
+                    ),
+                ],
+            )
+        ]

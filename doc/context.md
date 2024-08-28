@@ -16,7 +16,8 @@ Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Ba
 {dargs:argument}`context_type <machine/context_type>`: `Local`
 
 `Local` runs jobs in the local server, but in a different directory.
-Files will be copied to the remote directory before jobs start and copied back after jobs finish.
+Files will be symlinked to the remote directory before jobs start and copied back after jobs finish.
+If the local directory is not accessible with the [batch system](./batch.md), turn off {dargs:argument}`symlink <machine[SSHContext]/remote_profile/symlink>`, and then files on the local directory will be copied to the remote directory.
 
 Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environment variables. Therefore, it's advisable to explicitly set the environment variables using {dargs:argument}`envs <resources/envs>` or {dargs:argument}`source_list <resources/source_list>`.
 
