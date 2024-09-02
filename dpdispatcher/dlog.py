@@ -6,7 +6,7 @@ import warnings
 dlog = logging.getLogger("dpdispatcher")
 dlog.propagate = False
 dlog.setLevel(logging.INFO)
-cwd_logfile_path = os.path.join(os.getcwd(), "logs/dpdispatcher.log")
+cwd_logfile_path = os.path.join(os.getcwd(), "dpdispatcher.log")
 dlogf = logging.FileHandler(cwd_logfile_path, delay=True)
 try:
     dlog.addHandler(dlogf)
