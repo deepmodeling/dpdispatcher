@@ -261,6 +261,7 @@ class SGE(PBS):
         pass
 
     def check_status(self, job):
+        ### https://softpanorama.org/HPC/Grid_engine/Queues/queue_states.shtml
         job_id = job.job_id
         status_line = None
         if job_id == "":
@@ -294,10 +295,12 @@ class SGE(PBS):
         else:
             status_word = status_line.split()[4]
             # dlog.info (status_word)
-            if status_word in ["qw"]:
+            if status_word in ["qw", "hqw", "t"]:
                 return JobStatus.waiting
-            elif status_word in ["r"]:
+            elif status_word in ["r", "Rr"]:
                 return JobStatus.running
+            elif status_word in ["Eqw", "dr", "dt"]:
+                return JobStatus.terminated
             else:
                 return JobStatus.unknown
 
