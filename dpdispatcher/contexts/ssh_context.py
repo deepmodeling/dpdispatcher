@@ -972,6 +972,9 @@ class SSHContext(BaseContext):
         self.ssh_session.get(from_f, to_f)
         # extract
         with tarfile.open(to_f, mode=tarfile_mode) as tar:
+            for member in tar.getmembers():
+                if os.path.isabs(member.name) or ".." in member.name:
+                    raise ValueError(f"Illegal tar archive entry: {member.name}")
             tar.extractall(path=self.local_root)
         # cleanup
         os.remove(to_f)
