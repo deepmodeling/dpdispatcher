@@ -144,6 +144,10 @@ class HDFSContext(BaseContext):
         tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar.gz"))
         for tgz in tgz_file_list:
             with tarfile.open(tgz, "r:gz") as tar:
+                for member in tar.getmembers():
+                    member_path = os.path.join(gz_dir, member.name)
+                    if os.path.isabs(member.name) or ".." in member.name:
+                        raise ValueError(f"Illegal tar archive entry: {member.name}")
                 tar.extractall(path=gz_dir)
 
         for task in submission.belonging_tasks:
