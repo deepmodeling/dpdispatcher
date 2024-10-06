@@ -451,7 +451,7 @@ class SSHContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         assert os.path.isabs(
-            os.path.expanduser(remote_root)
+            os.path.realpath(remote_root)
         ), "remote_root must be a abspath"
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
