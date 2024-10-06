@@ -55,7 +55,6 @@ class Submission:
         *,
         task_list=[],
     ):
-        # self.submission_list = submission_list
         self.local_root = None
         self.work_base = work_base
         self._abs_work_base = os.path.abspath(work_base)
@@ -515,11 +514,8 @@ class Submission:
     def submission_from_json(cls, json_file_name="submission.json"):
         with open(json_file_name) as f:
             submission_dict = json.load(f)
-        # submission_dict = machine.context.read_file(json_file_name)
         submission = cls.deserialize(submission_dict=submission_dict, machine=None)
         return submission
-
-    # def check_if_recover()
 
     def try_recover_from_json(self):
         submission_file_name = f"{self.submission_hash}.json"
@@ -545,7 +541,6 @@ class Submission:
                     f"machine.context.remote_root:{self.machine.context.remote_root}; "
                     f"submission.work_base:{submission.work_base};"
                 )
-                # self = submission.bind_machine(machine=self.machine)
             else:
                 print(self.serialize())
                 print(submission.serialize())
@@ -759,7 +754,6 @@ class Job:
         self.fail_count = 0
         self.job_uuid = uuid.uuid4()
 
-        # self.job_hash = self.get_hash()
         self.job_hash = self.get_hash()
         self.script_file_name = self.job_hash + ".sub"
 

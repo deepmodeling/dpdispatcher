@@ -31,10 +31,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      if: matrix.platform != 'windows-latest'
-    - run: powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-      if: matrix.platform == 'windows-latest'
+    - uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: |
+          **/requirements*.txt
+          **/pyproject.toml
     - run: uv pip install --system .[test] coverage
     - name: Test
       run: |
