@@ -45,6 +45,7 @@ class SSHSession:
         tar_compress=True,
         look_for_keys=True,
         execute_command=None,
+        proxy_command=None,
     ):
         self.hostname = hostname
         self.username = username
@@ -59,6 +60,7 @@ class SSHSession:
         self.look_for_keys = look_for_keys
         self.execute_command = execute_command
         self._keyboard_interactive_auth = False
+        self.proxy_command = proxy_command
         self._setup_ssh()
 
     # @classmethod
@@ -141,9 +143,13 @@ class SSHSession:
         #                 )
         # assert(self.ssh.get_transport().is_active())
         # transport = self.ssh.get_transport()
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(self.timeout)
-        sock.connect((self.hostname, self.port))
+        if self.proxy_command is not None:
+            sock = paramiko.ProxyCommand(self.proxy_command)
+            sock.settimeout(self.timeout)
+        else:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(self.timeout)
+            sock.connect((self.hostname, self.port))
 
         # Make a Paramiko Transport object using the socket
         ts = paramiko.Transport(sock)
@@ -343,6 +349,7 @@ class SSHSession:
             "enable searching for discoverable private key files in ~/.ssh/"
         )
         doc_execute_command = "execute command after ssh connection is established."
+        doc_proxy_command = "The command of proxy."
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -390,6 +397,13 @@ class SSHSession:
                 optional=True,
                 default=None,
                 doc=doc_execute_command,
+            ),
+            Argument(
+                "proxy_command",
+                str,
+                optional=True,
+                default=None,
+                doc=doc_proxy_command,
             ),
         ]
         ssh_remote_profile_format = Argument(
