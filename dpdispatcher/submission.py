@@ -844,8 +844,12 @@ class Job:
             )
             retry_count = 3
             assert self.machine is not None
-            if hasattr(self.machine, "retry_count") and self.machine.retry_count >= 0:
-                retry_count = self.machine.retry_count + 1
+            # if hasattr(self.machine, "retry_count") and self.machine.retry_count >= 0:
+            #     retry_count = self.machine.retry_count + 1
+
+            if hasattr(self.machine, "retry_count"):
+                retry_count = self.machine.retry_count
+
             if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 last_error_message = self.get_last_error_message()
                 err_msg = (
