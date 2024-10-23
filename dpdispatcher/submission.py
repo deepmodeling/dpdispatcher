@@ -842,12 +842,14 @@ class Job:
                 f"job: {self.job_hash} {self.job_id} terminated; "
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
-            retry_count = 3
+            retry_count = 3  # Default retry count
             assert self.machine is not None
             if hasattr(self.machine, "retry_count"):
                 retry_count = self.machine.retry_count
 
-            if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
+            dlog.info(f"retry_count: {retry_count}")
+
+            if self.fail_count > retry_count:
                 last_error_message = self.get_last_error_message()
                 err_msg = (
                     f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
