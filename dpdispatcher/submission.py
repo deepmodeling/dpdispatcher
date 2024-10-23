@@ -842,20 +842,24 @@ class Job:
                 f"job: {self.job_hash} {self.job_id} terminated; "
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
-            self.retry_count = 3
+            retry_count = 3
             assert self.machine is not None
             if hasattr(self.machine, "retry_count"):
-                self.retry_count = self.machine.retry_count
+                retry_count = self.machine.retry_count
 
-            if (self.fail_count) > 0 and (self.fail_count % self.retry_count == 0):
+                print(f"retry_count: {retry_count}")
+
+            if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 last_error_message = self.get_last_error_message()
                 err_msg = (
                     f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
                 )
+
+                print(f"last_error_message: {last_error_message}")
+
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
                 raise RuntimeError(err_msg)
-
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
@@ -872,10 +876,8 @@ class Job:
 
         if job_state == JobStatus.unsubmitted:
             dlog.debug(f"job: {self.job_hash} unsubmitted; submit it")
-            if self.fail_count > self.retry_count:
-                raise RuntimeError(
-                    f"job:job {self.job_hash} failed {self.fail_count} times, exceed retry_count {self.retry_count}"
-                )
+            # if self.fail_count > 3:
+            #     raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(f"job: {self.job_hash} submit; job_id is {self.job_id}")
