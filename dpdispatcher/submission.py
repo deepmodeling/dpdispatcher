@@ -847,15 +847,18 @@ class Job:
             if hasattr(self.machine, "retry_count"):
                 retry_count = self.machine.retry_count
 
-            if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
-                last_error_message = self.get_last_error_message()
-                err_msg = (
-                    f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
-                )
-                if last_error_message is not None:
-                    err_msg += f"\nPossible remote error message: {last_error_message}"
-                raise RuntimeError(err_msg)
-            self.submit_job()
+            if (self.fail_count) > 0:
+                if self.fail_count % retry_count == 0:
+                    last_error_message = self.get_last_error_message()
+                    err_msg = f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
+                    if last_error_message is not None:
+                        err_msg += (
+                            f"\nPossible remote error message: {last_error_message}"
+                        )
+                    raise RuntimeError(err_msg)
+                else:
+                    self.submit_job()
+
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
                     f"job:{self.job_hash} re-submit after terminated; new job_id is {self.job_id}"
