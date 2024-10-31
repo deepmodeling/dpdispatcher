@@ -217,12 +217,13 @@ class SGE(PBS):
         # resources.number_node is not used in SGE
         resources = job.resources
         job_name = resources.kwargs.get("job_name", "wDPjob")
-        pe_name = resources.kwargs.get("pe_name", "mpi")
+        pe_name = resources.kwargs.get("pe_name", None)
         sge_script_header_dict = {}
         sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
-        sge_script_header_dict["select_node_line"] += (
-            f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
-        )
+        if pe_name is not None:
+            sge_script_header_dict["select_node_line"] += (
+                f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
+            )
 
         if resources.queue_name != "":
             sge_script_header_dict["select_node_line"] += (
