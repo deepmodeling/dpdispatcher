@@ -51,9 +51,9 @@ dpdisp = "dpdispatcher.dpdisp:main"
 docs = [
     'sphinx',
     'myst-parser',
-    'sphinx_rtd_theme>=1.0.0rc1',
+    'sphinx-book-theme',
     'numpydoc',
-    'deepmodeling_sphinx>=0.1.1',
+    'deepmodeling-sphinx>=0.3.0',
     'dargs>=0.3.1',
     'sphinx-argparse<0.5.0',
 ]
