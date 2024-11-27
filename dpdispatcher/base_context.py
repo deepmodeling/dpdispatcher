@@ -102,8 +102,7 @@ class BaseContext(metaclass=ABCMeta):
         exit_status, stdin, stdout, stderr = self.block_call(cmd)
         if exit_status != 0:
             raise RuntimeError(
-                "Get error code %d in calling %s with job: %s . message: %s"
-                % (
+                "Get error code {} in calling {} with job: {} . message: {}".format(
                     exit_status,
                     cmd,
                     self.submission.submission_hash,
