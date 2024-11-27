@@ -43,7 +43,7 @@ class Shell(Machine):
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             raise RuntimeError(
-                "status command {} fails to execute\nerror message:{}\nreturn code {}\n".format(cmd, err_str, ret)
+                f"status command {cmd} fails to execute\nerror message:{err_str}\nreturn code {ret}\n"
             )
         job_id = int(stdout.read().decode("utf-8").strip())
         self.context.write_file(job_id_name, str(job_id))
@@ -79,7 +79,7 @@ class Shell(Machine):
         if ret != 0:
             err_str = stderr.read().decode("utf-8")
             raise RuntimeError(
-                "status command {} fails to execute\nerror message:{}\nreturn code {}\n".format(cmd, err_str, ret)
+                f"status command {cmd} fails to execute\nerror message:{err_str}\nreturn code {ret}\n"
             )
 
         if_job_exists = bool(stdout.read().decode("utf-8").strip())

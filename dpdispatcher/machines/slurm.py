@@ -97,7 +97,7 @@ class Slurm(Machine):
             ):
                 # server network error, retry 3 times
                 raise RetrySignal(
-                    "Get error code {} in submitting with job: {} . message: {}".format(ret, job.job_hash, err_str)
+                    f"Get error code {ret} in submitting with job: {job.job_hash} . message: {err_str}"
                 )
             elif (
                 "Job violates accounting/QOS policy" in err_str
@@ -108,7 +108,7 @@ class Slurm(Machine):
                 # job number exceeds, skip the submitting
                 return ""
             raise RuntimeError(
-                "command {} fails to execute\nerror message:{}\nreturn code {}\n".format(command, err_str, ret)
+                f"command {command} fails to execute\nerror message:{err_str}\nreturn code {ret}\n"
             )
         subret = stdout.readlines()
         # --parsable
@@ -143,11 +143,11 @@ class Slurm(Machine):
             ):
                 # retry 3 times
                 raise RetrySignal(
-                    "Get error code {} in checking status with job: {} . message: {}".format(ret, job.job_hash, err_str)
+                    f"Get error code {ret} in checking status with job: {job.job_hash} . message: {err_str}"
                 )
             raise RuntimeError(
-                "status command {} fails to execute."
-                "job_id:{} \n error message:{}\n return code {}\n".format(command, job_id, err_str, ret)
+                f"status command {command} fails to execute."
+                f"job_id:{job_id} \n error message:{err_str}\n return code {ret}\n"
             )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-1]
@@ -329,11 +329,11 @@ class SlurmJobArray(Slurm):
             ):
                 # retry 3 times
                 raise RetrySignal(
-                    "Get error code {} in checking status with job: {} . message: {}".format(ret, job.job_hash, err_str)
+                    f"Get error code {ret} in checking status with job: {job.job_hash} . message: {err_str}"
                 )
             raise RuntimeError(
-                "status command {} fails to execute."
-                "job_id:{} \n error message:{}\n return code {}\n".format(command, job_id, err_str, ret)
+                f"status command {command} fails to execute."
+                f"job_id:{job_id} \n error message:{err_str}\n return code {ret}\n"
             )
         status_lines = stdout.read().decode("utf-8").split("\n")[:-1]
         status = []
