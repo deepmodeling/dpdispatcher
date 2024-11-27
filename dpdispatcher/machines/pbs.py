@@ -87,8 +87,7 @@ class PBS(Machine):
                     return JobStatus.terminated
             else:
                 raise RuntimeError(
-                    "status command %s fails to execute. erro info: %s return code %d"
-                    % (command, err_str, ret)
+                    "status command {} fails to execute. erro info: {} return code {}".format(command, err_str, ret)
                 )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-2]
@@ -138,8 +137,7 @@ class Torque(PBS):
                     return JobStatus.terminated
             else:
                 raise RuntimeError(
-                    "status command %s fails to execute. erro info: %s return code %d"
-                    % (command, err_str, ret)
+                    "status command {} fails to execute. erro info: {} return code {}".format(command, err_str, ret)
                 )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-2]

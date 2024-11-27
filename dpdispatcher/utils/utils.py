@@ -191,7 +191,7 @@ def retry(
             else:
                 # raise all exceptions
                 raise RuntimeError(
-                    "Failed to run %s for %d times" % (func.__name__, current_retry)
+                    "Failed to run {} for {} times".format(func.__name__, current_retry)
                 ) from errors[-1]
 
         return wrapper

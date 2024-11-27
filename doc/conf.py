@@ -20,7 +20,7 @@ from datetime import date
 # -- Project information -----------------------------------------------------
 
 project = "DPDispatcher"
-copyright = "2020-%d, Deep Modeling" % date.today().year
+copyright = "2020-{}, Deep Modeling".format(date.today().year)
 author = "DeepModeling"
 
 

@@ -181,8 +181,7 @@ class DistributedShell(Machine):
         if ret != 0:
             err_str = stderr.decode("utf-8")
             raise RuntimeError(
-                "Command %s fails to execute, error message:%s\nreturn code %d\n"
-                % (cmd, err_str, ret)
+                "Command {} fails to execute, error message:{}\nreturn code {}\n".format(cmd, err_str, ret)
             )
         job_id = int(stdout.decode("utf-8").strip())
 
@@ -200,8 +199,7 @@ class DistributedShell(Machine):
         if ret != 0:
             err_str = stderr.decode("utf-8")
             raise RuntimeError(
-                "Command fails to execute, error message:%s\nreturn code %d\n"
-                % (err_str, ret)
+                "Command fails to execute, error message:{}\nreturn code {}\n".format(err_str, ret)
             )
 
         if_job_exists = bool(stdout.decode("utf-8").strip())

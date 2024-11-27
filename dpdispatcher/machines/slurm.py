@@ -97,8 +97,7 @@ class Slurm(Machine):
             ):
                 # server network error, retry 3 times
                 raise RetrySignal(
-                    "Get error code %d in submitting with job: %s . message: %s"
-                    % (ret, job.job_hash, err_str)
+                    "Get error code {} in submitting with job: {} . message: {}".format(ret, job.job_hash, err_str)
                 )
             elif (
                 "Job violates accounting/QOS policy" in err_str
@@ -109,8 +108,7 @@ class Slurm(Machine):
                 # job number exceeds, skip the submitting
                 return ""
             raise RuntimeError(
-                "command %s fails to execute\nerror message:%s\nreturn code %d\n"
-                % (command, err_str, ret)
+                "command {} fails to execute\nerror message:{}\nreturn code {}\n".format(command, err_str, ret)
             )
         subret = stdout.readlines()
         # --parsable
@@ -145,13 +143,11 @@ class Slurm(Machine):
             ):
                 # retry 3 times
                 raise RetrySignal(
-                    "Get error code %d in checking status with job: %s . message: %s"
-                    % (ret, job.job_hash, err_str)
+                    "Get error code {} in checking status with job: {} . message: {}".format(ret, job.job_hash, err_str)
                 )
             raise RuntimeError(
-                "status command %s fails to execute."
-                "job_id:%s \n error message:%s\n return code %d\n"
-                % (command, job_id, err_str, ret)
+                "status command {} fails to execute."
+                "job_id:{} \n error message:{}\n return code {}\n".format(command, job_id, err_str, ret)
             )
         status_line = stdout.read().decode("utf-8").split("\n")[-2]
         status_word = status_line.split()[-1]
@@ -255,7 +251,7 @@ class SlurmJobArray(Slurm):
             return super().gen_script_header(job) + "\n#SBATCH --array={}".format(
                 ",".join(map(str, job_array))
             )
-        return super().gen_script_header(job) + "\n#SBATCH --array=0-%d" % (
+        return super().gen_script_header(job) + "\n#SBATCH --array=0-%s" % (
             math.ceil(len(job.job_task_list) / slurm_job_size) - 1
         )
 
@@ -333,13 +329,11 @@ class SlurmJobArray(Slurm):
             ):
                 # retry 3 times
                 raise RetrySignal(
-                    "Get error code %d in checking status with job: %s . message: %s"
-                    % (ret, job.job_hash, err_str)
+                    "Get error code {} in checking status with job: {} . message: {}".format(ret, job.job_hash, err_str)
                 )
             raise RuntimeError(
-                "status command %s fails to execute."
-                "job_id:%s \n error message:%s\n return code %d\n"
-                % (command, job_id, err_str, ret)
+                "status command {} fails to execute."
+                "job_id:{} \n error message:{}\n return code {}\n".format(command, job_id, err_str, ret)
             )
         status_lines = stdout.read().decode("utf-8").split("\n")[:-1]
         status = []
