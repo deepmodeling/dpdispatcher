@@ -90,8 +90,7 @@ class SSHSession:
         while not self._check_alive():
             if count == max_check:
                 raise RuntimeError(
-                    "cannot connect ssh after %d failures at interval %d s"
-                    % (max_check, sleep_time)
+                    f"cannot connect ssh after {max_check} failures at interval {sleep_time} s"
                 )
             dlog.info("connection check failed, try to reconnect to " + self.hostname)
             self._setup_ssh()

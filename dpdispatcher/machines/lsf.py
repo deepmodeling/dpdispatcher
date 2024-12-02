@@ -129,8 +129,7 @@ class LSF(Machine):
         elif ret != 0:
             # just retry when any unknown error raised.
             raise RetrySignal(
-                "Get error code %d in checking status with job: %s . message: %s"
-                % (ret, job.job_hash, err_str)
+                f"Get error code {ret} in checking status with job: {job.job_hash} . message: {err_str}"
             )
         status_out = stdout.read().decode("utf-8").split("\n")
         if len(status_out) < 2:

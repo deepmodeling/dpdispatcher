@@ -31,7 +31,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
         cache-dependency-glob: |
@@ -44,7 +44,7 @@ jobs:
         python -m coverage run -p --source=./dpdispatcher -m dpdispatcher -h
         python -m coverage combine
         python -m coverage report
-    - uses: codecov/codecov-action@v4
+    - uses: codecov/codecov-action@v5
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   pass:
