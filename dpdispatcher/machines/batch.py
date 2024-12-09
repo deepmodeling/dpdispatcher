@@ -7,7 +7,7 @@ from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.utils import customized_script_header_template
 
-shell_script_header_template = """@echo off\n"""
+shell_script_header_template = """@echo off"""
 
 
 class Batch(Machine):
@@ -38,22 +38,20 @@ class Batch(Machine):
         script_run_str = self.gen_script_command(job)
         script_run_file_name = f"{job.script_file_name}.run"
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
+        cmd = f"cd {shlex.quote(self.context.remote_root)} && {script_file_name} > {output_name} 2>&1"
+        ret, stdin, stdout, stderr = self.context.block_call(cmd)
 
-        cmd = f"start /B cmd /C {shlex.quote(script_file_name)} > {output_name} 2>&1 && echo %!PID!"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        print("ret:", ret)
+        print("stdin:", stdin.read().decode("utf-8"))
+        print("stdout:", stdout.read().decode("utf-8"))
+        print("stderr:", stderr.read().decode("utf-8"))
 
-        print(result.stdout)
-
-        if result.returncode != 0:
+        if ret != 0:
+            err_str = stderr.read().decode("utf-8")
             raise RuntimeError(
-                f"Failed to execute command: {cmd}\nError: {result.stderr}\nReturn code: {result.returncode}"
+                f"status command {cmd} fails to execute\nerror message:{err_str}\nreturn code {ret}\n"
             )
-
-        job_id = result.stdout.strip()
-        if not job_id.isdigit():
-            raise RuntimeError(
-                f"Failed to retrieve job ID from output: {result.stdout}"
-            )
+        job_id = int(stdout.read().decode("utf-8").strip())
 
         self.context.write_file(job_id_name, job_id)
         return job_id
