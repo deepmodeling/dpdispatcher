@@ -1,6 +1,6 @@
 import os
 import shlex
-from subprocess import PIPE, Popen
+import subprocess
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
@@ -40,16 +40,21 @@ class Batch(Machine):
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
 
         cmd = f"start /B cmd /C {shlex.quote(script_file_name)} > {output_name} 2>&1 && echo %!PID!"
-        process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
-        if process.returncode != 0:
-            err_str = stderr.decode("utf-8")
+        print(result.stdout)
+
+        if result.returncode != 0:
             raise RuntimeError(
-                f"Failed to execute command: {cmd}\nError: {err_str}\nReturn code: {process.returncode}"
+                f"Failed to execute command: {cmd}\nError: {result.stderr}\nReturn code: {result.returncode}"
             )
 
-        job_id = stdout.decode("utf-8").strip()
+        job_id = result.stdout.strip()
+        if not job_id.isdigit():
+            raise RuntimeError(
+                f"Failed to retrieve job ID from output: {result.stdout}"
+            )
+
         self.context.write_file(job_id_name, job_id)
         return job_id
 
@@ -63,19 +68,15 @@ class Batch(Machine):
             return JobStatus.unsubmitted
 
         cmd = f'tasklist /FI "PID eq {job_id}"'
-        process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
-        if process.returncode != 0:
-            err_str = stderr.decode("utf-8")
+        if result.returncode != 0:
             raise RuntimeError(
-                f"Failed to execute command: {cmd}\nError: {err_str}\nReturn code: {process.returncode}"
+                f"Failed to execute command: {cmd}\nError: {result.stderr}\nReturn code: {result.returncode}"
             )
 
-        output = stdout.decode("utf-8")
-        if str(job_id) in output:
+        if str(job_id) in result.stdout:
             if self.check_finish_tag(job):
-                dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                 return JobStatus.finished
             return JobStatus.running
         else:
@@ -88,11 +89,9 @@ class Batch(Machine):
     def kill(self, job):
         job_id = job.job_id
         cmd = f"taskkill /PID {job_id} /F"
-        process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
-        if process.returncode != 0:
-            err_str = stderr.decode("utf-8")
+        if result.returncode != 0:
             raise RuntimeError(
-                f"Failed to kill job {job_id}: {err_str}\nReturn code: {process.returncode}"
+                f"Failed to kill job {job_id}: {result.stderr}\nReturn code: {result.returncode}"
             )
