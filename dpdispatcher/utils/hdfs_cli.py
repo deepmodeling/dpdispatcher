@@ -28,7 +28,7 @@ class HDFS:
                 )
         except Exception as e:
             raise RuntimeError(
-                f"Cannot check existence of hdfs uri[{uri}] " f"with cmd[{cmd}]"
+                f"Cannot check existence of hdfs uri[{uri}] with cmd[{cmd}]"
             ) from e
 
     @staticmethod
@@ -48,9 +48,7 @@ class HDFS:
                     f"with cmd[{cmd}]; ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
-            raise RuntimeError(
-                f"Cannot remove hdfs uri[{uri}] " f"with cmd[{cmd}]"
-            ) from e
+            raise RuntimeError(f"Cannot remove hdfs uri[{uri}] with cmd[{cmd}]") from e
 
     @staticmethod
     def mkdir(uri):
@@ -70,7 +68,7 @@ class HDFS:
                 )
         except Exception as e:
             raise RuntimeError(
-                f"Cannot mkdir of hdfs uri[{uri}] " f"with cmd[{cmd}]"
+                f"Cannot mkdir of hdfs uri[{uri}] with cmd[{cmd}]"
             ) from e
 
     @staticmethod
@@ -80,7 +78,7 @@ class HDFS:
         """
         # Make sure local_path is accessible
         if not os.path.exists(local_path) or not os.access(local_path, os.R_OK):
-            raise RuntimeError(f"try to access local_path[{local_path}] " "but failed")
+            raise RuntimeError(f"try to access local_path[{local_path}] but failed")
         cmd = f"hadoop fs -copyFromLocal -f {local_path} {to_uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
@@ -132,9 +130,7 @@ class HDFS:
                     f"cmd [{cmd}] ret[{ret}] output[{out}] stderr[{err}]"
                 )
         except Exception as e:
-            raise RuntimeError(
-                f"Cannot read text from uri[{uri}]" f"cmd [{cmd}]"
-            ) from e
+            raise RuntimeError(f"Cannot read text from uri[{uri}]cmd [{cmd}]") from e
 
     @staticmethod
     def move(from_uri, to_uri):
@@ -151,6 +147,5 @@ class HDFS:
                 )
         except Exception as e:
             raise RuntimeError(
-                f"Cannot move from_uri[{from_uri}] to "
-                f"to_uri[{to_uri}] with cmd[{cmd}]"
+                f"Cannot move from_uri[{from_uri}] to to_uri[{to_uri}] with cmd[{cmd}]"
             ) from e

@@ -39,7 +39,7 @@ class JH_UniScheduler(Machine):
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
         if not custom_gpu_line:
             script_header_dict["JH_UniScheduler_number_gpu_line"] = (
-                "" f"#JSUB -gpgpu {resources.gpu_per_node}"
+                f"#JSUB -gpgpu {resources.gpu_per_node}"
             )
         else:
             script_header_dict["JH_UniScheduler_number_gpu_line"] = custom_gpu_line
