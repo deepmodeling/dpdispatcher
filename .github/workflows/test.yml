@@ -16,7 +16,7 @@ jobs:
           - '3.11'
           - '3.12'
         platform:
-          - ubuntu-latest
+          - ubuntu-22.04
           - macos-latest
           - windows-latest
         exclude:  # Apple Silicon ARM64 does not support Python < v3.8

@@ -323,8 +323,7 @@ class Submission:
         kwargs = {**{"clean": False}, **kwargs}
         if kwargs["clean"]:
             dlog.warning(
-                "Using async submission with `clean=True`, "
-                "job may fail in queue system"
+                "Using async submission with `clean=True`, job may fail in queue system"
             )
         loop = asyncio.get_event_loop()
         wrapped_submission = functools.partial(self.run_submission, **kwargs)
