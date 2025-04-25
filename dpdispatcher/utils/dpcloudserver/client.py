@@ -278,7 +278,11 @@ class Client:
             return ""
         resp = requests.get(url, headers={"Range": f"bytes={self.last_log_offset}-"})
         self.last_log_offset += len(resp.content)
-        return resp.content.decode("utf-8")
+        try:
+            return resp.content.decode("utf-8")
+        except Exception as e:
+            dlog.error(f"Error decoding job log: {e}", stack_info=ENABLE_STACK)
+            return ""
 
     def _get_job_log(self, job_id):
         ret = self.get(
