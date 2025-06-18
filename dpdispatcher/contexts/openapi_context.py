@@ -1,14 +1,13 @@
 import os
 import shutil
 import uuid
-
+import glob
+from zipfile import ZipFile
 import tqdm
 
 try:
-    from bohriumsdk.client import Client
-    from bohriumsdk.job import Job
-    from bohriumsdk.storage import Storage
-    from bohriumsdk.util import Util
+    from bohrium import Bohrium
+    from bohrium.resources import Job, Tiefblue
 except ModuleNotFoundError:
     found_bohriumsdk = False
 else:
@@ -22,6 +21,33 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
 
+def unzip_file(zip_file, out_dir="./"):
+    obj = ZipFile(zip_file, "r")
+    for item in obj.namelist():
+        obj.extract(item, out_dir)
+
+def zip_file_list(root_path, zip_filename, file_list=[]):
+    out_zip_file = os.path.join(root_path, zip_filename)
+    # print('debug: file_list', file_list)
+    zip_obj = ZipFile(out_zip_file, "w")
+    for f in file_list:
+        matched_files = os.path.join(root_path, f)
+        for ii in glob.glob(matched_files):
+            # print('debug: matched_files:ii', ii)
+            if os.path.isdir(ii):
+                arcname = os.path.relpath(ii, start=root_path)
+                zip_obj.write(ii, arcname)
+                for root, dirs, files in os.walk(ii):
+                    for file in files:
+                        filename = os.path.join(root, file)
+                        arcname = os.path.relpath(filename, start=root_path)
+                        # print('debug: filename:arcname:root_path', filename, arcname, root_path)
+                        zip_obj.write(filename, arcname)
+            else:
+                arcname = os.path.relpath(ii, start=root_path)
+                zip_obj.write(ii, arcname)
+    zip_obj.close()
+    return out_zip_file
 
 class OpenAPIContext(BaseContext):
     def __init__(
@@ -40,10 +66,19 @@ class OpenAPIContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
-        self.client = Client()
-        self.storage = Storage(client=self.client)
+        access_key = remote_profile.get("access_key", None) or os.getenv("BOHRIUM_ACCESS_KEY", None) or os.getenv("ACCESS_KEY", None)
+        project_id = remote_profile.get("project_id", None) or os.getenv("BOHRIUM_PROJECT_ID", None) or os.getenv("PROJECT_ID", None)
+        if access_key is None:
+            raise ValueError(
+                "remote_profile must contain 'access_key' or set environment variable 'BOHRIUM_ACCESS_KEY'"
+            )
+        if project_id is None:
+            raise ValueError(
+                "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
+            )
+        self.client = Bohrium(access_key=access_key, project_id=project_id)
+        self.storage = Tiefblue()
         self.job = Job(client=self.client)
-        self.util = Util()
         self.jgid = None
 
     @classmethod
@@ -97,7 +132,7 @@ class OpenAPIContext(BaseContext):
             for file in task.forward_files:
                 upload_file_list.append(os.path.join(task.task_work_path, file))
 
-        upload_zip = Util.zip_file_list(
+        upload_zip = zip_file_list(
             self.local_root, zip_task_file, file_list=upload_file_list
         )
         project_id = self.remote_profile.get("project_id", 0)
@@ -189,7 +224,7 @@ class OpenAPIContext(BaseContext):
             ):
                 continue
             self.storage.download_from_url(info["resultUrl"], target_result_zip)
-            Util.unzip_file(target_result_zip, out_dir=self.local_root)
+            unzip_file(target_result_zip, out_dir=self.local_root)
             self._backup(self.local_root, target_result_zip)
         self._clean_backup(
             self.local_root, keep_backup=self.remote_profile.get("keep_backup", True)
