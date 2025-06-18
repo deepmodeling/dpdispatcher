@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 from zipfile import ZipFile
+
 from dpdispatcher.utils.utils import customized_script_header_template
 
 try:
@@ -19,6 +20,7 @@ from dpdispatcher.utils.job_status import JobStatus
 shell_script_header_template = """
 #!/bin/bash -l
 """
+
 
 def unzip_file(zip_file, out_dir="./"):
     obj = ZipFile(zip_file, "r")
@@ -39,8 +41,16 @@ class OpenAPI(Machine):
         self.retry_count = self.remote_profile.get("retry_count", 3)
         self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", True)
 
-        access_key = self.remote_profile.get("access_key", None) or os.getenv("BOHRIUM_ACCESS_KEY", None) or os.getenv("ACCESS_KEY", None)
-        project_id = self.remote_profile.get("project_id", None) or os.getenv("BOHRIUM_PROJECT_ID", None) or os.getenv("PROJECT_ID", None)
+        access_key = (
+            self.remote_profile.get("access_key", None)
+            or os.getenv("BOHRIUM_ACCESS_KEY", None)
+            or os.getenv("ACCESS_KEY", None)
+        )
+        project_id = (
+            self.remote_profile.get("project_id", None)
+            or os.getenv("BOHRIUM_PROJECT_ID", None)
+            or os.getenv("PROJECT_ID", None)
+        )
         if access_key is None:
             raise ValueError(
                 "remote_profile must contain 'access_key' or set environment variable 'BOHRIUM_ACCESS_KEY'"

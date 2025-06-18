@@ -1,8 +1,9 @@
+import glob
 import os
 import shutil
 import uuid
-import glob
 from zipfile import ZipFile
+
 import tqdm
 
 try:
@@ -21,10 +22,12 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
 
+
 def unzip_file(zip_file, out_dir="./"):
     obj = ZipFile(zip_file, "r")
     for item in obj.namelist():
         obj.extract(item, out_dir)
+
 
 def zip_file_list(root_path, zip_filename, file_list=[]):
     out_zip_file = os.path.join(root_path, zip_filename)
@@ -49,6 +52,7 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
     zip_obj.close()
     return out_zip_file
 
+
 class OpenAPIContext(BaseContext):
     def __init__(
         self,
@@ -66,8 +70,16 @@ class OpenAPIContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
-        access_key = remote_profile.get("access_key", None) or os.getenv("BOHRIUM_ACCESS_KEY", None) or os.getenv("ACCESS_KEY", None)
-        project_id = remote_profile.get("project_id", None) or os.getenv("BOHRIUM_PROJECT_ID", None) or os.getenv("PROJECT_ID", None)
+        access_key = (
+            remote_profile.get("access_key", None)
+            or os.getenv("BOHRIUM_ACCESS_KEY", None)
+            or os.getenv("ACCESS_KEY", None)
+        )
+        project_id = (
+            remote_profile.get("project_id", None)
+            or os.getenv("BOHRIUM_PROJECT_ID", None)
+            or os.getenv("PROJECT_ID", None)
+        )
         if access_key is None:
             raise ValueError(
                 "remote_profile must contain 'access_key' or set environment variable 'BOHRIUM_ACCESS_KEY'"
