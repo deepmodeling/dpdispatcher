@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 from zipfile import ZipFile
+
 from dpdispatcher.utils.utils import customized_script_header_template
 
 try:
@@ -19,6 +20,7 @@ from dpdispatcher.utils.job_status import JobStatus
 shell_script_header_template = """
 #!/bin/bash -l
 """
+
 
 def unzip_file(zip_file, out_dir="./"):
     obj = ZipFile(zip_file, "r")

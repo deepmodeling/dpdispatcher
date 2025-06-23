@@ -1,8 +1,9 @@
+import glob
 import os
 import shutil
 import uuid
-import glob
 from zipfile import ZipFile
+
 import tqdm
 
 try:
@@ -21,10 +22,12 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
 
+
 def unzip_file(zip_file, out_dir="./"):
     obj = ZipFile(zip_file, "r")
     for item in obj.namelist():
         obj.extract(item, out_dir)
+
 
 def zip_file_list(root_path, zip_filename, file_list=[]):
     out_zip_file = os.path.join(root_path, zip_filename)
@@ -48,6 +51,7 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
                 zip_obj.write(ii, arcname)
     zip_obj.close()
     return out_zip_file
+
 
 class OpenAPIContext(BaseContext):
     def __init__(
