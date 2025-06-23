@@ -70,9 +70,21 @@ class OpenAPIContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
-        access_key = remote_profile.get("access_key", None) or os.getenv("BOHRIUM_ACCESS_KEY", None) or os.getenv("ACCESS_KEY", None)
-        project_id = remote_profile.get("project_id", None) or os.getenv("BOHRIUM_PROJECT_ID", None) or os.getenv("PROJECT_ID", None)
-        app_key = remote_profile.get("app_key", None) or os.getenv("BOHRIUM_APP_KEY", None) or os.getenv("APP_KEY", None)
+        access_key = (
+            remote_profile.get("access_key", None)
+            or os.getenv("BOHRIUM_ACCESS_KEY", None)
+            or os.getenv("ACCESS_KEY", None)
+        )
+        project_id = (
+            remote_profile.get("project_id", None)
+            or os.getenv("BOHRIUM_PROJECT_ID", None)
+            or os.getenv("PROJECT_ID", None)
+        )
+        app_key = (
+            remote_profile.get("app_key", None)
+            or os.getenv("BOHRIUM_APP_KEY", None)
+            or os.getenv("APP_KEY", None)
+        )
         if access_key is None:
             raise ValueError(
                 "remote_profile must contain 'access_key' or set environment variable 'BOHRIUM_ACCESS_KEY'"
@@ -81,7 +93,9 @@ class OpenAPIContext(BaseContext):
             raise ValueError(
                 "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
             )
-        self.client = Bohrium(access_key=access_key, project_id=project_id, app_key=app_key)
+        self.client = Bohrium(
+            access_key=access_key, project_id=project_id, app_key=app_key
+        )
         self.storage = Tiefblue()
         self.job = Job(client=self.client)
         self.jgid = None
