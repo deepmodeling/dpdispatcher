@@ -9,10 +9,12 @@ import tqdm
 try:
     from bohrium import Bohrium
     from bohrium.resources import Job, Tiefblue
-except ModuleNotFoundError:
+except ModuleNotFoundError as e:
     found_bohriumsdk = False
+    import_bohrium_error = e
 else:
     found_bohriumsdk = True
+    import_bohrium_error = None
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
@@ -65,7 +67,7 @@ class OpenAPIContext(BaseContext):
         if not found_bohriumsdk:
             raise ModuleNotFoundError(
                 "bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`"
-            )
+            ) from import_bohrium_error
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
