@@ -23,6 +23,7 @@ from dpdispatcher.utils.job_status import JobStatus
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
+os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
 
 def unzip_file(zip_file, out_dir="./"):
@@ -57,12 +58,12 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
 
 class OpenAPIContext(BaseContext):
     def __init__(
-        self,
-        local_root,
-        remote_root=None,
-        remote_profile={},
-        *args,
-        **kwargs,
+            self,
+            local_root,
+            remote_root=None,
+            remote_profile={},
+            *args,
+            **kwargs,
     ):
         if not found_bohriumsdk:
             raise ModuleNotFoundError(
@@ -73,19 +74,19 @@ class OpenAPIContext(BaseContext):
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
         access_key = (
-            remote_profile.get("access_key", None)
-            or os.getenv("BOHRIUM_ACCESS_KEY", None)
-            or os.getenv("ACCESS_KEY", None)
+                remote_profile.get("access_key", None)
+                or os.getenv("BOHRIUM_ACCESS_KEY", None)
+                or os.getenv("ACCESS_KEY", None)
         )
         project_id = (
-            remote_profile.get("project_id", None)
-            or os.getenv("BOHRIUM_PROJECT_ID", None)
-            or os.getenv("PROJECT_ID", None)
+                remote_profile.get("project_id", None)
+                or os.getenv("BOHRIUM_PROJECT_ID", None)
+                or os.getenv("PROJECT_ID", None)
         )
         app_key = (
-            remote_profile.get("app_key", None)
-            or os.getenv("BOHRIUM_APP_KEY", None)
-            or os.getenv("APP_KEY", None)
+                remote_profile.get("app_key", None)
+                or os.getenv("BOHRIUM_APP_KEY", None)
+                or os.getenv("APP_KEY", None)
         )
         if access_key is None:
             raise ValueError(
@@ -194,11 +195,11 @@ class OpenAPIContext(BaseContext):
             dlog.info("all job has been uploaded, continue")
             return result
         for job in tqdm.tqdm(
-            job_to_be_uploaded,
-            desc="Uploading to tiefblue",
-            bar_format=bar_format,
-            leave=False,
-            disable=None,
+                job_to_be_uploaded,
+                desc="Uploading to tiefblue",
+                bar_format=bar_format,
+                leave=False,
+                disable=None,
         ):
             self.upload_job(job, submission.forward_common_files)
         return result
@@ -232,16 +233,16 @@ class OpenAPIContext(BaseContext):
                 job_infos[job_hash] = each
         bar_format = "{l_bar}{bar}| {n:.02f}/{total:.02f} %  [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
         for job_hash, info in tqdm.tqdm(
-            job_infos.items(),
-            desc="Validating download file from Lebesgue",
-            bar_format=bar_format,
-            leave=False,
-            disable=None,
+                job_infos.items(),
+                desc="Validating download file from Lebesgue",
+                bar_format=bar_format,
+                leave=False,
+                disable=None,
         ):
             result_filename = job_hash + "_back.zip"
             target_result_zip = os.path.join(self.local_root, result_filename)
             if self._check_if_job_has_already_downloaded(
-                target_result_zip, self.local_root
+                    target_result_zip, self.local_root
             ):
                 continue
             self.storage.download_from_url(info["resultUrl"], target_result_zip)
