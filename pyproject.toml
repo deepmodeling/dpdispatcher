@@ -31,8 +31,7 @@ dependencies = [
     'tomli >= 1.1.0; python_version < "3.11"',
     'httpx',
     'distro',
-    'pyhumps',
-    'bohrium-sdk'
+    'pyhumps'
 ]
 requires-python = ">=3.7"
 readme = "README.md"
