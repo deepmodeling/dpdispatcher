@@ -28,10 +28,7 @@ dependencies = [
     'tqdm>=4.9.0',
     'typing_extensions; python_version < "3.7"',
     'pyyaml',
-    'tomli >= 1.1.0; python_version < "3.11"',
-    'httpx',
-    'distro',
-    'pyhumps'
+    'tomli >= 1.1.0; python_version < "3.11"'
 ]
 requires-python = ">=3.7"
 readme = "README.md"
