@@ -23,7 +23,6 @@ from dpdispatcher.utils.job_status import JobStatus
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
-os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
 
 def unzip_file(zip_file, out_dir="./"):
@@ -102,6 +101,7 @@ class OpenAPIContext(BaseContext):
         self.storage = Tiefblue()
         self.job = Job(client=self.client)
         self.jgid = None
+        os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
     @classmethod
     def load_from_dict(cls, context_dict):
