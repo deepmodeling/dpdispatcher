@@ -163,7 +163,6 @@ class SSHSession:
             if os.path.exists(key_path):
                 for pkey_class in (
                     paramiko.RSAKey,
-                    paramiko.DSSKey,
                     paramiko.ECDSAKey,
                     paramiko.Ed25519Key,
                 ):
@@ -181,7 +180,6 @@ class SSHSession:
         elif self.look_for_keys:
             for keytype, name in [
                 (paramiko.RSAKey, "rsa"),
-                (paramiko.DSSKey, "dsa"),
                 (paramiko.ECDSAKey, "ecdsa"),
                 (paramiko.Ed25519Key, "ed25519"),
             ]:
