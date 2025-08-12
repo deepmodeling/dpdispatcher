@@ -15,7 +15,7 @@ jobs:
           - ssh
           - ssh_rsync
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - run: ./ci/${{ matrix.machine }}.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
