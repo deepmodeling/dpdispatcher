@@ -101,6 +101,7 @@ class OpenAPIContext(BaseContext):
         self.storage = Tiefblue()
         self.job = Job(client=self.client)
         self.jgid = None
+        os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
     @classmethod
     def load_from_dict(cls, context_dict):
