@@ -11,6 +11,9 @@ from .context import (
 )
 
 
+@unittest.skipIf(
+    os.environ.get("DPDISPATCHER_TEST") != "ssh", "outside the ssh testing environment"
+)
 class TestSSHJumpHost(unittest.TestCase):
     """Test SSH jump host functionality."""
 

@@ -35,9 +35,7 @@ It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/Open
 
 For connecting to internal servers through a jump host (bastion server), SSH context supports jump host configuration. This allows connecting to internal servers that are not directly accessible from the internet.
 
-#### Method 1: Using proxy_command (Recommended)
-
-For maximum flexibility, specify the ProxyCommand directly using {dargs:argument}`proxy_command <machine[SSHContext]/remote_profile/proxy_command>`:
+Specify the ProxyCommand directly using {dargs:argument}`proxy_command <machine[SSHContext]/remote_profile/proxy_command>`:
 
 ```json
 {
@@ -52,31 +50,6 @@ For maximum flexibility, specify the ProxyCommand directly using {dargs:argument
 ```
 
 The proxy command uses OpenSSH ProxyCommand syntax. `%h` and `%p` are replaced with the target hostname and port.
-
-#### Method 2: Using individual jump host parameters (Legacy)
-
-Alternatively, use individual jump host parameters (maintained for backward compatibility):
-
-- {dargs:argument}`jump_hostname <machine[SSHContext]/remote_profile/jump_hostname>`: hostname or IP of the jump host
-- {dargs:argument}`jump_username <machine[SSHContext]/remote_profile/jump_username>`: username for the jump host
-- {dargs:argument}`jump_port <machine[SSHContext]/remote_profile/jump_port>`: port for the jump host (default: 22)
-- {dargs:argument}`jump_key_filename <machine[SSHContext]/remote_profile/jump_key_filename>`: SSH key file for the jump host
-
-```json
-{
-  "context_type": "SSHContext",
-  "remote_profile": {
-    "hostname": "internal-server.company.com",
-    "username": "user",
-    "key_filename": "/path/to/internal_key",
-    "jump_hostname": "bastion.company.com",
-    "jump_username": "jumpuser",
-    "jump_key_filename": "/path/to/jump_key"
-  }
-}
-```
-
-**Note**: Cannot specify both `proxy_command` and individual jump host parameters in the same configuration.
 
 This configuration establishes the connection path: Local → Jump Host → Target Server.
 

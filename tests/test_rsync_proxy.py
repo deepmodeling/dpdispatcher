@@ -9,6 +9,9 @@ __package__ = "tests"
 from dpdispatcher.utils.utils import rsync
 
 
+@unittest.skipIf(
+    os.environ.get("DPDISPATCHER_TEST") != "ssh", "outside the ssh testing environment"
+)
 class TestRsyncProxyCommand(unittest.TestCase):
     """Test rsync function with proxy command support."""
 
