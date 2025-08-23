@@ -25,14 +25,14 @@ class TestSSHJumpHost(unittest.TestCase):
             
             # Test with direct proxy command
             ssh_session = SSHSession(
-                hostname="target.example.com",
-                username="user",
-                password="dummy",  # Add authentication
-                proxy_command="ssh -W target.example.com:22 jumpuser@jump.example.com"
+                hostname="server",
+                username="root",
+                key_filename="/root/.ssh/id_rsa",
+                proxy_command="ssh -W server:22 root@server"
             )
             
             # Verify ProxyCommand was called with the direct command
-            mock_proxy.assert_called_with("ssh -W target.example.com:22 jumpuser@jump.example.com")
+            mock_proxy.assert_called_with("ssh -W server:22 root@server")
 
     def test_proxy_command_backward_compatibility(self):
         """Test backward compatibility with individual jump host parameters."""
@@ -42,28 +42,28 @@ class TestSSHJumpHost(unittest.TestCase):
             
             # Test with legacy jump host parameters
             ssh_session = SSHSession(
-                hostname="target.example.com",
-                username="user",
-                password="dummy",  # Add authentication
-                jump_hostname="jump.example.com",
-                jump_username="jumpuser",
+                hostname="server",
+                username="root",
+                key_filename="/root/.ssh/id_rsa",
+                jump_hostname="server",
+                jump_username="root",
                 jump_port=2222,
-                jump_key_filename="/path/to/jump_key"
+                jump_key_filename="/root/.ssh/id_rsa"
             )
             
             # Verify ProxyCommand was called with built command
-            expected_cmd = "ssh -W target.example.com:22 -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p 2222 -i /path/to/jump_key jumpuser@jump.example.com"
+            expected_cmd = "ssh -W server:22 -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p 2222 -i /root/.ssh/id_rsa root@server"
             mock_proxy.assert_called_with(expected_cmd)
 
     def test_proxy_command_conflict_error(self):
         """Test error when both proxy_command and jump host parameters are specified."""
         with self.assertRaises(ValueError) as cm:
             SSHSession(
-                hostname="target.example.com",
-                username="user",
-                password="dummy",  # Add authentication
-                proxy_command="ssh -W target.example.com:22 jumpuser@jump.example.com",
-                jump_hostname="jump.example.com"
+                hostname="server",
+                username="root",
+                key_filename="/root/.ssh/id_rsa",
+                proxy_command="ssh -W server:22 root@server",
+                jump_hostname="server"
             )
         
         self.assertIn("Cannot specify both 'proxy_command' and individual jump host parameters", str(cm.exception))
@@ -79,13 +79,13 @@ class TestSSHJumpHost(unittest.TestCase):
             
             # Test without any proxy configuration
             ssh_session = SSHSession(
-                hostname="target.example.com",
-                username="user",
-                password="dummy"  # Add authentication
+                hostname="server",
+                username="root",
+                key_filename="/root/.ssh/id_rsa"
             )
             
             # Verify direct socket connection was used
-            mock_sock.connect.assert_called_with(("target.example.com", 22))
+            mock_sock.connect.assert_called_with(("server", 22))
 
     def test_get_proxy_command_direct(self):
         """Test _get_proxy_command method with direct proxy command."""
@@ -94,9 +94,9 @@ class TestSSHJumpHost(unittest.TestCase):
              patch('paramiko.ProxyCommand'):
             
             ssh_session = SSHSession(
-                hostname="target.example.com",
-                username="user",
-                password="dummy",  # Add authentication
+                hostname="server",
+                username="root",
+                key_filename="/root/.ssh/id_rsa",
                 proxy_command="custom proxy command"
             )
             
@@ -109,14 +109,14 @@ class TestSSHJumpHost(unittest.TestCase):
              patch('paramiko.ProxyCommand'):
             
             ssh_session = SSHSession(
-                hostname="target.example.com",
-                username="user",
-                password="dummy",  # Add authentication
-                jump_hostname="jump.example.com",
-                jump_username="jumpuser"
+                hostname="server",
+                username="root",
+                key_filename="/root/.ssh/id_rsa",
+                jump_hostname="server",
+                jump_username="root"
             )
             
-            expected_cmd = "ssh -W target.example.com:22 -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p 22 jumpuser@jump.example.com"
+            expected_cmd = "ssh -W server:22 -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p 22 root@server"
             self.assertEqual(ssh_session._get_proxy_command(), expected_cmd)
 
     def test_get_proxy_command_none(self):
@@ -126,9 +126,9 @@ class TestSSHJumpHost(unittest.TestCase):
              patch('socket.socket'):
             
             ssh_session = SSHSession(
-                hostname="target.example.com",
-                username="user",
-                password="dummy"  # Add authentication
+                hostname="server",
+                username="root",
+                key_filename="/root/.ssh/id_rsa"
             )
             
             self.assertIsNone(ssh_session._get_proxy_command())

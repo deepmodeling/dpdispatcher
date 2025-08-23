@@ -22,8 +22,8 @@ class TestRsyncProxyCommand(unittest.TestCase):
         
         rsync(
             "/local/file",
-            "user@target.example.com:/remote/file",
-            proxy_command="ssh -W %h:%p jumpuser@jump.example.com"
+            "root@server:/remote/file",
+            proxy_command="ssh -W %h:%p root@server"
         )
         
         # Verify the command was called with ProxyCommand
@@ -33,7 +33,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
         
         # Check that the command contains our proxy command
         cmd_str = " ".join(cmd)
-        self.assertIn("ProxyCommand=ssh -W %h:%p jumpuser@jump.example.com", cmd_str)
+        self.assertIn("ProxyCommand=ssh -W %h:%p root@server", cmd_str)
 
     @patch('dpdispatcher.utils.utils.run_cmd_with_all_output')
     def test_rsync_with_legacy_jump_host(self, mock_run_cmd):
@@ -42,11 +42,11 @@ class TestRsyncProxyCommand(unittest.TestCase):
         
         rsync(
             "/local/file",
-            "user@target.example.com:/remote/file",
-            jump_hostname="jump.example.com",
-            jump_username="jumpuser",
+            "root@server:/remote/file",
+            jump_hostname="server",
+            jump_username="root",
             jump_port=2222,
-            jump_key_filename="/path/to/key"
+            jump_key_filename="/root/.ssh/id_rsa"
         )
         
         # Verify the command was called with built ProxyCommand
@@ -58,8 +58,8 @@ class TestRsyncProxyCommand(unittest.TestCase):
         cmd_str = " ".join(cmd)
         self.assertIn("ProxyCommand=ssh -W %h:%p -o StrictHostKeyChecking=no", cmd_str)
         self.assertIn("-p 2222", cmd_str)
-        self.assertIn("-i /path/to/key", cmd_str)
-        self.assertIn("jumpuser@jump.example.com", cmd_str)
+        self.assertIn("-i /root/.ssh/id_rsa", cmd_str)
+        self.assertIn("root@server", cmd_str)
 
     @patch('dpdispatcher.utils.utils.run_cmd_with_all_output')
     def test_rsync_without_proxy(self, mock_run_cmd):
@@ -68,7 +68,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
         
         rsync(
             "/local/file",
-            "user@target.example.com:/remote/file"
+            "root@server:/remote/file"
         )
         
         # Verify the command was called without ProxyCommand
@@ -85,9 +85,9 @@ class TestRsyncProxyCommand(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             rsync(
                 "/local/file",
-                "user@target.example.com:/remote/file",
-                proxy_command="ssh -W %h:%p jumpuser@jump.example.com",
-                jump_hostname="jump.example.com"
+                "root@server:/remote/file",
+                proxy_command="ssh -W %h:%p root@server",
+                jump_hostname="server"
             )
         
         self.assertIn("Cannot specify both 'proxy_command' and individual jump host parameters", str(cm.exception))
@@ -100,7 +100,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
         with self.assertRaises(RuntimeError) as cm:
             rsync(
                 "/local/file",
-                "user@target.example.com:/remote/file"
+                "root@server:/remote/file"
             )
         
         self.assertIn("Failed to run", str(cm.exception))
@@ -113,9 +113,9 @@ class TestRsyncProxyCommand(unittest.TestCase):
         
         rsync(
             "/local/file",
-            "user@target.example.com:/remote/file",
+            "root@server:/remote/file",
             port=2222,
-            key_filename="/path/to/key",
+            key_filename="/root/.ssh/id_rsa",
             timeout=30
         )
         
@@ -126,7 +126,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
         cmd_str = " ".join(cmd)
         
         self.assertIn("-p 2222", cmd_str)
-        self.assertIn("-i /path/to/key", cmd_str)
+        self.assertIn("-i /root/.ssh/id_rsa", cmd_str)
         self.assertIn("ConnectTimeout=30", cmd_str)
 
 
