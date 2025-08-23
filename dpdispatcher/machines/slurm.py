@@ -118,7 +118,7 @@ class Slurm(Machine):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def default_resources(self, resources):
+    def default_resources(self, res):
         pass
 
     @retry()
@@ -185,7 +185,7 @@ class Slurm(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job, **kwargs):  # type: ignore[reportIncompatibleMethodOverride]
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
@@ -384,7 +384,7 @@ class SlurmJobArray(Slurm):
             else:
                 return JobStatus.terminated
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job, **kwargs):  # type: ignore[reportIncompatibleMethodOverride]
         results = []
         for task in job.job_task_list:
             task.get_task_state(self.context)

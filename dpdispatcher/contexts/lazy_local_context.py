@@ -83,7 +83,7 @@ class LazyLocalContext(BaseContext):
 
     def upload(
         self,
-        jobs,
+        submission,
         # local_up_files,
         dereference=True,
     ):
@@ -91,7 +91,7 @@ class LazyLocalContext(BaseContext):
 
     def download(
         self,
-        jobs,
+        submission,
         # remote_down_files,
         check_exists=False,
         mark_failure=True,

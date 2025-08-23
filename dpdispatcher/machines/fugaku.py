@@ -67,7 +67,7 @@ class Fugaku(Machine):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def default_resources(self, resources):
+    def default_resources(self, res):
         pass
 
     def check_status(self, job):
@@ -100,6 +100,6 @@ class Fugaku(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job, **kwargs):  # type: ignore[reportIncompatibleMethodOverride]
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)

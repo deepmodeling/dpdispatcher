@@ -60,7 +60,7 @@ class Shell(Machine):
         # self.context.write_file(job_id_name, job_id)
         # return job_id
 
-    def default_resources(self, resources):
+    def default_resources(self, res):
         pass
 
     def check_status(self, job):
@@ -104,7 +104,7 @@ class Shell(Machine):
     #             return True
     #     return False
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job, **kwargs):  # type: ignore[reportIncompatibleMethodOverride]
         job_tag_finished = job.job_hash + "_job_tag_finished"
         # print('job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)

@@ -64,11 +64,11 @@ class OpenAPI(Machine):
             raise ValueError(
                 "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
             )
-        self.client = Bohrium(
+        self.client = Bohrium(  # type: ignore[reportPossiblyUnboundVariable]
             access_key=access_key, project_id=project_id, app_key=app_key
         )
-        self.storage = Tiefblue()
-        self.job = Job(client=self.client)
+        self.storage = Tiefblue()  # type: ignore[reportPossiblyUnboundVariable]
+        self.job = Job(client=self.client)  # type: ignore[reportPossiblyUnboundVariable]
         self.group_id = None
 
     def gen_script(self, job):
@@ -214,7 +214,7 @@ class OpenAPI(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job, **kwargs):  # type: ignore[reportIncompatibleMethodOverride]
         job_tag_finished = job.job_hash + "_job_tag_finished"
         dlog.info("check if job finished: ", job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)

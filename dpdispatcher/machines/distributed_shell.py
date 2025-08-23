@@ -212,6 +212,6 @@ class DistributedShell(Machine):
         else:
             return JobStatus.terminated
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job, **kwargs):  # type: ignore[reportIncompatibleMethodOverride]
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
