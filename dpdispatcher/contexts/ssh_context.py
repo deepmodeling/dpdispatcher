@@ -45,10 +45,6 @@ class SSHSession:
         tar_compress=True,
         look_for_keys=True,
         execute_command=None,
-        jump_hostname=None,
-        jump_username=None,
-        jump_port=22,
-        jump_key_filename=None,
         proxy_command=None,
     ):
         self.hostname = hostname
@@ -63,53 +59,17 @@ class SSHSession:
         self.tar_compress = tar_compress
         self.look_for_keys = look_for_keys
         self.execute_command = execute_command
-        
-        # Handle proxy command (new approach) vs individual jump host parameters (backward compatibility)
-        if proxy_command is not None and any([jump_hostname, jump_username, jump_port != 22, jump_key_filename]):
-            raise ValueError("Cannot specify both 'proxy_command' and individual jump host parameters (jump_hostname, jump_username, etc.)")
-        
         self.proxy_command = proxy_command
-        # Keep old parameters for backward compatibility
-        self.jump_hostname = jump_hostname
-        self.jump_username = jump_username
-        self.jump_port = jump_port
-        self.jump_key_filename = jump_key_filename
         self._keyboard_interactive_auth = False
         self._setup_ssh()
 
     def _get_proxy_command(self):
         """Get the proxy command to use for connection.
         
-        Returns the directly specified proxy_command if provided,
-        otherwise builds one from jump host parameters for backward compatibility.
-        
         Returns:
             str or None: The proxy command to use, or None for direct connection
         """
-        # Use directly specified proxy command if provided
-        if self.proxy_command is not None:
-            return self.proxy_command
-            
-        # Build proxy command from jump host parameters for backward compatibility
-        if self.jump_hostname is not None:
-            proxy_cmd_parts = [
-                "ssh",
-                "-W", f"{self.hostname}:{self.port}",
-                "-o", "StrictHostKeyChecking=no",
-                "-o", f"ConnectTimeout={self.timeout}",
-                "-p", str(self.jump_port),
-            ]
-            
-            # Add jump host key file if specified
-            if self.jump_key_filename is not None:
-                proxy_cmd_parts.extend(["-i", self.jump_key_filename])
-                
-            # Add jump host user and hostname
-            proxy_cmd_parts.append(f"{self.jump_username}@{self.jump_hostname}")
-            
-            return " ".join(proxy_cmd_parts)
-            
-        return None
+        return self.proxy_command
 
     # @classmethod
     # def deserialize(cls, jdata):
@@ -396,11 +356,7 @@ class SSHSession:
             "enable searching for discoverable private key files in ~/.ssh/"
         )
         doc_execute_command = "execute command after ssh connection is established."
-        doc_proxy_command = "ProxyCommand to use for SSH connection through intermediate servers. Use this instead of individual jump host parameters for more flexibility."
-        doc_jump_hostname = "hostname or ip of SSH jump host for connecting through intermediate server. (Deprecated: use proxy_command instead)"
-        doc_jump_username = "username for SSH jump host. (Deprecated: use proxy_command instead)"
-        doc_jump_port = "port for SSH jump host connection. (Deprecated: use proxy_command instead)"
-        doc_jump_key_filename = "key filename for SSH jump host authentication. (Deprecated: use proxy_command instead)"
+        doc_proxy_command = "ProxyCommand to use for SSH connection through intermediate servers."
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -455,34 +411,6 @@ class SSHSession:
                 optional=True,
                 default=None,
                 doc=doc_proxy_command,
-            ),
-            Argument(
-                "jump_hostname",
-                [str, type(None)],
-                optional=True,
-                default=None,
-                doc=doc_jump_hostname,
-            ),
-            Argument(
-                "jump_username",
-                [str, type(None)],
-                optional=True,
-                default=None,
-                doc=doc_jump_username,
-            ),
-            Argument(
-                "jump_port",
-                int,
-                optional=True,
-                default=22,
-                doc=doc_jump_port,
-            ),
-            Argument(
-                "jump_key_filename",
-                [str, type(None)],
-                optional=True,
-                default=None,
-                doc=doc_jump_key_filename,
             ),
         ]
         ssh_remote_profile_format = Argument(
