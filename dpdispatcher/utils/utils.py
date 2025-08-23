@@ -93,6 +93,7 @@ def rsync(
     jump_username: Optional[str] = None,
     jump_port: int = 22,
     jump_key_filename: Optional[str] = None,
+    proxy_command: Optional[str] = None,
 ):
     """Call rsync to transfer files.
 
@@ -109,13 +110,15 @@ def rsync(
     timeout : int, default=10
         timeout for ssh
     jump_hostname : str, optional
-        hostname or IP of SSH jump host
+        hostname or IP of SSH jump host (legacy, use proxy_command instead)
     jump_username : str, optional
-        username for SSH jump host
+        username for SSH jump host (legacy, use proxy_command instead)
     jump_port : int, default=22
-        port for SSH jump host
+        port for SSH jump host (legacy, use proxy_command instead)
     jump_key_filename : str, optional
-        key filename for SSH jump host
+        key filename for SSH jump host (legacy, use proxy_command instead)
+    proxy_command : str, optional
+        Direct ProxyCommand to use for SSH connection
 
     Raises
     ------
@@ -137,8 +140,15 @@ def rsync(
     if key_filename is not None:
         ssh_cmd.extend(["-i", key_filename])
     
-    # Add ProxyCommand for jump host if specified
-    if jump_hostname is not None and jump_username is not None:
+    # Handle proxy command configuration
+    if proxy_command is not None and any([jump_hostname, jump_username, jump_port != 22, jump_key_filename]):
+        raise ValueError("Cannot specify both 'proxy_command' and individual jump host parameters")
+    
+    # Use proxy_command if provided
+    if proxy_command is not None:
+        ssh_cmd.extend(["-o", f"ProxyCommand={proxy_command}"])
+    # Otherwise, build proxy command from jump host parameters for backward compatibility
+    elif jump_hostname is not None and jump_username is not None:
         proxy_cmd_parts = [
             "ssh",
             "-W", "%h:%p",  # %h and %p will be replaced by target host and port
@@ -151,8 +161,8 @@ def rsync(
             proxy_cmd_parts.extend(["-i", jump_key_filename])
         
         proxy_cmd_parts.append(f"{jump_username}@{jump_hostname}")
-        proxy_command = " ".join(proxy_cmd_parts)
-        ssh_cmd.extend(["-o", f"ProxyCommand={proxy_command}"])
+        proxy_command_built = " ".join(proxy_cmd_parts)
+        ssh_cmd.extend(["-o", f"ProxyCommand={proxy_command_built}"])
     cmd = [
         "rsync",
         # -a: archieve
