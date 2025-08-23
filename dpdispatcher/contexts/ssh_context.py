@@ -45,6 +45,10 @@ class SSHSession:
         tar_compress=True,
         look_for_keys=True,
         execute_command=None,
+        jump_hostname=None,
+        jump_username=None,
+        jump_port=22,
+        jump_key_filename=None,
     ):
         self.hostname = hostname
         self.username = username
@@ -58,6 +62,10 @@ class SSHSession:
         self.tar_compress = tar_compress
         self.look_for_keys = look_for_keys
         self.execute_command = execute_command
+        self.jump_hostname = jump_hostname
+        self.jump_username = jump_username
+        self.jump_port = jump_port
+        self.jump_key_filename = jump_key_filename
         self._keyboard_interactive_auth = False
         self._setup_ssh()
 
@@ -142,7 +150,29 @@ class SSHSession:
         # transport = self.ssh.get_transport()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(self.timeout)
-        sock.connect((self.hostname, self.port))
+        
+        # Use ProxyCommand for jump host if configured
+        if self.jump_hostname is not None:
+            # Build ProxyCommand for SSH jump host
+            proxy_cmd_parts = [
+                "ssh",
+                "-W", f"{self.hostname}:{self.port}",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", f"ConnectTimeout={self.timeout}",
+                "-p", str(self.jump_port),
+            ]
+            
+            # Add jump host key file if specified
+            if self.jump_key_filename is not None:
+                proxy_cmd_parts.extend(["-i", self.jump_key_filename])
+                
+            # Add jump host user and hostname
+            proxy_cmd_parts.append(f"{self.jump_username}@{self.jump_hostname}")
+            
+            proxy_command = " ".join(proxy_cmd_parts)
+            sock = paramiko.ProxyCommand(proxy_command)
+        else:
+            sock.connect((self.hostname, self.port))
 
         # Make a Paramiko Transport object using the socket
         ts = paramiko.Transport(sock)
@@ -340,6 +370,10 @@ class SSHSession:
             "enable searching for discoverable private key files in ~/.ssh/"
         )
         doc_execute_command = "execute command after ssh connection is established."
+        doc_jump_hostname = "hostname or ip of SSH jump host for connecting through intermediate server."
+        doc_jump_username = "username for SSH jump host."
+        doc_jump_port = "port for SSH jump host connection."
+        doc_jump_key_filename = "key filename for SSH jump host authentication."
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -388,6 +422,34 @@ class SSHSession:
                 default=None,
                 doc=doc_execute_command,
             ),
+            Argument(
+                "jump_hostname",
+                [str, type(None)],
+                optional=True,
+                default=None,
+                doc=doc_jump_hostname,
+            ),
+            Argument(
+                "jump_username",
+                [str, type(None)],
+                optional=True,
+                default=None,
+                doc=doc_jump_username,
+            ),
+            Argument(
+                "jump_port",
+                int,
+                optional=True,
+                default=22,
+                doc=doc_jump_port,
+            ),
+            Argument(
+                "jump_key_filename",
+                [str, type(None)],
+                optional=True,
+                default=None,
+                doc=doc_jump_key_filename,
+            ),
         ]
         ssh_remote_profile_format = Argument(
             "ssh_session", dict, ssh_remote_profile_args
@@ -402,6 +464,10 @@ class SSHSession:
                 port=self.port,
                 key_filename=self.key_filename,
                 timeout=self.timeout,
+                jump_hostname=self.jump_hostname,
+                jump_username=self.jump_username,
+                jump_port=self.jump_port,
+                jump_key_filename=self.jump_key_filename,
             )
         return self.sftp.put(from_f, to_f)
 
@@ -413,6 +479,10 @@ class SSHSession:
                 port=self.port,
                 key_filename=self.key_filename,
                 timeout=self.timeout,
+                jump_hostname=self.jump_hostname,
+                jump_username=self.jump_username,
+                jump_port=self.jump_port,
+                jump_key_filename=self.jump_key_filename,
             )
         return self.sftp.get(from_f, to_f)
 

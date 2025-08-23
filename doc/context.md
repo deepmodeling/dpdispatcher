@@ -31,6 +31,34 @@ To use SSH, one needs to provide necessary parameters in {dargs:argument}`remote
 
 It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/OpenSSH/Keys) and transfer the public key to the remote server in advance, which is more secure than password authentication.
 
+### SSH Jump Host (Bastion Server)
+
+For connecting to internal servers through a jump host (bastion server), SSH context supports double SSH jump configuration. This allows connecting to internal servers that are not directly accessible from the internet.
+
+To configure a jump host, add the following parameters to {dargs:argument}`remote_profile <machine[SSHContext]/remote_profile>`:
+
+- {dargs:argument}`jump_hostname <machine[SSHContext]/remote_profile/jump_hostname>`: hostname or IP of the jump host
+- {dargs:argument}`jump_username <machine[SSHContext]/remote_profile/jump_username>`: username for the jump host
+- {dargs:argument}`jump_port <machine[SSHContext]/remote_profile/jump_port>`: port for the jump host (default: 22)
+- {dargs:argument}`jump_key_filename <machine[SSHContext]/remote_profile/jump_key_filename>`: SSH key file for the jump host
+
+Example configuration:
+```json
+{
+  "context_type": "SSHContext",
+  "remote_profile": {
+    "hostname": "internal-server.company.com",
+    "username": "user",
+    "key_filename": "/path/to/internal_key",
+    "jump_hostname": "bastion.company.com",
+    "jump_username": "jumpuser",
+    "jump_key_filename": "/path/to/jump_key"
+  }
+}
+```
+
+This configuration establishes the connection path: Local → Jump Host → Target Server.
+
 Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.
 
 ## Bohrium

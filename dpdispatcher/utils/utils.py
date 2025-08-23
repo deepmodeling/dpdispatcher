@@ -89,6 +89,10 @@ def rsync(
     port: int = 22,
     key_filename: Optional[str] = None,
     timeout: Union[int, float] = 10,
+    jump_hostname: Optional[str] = None,
+    jump_username: Optional[str] = None,
+    jump_port: int = 22,
+    jump_key_filename: Optional[str] = None,
 ):
     """Call rsync to transfer files.
 
@@ -104,6 +108,14 @@ def rsync(
         identity file name
     timeout : int, default=10
         timeout for ssh
+    jump_hostname : str, optional
+        hostname or IP of SSH jump host
+    jump_username : str, optional
+        username for SSH jump host
+    jump_port : int, default=22
+        port for SSH jump host
+    jump_key_filename : str, optional
+        key filename for SSH jump host
 
     Raises
     ------
@@ -124,6 +136,23 @@ def rsync(
     ]
     if key_filename is not None:
         ssh_cmd.extend(["-i", key_filename])
+    
+    # Add ProxyCommand for jump host if specified
+    if jump_hostname is not None and jump_username is not None:
+        proxy_cmd_parts = [
+            "ssh",
+            "-W", "%h:%p",  # %h and %p will be replaced by target host and port
+            "-o", "StrictHostKeyChecking=no",
+            "-o", f"ConnectTimeout={timeout}",
+            "-p", str(jump_port),
+        ]
+        
+        if jump_key_filename is not None:
+            proxy_cmd_parts.extend(["-i", jump_key_filename])
+        
+        proxy_cmd_parts.append(f"{jump_username}@{jump_hostname}")
+        proxy_command = " ".join(proxy_cmd_parts)
+        ssh_cmd.extend(["-o", f"ProxyCommand={proxy_command}"])
     cmd = [
         "rsync",
         # -a: archieve

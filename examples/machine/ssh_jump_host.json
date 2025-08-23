@@ -1,0 +1,16 @@
+{
+  "batch_type": "Shell",
+  "context_type": "SSHContext",
+  "local_root": "./",
+  "remote_root": "/home/user/work",
+  "remote_profile": {
+    "hostname": "internal-server.company.com",
+    "username": "user",
+    "port": 22,
+    "key_filename": "~/.ssh/id_rsa",
+    "jump_hostname": "bastion.company.com",
+    "jump_username": "jumpuser",
+    "jump_port": 22,
+    "jump_key_filename": "~/.ssh/jump_key"
+  }
+}
