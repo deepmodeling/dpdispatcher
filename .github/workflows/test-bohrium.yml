@@ -1,7 +1,11 @@
 name: Test Bohrium
 
-on:
+'on':
   push:
+    branches-ignore:
+      - 'copilot/**'
+      - 'dependabot/**'
+      - 'pre-commit-ci-update-config'
   pull_request_target:
     types:
       - "labeled"

@@ -1,8 +1,12 @@
 name: Python package
 
-on:
-  - push
-  - pull_request
+'on':
+  push:
+    branches-ignore:
+      - 'copilot/**'
+      - 'dependabot/**'
+      - 'pre-commit-ci-update-config'
+  pull_request:
 
 jobs:
   test:

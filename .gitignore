@@ -37,7 +37,7 @@ pydispatcher.egg-info
 */__pycache__
 *.swp
 .eggs
-.coverage
+.coverage*
 dbconfig.json
 .vscode/*
 .idea
@@ -47,3 +47,11 @@ dbconfig.json
 *.egg-info
 venv/*
 node_modules/
+# Test artifacts
+*_flag_if_job_task_fail
+*_job_id
+*_job_tag_finished
+*_task_tag_finished
+*.sub
+*.sub.run
+script_*.py

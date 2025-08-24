@@ -118,9 +118,6 @@ class Slurm(Machine):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def default_resources(self, resources):
-        pass
-
     @retry()
     def check_status(self, job):
         job_id = job.job_id

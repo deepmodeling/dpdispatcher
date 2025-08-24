@@ -95,11 +95,11 @@ class OpenAPIContext(BaseContext):
             raise ValueError(
                 "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
             )
-        self.client = Bohrium(
+        self.client = Bohrium(  # type: ignore[reportPossiblyUnboundVariable]
             access_key=access_key, project_id=project_id, app_key=app_key
         )
-        self.storage = Tiefblue()
-        self.job = Job(client=self.client)
+        self.storage = Tiefblue()  # type: ignore[reportPossiblyUnboundVariable]
+        self.job = Job(client=self.client)  # type: ignore[reportPossiblyUnboundVariable]
         self.jgid = None
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
@@ -206,7 +206,9 @@ class OpenAPIContext(BaseContext):
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
 
-    def download(self, submission):
+    def download(
+        self, submission, check_exists=False, mark_failure=True, back_error=False
+    ):
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}
