@@ -8,14 +8,10 @@ Always reference these instructions first and fallback to search or bash command
 
 ### Bootstrap, Build, and Test
 
-- **Create virtual environment and install:**
+- **Environment setup:** The Python environment, `uv`, `pre-commit`, and `pyright` are automatically set up by the Copilot environment. Simply activate the virtual environment:
 
   ```bash
-  uv venv .venv
   source .venv/bin/activate
-  uv pip install .[test] coverage
-  uv tool install pre-commit
-  uv tool install pyright
   ```
 
 - **Run the test suite:**
@@ -54,24 +50,6 @@ Always reference these instructions first and fallback to search or bash command
   ```
 
   - **TIMING: Documentation build takes ~14 seconds.**
-
-### Copilot Agent Environment Setup
-
-Following GitHub's Copilot agent environment guidelines, this project uses:
-
-- **`uv`** for Python environment and dependency management
-- **`uv tool install`** for development tools (`pre-commit`, `pyright`)
-- **`pre-commit`** for automated code quality checks (preferred over direct tool usage)
-
-```bash
-# Initial setup
-uv venv .venv
-source .venv/bin/activate
-uv pip install .[test] coverage
-uv tool install pre-commit
-uv tool install pyright
-pre-commit install --install-hooks
-```
 
 ### CLI Usage
 
@@ -177,18 +155,18 @@ dpdisp run examples/dpdisp_run.py
 
 ## Development Notes
 
-- **Always use virtual environments** - The system Python is externally managed
+- **Virtual environment is pre-configured** - The environment is automatically set up; simply activate with `source .venv/bin/activate`
 - **Always add type hints** - Include proper type annotations in all Python code for better maintainability
 - **Always use conventional commit format** - All commit messages and PR titles must follow the conventional commit specification (e.g., `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
 - **Test artifacts are gitignored** - Job execution creates temporary files that are automatically excluded
-- **Pre-commit hooks available** - Use `pre-commit install --install-hooks` to enable automated code quality checks
+- **Pre-commit hooks are ready** - Pre-commit is pre-installed and hooks are configured
 - **Multiple execution contexts** - Code supports local execution, SSH remote execution, and various HPC schedulers
 - **Extensive examples** - Use `examples/` directory as reference for proper configuration formats
 
 ## Troubleshooting
 
-- **Virtual environment issues:** Always use `uv venv .venv` and `source .venv/bin/activate`
-- **Tool installation:** Use `uv tool install pre-commit` and `uv tool install pyright` for dev tools
+- **Virtual environment issues:** The virtual environment is pre-created; simply activate with `source .venv/bin/activate`
+- **Development tools:** `pre-commit` and `pyright` are pre-installed and ready to use
 - **Test failures:** Most tests run locally; some require specific HPC environments and will be skipped
 - **Documentation build warnings:** Some warnings about external inventory URLs are expected in sandboxed environments
 - **Pre-commit network issues:** If pre-commit fails with network timeouts, run `ruff check` and `ruff format` directly
