@@ -143,6 +143,7 @@ dpdisp run examples/dpdisp_run.py
 
 - **Always use virtual environments** - The system Python is externally managed
 - **Always add type hints** - Include proper type annotations in all Python code for better maintainability
+- **Always use conventional commit format** - All commit messages and PR titles must follow the conventional commit specification (e.g., `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
 - **Test artifacts are gitignored** - Job execution creates temporary files that are automatically excluded
 - **Pre-commit hooks available** - Use `pre-commit install` to enable automated code quality checks
 - **Multiple execution contexts** - Code supports local execution, SSH remote execution, and various HPC schedulers
