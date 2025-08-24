@@ -147,9 +147,11 @@ def rsync(
         from_file,
         to_file,
     ]
-    ret, out, err = run_cmd_with_all_output(cmd, shell=True)
+    # Convert to string for shell=True
+    cmd_str = " ".join(shlex.quote(arg) for arg in cmd)
+    ret, out, err = run_cmd_with_all_output(cmd_str, shell=True)
     if ret != 0:
-        raise RuntimeError(f"Failed to run {cmd}: {err}")
+        raise RuntimeError(f"Failed to run {cmd_str}: {err}")
 
 
 class RetrySignal(Exception):
