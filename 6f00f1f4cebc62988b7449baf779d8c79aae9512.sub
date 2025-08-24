@@ -1,0 +1,31 @@
+
+#!/bin/bash -l
+
+
+
+REMOTE_ROOT=$(readlink -f /home/runner/work/dpdispatcher/dpdispatcher/./)
+echo 0 > $REMOTE_ROOT/6f00f1f4cebc62988b7449baf779d8c79aae9512_flag_if_job_task_fail
+test $? -ne 0 && exit 1
+
+
+
+
+export DPDISPATCHER_NUMBER_NODE=1
+export DPDISPATCHER_CPU_PER_NODE=1
+export DPDISPATCHER_GPU_PER_NODE=0
+export DPDISPATCHER_QUEUE_NAME=
+export DPDISPATCHER_GROUP_SIZE=0
+
+
+
+source $REMOTE_ROOT/6f00f1f4cebc62988b7449baf779d8c79aae9512.sub.run
+
+cd $REMOTE_ROOT
+test $? -ne 0 && exit 1
+
+wait
+FLAG_IF_JOB_TASK_FAIL=$(cat 6f00f1f4cebc62988b7449baf779d8c79aae9512_flag_if_job_task_fail)
+if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch 6f00f1f4cebc62988b7449baf779d8c79aae9512_job_tag_finished; else exit 1;fi
+
+
+
