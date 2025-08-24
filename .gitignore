@@ -46,7 +46,6 @@ dbconfig.json
 *.egg
 *.egg-info
 venv/*
-.venv/*
 node_modules/
 # Test artifacts
 *_flag_if_job_task_fail
