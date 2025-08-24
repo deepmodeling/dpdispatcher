@@ -127,7 +127,7 @@ def rsync(
     ]
     if key_filename is not None:
         ssh_cmd.extend(["-i", key_filename])
-    
+
     # Use proxy_command if provided
     if proxy_command is not None:
         ssh_cmd.extend(["-o", f"ProxyCommand={proxy_command}"])
