@@ -102,9 +102,6 @@ class LSF(Machine):
         return job_id
 
     # TODO: derive abstract methods
-    def default_resources(self, res):
-        pass
-
     def sub_script_cmd(self, res):
         pass
 
@@ -152,7 +149,7 @@ class LSF(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job, **kwargs):  # type: ignore[reportIncompatibleMethodOverride]
+    def check_finish_tag(self, job, **kwargs):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 

@@ -227,7 +227,7 @@ class Machine(metaclass=ABCMeta):
         return if_recover
 
     @abstractmethod
-    def check_finish_tag(self, **kwargs):
+    def check_finish_tag(self, job):
         raise NotImplementedError(
             "abstract method check_finish_tag should be implemented by derived class"
         )
