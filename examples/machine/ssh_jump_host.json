@@ -8,9 +8,6 @@
     "username": "user",
     "port": 22,
     "key_filename": "~/.ssh/id_rsa",
-    "jump_hostname": "bastion.company.com",
-    "jump_username": "jumpuser",
-    "jump_port": 22,
-    "jump_key_filename": "~/.ssh/jump_key"
+    "proxy_command": "ssh -W %h:%p -i ~/.ssh/jump_key jumpuser@bastion.company.com"
   }
 }
