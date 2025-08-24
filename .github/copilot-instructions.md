@@ -13,7 +13,9 @@ Always reference these instructions first and fallback to search or bash command
   ```bash
   uv venv .venv
   source .venv/bin/activate
-  uv pip install .[test] coverage ruff pre-commit
+  uv pip install .[test] coverage
+  uv tool install pre-commit
+  uv tool install pyright
   ```
 
 - **Run the test suite:**
@@ -29,11 +31,11 @@ Always reference these instructions first and fallback to search or bash command
 - **Run linting and formatting:**
 
   ```bash
-  ruff check .
-  ruff format --check .
+  pre-commit run --all-files
   ```
 
-  - **TIMING: Linting takes <1 second.**
+  - **TIMING: Linting takes <5 seconds.**
+  - **Fallback:** If pre-commit fails with network issues, use `ruff check . && ruff format --check .`
 
 - **Run type checking:**
 
@@ -53,6 +55,24 @@ Always reference these instructions first and fallback to search or bash command
 
   - **TIMING: Documentation build takes ~14 seconds.**
 
+### Copilot Agent Environment Setup
+
+Following GitHub's Copilot agent environment guidelines, this project uses:
+
+- **`uv`** for Python environment and dependency management
+- **`uv tool install`** for development tools (`pre-commit`, `pyright`)
+- **`pre-commit`** for automated code quality checks (preferred over direct tool usage)
+
+```bash
+# Initial setup
+uv venv .venv
+source .venv/bin/activate
+uv pip install .[test] coverage
+uv tool install pre-commit
+uv tool install pyright
+pre-commit install --install-hooks
+```
+
 ### CLI Usage
 
 - **Test basic CLI functionality:**
@@ -70,7 +90,7 @@ Always reference these instructions first and fallback to search or bash command
 ## Validation
 
 - **ALWAYS run the test suite after making code changes.** Tests execute quickly (~25 seconds) and should never be cancelled.
-- **ALWAYS run linting before committing:** `ruff check . && ruff format --check .`
+- **ALWAYS run linting before committing:** `pre-commit run --all-files`
 - **ALWAYS run type checking:** `pyright` to catch type-related issues.
 - **Test CLI functionality:** Run `dpdisp --help` and test with example scripts to ensure the CLI works correctly.
 - **Build documentation:** Run `make html` in the `doc/` directory to verify documentation builds without errors.
@@ -81,7 +101,7 @@ Always reference these instructions first and fallback to search or bash command
 - **Build system:** Uses `setuptools` with `pyproject.toml` configuration.
 - **Python versions:** Supports Python 3.7+ (check `pyproject.toml` for current support matrix).
 - **Testing:** Uses `unittest` framework with coverage reporting.
-- **Linting:** Uses `ruff` for both linting and formatting.
+- **Linting:** Uses `pre-commit` with `ruff` for linting and formatting, plus other quality checks.
 - **Type checking:** Uses `pyright` for static type analysis (configured in `pyproject.toml`).
 - **Documentation:** Uses Sphinx with MyST parser for markdown support.
 
@@ -161,13 +181,14 @@ dpdisp run examples/dpdisp_run.py
 - **Always add type hints** - Include proper type annotations in all Python code for better maintainability
 - **Always use conventional commit format** - All commit messages and PR titles must follow the conventional commit specification (e.g., `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
 - **Test artifacts are gitignored** - Job execution creates temporary files that are automatically excluded
-- **Pre-commit hooks available** - Use `pre-commit install` to enable automated code quality checks
+- **Pre-commit hooks available** - Use `pre-commit install --install-hooks` to enable automated code quality checks
 - **Multiple execution contexts** - Code supports local execution, SSH remote execution, and various HPC schedulers
 - **Extensive examples** - Use `examples/` directory as reference for proper configuration formats
 
 ## Troubleshooting
 
 - **Virtual environment issues:** Always use `uv venv .venv` and `source .venv/bin/activate`
+- **Tool installation:** Use `uv tool install pre-commit` and `uv tool install pyright` for dev tools
 - **Test failures:** Most tests run locally; some require specific HPC environments and will be skipped
 - **Documentation build warnings:** Some warnings about external inventory URLs are expected in sandboxed environments
 - **Pre-commit network issues:** If pre-commit fails with network timeouts, run `ruff check` and `ruff format` directly
