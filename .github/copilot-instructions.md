@@ -9,6 +9,7 @@ Always reference these instructions first and fallback to search or bash command
 ### Bootstrap, Build, and Test
 
 - **Create virtual environment and install:**
+
   ```bash
   uv venv .venv
   source .venv/bin/activate
@@ -16,24 +17,30 @@ Always reference these instructions first and fallback to search or bash command
   ```
 
 - **Run the test suite:**
+
   ```bash
   python -m coverage run -p --source=./dpdispatcher -m unittest -v
   python -m coverage combine
   python -m coverage report
   ```
+
   - **TIMING: Tests take ~25 seconds. NEVER CANCEL - set timeout to 2+ minutes.**
 
 - **Run linting and formatting:**
+
   ```bash
   ruff check .
   ruff format --check .
   ```
+
   - **TIMING: Linting takes <1 second.**
 
 - **Run type checking:**
+
   ```bash
   pyright
   ```
+
   - **TIMING: Type checking takes ~2-3 seconds.**
 
 - **Build documentation:**
@@ -42,11 +49,13 @@ Always reference these instructions first and fallback to search or bash command
   cd doc
   make html
   ```
+
   - **TIMING: Documentation build takes ~14 seconds.**
 
 ### CLI Usage
 
 - **Test basic CLI functionality:**
+
   ```bash
   dpdisp --help
   dpdisp run examples/dpdisp_run.py
@@ -78,18 +87,21 @@ Always reference these instructions first and fallback to search or bash command
 ## Key Components
 
 ### Core Modules
+
 - **`dpdispatcher/submission.py`**: Main classes - `Submission`, `Job`, `Task`, `Resources`
 - **`dpdispatcher/machine.py`**: Machine configuration and dispatch logic
 - **`dpdispatcher/contexts/`**: Context managers for different execution environments (SSH, local, etc.)
 - **`dpdispatcher/machines/`**: HPC scheduler implementations (Slurm, PBS, LSF, Shell, etc.)
 
 ### Configuration Files
+
 - **`examples/machine/`**: Example machine configurations (JSON format)
 - **`examples/resources/`**: Example resource specifications
 - **`examples/task/`**: Example task definitions
 - **`examples/dpdisp_run.py`**: Complete working example using PEP 723 script metadata
 
 ### Important Directories
+
 - **`tests/`**: Comprehensive test suite including unit tests and integration tests
 - **`doc/`**: Sphinx documentation source files
 - **`ci/`**: CI/CD configuration for Docker-based testing
@@ -97,6 +109,7 @@ Always reference these instructions first and fallback to search or bash command
 ## Common Tasks
 
 ### Running Examples
+
 ```bash
 # Example with lazy local execution (no HPC needed)
 dpdisp run examples/dpdisp_run.py
@@ -107,11 +120,13 @@ dpdisp run examples/dpdisp_run.py
 ```
 
 ### Testing with Different HPC Systems
+
 - **Local/Shell execution:** Use `LazyLocalContext` with `Shell` batch type (examples/machine/lazy_local.json)
 - **SSH remote execution:** Use `SSHContext` (requires SSH setup)
 - **HPC schedulers:** Use `Slurm`, `PBS`, `LSF` batch types (require actual HPC environment)
 
 ### Debugging Job Execution
+
 - Check job logs in the work directory
 - Use `dpdisp submission` commands to inspect job states
 - Review machine and resource configurations in JSON files
