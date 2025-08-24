@@ -44,6 +44,7 @@ Always reference these instructions first and fallback to search or bash command
   - **TIMING: Type checking takes ~2-3 seconds.**
 
 - **Build documentation:**
+
   ```bash
   uv pip install .[docs]
   cd doc
