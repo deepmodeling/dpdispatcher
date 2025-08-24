@@ -64,11 +64,11 @@ class OpenAPI(Machine):
             raise ValueError(
                 "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
             )
-        self.client = Bohrium(
+        self.client = Bohrium(  # type: ignore[reportPossiblyUnboundVariable]
             access_key=access_key, project_id=project_id, app_key=app_key
         )
-        self.storage = Tiefblue()
-        self.job = Job(client=self.client)
+        self.storage = Tiefblue()  # type: ignore[reportPossiblyUnboundVariable]
+        self.job = Job(client=self.client)  # type: ignore[reportPossiblyUnboundVariable]
         self.group_id = None
 
     def gen_script(self, job):

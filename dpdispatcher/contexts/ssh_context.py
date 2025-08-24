@@ -825,8 +825,8 @@ class SSHContext(BaseContext):
         # print(pid)
         return {"stdin": stdin, "stdout": stdout, "stderr": stderr}
 
-    def check_finish(self, cmd_pipes):
-        return cmd_pipes["stdout"].channel.exit_status_ready()
+    def check_finish(self, proc):
+        return proc["stdout"].channel.exit_status_ready()
 
     def get_return(self, cmd_pipes):
         if not self.check_finish(cmd_pipes):
@@ -888,11 +888,11 @@ class SSHContext(BaseContext):
         # local tar
         if os.path.isfile(os.path.join(self.local_root, of)):
             os.remove(os.path.join(self.local_root, of))
-        with tarfile.open(
+        with tarfile.open(  # type: ignore[reportCallIssue, reportArgumentType]
             os.path.join(self.local_root, of),
-            tarfile_mode,
-            dereference=dereference,
-            **kwargs,
+            mode=tarfile_mode,  # type: ignore[reportArgumentType]
+            dereference=dereference,  # type: ignore[reportArgumentType]
+            **kwargs,  # type: ignore[reportArgumentType]
         ) as tar:
             # avoid compressing duplicated files or directories
             for ii in set(files):
