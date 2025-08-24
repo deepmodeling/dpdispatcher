@@ -46,3 +46,4 @@ dbconfig.json
 *.egg
 *.egg-info
 venv/*
+node_modules/
