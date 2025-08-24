@@ -30,6 +30,12 @@ Always reference these instructions first and fallback to search or bash command
   ```
   - **TIMING: Linting takes <1 second.**
 
+- **Run type checking:**
+  ```bash
+  pyright
+  ```
+  - **TIMING: Type checking takes ~2-3 seconds.**
+
 - **Build documentation:**
   ```bash
   uv pip install .[docs]
@@ -55,6 +61,7 @@ Always reference these instructions first and fallback to search or bash command
 
 - **ALWAYS run the test suite after making code changes.** Tests execute quickly (~25 seconds) and should never be cancelled.
 - **ALWAYS run linting before committing:** `ruff check . && ruff format --check .`
+- **ALWAYS run type checking:** `pyright` to catch type-related issues.
 - **Test CLI functionality:** Run `dpdisp --help` and test with example scripts to ensure the CLI works correctly.
 - **Build documentation:** Run `make html` in the `doc/` directory to verify documentation builds without errors.
 
@@ -65,6 +72,7 @@ Always reference these instructions first and fallback to search or bash command
 - **Python versions:** Supports Python 3.7+ (check `pyproject.toml` for current support matrix).
 - **Testing:** Uses `unittest` framework with coverage reporting.
 - **Linting:** Uses `ruff` for both linting and formatting.
+- **Type checking:** Uses `pyright` for static type analysis (configured in `pyproject.toml`).
 - **Documentation:** Uses Sphinx with MyST parser for markdown support.
 
 ## Key Components
@@ -134,6 +142,7 @@ dpdisp run examples/dpdisp_run.py
 ## Development Notes
 
 - **Always use virtual environments** - The system Python is externally managed
+- **Always add type hints** - Include proper type annotations in all Python code for better maintainability
 - **Test artifacts are gitignored** - Job execution creates temporary files that are automatically excluded
 - **Pre-commit hooks available** - Use `pre-commit install` to enable automated code quality checks
 - **Multiple execution contexts** - Code supports local execution, SSH remote execution, and various HPC schedulers
