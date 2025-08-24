@@ -46,12 +46,12 @@ Specify the ProxyCommand directly using {dargs:argument}`proxy_command <machine[
     "hostname": "internal-server.company.com",
     "username": "user",
     "key_filename": "/path/to/internal_key",
-    "proxy_command": "ssh -W %h:%p -i /path/to/jump_key jumpuser@bastion.company.com"
+    "proxy_command": "ssh -W internal-server.company.com:22 -i /path/to/jump_key jumpuser@bastion.company.com"
   }
 }
 ```
 
-The proxy command uses OpenSSH ProxyCommand syntax. `%h` and `%p` are replaced with the target hostname and port.
+**Note**: Unlike OpenSSH, Paramiko's ProxyCommand requires explicit hostname and port instead of `%h:%p` placeholders. The proxy command must specify the actual target hostname and port that matches the `hostname` and `port` in the remote profile.
 
 This configuration establishes the connection path: Local → Jump Host → Target Server.
 
