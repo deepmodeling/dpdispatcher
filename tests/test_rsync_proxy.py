@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -17,6 +18,10 @@ class TestRsyncProxyCommand(unittest.TestCase):
 
     def setUp(self):
         """Set up test files for rsync operations."""
+        # Check if rsync is available before running tests
+        if shutil.which("rsync") is None:
+            self.skipTest("rsync not available")
+
         # Create temporary test files
         self.test_content = "test content for rsync"
 
@@ -42,7 +47,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
             self.local_file.name,
             self.remote_file_proxy,
             key_filename="/root/.ssh/id_rsa",
-            proxy_command="ssh -W server:22 root@jumphost",
+            proxy_command="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -W server:22 root@jumphost",
         )
 
         # Verify the file was transferred by reading it back
@@ -53,7 +58,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
             self.remote_file_proxy,
             download_path,
             key_filename="/root/.ssh/id_rsa",
-            proxy_command="ssh -W server:22 root@jumphost",
+            proxy_command="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -W server:22 root@jumphost",
         )
 
         # Verify content matches
@@ -96,7 +101,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
             port=22,
             key_filename="/root/.ssh/id_rsa",
             timeout=30,
-            proxy_command="ssh -W server:22 root@jumphost",
+            proxy_command="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -W server:22 root@jumphost",
         )
 
         # Verify the file exists on remote by attempting to download
@@ -109,7 +114,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
             port=22,
             key_filename="/root/.ssh/id_rsa",
             timeout=30,
-            proxy_command="ssh -W server:22 root@jumphost",
+            proxy_command="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -W server:22 root@jumphost",
         )
 
         # Verify content

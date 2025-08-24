@@ -23,7 +23,7 @@ class TestSSHJumpHost(unittest.TestCase):
             hostname="server",
             username="root",
             key_filename="/root/.ssh/id_rsa",
-            proxy_command="ssh -W server:22 root@jumphost",
+            proxy_command="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -W server:22 root@jumphost",
         )
 
         # Verify the connection was established
@@ -31,12 +31,16 @@ class TestSSHJumpHost(unittest.TestCase):
         self.assertTrue(ssh_session._check_alive())
 
         # Test running a simple command through the proxy
+        assert ssh_session.ssh is not None  # for type checker
         stdin, stdout, stderr = ssh_session.ssh.exec_command("echo 'test via proxy'")
         output = stdout.read().decode().strip()
         self.assertEqual(output, "test via proxy")
 
         # Verify proxy_command attribute is set correctly
-        self.assertEqual(ssh_session.proxy_command, "ssh -W server:22 root@jumphost")
+        self.assertEqual(
+            ssh_session.proxy_command,
+            "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -W server:22 root@jumphost",
+        )
 
         ssh_session.close()
 
@@ -52,6 +56,7 @@ class TestSSHJumpHost(unittest.TestCase):
         self.assertTrue(ssh_session._check_alive())
 
         # Test running a simple command
+        assert ssh_session.ssh is not None  # for type checker
         stdin, stdout, stderr = ssh_session.ssh.exec_command("echo 'test direct'")
         output = stdout.read().decode().strip()
         self.assertEqual(output, "test direct")
@@ -73,6 +78,7 @@ class TestSSHJumpHost(unittest.TestCase):
         self.assertTrue(ssh_session._check_alive())
 
         # Test running a command on jumphost
+        assert ssh_session.ssh is not None  # for type checker
         stdin, stdout, stderr = ssh_session.ssh.exec_command("hostname")
         output = stdout.read().decode().strip()
         self.assertEqual(output, "jumphost")
