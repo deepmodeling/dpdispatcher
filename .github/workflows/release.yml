@@ -1,4 +1,10 @@
-on: [push, pull_request]
+'on':
+  push:
+    branches-ignore:
+      - 'copilot/**'
+      - 'dependabot/**'
+      - 'pre-commit-ci-update-config'
+  pull_request:
 name: Release to pypi
 jobs:
   release-to-pypi:

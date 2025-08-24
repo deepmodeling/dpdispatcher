@@ -1,8 +1,12 @@
 name: Test on different machines
 
-on:
-  - push
-  - pull_request
+'on':
+  push:
+    branches-ignore:
+      - 'copilot/**'
+      - 'dependabot/**'
+      - 'pre-commit-ci-update-config'
+  pull_request:
 
 jobs:
   build:
