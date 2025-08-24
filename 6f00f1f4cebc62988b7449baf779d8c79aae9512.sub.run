@@ -1,9 +1,0 @@
-
-cd $REMOTE_ROOT
-cd .
-test $? -ne 0 && exit 1
-if [ ! -f 8cba1ef7d1e361bc244ed813015dcc0c852d7890_task_tag_finished ] ;then
-   ( python $REMOTE_ROOT/script_cf182ff0ea2103ac8b37dffaf91dcbd9d2dcb0a2.py ) 1>>log 2>>err 
-  if test $? -eq 0; then touch 8cba1ef7d1e361bc244ed813015dcc0c852d7890_task_tag_finished; else echo 1 > $REMOTE_ROOT/6f00f1f4cebc62988b7449baf779d8c79aae9512_flag_if_job_task_fail;tail -v -c 1000 $REMOTE_ROOT/./err > $REMOTE_ROOT/6f00f1f4cebc62988b7449baf779d8c79aae9512_last_err_file;fi
-fi &
-wait 
