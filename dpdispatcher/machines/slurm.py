@@ -182,7 +182,7 @@ class Slurm(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job, **kwargs):
+    def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
@@ -381,7 +381,7 @@ class SlurmJobArray(Slurm):
             else:
                 return JobStatus.terminated
 
-    def check_finish_tag(self, job, **kwargs):
+    def check_finish_tag(self, job):
         results = []
         for task in job.job_task_list:
             task.get_task_state(self.context)

@@ -102,7 +102,7 @@ class PBS(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job, **kwargs):
+    def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
@@ -296,7 +296,7 @@ class SGE(PBS):
             else:
                 return JobStatus.unknown
 
-    def check_finish_tag(self, job, **kwargs):
+    def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 

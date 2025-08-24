@@ -214,7 +214,7 @@ class OpenAPI(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def check_finish_tag(self, job, **kwargs):
+    def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
         dlog.info("check if job finished: ", job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
