@@ -31,9 +31,9 @@ To use SSH, one needs to provide necessary parameters in {dargs:argument}`remote
 
 It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/OpenSSH/Keys) and transfer the public key to the remote server in advance, which is more secure than password authentication.
 
-### SSH Jump Host (Bastion Server)
-
 Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.
+
+### SSH Jump Host (Bastion Server)
 
 For connecting to internal servers through a jump host (bastion server), SSH context supports jump host configuration. This allows connecting to internal servers that are not directly accessible from the internet.
 

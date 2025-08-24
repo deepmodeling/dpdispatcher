@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import os
+import shlex
 import struct
 import subprocess
 import time
@@ -131,18 +132,22 @@ def rsync(
     # Use proxy_command if provided
     if proxy_command is not None:
         ssh_cmd.extend(["-o", f"ProxyCommand={proxy_command}"])
+
+    # Properly escape the SSH command for rsync's -e option
+    ssh_cmd_str = " ".join(shlex.quote(part) for part in ssh_cmd)
+
     cmd = [
         "rsync",
         # -a: archieve
         # -z: compress
         "-az",
         "-e",
-        " ".join(ssh_cmd),
+        ssh_cmd_str,
         "-q",
         from_file,
         to_file,
     ]
-    ret, out, err = run_cmd_with_all_output(cmd, shell=False)
+    ret, out, err = run_cmd_with_all_output(cmd, shell=True)
     if ret != 0:
         raise RuntimeError(f"Failed to run {cmd}: {err}")
 
