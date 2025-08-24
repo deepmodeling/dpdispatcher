@@ -63,14 +63,6 @@ class SSHSession:
         self._keyboard_interactive_auth = False
         self._setup_ssh()
 
-    def _get_proxy_command(self):
-        """Get the proxy command to use for connection.
-        
-        Returns:
-            str or None: The proxy command to use, or None for direct connection
-        """
-        return self.proxy_command
-
     # @classmethod
     # def deserialize(cls, jdata):
     #     instance = cls(**jdata)
@@ -152,11 +144,10 @@ class SSHSession:
         # transport = self.ssh.get_transport()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(self.timeout)
-        
+
         # Use ProxyCommand if configured (either directly or via jump host parameters)
-        proxy_cmd = self._get_proxy_command()
-        if proxy_cmd is not None:
-            sock = paramiko.ProxyCommand(proxy_cmd)
+        if self.proxy_command is not None:
+            sock = paramiko.ProxyCommand(self.proxy_command)
         else:
             sock.connect((self.hostname, self.port))
 
@@ -356,7 +347,9 @@ class SSHSession:
             "enable searching for discoverable private key files in ~/.ssh/"
         )
         doc_execute_command = "execute command after ssh connection is established."
-        doc_proxy_command = "ProxyCommand to use for SSH connection through intermediate servers."
+        doc_proxy_command = (
+            "ProxyCommand to use for SSH connection through intermediate servers."
+        )
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -420,50 +413,38 @@ class SSHSession:
 
     def put(self, from_f, to_f):
         if self.rsync_available:
-            proxy_cmd = self._get_proxy_command()
-            if proxy_cmd is not None:
-                # For rsync, we need to use %h:%p placeholders for target host/port
-                proxy_cmd_rsync = proxy_cmd.replace(f"{self.hostname}:{self.port}", "%h:%p")
-                return rsync(
-                    from_f,
-                    self.remote + ":" + to_f,
-                    port=self.port,
-                    key_filename=self.key_filename,
-                    timeout=self.timeout,
-                    proxy_command=proxy_cmd_rsync,
+            # For rsync, we need to use %h:%p placeholders for target host/port
+            proxy_cmd_rsync = None
+            if self.proxy_command is not None:
+                proxy_cmd_rsync = self.proxy_command.replace(
+                    f"{self.hostname}:{self.port}", "%h:%p"
                 )
-            else:
-                return rsync(
-                    from_f,
-                    self.remote + ":" + to_f,
-                    port=self.port,
-                    key_filename=self.key_filename,
-                    timeout=self.timeout,
-                )
+            return rsync(
+                from_f,
+                self.remote + ":" + to_f,
+                port=self.port,
+                key_filename=self.key_filename,
+                timeout=self.timeout,
+                proxy_command=proxy_cmd_rsync,
+            )
         return self.sftp.put(from_f, to_f)
 
     def get(self, from_f, to_f):
         if self.rsync_available:
-            proxy_cmd = self._get_proxy_command()
-            if proxy_cmd is not None:
-                # For rsync, we need to use %h:%p placeholders for target host/port
-                proxy_cmd_rsync = proxy_cmd.replace(f"{self.hostname}:{self.port}", "%h:%p")
-                return rsync(
-                    self.remote + ":" + from_f,
-                    to_f,
-                    port=self.port,
-                    key_filename=self.key_filename,
-                    timeout=self.timeout,
-                    proxy_command=proxy_cmd_rsync,
+            # For rsync, we need to use %h:%p placeholders for target host/port
+            proxy_cmd_rsync = None
+            if self.proxy_command is not None:
+                proxy_cmd_rsync = self.proxy_command.replace(
+                    f"{self.hostname}:{self.port}", "%h:%p"
                 )
-            else:
-                return rsync(
-                    self.remote + ":" + from_f,
-                    to_f,
-                    port=self.port,
-                    key_filename=self.key_filename,
-                    timeout=self.timeout,
-                )
+            return rsync(
+                self.remote + ":" + from_f,
+                to_f,
+                port=self.port,
+                key_filename=self.key_filename,
+                timeout=self.timeout,
+                proxy_command=proxy_cmd_rsync,
+            )
         return self.sftp.get(from_f, to_f)
 
     @property

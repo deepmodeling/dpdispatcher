@@ -33,6 +33,8 @@ It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/Open
 
 ### SSH Jump Host (Bastion Server)
 
+Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.
+
 For connecting to internal servers through a jump host (bastion server), SSH context supports jump host configuration. This allows connecting to internal servers that are not directly accessible from the internet.
 
 Specify the ProxyCommand directly using {dargs:argument}`proxy_command <machine[SSHContext]/remote_profile/proxy_command>`:
@@ -52,8 +54,6 @@ Specify the ProxyCommand directly using {dargs:argument}`proxy_command <machine[
 The proxy command uses OpenSSH ProxyCommand syntax. `%h` and `%p` are replaced with the target hostname and port.
 
 This configuration establishes the connection path: Local → Jump Host → Target Server.
-
-Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.
 
 ## Bohrium
 
