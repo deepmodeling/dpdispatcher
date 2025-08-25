@@ -4,6 +4,8 @@
       - 'copilot/**'
       - 'dependabot/**'
       - 'pre-commit-ci-update-config'
+    tags:
+      - 'v*'
   pull_request:
 name: Release to pypi
 jobs:
