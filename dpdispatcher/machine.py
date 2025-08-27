@@ -82,9 +82,9 @@ class Machine(metaclass=ABCMeta):
         local_root=None,
         remote_root=None,
         remote_profile={},
-        retry_count=3,
         *,
         context=None,
+        retry_count=3,
     ):
         if context is None:
             assert isinstance(self, self.__class__.subclasses_dict[batch_type])
@@ -97,6 +97,7 @@ class Machine(metaclass=ABCMeta):
         else:
             pass
         self.bind_context(context=context)
+        self.retry_count = retry_count
 
     def bind_context(self, context):
         self.context = context
@@ -397,7 +398,7 @@ class Machine(metaclass=ABCMeta):
         doc_clean_asynchronously = (
             "Clean the remote directory asynchronously after the job finishes."
         )
-        doc_retry_count = "Number of retries to submit failed jobs."
+        doc_retry_count = "Number of retries to resubmit failed jobs."
 
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
