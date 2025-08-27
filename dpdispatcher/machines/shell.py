@@ -61,9 +61,6 @@ class Shell(Machine):
         # self.context.write_file(job_id_name, job_id)
         # return job_id
 
-    def default_resources(self, resources):
-        pass
-
     def check_status(self, job):
         job_id = job.job_id
         # print('shell.check_status.job_id', job_id)

@@ -1,5 +1,9 @@
-on:
+'on':
   push:
+    branches-ignore:
+      - 'copilot/**'
+      - 'dependabot/**'
+      - 'pre-commit-ci-update-config'
   pull_request:
 name: Type checker
 jobs:
@@ -7,7 +11,7 @@ jobs:
     name: pyright
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: actions/setup-python@v5
       with:
         python-version: '3.11'
@@ -15,4 +19,4 @@ jobs:
     - run: uv pip install --system -e .[cloudserver,gui]
     - uses: jakebailey/pyright-action@v2
       with:
-        version: 1.1.308
+        version: 1.1.404

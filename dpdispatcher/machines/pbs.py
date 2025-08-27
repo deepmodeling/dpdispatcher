@@ -69,9 +69,6 @@ class PBS(Machine):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def default_resources(self, resources):
-        pass
-
     def check_status(self, job):
         job_id = job.job_id
         if job_id == "":
@@ -255,9 +252,6 @@ class SGE(PBS):
         job_id = subret[0].split()[2]
         self.context.write_file(job_id_name, job_id)
         return job_id
-
-    def default_resources(self, resources):
-        pass
 
     def check_status(self, job):
         ### https://softpanorama.org/HPC/Grid_engine/Queues/queue_states.shtml

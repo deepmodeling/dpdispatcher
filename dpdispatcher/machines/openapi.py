@@ -1,14 +1,13 @@
 import os
 import shutil
 import time
+from zipfile import ZipFile
 
 from dpdispatcher.utils.utils import customized_script_header_template
 
 try:
-    from bohriumsdk.client import Client
-    from bohriumsdk.job import Job
-    from bohriumsdk.storage import Storage
-    from bohriumsdk.util import Util
+    from bohrium import Bohrium
+    from bohrium.resources import Job, Tiefblue
 except ModuleNotFoundError:
     found_bohriumsdk = False
 else:
@@ -23,6 +22,12 @@ shell_script_header_template = """
 """
 
 
+def unzip_file(zip_file, out_dir="./"):
+    obj = ZipFile(zip_file, "r")
+    for item in obj.namelist():
+        obj.extract(item, out_dir)
+
+
 class OpenAPI(Machine):
     def __init__(self, context):
         if not found_bohriumsdk:
@@ -35,9 +40,35 @@ class OpenAPI(Machine):
         self.grouped = self.remote_profile.get("grouped", True)
         self.retry_count = self.remote_profile.get("retry_count", 3)
         self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", True)
-        self.client = Client()
-        self.job = Job(client=self.client)
-        self.storage = Storage(client=self.client)
+
+        access_key = (
+            self.remote_profile.get("access_key", None)
+            or os.getenv("BOHRIUM_ACCESS_KEY", None)
+            or os.getenv("ACCESS_KEY", None)
+        )
+        project_id = (
+            self.remote_profile.get("project_id", None)
+            or os.getenv("BOHRIUM_PROJECT_ID", None)
+            or os.getenv("PROJECT_ID", None)
+        )
+        app_key = (
+            self.remote_profile.get("app_key", None)
+            or os.getenv("BOHRIUM_APP_KEY", None)
+            or os.getenv("APP_KEY", None)
+        )
+        if access_key is None:
+            raise ValueError(
+                "remote_profile must contain 'access_key' or set environment variable 'BOHRIUM_ACCESS_KEY'"
+            )
+        if project_id is None:
+            raise ValueError(
+                "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
+            )
+        self.client = Bohrium(  # type: ignore[reportPossiblyUnboundVariable]
+            access_key=access_key, project_id=project_id, app_key=app_key
+        )
+        self.storage = Tiefblue()  # type: ignore[reportPossiblyUnboundVariable]
+        self.job = Job(client=self.client)  # type: ignore[reportPossiblyUnboundVariable]
         self.group_id = None
 
     def gen_script(self, job):
@@ -102,7 +133,6 @@ class OpenAPI(Machine):
         }
         if job.job_state == JobStatus.unsubmitted:
             openapi_params["job_id"] = job.job_id
-
         data = self.job.insert(**openapi_params)
 
         job.job_id = data.get("jobId", 0)  # type: ignore
@@ -170,7 +200,7 @@ class OpenAPI(Machine):
         result_filename = job_hash + "_back.zip"
         target_result_zip = os.path.join(self.context.local_root, result_filename)
         self.storage.download_from_url(job_url, target_result_zip)
-        Util.unzip_file(target_result_zip, out_dir=self.context.local_root)
+        unzip_file(target_result_zip, out_dir=self.context.local_root)
         try:
             os.makedirs(os.path.join(self.context.local_root, "backup"), exist_ok=True)
             shutil.move(

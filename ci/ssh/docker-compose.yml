@@ -12,6 +12,17 @@ services:
       - "22"
     volumes:
       - ssh_config:/root/.ssh
+  jumphost:
+    image: takeyamajp/ubuntu-sshd:ubuntu22.04
+    build: .
+    container_name: jumphost
+    hostname: jumphost
+    environment:
+      ROOT_PASSWORD: dpdispatcher
+    expose:
+      - "22"
+    volumes:
+      - ssh_config:/root/.ssh
   test:
     image: python:3.10
     tty: true
@@ -25,6 +36,7 @@ services:
       - ../..:/dpdispatcher
     depends_on:
       - server
+      - jumphost
 
 volumes:
   ssh_config:

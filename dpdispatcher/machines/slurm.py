@@ -85,7 +85,7 @@ class Slurm(Machine):
         # self.context.write_file(fname=os.path.join(self.context.submission.work_base, script_file_name), write_str=script_str)
         command = "cd {} && {} {}".format(
             shlex.quote(self.context.remote_root),
-            "sbatch",
+            "sbatch --parsable",
             shlex.quote(script_file_name),
         )
         ret, stdin, stdout, stderr = self.context.block_call(command)
@@ -117,9 +117,6 @@ class Slurm(Machine):
         job_id = subret[0].split(";")[0].strip()
         self.context.write_file(job_id_name, job_id)
         return job_id
-
-    def default_resources(self, resources):
-        pass
 
     @retry()
     def check_status(self, job):

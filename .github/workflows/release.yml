@@ -1,4 +1,12 @@
-on: [push, pull_request]
+'on':
+  push:
+    branches-ignore:
+      - 'copilot/**'
+      - 'dependabot/**'
+      - 'pre-commit-ci-update-config'
+    tags:
+      - 'v*'
+  pull_request:
 name: Release to pypi
 jobs:
   release-to-pypi:
@@ -8,7 +16,7 @@ jobs:
         # IMPORTANT: this permission is mandatory for trusted publishing
         id-token: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup python
       uses: actions/setup-python@v5
       with:

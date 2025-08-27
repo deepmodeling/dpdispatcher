@@ -1,7 +1,11 @@
 name: Test Bohrium
 
-on:
+'on':
   push:
+    branches-ignore:
+      - 'copilot/**'
+      - 'dependabot/**'
+      - 'pre-commit-ci-update-config'
   pull_request_target:
     types:
       - "labeled"
@@ -12,7 +16,7 @@ jobs:
     environment: bohrium
     if: github.repository_owner == 'deepmodeling' && (github.event.label.name == 'Test Bohrium' || github.event_name == 'push')
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         ref: "${{ github.event.pull_request.merge_commit_sha }}"
     - name: Set up Python 3.12
