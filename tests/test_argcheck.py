@@ -27,6 +27,7 @@ class TestJob(unittest.TestCase):
                 "symlink": True,
             },
             "clean_asynchronously": False,
+            "retry_count": 3,
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
