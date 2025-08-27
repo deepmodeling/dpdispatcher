@@ -82,6 +82,7 @@ class Machine(metaclass=ABCMeta):
         local_root=None,
         remote_root=None,
         remote_profile={},
+        retry_count=3,
         *,
         context=None,
     ):
@@ -396,6 +397,7 @@ class Machine(metaclass=ABCMeta):
         doc_clean_asynchronously = (
             "Clean the remote directory asynchronously after the job finishes."
         )
+        doc_retry_count = "Number of retries to submit failed jobs."
 
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
@@ -413,6 +415,7 @@ class Machine(metaclass=ABCMeta):
                 default=False,
                 doc=doc_clean_asynchronously,
             ),
+            Argument("retry_count", int, optional=True, default=3, doc=doc_retry_count),
         ]
 
         context_variant = Variant(
