@@ -1,4 +1,3 @@
-import os
 import shlex
 
 from dpdispatcher.dlog import dlog
