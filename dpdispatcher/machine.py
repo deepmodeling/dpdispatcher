@@ -82,9 +82,9 @@ class Machine(metaclass=ABCMeta):
         local_root=None,
         remote_root=None,
         remote_profile={},
+        retry_count=3,
         *,
         context=None,
-        retry_count=3,
     ):
         if context is None:
             assert isinstance(self, self.__class__.subclasses_dict[batch_type])
@@ -93,11 +93,11 @@ class Machine(metaclass=ABCMeta):
                 local_root=local_root,
                 remote_root=remote_root,
                 remote_profile=remote_profile,
+                retry_count=retry_count,
             )
         else:
             pass
         self.bind_context(context=context)
-        self.retry_count = retry_count
 
     def bind_context(self, context):
         self.context = context
@@ -150,8 +150,7 @@ class Machine(metaclass=ABCMeta):
         base.check_value(machine_dict, strict=False)
 
         context = BaseContext.load_from_dict(machine_dict)
-        retry_count = machine_dict.get("retry_count", 3)
-        machine = machine_class(context=context, retry_count=retry_count)
+        machine = machine_class(context=context)
         return machine
 
     def serialize(self, if_empty_remote_profile=False):
