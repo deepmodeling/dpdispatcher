@@ -164,6 +164,7 @@ class Machine(metaclass=ABCMeta):
             machine_dict["remote_profile"] = self.context.remote_profile
         else:
             machine_dict["remote_profile"] = {}
+        machine_dict["retry_count"] = self.retry_count
         # normalize the dict
         base = self.arginfo()
         machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
