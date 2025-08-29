@@ -82,9 +82,9 @@ class Machine(metaclass=ABCMeta):
         local_root=None,
         remote_root=None,
         remote_profile={},
+        retry_count=3,
         *,
         context=None,
-        retry_count=3,
     ):
         if context is None:
             assert isinstance(self, self.__class__.subclasses_dict[batch_type])

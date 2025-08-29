@@ -29,8 +29,8 @@ def unzip_file(zip_file, out_dir="./"):
 
 
 class OpenAPI(Machine):
-    def __init__(self, context):
-        super().__init__(context)
+    def __init__(self, context, **kwargs):
+        super().__init__(context=context, **kwargs)
         if not found_bohriumsdk:
             raise ModuleNotFoundError(
                 "bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`"

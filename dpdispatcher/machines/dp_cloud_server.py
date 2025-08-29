@@ -19,8 +19,8 @@ shell_script_header_template = """
 class Bohrium(Machine):
     alias = ("Lebesgue", "DpCloudServer")
 
-    def __init__(self, context):
-        super().__init__(context)
+    def __init__(self, context, **kwargs):
+        super().__init__(context=context, **kwargs)
         self.context = context
         self.input_data = context.remote_profile["input_data"].copy()
         self.api_version = 2
