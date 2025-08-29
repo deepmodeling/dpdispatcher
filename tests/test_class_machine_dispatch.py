@@ -189,7 +189,6 @@ class TestMachineDispatch(unittest.TestCase):
             "context_type": "LebesgueContext",
             "local_root": "./",
             "remote_root": "./",
-            "retry_count": 3,
             "remote_profile": {
                 "email": "114@514.com",
                 "password": "114514",
