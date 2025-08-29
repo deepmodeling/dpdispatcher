@@ -20,6 +20,7 @@ class Bohrium(Machine):
     alias = ("Lebesgue", "DpCloudServer")
 
     def __init__(self, context):
+        super().__init__(context)
         self.context = context
         self.input_data = context.remote_profile["input_data"].copy()
         self.api_version = 2
@@ -32,7 +33,6 @@ class Bohrium(Machine):
         phone = context.remote_profile.get("phone", None)
         username = context.remote_profile.get("username", None)
         password = context.remote_profile.get("password", None)
-        # self.retry_count = context.remote_profile.get("retry_count", 3)
         self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", True)
 
         ticket = os.environ.get("BOHR_TICKET", None)

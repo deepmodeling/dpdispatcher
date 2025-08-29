@@ -30,6 +30,7 @@ def unzip_file(zip_file, out_dir="./"):
 
 class OpenAPI(Machine):
     def __init__(self, context):
+        super().__init__(context)
         if not found_bohriumsdk:
             raise ModuleNotFoundError(
                 "bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`"
@@ -38,7 +39,6 @@ class OpenAPI(Machine):
         self.remote_profile = context.remote_profile.copy()
 
         self.grouped = self.remote_profile.get("grouped", True)
-        # self.retry_count = self.remote_profile.get("retry_count", 3)
         self.ignore_exit_code = context.remote_profile.get("ignore_exit_code", True)
 
         access_key = (
