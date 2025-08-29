@@ -150,7 +150,8 @@ class Machine(metaclass=ABCMeta):
         base.check_value(machine_dict, strict=False)
 
         context = BaseContext.load_from_dict(machine_dict)
-        machine = machine_class(context=context)
+        retry_count = machine_dict.get("retry_count", 3)
+        machine = machine_class(context=context, retry_count=retry_count)
         return machine
 
     def serialize(self, if_empty_remote_profile=False):
