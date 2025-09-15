@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.pbs import PBS
+
 from dpdispatcher.submission import Resources, Submission, Task
 
 # local_session = LocalSession({'work_path':'temp2'})
