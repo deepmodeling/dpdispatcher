@@ -7,6 +7,7 @@ from dpdispatcher.local_context import LocalContext, LocalSession
 
 # from dpdispatcher.pbs import PBS
 from dpdispatcher.shell import Shell
+
 from dpdispatcher.submission import Resources, Submission, Task
 
 local_session = LocalSession({"work_path": "temp2"})
