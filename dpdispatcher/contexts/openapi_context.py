@@ -72,6 +72,7 @@ class OpenAPIContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
+        os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
         access_key = (
             remote_profile.get("access_key", None)
             or os.getenv("BOHRIUM_ACCESS_KEY", None)
@@ -169,7 +170,7 @@ class OpenAPIContext(BaseContext):
         object_key = os.path.join(data["storePath"], zip_filename)  # type: ignore
         job.upload_path = object_key
         job.job_id = data["jobId"]  # type: ignore
-        job.jgid = data["jobGroupId"]  # type: ignore
+        job.jgid = data.get("jobGroupId", "")  # type: ignore
         self.storage.upload_From_file_multi_part(
             object_key=object_key, file_path=upload_zip, token=token
         )
