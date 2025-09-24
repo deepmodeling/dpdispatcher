@@ -161,7 +161,9 @@ class BohriumContext(BaseContext):
         # return oss_task_zip
         # api.upload(self.oss_task_dir, zip_task_file)
 
-    def download(self, submission):
+    def download(
+        self, submission, check_exists=False, mark_failure=True, back_error=False
+    ):
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}

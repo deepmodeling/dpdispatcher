@@ -45,6 +45,7 @@ class SSHSession:
         tar_compress=True,
         look_for_keys=True,
         execute_command=None,
+        proxy_command=None,
     ):
         self.hostname = hostname
         self.username = username
@@ -58,6 +59,7 @@ class SSHSession:
         self.tar_compress = tar_compress
         self.look_for_keys = look_for_keys
         self.execute_command = execute_command
+        self.proxy_command = proxy_command
         self._keyboard_interactive_auth = False
         self._setup_ssh()
 
@@ -142,7 +144,12 @@ class SSHSession:
         # transport = self.ssh.get_transport()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(self.timeout)
-        sock.connect((self.hostname, self.port))
+
+        # Use ProxyCommand if configured (either directly or via jump host parameters)
+        if self.proxy_command is not None:
+            sock = paramiko.ProxyCommand(self.proxy_command)
+        else:
+            sock.connect((self.hostname, self.port))
 
         # Make a Paramiko Transport object using the socket
         ts = paramiko.Transport(sock)
@@ -163,7 +170,6 @@ class SSHSession:
             if os.path.exists(key_path):
                 for pkey_class in (
                     paramiko.RSAKey,
-                    paramiko.DSSKey,
                     paramiko.ECDSAKey,
                     paramiko.Ed25519Key,
                 ):
@@ -181,7 +187,6 @@ class SSHSession:
         elif self.look_for_keys:
             for keytype, name in [
                 (paramiko.RSAKey, "rsa"),
-                (paramiko.DSSKey, "dsa"),
                 (paramiko.ECDSAKey, "ecdsa"),
                 (paramiko.Ed25519Key, "ed25519"),
             ]:
@@ -342,6 +347,9 @@ class SSHSession:
             "enable searching for discoverable private key files in ~/.ssh/"
         )
         doc_execute_command = "execute command after ssh connection is established."
+        doc_proxy_command = (
+            "ProxyCommand to use for SSH connection through intermediate servers."
+        )
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -390,6 +398,13 @@ class SSHSession:
                 default=None,
                 doc=doc_execute_command,
             ),
+            Argument(
+                "proxy_command",
+                [str, type(None)],
+                optional=True,
+                default=None,
+                doc=doc_proxy_command,
+            ),
         ]
         ssh_remote_profile_format = Argument(
             "ssh_session", dict, ssh_remote_profile_args
@@ -398,23 +413,37 @@ class SSHSession:
 
     def put(self, from_f, to_f):
         if self.rsync_available:
+            # For rsync, we need to use %h:%p placeholders for target host/port
+            proxy_cmd_rsync = None
+            if self.proxy_command is not None:
+                proxy_cmd_rsync = self.proxy_command.replace(
+                    f"{self.hostname}:{self.port}", "%h:%p"
+                )
             return rsync(
                 from_f,
                 self.remote + ":" + to_f,
                 port=self.port,
                 key_filename=self.key_filename,
                 timeout=self.timeout,
+                proxy_command=proxy_cmd_rsync,
             )
         return self.sftp.put(from_f, to_f)
 
     def get(self, from_f, to_f):
         if self.rsync_available:
+            # For rsync, we need to use %h:%p placeholders for target host/port
+            proxy_cmd_rsync = None
+            if self.proxy_command is not None:
+                proxy_cmd_rsync = self.proxy_command.replace(
+                    f"{self.hostname}:{self.port}", "%h:%p"
+                )
             return rsync(
                 self.remote + ":" + from_f,
                 to_f,
                 port=self.port,
                 key_filename=self.key_filename,
                 timeout=self.timeout,
+                proxy_command=proxy_cmd_rsync,
             )
         return self.sftp.get(from_f, to_f)
 
@@ -827,8 +856,8 @@ class SSHContext(BaseContext):
         # print(pid)
         return {"stdin": stdin, "stdout": stdout, "stderr": stderr}
 
-    def check_finish(self, cmd_pipes):
-        return cmd_pipes["stdout"].channel.exit_status_ready()
+    def check_finish(self, proc):
+        return proc["stdout"].channel.exit_status_ready()
 
     def get_return(self, cmd_pipes):
         if not self.check_finish(cmd_pipes):
@@ -890,11 +919,11 @@ class SSHContext(BaseContext):
         # local tar
         if os.path.isfile(os.path.join(self.local_root, of)):
             os.remove(os.path.join(self.local_root, of))
-        with tarfile.open(
+        with tarfile.open(  # type: ignore[reportCallIssue, reportArgumentType]
             os.path.join(self.local_root, of),
-            tarfile_mode,
-            dereference=dereference,
-            **kwargs,
+            mode=tarfile_mode,  # type: ignore[reportArgumentType]
+            dereference=dereference,  # type: ignore[reportArgumentType]
+            **kwargs,  # type: ignore[reportArgumentType]
         ) as tar:
             # avoid compressing duplicated files or directories
             for ii in set(files):

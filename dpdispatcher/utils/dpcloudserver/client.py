@@ -142,10 +142,10 @@ class Client:
         res = self.get("/data/get_sts_token", {})
         # print('debug>>>>>>>>>>>>>', res)
         dlog.debug(f"debug: _get_oss_bucket: res:{res}")
-        auth = oss2.StsAuth(
+        auth = oss2.StsAuth(  # type: ignore[reportPossiblyUnboundVariable]
             res["AccessKeyId"], res["AccessKeySecret"], res["SecurityToken"]
         )
-        return oss2.Bucket(auth, endpoint, bucket_name)
+        return oss2.Bucket(auth, endpoint, bucket_name)  # type: ignore[reportPossiblyUnboundVariable]
 
     def download(self, oss_file, save_file, endpoint, bucket_name):
         bucket = self._get_oss_bucket(endpoint, bucket_name)
@@ -184,7 +184,7 @@ class Client:
         )
         bucket = self._get_oss_bucket(endpoint, bucket_name)
         total_size = os.path.getsize(zip_task_file)
-        part_size = determine_part_size(total_size, preferred_size=1000 * 1024)
+        part_size = determine_part_size(total_size, preferred_size=1000 * 1024)  # type: ignore[reportPossiblyUnboundVariable]
         upload_id = bucket.init_multipart_upload(oss_task_zip).upload_id
         parts = []
         with open(zip_task_file, "rb") as fileobj:
@@ -196,9 +196,9 @@ class Client:
                     oss_task_zip,
                     upload_id,
                     part_number,
-                    SizedFileAdapter(fileobj, num_to_upload),
+                    SizedFileAdapter(fileobj, num_to_upload),  # type: ignore[reportPossiblyUnboundVariable]
                 )
-                parts.append(PartInfo(part_number, result.etag))
+                parts.append(PartInfo(part_number, result.etag))  # type: ignore[reportPossiblyUnboundVariable]
                 offset += num_to_upload
                 part_number += 1
         # result = bucket.complete_multipart_upload(oss_task_zip, upload_id, parts)

@@ -102,9 +102,6 @@ class LSF(Machine):
         return job_id
 
     # TODO: derive abstract methods
-    def default_resources(self, resources):
-        pass
-
     def sub_script_cmd(self, res):
         pass
 

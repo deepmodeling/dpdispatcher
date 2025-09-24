@@ -1,0 +1,65 @@
+name: "Copilot Setup Steps"
+
+# Automatically run the setup steps when they are changed to allow for easy validation, and
+# allow manual testing through the repository's "Actions" tab
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    # Set the permissions to the lowest permissions possible needed for your steps.
+    # Copilot will be given its own token for its operations.
+    permissions:
+      # If you want to clone the repository as part of your setup steps, for example to install dependencies, you'll need the `contents: read` permission. If you don't clone the repository in your setup steps, Copilot will do this for you automatically after the steps complete.
+      contents: read
+
+    # You can define any steps you want, and they will run before the agent starts.
+    # If you do not check out your code, Copilot will do this for you.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: |
+          # Install uv using pip to avoid network restrictions
+          python -m pip install --upgrade pip
+          python -m pip install uv
+
+      - name: Create virtual environment and install dependencies
+        run: |
+          uv venv .venv
+          source .venv/bin/activate
+          uv pip install .[test] coverage
+
+      - name: Install development tools
+        run: |
+          uv tool install pre-commit
+          uv tool install pyright
+
+      - name: Set up pre-commit hooks
+        run: |
+          source .venv/bin/activate
+          pre-commit install --install-hooks
+
+      - name: Verify installation
+        run: |
+          source .venv/bin/activate
+          python --version
+          uv --version
+          pre-commit --version
+          pyright --version
+          python -c "import dpdispatcher; print('DPDispatcher installed successfully')"

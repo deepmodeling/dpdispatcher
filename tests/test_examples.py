@@ -24,6 +24,7 @@ input_files: Sequence[Tuple[Argument, Path]] = (
     (machine_args, p_examples / "machine" / "expanse.json"),
     (machine_args, p_examples / "machine" / "lazy_local.json"),
     (machine_args, p_examples / "machine" / "mandu.json"),
+    (machine_args, p_examples / "machine" / "ssh_proxy_command.json"),
     (resources_args, p_examples / "resources" / "expanse_cpu.json"),
     (resources_args, p_examples / "resources" / "mandu.json"),
     (resources_args, p_examples / "resources" / "tiger.json"),

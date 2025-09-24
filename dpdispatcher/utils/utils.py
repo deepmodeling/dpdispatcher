@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import os
+import shlex
 import struct
 import subprocess
 import time
@@ -89,6 +90,7 @@ def rsync(
     port: int = 22,
     key_filename: Optional[str] = None,
     timeout: Union[int, float] = 10,
+    proxy_command: Optional[str] = None,
 ):
     """Call rsync to transfer files.
 
@@ -104,6 +106,8 @@ def rsync(
         identity file name
     timeout : int, default=10
         timeout for ssh
+    proxy_command : str, optional
+        ProxyCommand to use for SSH connection
 
     Raises
     ------
@@ -124,20 +128,30 @@ def rsync(
     ]
     if key_filename is not None:
         ssh_cmd.extend(["-i", key_filename])
+
+    # Use proxy_command if provided
+    if proxy_command is not None:
+        ssh_cmd.extend(["-o", f"ProxyCommand={proxy_command}"])
+
+    # Properly escape the SSH command for rsync's -e option
+    ssh_cmd_str = " ".join(shlex.quote(part) for part in ssh_cmd)
+
     cmd = [
         "rsync",
-        # -a: archieve
-        # -z: compress
-        "-az",
+        # -r: recursive, -l: links, -p: perms, -t: times, -D: devices/specials
+        # -z: compress (exclude -o: owner, -g: group to avoid permission issues)
+        "-rlptDz",
         "-e",
-        " ".join(ssh_cmd),
+        ssh_cmd_str,
         "-q",
         from_file,
         to_file,
     ]
-    ret, out, err = run_cmd_with_all_output(cmd, shell=False)
+    # Convert to string for shell=True
+    cmd_str = " ".join(shlex.quote(arg) for arg in cmd)
+    ret, out, err = run_cmd_with_all_output(cmd_str, shell=True)
     if ret != 0:
-        raise RuntimeError(f"Failed to run {cmd}: {err}")
+        raise RuntimeError(f"Failed to run {cmd_str}: {err}")
 
 
 class RetrySignal(Exception):

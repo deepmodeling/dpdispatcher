@@ -33,6 +33,28 @@ It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/Open
 
 Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.
 
+### SSH Jump Host (Bastion Server)
+
+For connecting to internal servers through a jump host (bastion server), SSH context supports jump host configuration. This allows connecting to internal servers that are not directly accessible from the internet.
+
+Specify the ProxyCommand directly using {dargs:argument}`proxy_command <machine[SSHContext]/remote_profile/proxy_command>`:
+
+```json
+{
+  "context_type": "SSHContext",
+  "remote_profile": {
+    "hostname": "internal-server.company.com",
+    "username": "user",
+    "key_filename": "/path/to/internal_key",
+    "proxy_command": "ssh -W internal-server.company.com:22 -i /path/to/jump_key jumpuser@bastion.company.com"
+  }
+}
+```
+
+**Note**: Unlike OpenSSH, Paramiko's ProxyCommand requires explicit hostname and port instead of `%h:%p` placeholders. The proxy command must specify the actual target hostname and port that matches the `hostname` and `port` in the remote profile.
+
+This configuration establishes the connection path: Local → Jump Host → Target Server.
+
 ## Bohrium
 
 {dargs:argument}`context_type <machine/context_type>`: `Bohrium`
