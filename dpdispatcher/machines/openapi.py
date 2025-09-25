@@ -242,7 +242,7 @@ class OpenAPI(Machine):
         if status not in map_dict:
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
-        if status == -1 and exit_code != 0 and ignore_exit_code:
+        if status == -1 and ignore_exit_code:
             return JobStatus.finished
         return map_dict[status]
 
