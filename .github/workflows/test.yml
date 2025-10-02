@@ -28,7 +28,7 @@ jobs:
             platform: macos-latest
         include:  # So run those legacy versions on Intel CPUs
           - python-version: "3.7"
-            platform: macos-13
+            platform: macos-15-intel
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
