@@ -131,6 +131,10 @@ class OpenAPI(Machine):
             "platform": self.remote_profile.get("platform", "ali"),
             "image_name": self.remote_profile.get("image_address", ""),
         }
+        if "real_user_id" in self.remote_profile:
+            openapi_params["real_user_id"] = self.remote_profile["real_user_id"]
+        if "session_id" in self.remote_profile:
+            openapi_params["session_id"] = self.remote_profile["session_id"]
         openapi_params["job_id"] = job.job_id
         data = self.job.insert(**openapi_params)
 
