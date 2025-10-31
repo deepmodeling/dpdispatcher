@@ -40,7 +40,6 @@ pydispatcher.egg-info
 .coverage*
 dbconfig.json
 .vscode/*
-!.vscode/settings.json
 .idea
 */_version.py
 */_date.py
