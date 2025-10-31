@@ -138,9 +138,9 @@ def rsync(
 
     cmd = [
         "rsync",
-        # -a: archieve
-        # -z: compress
-        "-az",
+        # -r: recursive, -l: links, -p: perms, -t: times, -D: devices/specials
+        # -z: compress (exclude -o: owner, -g: group to avoid permission issues)
+        "-rlptDz",
         "-e",
         ssh_cmd_str,
         "-q",

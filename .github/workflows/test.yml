@@ -28,14 +28,14 @@ jobs:
             platform: macos-latest
         include:  # So run those legacy versions on Intel CPUs
           - python-version: "3.7"
-            platform: macos-13
+            platform: macos-15-intel
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: astral-sh/setup-uv@v6
+    - uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
         cache-dependency-glob: |
