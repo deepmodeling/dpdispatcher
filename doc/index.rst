@@ -10,6 +10,15 @@ DPDispatcher is a Python package used to generate HPC (High Performance Computin
 
 DPDispatcher will monitor (poke) until these jobs finish and download the results files (if these jobs is running on remote systems connected by SSH).
 
+Please cite the following paper if you use this project in your work:
+
+-  Fengbo Yuan, Zhaohan Ding, Yun-Pei Liu, Kai Cao, Jiahao Fan, Cao
+   Thang Nguyen, Yuzhi Zhang, Haidi Wang, Yixiao Chen, Jiameng Huang,
+   Tongqi Wen, Mingkang Liu, Yifan Li, Yong-Bin Zhuang, Hao Yu, Ping
+   Tuo, Yaotang Zhang, Yibo Wang, Linfeng Zhang, Han Wang, Jinzhe Zeng,
+   DPDispatcher: Scalable HPC Task Scheduling for AI-Driven Science, *J.
+   Chem. Inf. Model.*, 2025.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
