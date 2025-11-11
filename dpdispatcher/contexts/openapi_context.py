@@ -72,7 +72,6 @@ class OpenAPIContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.remote_profile = remote_profile
-        os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
         access_key = (
             remote_profile.get("access_key", None)
             or os.getenv("BOHRIUM_ACCESS_KEY", None)
