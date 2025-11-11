@@ -129,10 +129,13 @@ class OpenAPI(Machine):
             ),
             "out_files": self._gen_backward_files_list(job),
             "platform": self.remote_profile.get("platform", "ali"),
-            "image_address": self.remote_profile.get("image_address", ""),
+            "image_name": self.remote_profile.get("image_address", ""),
         }
-        if job.job_state == JobStatus.unsubmitted:
-            openapi_params["job_id"] = job.job_id
+        if "real_user_id" in self.remote_profile:
+            openapi_params["real_user_id"] = self.remote_profile["real_user_id"]
+        if "session_id" in self.remote_profile:
+            openapi_params["session_id"] = self.remote_profile["session_id"]
+        openapi_params["job_id"] = job.job_id
         data = self.job.insert(**openapi_params)
 
         job.job_id = data.get("jobId", 0)  # type: ignore
@@ -182,8 +185,8 @@ class OpenAPI(Machine):
             self.ignore_exit_code,
         )
         if job_state == JobStatus.finished:
-            job_log = self.job.log(job_id)
             if self.remote_profile.get("output_log"):
+                job_log = self.job.log(job_id)
                 print(job_log, end="")
             self._download_job(job)
         elif self.remote_profile.get("output_log") and job_state == JobStatus.running:
@@ -193,7 +196,7 @@ class OpenAPI(Machine):
 
     def _download_job(self, job):
         data = self.job.detail(job.job_id)
-        job_url = data["jobFiles"]["outFiles"][0]["url"]  # type: ignore
+        job_url = data["resultUrl"]  # type: ignore
         if not job_url:
             return
         job_hash = job.job_hash
@@ -243,7 +246,7 @@ class OpenAPI(Machine):
         if status not in map_dict:
             dlog.error(f"unknown job status {status}")
             return JobStatus.unknown
-        if status == -1 and exit_code != 0 and ignore_exit_code:
+        if status == -1 and ignore_exit_code:
             return JobStatus.finished
         return map_dict[status]
 
