@@ -17,8 +17,8 @@ pbs_script_header_template = """
 
 
 class PBS(Machine):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    # def __init__(self, **kwargs):
+    #     super().__init__(**kwargs)
 
     def gen_script(self, job):
         pbs_script = super().gen_script(job)
@@ -31,22 +31,15 @@ class PBS(Machine):
             f"#PBS -l select={resources.number_node}:ncpus={resources.cpu_per_node}"
         )
         if resources.gpu_per_node != 0:
-            pbs_script_header_dict["select_node_line"] += (
-                f":ngpus={resources.gpu_per_node}"
-            )
+            pbs_script_header_dict["select_node_line"] += f":ngpus={resources.gpu_per_node}"
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
-        if (
-            resources["strategy"].get("customized_script_header_template_file")
-            is not None
-        ):
+        if resources["strategy"].get("customized_script_header_template_file") is not None:
             pbs_script_header = customized_script_header_template(
                 resources["strategy"]["customized_script_header_template_file"],
                 resources,
             )
         else:
-            pbs_script_header = pbs_script_header_template.format(
-                **pbs_script_header_dict
-            )
+            pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
         return pbs_script_header
 
     def do_submit(self, job):
@@ -163,22 +156,15 @@ class Torque(PBS):
             f"#PBS -l nodes={resources.number_node}:ppn={resources.cpu_per_node}"
         )
         if resources.gpu_per_node != 0:
-            pbs_script_header_dict["select_node_line"] += (
-                f":gpus={resources.gpu_per_node}"
-            )
+            pbs_script_header_dict["select_node_line"] += f":gpus={resources.gpu_per_node}"
         pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
-        if (
-            resources["strategy"].get("customized_script_header_template_file")
-            is not None
-        ):
+        if resources["strategy"].get("customized_script_header_template_file") is not None:
             pbs_script_header = customized_script_header_template(
                 resources["strategy"]["customized_script_header_template_file"],
                 resources,
             )
         else:
-            pbs_script_header = pbs_script_header_template.format(
-                **pbs_script_header_dict
-            )
+            pbs_script_header = pbs_script_header_template.format(**pbs_script_header_dict)
         return pbs_script_header
 
 
@@ -202,24 +188,15 @@ class SGE(PBS):
         pe_name = resources.kwargs.get("pe_name", "mpi")
         sge_script_header_dict = {}
         sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
-        sge_script_header_dict["select_node_line"] += (
-            f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
-        )
+        sge_script_header_dict["select_node_line"] += f"#$ -pe {pe_name} {resources.cpu_per_node}\n"
 
         if resources.queue_name != "":
-            sge_script_header_dict["select_node_line"] += (
-                f"#$ -q {resources.queue_name}"
-            )
-        if (
-            resources["strategy"].get("customized_script_header_template_file")
-            is not None
-        ):
+            sge_script_header_dict["select_node_line"] += f"#$ -q {resources.queue_name}"
+        if resources["strategy"].get("customized_script_header_template_file") is not None:
             file_name = resources["strategy"]["customized_script_header_template_file"]
             sge_script_header = customized_script_header_template(file_name, resources)
         else:
-            sge_script_header = sge_script_header_template.format(
-                **sge_script_header_dict
-            )
+            sge_script_header = sge_script_header_template.format(**sge_script_header_dict)
         return sge_script_header
 
     def do_submit(self, job):
