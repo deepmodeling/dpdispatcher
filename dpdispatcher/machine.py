@@ -82,6 +82,7 @@ class Machine(metaclass=ABCMeta):
         local_root=None,
         remote_root=None,
         remote_profile={},
+        retry_count=3,
         *,
         context=None,
     ):
@@ -96,6 +97,7 @@ class Machine(metaclass=ABCMeta):
         else:
             pass
         self.bind_context(context=context)
+        self.retry_count = retry_count
 
     def bind_context(self, context):
         self.context = context
@@ -148,7 +150,8 @@ class Machine(metaclass=ABCMeta):
         base.check_value(machine_dict, strict=False)
 
         context = BaseContext.load_from_dict(machine_dict)
-        machine = machine_class(context=context)
+        retry_count = machine_dict.get("retry_count", 3)
+        machine = machine_class(context=context, retry_count=retry_count)
         return machine
 
     def serialize(self, if_empty_remote_profile=False):
@@ -161,6 +164,7 @@ class Machine(metaclass=ABCMeta):
             machine_dict["remote_profile"] = self.context.remote_profile
         else:
             machine_dict["remote_profile"] = {}
+        machine_dict["retry_count"] = self.retry_count
         # normalize the dict
         base = self.arginfo()
         machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
@@ -396,6 +400,7 @@ class Machine(metaclass=ABCMeta):
         doc_clean_asynchronously = (
             "Clean the remote directory asynchronously after the job finishes."
         )
+        doc_retry_count = "Number of retries to resubmit failed jobs."
 
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
@@ -413,6 +418,7 @@ class Machine(metaclass=ABCMeta):
                 default=False,
                 doc=doc_clean_asynchronously,
             ),
+            Argument("retry_count", int, optional=True, default=3, doc=doc_retry_count),
         ]
 
         context_variant = Variant(

@@ -17,6 +17,9 @@ pbs_script_header_template = """
 
 
 class PBS(Machine):
+    # def __init__(self, **kwargs):
+    #     super().__init__(**kwargs)
+
     def gen_script(self, job):
         pbs_script = super().gen_script(job)
         return pbs_script
@@ -188,24 +191,8 @@ sge_script_header_template = """
 
 
 class SGE(PBS):
-    def __init__(
-        self,
-        batch_type=None,
-        context_type=None,
-        local_root=None,
-        remote_root=None,
-        remote_profile={},
-        *,
-        context=None,
-    ):
-        super(PBS, self).__init__(
-            batch_type,
-            context_type,
-            local_root,
-            remote_root,
-            remote_profile,
-            context=context,
-        )
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def gen_script_header(self, job):
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml

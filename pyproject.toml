@@ -6,9 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "dpdispatcher"
 dynamic = ["version"]
 description = "Generate HPC scheduler systems jobs input scripts, submit these scripts to HPC systems, and poke until they finish"
-authors = [
-    { name = "DeepModeling" },
-]
+authors = [{ name = "DeepModeling" }]
 license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3.7",
@@ -32,7 +30,15 @@ dependencies = [
 ]
 requires-python = ">=3.7"
 readme = "README.md"
-keywords = ["dispatcher", "hpc", "slurm", "lsf", "pbs", "ssh", "jh_unischeduler"]
+keywords = [
+    "dispatcher",
+    "hpc",
+    "slurm",
+    "lsf",
+    "pbs",
+    "ssh",
+    "jh_unischeduler",
+]
 
 [project.urls]
 Homepage = "https://github.com/deepmodeling/dpdispatcher"
@@ -59,12 +65,8 @@ docs = [
 ]
 cloudserver = ["oss2", "tqdm", "bohrium-sdk"]
 bohrium = ["oss2", "tqdm", "bohrium-sdk"]
-gui = [
-    "dpgui",
-]
-test = [
-    "dpgui",
-]
+gui = ["dpgui"]
+test = ["dpgui"]
 
 [tool.setuptools.packages.find]
 include = ["dpdispatcher*"]
@@ -84,11 +86,11 @@ profile = "black"
 
 [tool.ruff.lint]
 select = [
-    "E", # errors
-    "F", # pyflakes
-    "D", # pydocstyle
+    "E",  # errors
+    "F",  # pyflakes
+    "D",  # pydocstyle
     "UP", # pyupgrade
-    "I", # isort
+    "I",  # isort
 ]
 ignore = [
     "E501", # line too long
@@ -113,3 +115,6 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff]
+line-length = 88
