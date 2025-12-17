@@ -178,7 +178,7 @@ class SSHSession:
                         key = pkey_class.from_private_key_file(
                             key_path, self.passphrase
                         )
-                    except paramiko.SSHException as e:
+                    except paramiko.SSHException:
                         pass
                     if key is not None:
                         break
@@ -200,7 +200,7 @@ class SSHSession:
             for pkey_class, filename in keyfiles:
                 try:
                     key = pkey_class.from_private_key_file(filename, self.passphrase)
-                except paramiko.SSHException as e:
+                except paramiko.SSHException:
                     pass
                 if key is not None:
                     break

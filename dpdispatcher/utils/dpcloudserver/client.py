@@ -141,7 +141,7 @@ class Client:
         #  res = get("/tools/sts_token", {})
         res = self.get("/data/get_sts_token", {})
         # print('debug>>>>>>>>>>>>>', res)
-        dlog.debug(f"debug: _get_oss_bucket: res:{res}")
+        dlog.debug(f" _get_oss_bucket: res:{res}")
         auth = oss2.StsAuth(  # type: ignore[reportPossiblyUnboundVariable]
             res["AccessKeyId"], res["AccessKeySecret"], res["SecurityToken"]
         )
@@ -149,7 +149,7 @@ class Client:
 
     def download(self, oss_file, save_file, endpoint, bucket_name):
         bucket = self._get_oss_bucket(endpoint, bucket_name)
-        dlog.debug(f"debug: download: oss_file:{oss_file}; save_file:{save_file}")
+        dlog.debug(f" download: oss_file:{oss_file}; save_file:{save_file}")
         bucket.get_object_to_file(oss_file, save_file)
         return save_file
 
@@ -180,7 +180,7 @@ class Client:
 
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(
-            f"debug: upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}"
+            f" upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}"
         )
         bucket = self._get_oss_bucket(endpoint, bucket_name)
         total_size = os.path.getsize(zip_task_file)
