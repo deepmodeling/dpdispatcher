@@ -180,7 +180,7 @@ class Client:
 
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(
-            f" upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}"
+            f"upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}"
         )
         bucket = self._get_oss_bucket(endpoint, bucket_name)
         total_size = os.path.getsize(zip_task_file)
