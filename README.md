@@ -39,5 +39,5 @@ See [Getting Started](https://dpdispatcher.readthedocs.io/en/latest/getting-star
 
 ## Contributing
 
-DPDispatcher is maintained by Deep Modeling's developers and welcomes other people.
+DPDispatcher is maintained by DeepModeling's developers and welcomes other people.
 See [Contributing Guide](CONTRIBUTING.md) to become a contributor! 🤓
