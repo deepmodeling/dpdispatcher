@@ -3,9 +3,9 @@ name: Python package
 'on':
   push:
     branches-ignore:
-      - 'copilot/**'
-      - 'dependabot/**'
-      - 'pre-commit-ci-update-config'
+    - 'copilot/**'
+    - 'dependabot/**'
+    - 'pre-commit-ci-update-config'
   pull_request:
 
 jobs:
@@ -14,21 +14,21 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - 3.7
-          - 3.9
-          - '3.10'
-          - '3.11'
-          - '3.12'
+        - 3.7
+        - 3.9
+        - '3.10'
+        - '3.11'
+        - '3.12'
         platform:
-          - ubuntu-22.04
-          - macos-latest
-          - windows-latest
+        - ubuntu-22.04
+        - macos-latest
+        - windows-latest
         exclude:  # Apple Silicon ARM64 does not support Python < v3.8
-          - python-version: "3.7"
-            platform: macos-latest
+        - python-version: "3.7"
+          platform: macos-latest
         include:  # So run those legacy versions on Intel CPUs
-          - python-version: "3.7"
-            platform: macos-15-intel
+        - python-version: "3.7"
+          platform: macos-15-intel
     steps:
     - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
@@ -51,6 +51,8 @@ jobs:
     - uses: codecov/codecov-action@v5
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+        use_oidc: true
   pass:
     needs: [test]
     runs-on: ubuntu-latest
@@ -60,3 +62,5 @@ jobs:
       uses: re-actors/alls-green@release/v1
       with:
         jobs: ${{ toJSON(needs) }}
+permissions:
+  id-token: write
