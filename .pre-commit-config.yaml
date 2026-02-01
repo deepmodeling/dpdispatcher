@@ -42,7 +42,3 @@ repos:
         types_or: [markdown, yaml]
         # workflow files cannot be modified by pre-commit.ci
         exclude: ^(\.github/workflows|conda)
-  - repo: https://github.com/allganize/ty-pre-commit
-    rev: v0.0.14
-    hooks:
-      - id: ty-check
