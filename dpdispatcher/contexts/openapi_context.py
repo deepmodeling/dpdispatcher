@@ -95,11 +95,11 @@ class OpenAPIContext(BaseContext):
             raise ValueError(
                 "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
             )
-        self.client = Bohrium(  
+        self.client = Bohrium(
             access_key=access_key, project_id=project_id, app_key=app_key
         )
-        self.storage = Tiefblue()  
-        self.job = Job(client=self.client)  
+        self.storage = Tiefblue()
+        self.job = Job(client=self.client)
         self.jgid = None
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
@@ -162,15 +162,15 @@ class OpenAPIContext(BaseContext):
         data = self.job.create(
             project_id=project_id,
             name=self.remote_profile.get("job_name", "DP-GEN"),
-            group_id=self.jgid,  
+            group_id=self.jgid,
         )
-        self.jgid = data.get("jobGroupId", "")  
-        token = data.get("token", "")  
+        self.jgid = data.get("jobGroupId", "")
+        token = data.get("token", "")
 
-        object_key = os.path.join(data["storePath"], zip_filename)  
+        object_key = os.path.join(data["storePath"], zip_filename)
         job.upload_path = object_key
-        job.job_id = data["jobId"]  
-        job.jgid = data.get("jobGroupId", "")  
+        job.job_id = data["jobId"]
+        job.jgid = data.get("jobGroupId", "")
         self.storage.upload_From_file_multi_part(
             object_key=object_key, file_path=upload_zip, token=token
         )

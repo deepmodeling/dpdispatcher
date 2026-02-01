@@ -88,7 +88,7 @@ class Machine(metaclass=ABCMeta):
     ):
         if context is None:
             assert isinstance(self, self.__class__.subclasses_dict[batch_type])
-            context = BaseContext(  
+            context = BaseContext(
                 context_type=context_type,
                 local_root=local_root,
                 remote_root=remote_root,

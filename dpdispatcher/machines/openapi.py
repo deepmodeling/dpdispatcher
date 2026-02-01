@@ -64,11 +64,11 @@ class OpenAPI(Machine):
             raise ValueError(
                 "remote_profile must contain 'project_id' or set environment variable 'BOHRIUM_PROJECT_ID'"
             )
-        self.client = Bohrium(  
+        self.client = Bohrium(
             access_key=access_key, project_id=project_id, app_key=app_key
         )
-        self.storage = Tiefblue()  
-        self.job = Job(client=self.client)  
+        self.storage = Tiefblue()
+        self.job = Job(client=self.client)
         self.group_id = None
 
     def gen_script(self, job):
@@ -138,7 +138,7 @@ class OpenAPI(Machine):
         openapi_params["job_id"] = job.job_id
         data = self.job.insert(**openapi_params)
 
-        job.job_id = data.get("jobId", 0)  
+        job.job_id = data.get("jobId", 0)
         # self.job_group_id = data.get("jobGroupId")
         job.job_state = JobStatus.waiting
         return job.job_id
@@ -165,7 +165,7 @@ class OpenAPI(Machine):
             group_id = job.jgid
         check_return = self._get_job_detail(job_id, group_id)
         try:
-            dp_job_status = check_return["status"]  
+            dp_job_status = check_return["status"]
         except IndexError as e:
             dlog.error(
                 f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds"
@@ -173,7 +173,7 @@ class OpenAPI(Machine):
             time.sleep(60)
             retry_return = self._get_job_detail(job_id, group_id)
             try:
-                dp_job_status = retry_return["status"]  
+                dp_job_status = retry_return["status"]
             except IndexError as e:
                 raise RuntimeError(
                     f"cannot find job information in bohrium for job {job.job_id} {check_return} {retry_return}"
@@ -181,7 +181,7 @@ class OpenAPI(Machine):
 
         job_state = self.map_dp_job_state(
             dp_job_status,
-            check_return.get("exitCode", 0),  
+            check_return.get("exitCode", 0),
             self.ignore_exit_code,
         )
         if job_state == JobStatus.finished:
@@ -196,7 +196,7 @@ class OpenAPI(Machine):
 
     def _download_job(self, job):
         data = self.job.detail(job.job_id)
-        job_url = data["resultUrl"]  
+        job_url = data["resultUrl"]
         if not job_url:
             return
         job_hash = job.job_hash
@@ -275,4 +275,4 @@ class OpenAPI(Machine):
             exit code
         """
         check_return = self.job.detail(job.job_id)
-        return check_return.get("exitCode", -999)  
+        return check_return.get("exitCode", -999)

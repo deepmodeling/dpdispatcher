@@ -289,7 +289,7 @@ class Bohrium(Machine):
             raise RuntimeError(f"cannot parse job id {job.job_id}")
 
         check_return = self._get_job_detail(job_id, self.group_id)
-        return check_return.get("exitCode", -999)  
+        return check_return.get("exitCode", -999)
 
     def _parse_job_id(self, str_job_id: str) -> int:
         job_id = 0
