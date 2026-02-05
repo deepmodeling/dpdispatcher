@@ -915,16 +915,20 @@ class SSHContext(BaseContext):
         # local tar
         if os.path.isfile(os.path.join(self.local_root, of)):
             os.remove(os.path.join(self.local_root, of))
-        with tarfile.open(
+        with (
+            tarfile.open(
                 os.path.join(self.local_root, of),
                 mode="w:gz",
                 dereference=dereference,
                 compresslevel=6,
-            ) if tar_compress else tarfile.open(
+            )
+            if tar_compress
+            else tarfile.open(
                 os.path.join(self.local_root, of),
                 mode="w",
                 dereference=dereference,
-            ) as tar:
+            )
+        ) as tar:
             # avoid compressing duplicated files or directories
             for ii in set(files):
                 ii_full = os.path.join(self.local_root, ii)
