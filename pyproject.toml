@@ -81,6 +81,12 @@ exclude = [
     'dpdispatcher/_version.py',
 ]
 
+[tool.ty.src]
+include = ['dpdispatcher']
+exclude = [
+    'dpdispatcher/_version.py',
+]
+
 [tool.isort]
 profile = "black"
 
