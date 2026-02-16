@@ -167,16 +167,14 @@ class Submission:
     def register_task(self, task):
         if self.belonging_jobs:
             raise RuntimeError(
-                "Not allowed to register tasks after generating jobs. "
-                f"submission hash error {self}"
+                f"Not allowed to register tasks after generating jobs. submission hash error {self}"
             )
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list):
         if self.belonging_jobs:
             raise RuntimeError(
-                "Not allowed to register tasks after generating jobs. "
-                f"submission hash error {self}"
+                f"Not allowed to register tasks after generating jobs. submission hash error {self}"
             )
         self.belonging_tasks.extend(task_list)
 
@@ -219,9 +217,9 @@ class Submission:
         self.try_recover_from_json()
         self.update_submission_state()
         if self.check_all_finished():
-            dlog.info("info:check_all_finished: True")
+            dlog.info("check_all_finished: True")
         else:
-            dlog.info("info:check_all_finished: False")
+            dlog.info("check_all_finished: False")
             self.upload_jobs()
             if dry_run is True:
                 dlog.info(f"submission succeeded: {self.submission_hash}")
@@ -342,7 +340,7 @@ class Submission:
                 continue
             job.get_job_state()
             dlog.debug(
-                f"debug:update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}"
+                f"update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}"
             )
 
     def handle_unexpected_submission_state(self):
@@ -818,7 +816,7 @@ class Job:
         this method will not submit or resubmit the jobs if the job is unsubmitted.
         """
         dlog.debug(
-            f"debug:query database; self.job_hash:{self.job_hash}; self.job_id:{self.job_id}"
+            f"query database; self.job_hash:{self.job_hash}; self.job_id:{self.job_id}"
         )
         assert self.machine is not None
         job_state = self.machine.check_status(self)
@@ -838,7 +836,7 @@ class Job:
         if job_state == JobStatus.terminated:
             self.fail_count += 1
             dlog.info(
-                f"job: {self.job_hash} {self.job_id} terminated; "
+                f"job {self.job_hash} {self.job_id} terminated; "
                 f"fail_cout is {self.fail_count}; resubmitting job"
             )
             retry_count = 3
@@ -848,7 +846,7 @@ class Job:
             if (self.fail_count) > 0 and (self.fail_count % retry_count == 0):
                 last_error_message = self.get_last_error_message()
                 err_msg = (
-                    f"job:{self.job_hash} {self.job_id} failed {self.fail_count} times."
+                    f"job {self.job_hash} {self.job_id} failed {self.fail_count} times."
                 )
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
@@ -856,24 +854,24 @@ class Job:
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
-                    f"job:{self.job_hash} re-submit after terminated; new job_id is {self.job_id}"
+                    f"job {self.job_hash} re-submit after terminated; new job_id is {self.job_id}"
                 )
                 time.sleep(0.2)
                 self.get_job_state()
                 dlog.info(
-                    f"job:{self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}"
+                    f"job {self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}"
                 )
                 self.handle_unexpected_job_state()
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)
 
         if job_state == JobStatus.unsubmitted:
-            dlog.debug(f"job: {self.job_hash} unsubmitted; submit it")
+            dlog.debug(f"job {self.job_hash} unsubmitted; submit it")
             # if self.fail_count > 3:
             #     raise RuntimeError("job:job {job} failed 3 times".format(job=self))
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
-                dlog.info(f"job: {self.job_hash} submit; job_id is {self.job_id}")
+                dlog.info(f"job {self.job_hash} was submitted; job_id is {self.job_id}")
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)
             # self.get_job_state()
