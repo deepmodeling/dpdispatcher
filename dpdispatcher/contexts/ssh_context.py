@@ -240,7 +240,7 @@ class SSHSession:
             # ref: https://github.com/paramiko/paramiko/issues/1508
             raise RetrySignal("Opening session failed")
         ts.set_keepalive(60)
-        self.ssh._transport = ts  # type: ignore
+        self.ssh._transport = ts
         # reset sftp
         self._sftp = None
         if self.execute_command is not None:
@@ -492,7 +492,7 @@ class SSHContext(BaseContext):
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
-        self.ssh_session = SSHSession(**remote_profile)  # type: ignore
+        self.ssh_session = SSHSession(**remote_profile)
         # self.temp_remote_root = os.path.join(self.ssh_session.get_session_root())
         self.ssh_session.ensure_alive()
         try:
@@ -908,22 +908,26 @@ class SSHContext(BaseContext):
         """
         assert self.remote_root is not None
         of_suffix = ".tgz"
-        tarfile_mode = "w:gz"
-        kwargs = {"compresslevel": 6}
         if not tar_compress:
             of_suffix = ".tar"
-            tarfile_mode = "w"
-            kwargs = {}
 
         of = self.submission.submission_hash + of_suffix
         # local tar
         if os.path.isfile(os.path.join(self.local_root, of)):
             os.remove(os.path.join(self.local_root, of))
-        with tarfile.open(  # type: ignore[reportCallIssue, reportArgumentType]
-            os.path.join(self.local_root, of),
-            mode=tarfile_mode,  # type: ignore[reportArgumentType]
-            dereference=dereference,  # type: ignore[reportArgumentType]
-            **kwargs,  # type: ignore[reportArgumentType]
+        with (
+            tarfile.open(
+                os.path.join(self.local_root, of),
+                mode="w:gz",
+                dereference=dereference,
+                compresslevel=6,
+            )
+            if tar_compress
+            else tarfile.open(
+                os.path.join(self.local_root, of),
+                mode="w",
+                dereference=dereference,
+            )
         ) as tar:
             # avoid compressing duplicated files or directories
             for ii in set(files):
