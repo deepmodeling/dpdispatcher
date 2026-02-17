@@ -24,10 +24,10 @@ from .context import (  # noqa: F401
 
 
 class TestMachineDispatch(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
-    def test_init_machine_pbs_lazy_local(self):
+    def test_init_machine_pbs_lazy_local(self) -> None:
         machine_dict = {
             "batch_type": "PBS",
             "context_type": "LazyLocalContext",
@@ -38,7 +38,7 @@ class TestMachineDispatch(unittest.TestCase):
         self.assertIsInstance(machine, PBS)
         self.assertIsInstance(machine.context, LazyLocalContext)
 
-    def test_init_machine_shell_local(self):
+    def test_init_machine_shell_local(self) -> None:
         machine_dict = {
             "batch_type": "Shell",
             "context_type": "LocalContext",
@@ -50,7 +50,7 @@ class TestMachineDispatch(unittest.TestCase):
         self.assertIsInstance(shell, Shell)
         self.assertIsInstance(shell.context, LocalContext)
 
-    def test_init_machine_slurm_ssh(self):
+    def test_init_machine_slurm_ssh(self) -> None:
         machine_dict = {
             "batch_type": "Slurm",
             "context_type": "SSHContext",
@@ -62,7 +62,7 @@ class TestMachineDispatch(unittest.TestCase):
         with self.assertRaises(gaierror):
             Machine(**machine_dict)
 
-    def test_lazy_local(self):
+    def test_lazy_local(self) -> None:
         machine_dict = {
             "batch_type": "PBS",
             "context_type": "LazyLocalContext",
@@ -72,7 +72,7 @@ class TestMachineDispatch(unittest.TestCase):
         # pylint: disable=maybe-no-member
         self.assertIsInstance(machine.context, LazyLocalContext)
 
-    def test_lower_case(self):
+    def test_lower_case(self) -> None:
         machine_dict = {
             "batch_type": "pbs",
             "context_type": "lazylocalcontext",
@@ -81,7 +81,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine.context, LazyLocalContext)
 
-    def test_no_ending_context(self):
+    def test_no_ending_context(self) -> None:
         machine_dict = {
             "batch_type": "PBS",
             "context_type": "lazylocal",
@@ -90,7 +90,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine.context, LazyLocalContext)
 
-    def test_local(self):
+    def test_local(self) -> None:
         machine_dict = {
             "batch_type": "PBS",
             "context_type": "LocalContext",
@@ -101,7 +101,7 @@ class TestMachineDispatch(unittest.TestCase):
         # pylint: disable=maybe-no-member
         self.assertIsInstance(machine.context, LocalContext)
 
-    def test_ssh(self):
+    def test_ssh(self) -> None:
         pass
         # jdata = {
         #     'batch_type': 'pbs',
@@ -116,19 +116,19 @@ class TestMachineDispatch(unittest.TestCase):
         # )
         # self.assertIsInstance(batch.context, SSHContext)
 
-    def test_key_err(self):
+    def test_key_err(self) -> None:
         # pass
         machine_dict = {}
         with self.assertRaises(KeyError):
             Machine.load_from_dict(machine_dict=machine_dict)
 
-    def test_context_err(self):
+    def test_context_err(self) -> None:
         machine_dict = {"batch_type": "PBS", "context_type": "foo"}
         # with self.assertRaises(KeyError):
         with self.assertRaises(ArgumentValueError):
             Machine.load_from_dict(machine_dict=machine_dict)
 
-    def test_pbs(self):
+    def test_pbs(self) -> None:
         machine_dict = {
             "batch_type": "PBS",
             "context_type": "LazyLocalContext",
@@ -137,7 +137,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, PBS)
 
-    def test_lsf(self):
+    def test_lsf(self) -> None:
         machine_dict = {
             "batch_type": "LSF",
             "context_type": "LazyLocalContext",
@@ -146,7 +146,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, LSF)
 
-    def test_slurm(self):
+    def test_slurm(self) -> None:
         machine_dict = {
             "batch_type": "Slurm",
             "context_type": "LazyLocalContext",
@@ -155,7 +155,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, Slurm)
 
-    def test_jh_unischeduler(self):
+    def test_jh_unischeduler(self) -> None:
         machine_dict = {
             "batch_type": "JH_UniScheduler",
             "context_type": "LazyLocalContext",
@@ -164,7 +164,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, JH_UniScheduler)
 
-    def test_shell(self):
+    def test_shell(self) -> None:
         machine_dict = {
             "batch_type": "Shell",
             "context_type": "LazyLocalContext",
@@ -173,7 +173,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, Shell)
 
-    def test_distributed_shell(self):
+    def test_distributed_shell(self) -> None:
         machine_dict = {
             "batch_type": "DistributedShell",
             "context_type": "HDFSContext",
@@ -183,7 +183,7 @@ class TestMachineDispatch(unittest.TestCase):
         machine = Machine.load_from_dict(machine_dict=machine_dict)
         self.assertIsInstance(machine, DistributedShell)
 
-    def test_lebesgue(self):
+    def test_lebesgue(self) -> None:
         machine_dict = {
             "batch_type": "Lebesgue",
             "context_type": "LebesgueContext",
@@ -201,10 +201,10 @@ class TestMachineDispatch(unittest.TestCase):
 
 
 class TestContextDispatch(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
-    def test_init_lazy_local(self):
+    def test_init_lazy_local(self) -> None:
         context_dict = {
             "context_type": "LazyLocalContext",
             "local_root": "./",
@@ -213,7 +213,7 @@ class TestContextDispatch(unittest.TestCase):
         context = BaseContext(**context_dict)
         self.assertIsInstance(context, LazyLocalContext)
 
-    def test_subclass_init_local(self):
+    def test_subclass_init_local(self) -> None:
         context_dict = {
             "context_type": "LocalContext",
             "local_root": "./",
@@ -223,7 +223,7 @@ class TestContextDispatch(unittest.TestCase):
         context = LocalContext(**context_dict)
         self.assertIsInstance(context, LocalContext)
 
-    def test_init_local(self):
+    def test_init_local(self) -> None:
         context_dict = {
             "context_type": "LocalContext",
             "local_root": "./",

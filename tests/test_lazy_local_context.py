@@ -13,7 +13,7 @@ from .context import (
 
 
 class TestLazyLocalContext(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # os.makedirs('loc', exist_ok = True)
         # os.makedirs('loc/task0', exist_ok = True)
         # os.makedirs('loc/task1', exist_ok = True)
@@ -25,18 +25,18 @@ class TestLazyLocalContext(unittest.TestCase):
         submission = MagicMock(work_base="0_md/")
         self.lazy_local_context.bind_submission(submission)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree("tmp_lazy_local_context_dir/")
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         pass
 
-    def test_download(self):
+    def test_download(self) -> None:
         pass
 
     # TODO: support other platforms
     @unittest.skipIf(sys.platform != "linux", "not linux")
-    def test_block_call(self):
+    def test_block_call(self) -> None:
         code, stdin, stdout, stderr = self.lazy_local_context.block_call("ls")
         self.assertEqual(
             stdout.readlines(),

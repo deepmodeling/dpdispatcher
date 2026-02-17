@@ -16,27 +16,27 @@ from .sample_class import SampleClass
 
 
 class TestTask(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.task = SampleClass.get_sample_task()
         self.task_dict = SampleClass.get_sample_task_dict()
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         self.assertEqual(self.task.serialize(), self.task_dict)
 
-    def test_deserialize(self):
+    def test_deserialize(self) -> None:
         task = Task.deserialize(task_dict=self.task_dict)
         self.assertTrue(task, self.task)
 
-    def test_serialize_deserialize(self):
+    def test_serialize_deserialize(self) -> None:
         self.assertEqual(Task.deserialize(task_dict=self.task.serialize()), self.task)
 
-    def test_task_json(self):
+    def test_task_json(self) -> None:
         with open("jsons/task.json") as f:
             task_json_dict = json.load(f)
         self.assertTrue(task_json_dict, self.task_dict)
         self.assertTrue(task_json_dict, self.task.serialize())
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         task_repr = repr(self.task)
         print("debug:", task_repr, self.task_dict)
         self.assertEqual(task_repr, str(self.task_dict))

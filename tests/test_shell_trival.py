@@ -21,14 +21,14 @@ from .context import (
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestShellTrival(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
         # self.local_context_dict = {
         #     'local_root': './test_shell_trival_dir',
         #     'remote_root': './tmp_shell_trival_dir'
         # }
 
-    def test_shell_trival(self):
+    def test_shell_trival(self) -> None:
         with open("jsons/machine_local_shell.json") as f:
             machine_dict = json.load(f)
 
@@ -82,7 +82,7 @@ class TestShellTrival(unittest.TestCase):
             f2 = os.path.join("test_shell_trival_dir/", "parent_dir/", dir, "out.txt")
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
-    def test_shell_fail(self):
+    def test_shell_fail(self) -> None:
         with open("jsons/machine_local_shell.json") as f:
             machine_dict = json.load(f)
 
@@ -112,7 +112,7 @@ class TestShellTrival(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             submission.run_submission()
 
-    def test_shell_recover(self):
+    def test_shell_recover(self) -> None:
         with open("jsons/machine_lazylocal_shell.json") as f:
             machine_dict = json.load(f)
 
@@ -121,7 +121,7 @@ class TestShellTrival(unittest.TestCase):
 
         pass
 
-    def test_dir_with_space(self):
+    def test_dir_with_space(self) -> None:
         """Test directory with space."""
         with open("jsons/machine_local_shell.json") as f:
             machine_dict = json.load(f)
@@ -156,5 +156,5 @@ class TestShellTrival(unittest.TestCase):
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         shutil.rmtree("tmp_shell_trival_dir/")

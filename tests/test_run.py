@@ -11,7 +11,7 @@ from .context import run
 
 
 class TestRun(unittest.TestCase):
-    def test_run(self):
+    def test_run(self) -> None:
         this_dir = Path(__file__).parent
         cwd = os.getcwd()
         with tempfile.TemporaryDirectory() as temp_dir:
