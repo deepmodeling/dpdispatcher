@@ -1,5 +1,5 @@
 import shlex
-from typing import List
+from typing import TYPE_CHECKING, Any, List
 
 from dargs import Argument
 
@@ -11,6 +11,9 @@ from dpdispatcher.utils.utils import (
     customized_script_header_template,
     retry,
 )
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job
 
 lsf_script_header_template = """\
 #!/bin/bash -l
@@ -25,11 +28,11 @@ lsf_script_header_template = """\
 class LSF(Machine):
     """LSF batch."""
 
-    def gen_script(self, job):
+    def gen_script(self, job: "Job") -> str:
         lsf_script = super().gen_script(job)
         return lsf_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
         script_header_dict = {
             "lsf_nodes_line": f"#BSUB -n {resources.number_node * resources.cpu_per_node}",
@@ -76,7 +79,7 @@ class LSF(Machine):
         return lsf_script_header
 
     @retry()
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -102,14 +105,14 @@ class LSF(Machine):
         return job_id
 
     # TODO: derive abstract methods
-    def sub_script_cmd(self, res):
+    def sub_script_cmd(self, res: Any) -> None:  # noqa: ANN401
         pass
 
-    def sub_script_head(self, res):
+    def sub_script_head(self, res: Any) -> None:  # noqa: ANN401
         pass
 
     @retry()
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         try:
             job_id = job.job_id
         except AttributeError:
@@ -149,7 +152,7 @@ class LSF(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
@@ -211,7 +214,7 @@ class LSF(Machine):
             )
         ]
 
-    def kill(self, job):
+    def kill(self, job: "Job") -> None:
         """Kill the job.
 
         Parameters
