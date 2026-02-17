@@ -5,6 +5,7 @@ import shutil
 import sys
 import tempfile
 import traceback
+from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -22,7 +23,7 @@ from .context import (
 
 
 class RunSubmission:
-    def setUp(self):
+    def setUp(self) -> None:
         self.machine_dict = {
             "batch_type": "Shell",
             "context_type": "LocalContext",
@@ -58,7 +59,7 @@ class RunSubmission:
         ) as f:
             f.write("inp space")
 
-    def test_run_submission(self):
+    def test_run_submission(self) -> None:
         machine = Machine.load_from_dict(self.machine_dict)
         resources = Resources.load_from_dict(self.resources_dict)
 
@@ -124,7 +125,7 @@ class RunSubmission:
                 )
             )
 
-    def test_failed_submission(self):
+    def test_failed_submission(self) -> None:
         machine = Machine.load_from_dict(self.machine_dict)
         resources = Resources.load_from_dict(self.resources_dict)
 
@@ -166,12 +167,12 @@ class RunSubmission:
                 clean=True,
             )
 
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> None:
         machine = Machine.load_from_dict(self.machine_dict)
         resources = Resources.load_from_dict(self.resources_dict)
         ntask = 4
 
-        async def run_jobs(ntask):
+        async def run_jobs(ntask: int) -> Any:  # noqa: ANN401
             background_tasks = set()
             for ii in range(ntask):
                 sleep_time = random.random() * 5 + 2
@@ -210,7 +211,7 @@ class RunSubmission:
                 )
             )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(os.path.join(self.machine_dict["local_root"]))
 
 
@@ -219,13 +220,13 @@ class RunSubmission:
     "outside the slurm testing environment",
 )
 class TestSlurmRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "Slurm"
         self.resources_dict["queue_name"] = "normal"
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> None:
         return super().test_async_run_submission()
 
 
@@ -234,13 +235,13 @@ class TestSlurmRun(RunSubmission, unittest.TestCase):
     "outside the slurm testing environment",
 )
 class TestSlurmJobArrayRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "SlurmJobArray"
         self.resources_dict["queue_name"] = "normal"
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> None:
         return super().test_async_run_submission()
 
 
@@ -249,14 +250,14 @@ class TestSlurmJobArrayRun(RunSubmission, unittest.TestCase):
     "outside the slurm testing environment",
 )
 class TestSlurmJobArrayRun2(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "SlurmJobArray"
         self.resources_dict["queue_name"] = "normal"
         self.resources_dict["kwargs"] = {"slurm_job_size": 2}
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> None:
         return super().test_async_run_submission()
 
 
@@ -264,53 +265,53 @@ class TestSlurmJobArrayRun2(RunSubmission, unittest.TestCase):
     os.environ.get("DPDISPATCHER_TEST") != "pbs", "outside the pbs testing environment"
 )
 class TestPBSRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "PBS"
         self.resources_dict["queue_name"] = "workq"
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> None:
         return super().test_async_run_submission()
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestLocalContext(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.temp_dir = tempfile.TemporaryDirectory()
         self.machine_dict["context_type"] = "LocalContext"
         self.machine_dict["remote_root"] = self.temp_dir.name
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.temp_dir.cleanup()
 
     @unittest.skip("It seems the remote file may be deleted")
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> None:
         return super().test_async_run_submission()
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestLocalContextCopy(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.temp_dir = tempfile.TemporaryDirectory()
         self.machine_dict["context_type"] = "LocalContext"
         self.machine_dict["remote_root"] = self.temp_dir.name
         self.machine_dict["remote_profile"]["symlink"] = False
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.temp_dir.cleanup()
 
     @unittest.skip("It seems the remote file may be deleted")
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> None:
         return super().test_async_run_submission()
 
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestLazyLocalContext(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["context_type"] = "LazyLocalContext"
