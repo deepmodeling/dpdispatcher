@@ -1,5 +1,5 @@
 import shlex
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from dargs import Argument
 
@@ -11,6 +11,9 @@ from dpdispatcher.utils.utils import (
     customized_script_header_template,
     retry,
 )
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job
 
 JH_UniScheduler_script_header_template = """\
 #!/bin/bash -l
@@ -25,11 +28,11 @@ JH_UniScheduler_script_header_template = """\
 class JH_UniScheduler(Machine):
     """JH_UniScheduler batch."""
 
-    def gen_script(self, job):
+    def gen_script(self, job: "Job") -> str:
         JH_UniScheduler_script = super().gen_script(job)
         return JH_UniScheduler_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
         script_header_dict = {
             "JH_UniScheduler_nodes_line": f"#JSUB -n {resources.number_node * resources.cpu_per_node}",
@@ -59,7 +62,7 @@ class JH_UniScheduler(Machine):
         return JH_UniScheduler_script_header
 
     @retry()
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -85,7 +88,7 @@ class JH_UniScheduler(Machine):
         return job_id
 
     @retry()
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         try:
             job_id = job.job_id
         except AttributeError:
@@ -124,7 +127,7 @@ class JH_UniScheduler(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
@@ -157,7 +160,7 @@ class JH_UniScheduler(Machine):
             )
         ]
 
-    def kill(self, job):
+    def kill(self, job: "Job") -> None:
         """Kill the job.
 
         Parameters
