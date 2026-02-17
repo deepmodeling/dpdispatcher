@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from dargs import Argument
 
@@ -13,7 +13,7 @@ class BaseContext(metaclass=ABCMeta):
     # notes: this attribute can be inherited
     alias: Tuple[str, ...] = tuple()
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any) -> "BaseContext":  # noqa: ANN401
         if cls is BaseContext:
             subcls = cls.subclasses_dict[kwargs["context_type"]]
             instance = subcls.__new__(subcls, *args, **kwargs)
@@ -21,7 +21,7 @@ class BaseContext(metaclass=ABCMeta):
             instance = object.__new__(cls)
         return instance
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init_subclass__(**kwargs)
         alias = [cls.__name__, *cls.alias]
         for aa in alias:
@@ -32,7 +32,7 @@ class BaseContext(metaclass=ABCMeta):
         cls.options.add(cls.__name__)
 
     @classmethod
-    def load_from_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict: Dict[str, Any]) -> "BaseContext":  # noqa: ANN401
         context_type = context_dict["context_type"]
         # print("debug778:context_type", cls.subclasses_dict, context_type)
         try:
@@ -45,35 +45,41 @@ class BaseContext(metaclass=ABCMeta):
         context = context_class.load_from_dict(context_dict)
         return context
 
-    def bind_submission(self, submission):
+    def bind_submission(self, submission: Any) -> None:  # noqa: ANN401
         self.submission = submission
 
     @abstractmethod
-    def upload(self, submission):
+    def upload(self, submission: Any) -> None:  # noqa: ANN401
         raise NotImplementedError("abstract method")
 
     @abstractmethod
     def download(
-        self, submission, check_exists=False, mark_failure=True, back_error=False
-    ):
+        self,
+        submission: Any,  # noqa: ANN401
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> None:
         raise NotImplementedError("abstract method")
 
     @abstractmethod
-    def clean(self):
+    def clean(self) -> None:
         raise NotImplementedError("abstract method")
 
     @abstractmethod
-    def write_file(self, fname, write_str):
+    def write_file(self, fname: str, write_str: str) -> None:
         raise NotImplementedError("abstract method")
 
     @abstractmethod
-    def read_file(self, fname):
+    def read_file(self, fname: str) -> str:
         raise NotImplementedError("abstract method")
 
-    def check_finish(self, proc):
+    def check_finish(self, proc: Any) -> Any:  # noqa: ANN401
         raise NotImplementedError("abstract method")
 
-    def block_checkcall(self, cmd, asynchronously=False) -> Tuple[Any, Any, Any]:
+    def block_checkcall(
+        self, cmd: str, asynchronously: bool = False
+    ) -> Tuple[Any, Any, Any]:  # noqa: ANN401
         """Run command with arguments. Wait for command to complete.
 
         Parameters
@@ -112,7 +118,7 @@ class BaseContext(metaclass=ABCMeta):
         return stdin, stdout, stderr
 
     @abstractmethod
-    def block_call(self, cmd) -> Tuple[int, Any, Any, Any]:
+    def block_call(self, cmd: str) -> Tuple[int, Any, Any, Any]:  # noqa: ANN401
         """Run command with arguments. Wait for command to complete.
 
         Parameters
