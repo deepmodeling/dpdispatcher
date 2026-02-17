@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Any, Dict, List
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -18,7 +19,7 @@ from .context import (
 
 class SampleClass:
     @classmethod
-    def get_sample_resources(cls):
+    def get_sample_resources(cls) -> Resources:
         resources = Resources(
             number_node=1,
             cpu_per_node=4,
@@ -36,7 +37,7 @@ class SampleClass:
         return resources
 
     @classmethod
-    def get_sample_resources_dict(cls):
+    def get_sample_resources_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
         resources_dict = {
             "number_node": 1,
             "cpu_per_node": 4,
@@ -59,7 +60,7 @@ class SampleClass:
         return resources_dict
 
     @classmethod
-    def get_sample_task(cls):
+    def get_sample_task(cls) -> Task:
         task = Task(
             command="lmp -i input.lammps",
             task_work_path="bct-1/",
@@ -71,7 +72,7 @@ class SampleClass:
         return task
 
     @classmethod
-    def get_sample_task_dict(cls):
+    def get_sample_task_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
         task_dict = {
             "command": "lmp -i input.lammps",
             "task_work_path": "bct-1/",
@@ -83,7 +84,7 @@ class SampleClass:
         return task_dict
 
     @classmethod
-    def get_sample_task_list(cls, backward_wildcard=False):
+    def get_sample_task_list(cls, backward_wildcard: bool = False) -> List[Task]:
         task1 = Task(
             command="lmp -i input.lammps",
             task_work_path="bct-1/",
@@ -122,7 +123,7 @@ class SampleClass:
         return task_list
 
     @classmethod
-    def get_sample_empty_submission(cls):
+    def get_sample_empty_submission(cls) -> Submission:
         resources = cls.get_sample_resources()
         # print(task_list)
         empty_submission = Submission(
@@ -137,7 +138,7 @@ class SampleClass:
         return empty_submission
 
     @classmethod
-    def get_sample_submission(cls, backward_wildcard=False):
+    def get_sample_submission(cls, backward_wildcard: bool = False) -> Submission:
         submission = cls.get_sample_empty_submission()
         task_list = cls.get_sample_task_list(backward_wildcard=backward_wildcard)
         submission.register_task_list(task_list)
@@ -145,25 +146,25 @@ class SampleClass:
         return submission
 
     @classmethod
-    def get_sample_submission_dict(cls):
+    def get_sample_submission_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
         submission = cls.get_sample_submission()
         submission_dict = submission.serialize()
         return submission_dict
 
     @classmethod
-    def get_sample_job(cls):
+    def get_sample_job(cls) -> Any:  # noqa: ANN401
         Submission = cls.get_sample_submission()
         job = Submission.belonging_jobs[0]
         return job
 
     @classmethod
-    def get_sample_job_dict(cls):
+    def get_sample_job_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
         job = cls.get_sample_job()
         job_dict = job.serialize()
         return job_dict
 
     @classmethod
-    def get_sample_pbs_local_context(cls):
+    def get_sample_pbs_local_context(cls) -> PBS:
         # local_session = LocalSession({'work_path':'test_work_path/'})
         local_context = LocalContext(
             local_root="test_pbs_dir/", remote_root="tmp_pbs_dir/"
@@ -172,7 +173,7 @@ class SampleClass:
         return pbs
 
     @classmethod
-    def get_sample_slurm_local_context(cls):
+    def get_sample_slurm_local_context(cls) -> Slurm:
         # local_session = LocalSession({'work_path':'test_work_path/'})
         local_context = LocalContext(
             local_root="test_slurm_dir/", remote_root="tmp_slurm_dir/"
