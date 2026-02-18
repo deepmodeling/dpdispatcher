@@ -3,12 +3,15 @@ import shutil
 import subprocess as sp
 from glob import glob
 from subprocess import TimeoutExpired
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
 
 
 class SPRetObj:
@@ -80,7 +83,7 @@ class LocalContext(BaseContext):
     def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission: Any) -> None:  # noqa: ANN401
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(
@@ -106,7 +109,7 @@ class LocalContext(BaseContext):
         else:
             raise ValueError(f"Unknown file type: {local_path}")
 
-    def upload(self, submission: Any) -> None:  # noqa: ANN401
+    def upload(self, submission: "Submission") -> None:
         os.makedirs(self.remote_root, exist_ok=True)
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
