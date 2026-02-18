@@ -2,11 +2,14 @@ import os
 import shutil
 import tarfile
 from glob import glob
-from typing import Any, Dict, List, NoReturn
+from typing import TYPE_CHECKING, Any, Dict, List, NoReturn
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
 from dpdispatcher.utils.hdfs_cli import HDFS
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
 
 
 class HDFSContext(BaseContext):
@@ -40,7 +43,7 @@ class HDFSContext(BaseContext):
     def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission: Any) -> None:  # noqa: ANN401
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(
@@ -68,7 +71,7 @@ class HDFSContext(BaseContext):
         # clean up
         os.remove(from_f)
 
-    def upload(self, submission: Any, dereference: bool = True) -> None:  # noqa: ANN401
+    def upload(self, submission: "Submission", dereference: bool = True) -> None:
         """Upload forward files and forward command files to HDFS root dir.
 
         Parameters
@@ -113,7 +116,7 @@ class HDFSContext(BaseContext):
 
     def download(
         self,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,
