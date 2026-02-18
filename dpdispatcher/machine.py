@@ -2,13 +2,17 @@ import json
 import pathlib
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import yaml
 from dargs import Argument, Variant
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.utils.job_status import JobStatus
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job, Resources, Submission
 
 script_template = """\
 {script_header}
@@ -179,37 +183,37 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     @abstractmethod
-    def check_status(self, job: Any) -> Any:  # noqa: ANN401
+    def check_status(self, job: "Job") -> JobStatus:
         raise NotImplementedError(
             "abstract method check_status should be implemented by derived class"
         )
 
-    def default_resources(self, res: Any) -> Any:  # noqa: ANN401
+    def default_resources(self, res: "Resources") -> "Resources":
         raise NotImplementedError(
             "abstract method default_resources should be implemented by derived class"
         )
 
-    def sub_script_head(self, res: Any) -> Any:  # noqa: ANN401
+    def sub_script_head(self, res: "Resources") -> str:
         raise NotImplementedError(
             "abstract method sub_script_head should be implemented by derived class"
         )
 
-    def sub_script_cmd(self, res: Any) -> Any:  # noqa: ANN401
+    def sub_script_cmd(self, res: "Resources") -> str:
         raise NotImplementedError(
             "abstract method sub_script_cmd should be implemented by derived class"
         )
 
     @abstractmethod
-    def do_submit(self, job: Any) -> Any:  # noqa: ANN401
+    def do_submit(self, job: "Job") -> str:
         """Submit a single job, assuming that no job is running there."""
         raise NotImplementedError(
             "abstract method do_submit should be implemented by derived class"
         )
 
-    def gen_script_run_command(self, job: Any) -> str:  # noqa: ANN401
+    def gen_script_run_command(self, job: "Job") -> str:
         return f"source $REMOTE_ROOT/{job.script_file_name}.run"
 
-    def gen_script(self, job: Any) -> str:  # noqa: ANN401
+    def gen_script(self, job: "Job") -> str:
         script_header = self.gen_script_header(job)
         script_custom_flags = self.gen_script_custom_flags_lines(job)
         script_env = self.gen_script_env(job)
@@ -224,25 +228,25 @@ class Machine(metaclass=ABCMeta):
         )
         return script
 
-    def check_if_recover(self, submission: Any) -> bool:  # noqa: ANN401
+    def check_if_recover(self, submission: "Submission") -> bool:
         submission_hash = submission.submission_hash
         submission_file_name = f"{submission_hash}.json"
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 
     @abstractmethod
-    def check_finish_tag(self, job: Any) -> Any:  # noqa: ANN401
+    def check_finish_tag(self, job: "Job") -> bool:
         raise NotImplementedError(
             "abstract method check_finish_tag should be implemented by derived class"
         )
 
     @abstractmethod
-    def gen_script_header(self, job: Any) -> str:  # noqa: ANN401
+    def gen_script_header(self, job: "Job") -> str:
         raise NotImplementedError(
             "abstract method gen_script_header should be implemented by derived class"
         )
 
-    def gen_script_custom_flags_lines(self, job: Any) -> str:  # noqa: ANN401
+    def gen_script_custom_flags_lines(self, job: "Job") -> str:
         custom_flags_lines = ""
         custom_flags = job.resources.custom_flags
         for ii in custom_flags:
@@ -250,7 +254,7 @@ class Machine(metaclass=ABCMeta):
             custom_flags_lines += line
         return custom_flags_lines
 
-    def gen_script_env(self, job: Any) -> str:  # noqa: ANN401
+    def gen_script_env(self, job: "Job") -> str:
         source_files_part = ""
 
         module_unload_part = ""
@@ -304,7 +308,7 @@ class Machine(metaclass=ABCMeta):
         )
         return script_env
 
-    def gen_script_command(self, job: Any) -> str:  # noqa: ANN401
+    def gen_script_command(self, job: "Job") -> str:
         script_command = ""
         resources = job.resources
         # in_para_task_num = 0
@@ -339,7 +343,7 @@ class Machine(metaclass=ABCMeta):
             script_command += self.gen_script_wait(resources=resources)
         return script_command
 
-    def gen_script_end(self, job: Any) -> str:  # noqa: ANN401
+    def gen_script_end(self, job: "Job") -> str:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 
@@ -353,7 +357,7 @@ class Machine(metaclass=ABCMeta):
         )
         return script_end
 
-    def gen_script_wait(self, resources: Any) -> str:  # noqa: ANN401
+    def gen_script_wait(self, resources: "Resources") -> str:
         # if not resources.strategy.get('if_cuda_multi_devices', None):
         #     return "wait \n"
         para_deg = resources.para_deg
@@ -371,7 +375,7 @@ class Machine(metaclass=ABCMeta):
             return "wait \n"
         return ""
 
-    def gen_command_env_cuda_devices(self, resources: Any) -> str:  # noqa: ANN401
+    def gen_command_env_cuda_devices(self, resources: "Resources") -> str:
         # task_need_resources = task.task_need_resources
         # task_need_gpus = task_need_resources.get('task_need_gpus', 1)
         command_env = ""
@@ -473,7 +477,7 @@ class Machine(metaclass=ABCMeta):
             )
         ]
 
-    def kill(self, job: Any) -> None:  # noqa: ANN401
+    def kill(self, job: "Job") -> None:
         """Kill the job.
 
         If not implemented, pass and let the user manually kill it.
@@ -485,7 +489,7 @@ class Machine(metaclass=ABCMeta):
         """
         dlog.warning(f"Job {job.job_id} should be manually killed")
 
-    def get_exit_code(self, job: Any) -> Any:  # noqa: ANN401
+    def get_exit_code(self, job: "Job") -> int:
         """Get exit code of the job.
 
         Parameters
