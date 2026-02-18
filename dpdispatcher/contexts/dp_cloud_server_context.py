@@ -3,7 +3,7 @@
 import os
 import shutil
 import uuid
-from typing import Any, List, NoReturn, Optional
+from typing import TYPE_CHECKING, Any, List, NoReturn, Optional
 
 import tqdm
 from dargs.dargs import Argument
@@ -18,6 +18,9 @@ from dpdispatcher.utils.dpcloudserver.config import (
     ALI_STS_BUCKET_NAME,
     ALI_STS_ENDPOINT,
 )
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job, Submission
 
 # from zip_file import zip_files
 
@@ -79,7 +82,7 @@ class BohriumContext(BaseContext):
         )
         return dp_cloud_server_context
 
-    def bind_submission(self, submission: Any) -> None:  # noqa: ANN401
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = "."
@@ -92,7 +95,7 @@ class BohriumContext(BaseContext):
         #     file_uuid = uuid.uuid1().hex
         # oss_task_dir = os.path.join()
 
-    def _gen_oss_path(self, job: Any, zip_filename: str) -> str:  # noqa: ANN401
+    def _gen_oss_path(self, job: "Job", zip_filename: str) -> str:
         if hasattr(job, "upload_path") and job.upload_path:
             return job.upload_path
         else:
@@ -105,7 +108,7 @@ class BohriumContext(BaseContext):
             setattr(job, "upload_path", path)
             return path
 
-    def upload_job(self, job: Any, common_files: Optional[list[str]] = None) -> None:  # noqa: ANN401
+    def upload_job(self, job: "Job", common_files: Optional[list[str]] = None) -> None:
         MAX_RETRY = 3
         if common_files is None:
             common_files = []
@@ -133,7 +136,7 @@ class BohriumContext(BaseContext):
         retry_count = 0
         self._backup(self.local_root, upload_zip)
 
-    def upload(self, submission: Any) -> Any:  # noqa: ANN401
+    def upload(self, submission: "Submission") -> None:
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
         # oss_task_zip = 'indicate/' + submission.submission_hash + '/' + zip_filename
@@ -163,7 +166,7 @@ class BohriumContext(BaseContext):
 
     def download(
         self,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,
