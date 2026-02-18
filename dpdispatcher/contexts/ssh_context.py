@@ -12,7 +12,7 @@ import uuid
 from functools import lru_cache
 from glob import glob
 from stat import S_ISDIR, S_ISREG
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 import paramiko
 import paramiko.ssh_exception
@@ -29,6 +29,9 @@ from dpdispatcher.utils.utils import (
     retry,
     rsync,
 )
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
 
 
 class SSHSession:
@@ -550,7 +553,7 @@ class SSHContext(BaseContext):
     def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission: Any) -> None:  # noqa: ANN401
+    def bind_submission(self, submission: "Submission") -> None:
         assert self.ssh_session is not None
         assert self.ssh_session.ssh is not None
         self.submission = submission
@@ -636,7 +639,7 @@ class SSHContext(BaseContext):
     def upload(
         self,
         # job_dirs,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         # local_up_files,
         dereference: bool = True,
     ) -> None:
@@ -733,7 +736,7 @@ class SSHContext(BaseContext):
 
     def download(
         self,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         # job_dirs,
         # remote_down_files,
         check_exists: bool = False,
