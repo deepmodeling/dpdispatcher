@@ -3,7 +3,7 @@ import shutil
 import time
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
@@ -162,7 +162,7 @@ class Bohrium(Machine):
         job.job_state = JobStatus.waiting
         return job_id
 
-    def _get_job_detail(self, job_id: int, group_id: Any) -> Any:  # noqa: ANN401
+    def _get_job_detail(self, job_id: int, group_id: Optional[int]) -> Dict[str, Any]:
         check_return = self.api.get_job_detail(job_id)
         assert check_return is not None, (
             f"Failed to retrieve tasks information. To resubmit this job, please "
@@ -257,7 +257,7 @@ class Bohrium(Machine):
 
     @staticmethod
     def map_dp_job_state(
-        status: Any,  # noqa: ANN401
+        status: int | JobStatus,
         exit_code: int,
         ignore_exit_code: bool = True,
     ) -> JobStatus:
