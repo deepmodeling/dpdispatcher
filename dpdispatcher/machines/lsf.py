@@ -1,5 +1,5 @@
 import shlex
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, List
 
 from dargs import Argument
 
@@ -13,7 +13,7 @@ from dpdispatcher.utils.utils import (
 )
 
 if TYPE_CHECKING:
-    from dpdispatcher.submission import Job
+    from dpdispatcher.submission import Job, Resources
 
 lsf_script_header_template = """\
 #!/bin/bash -l
@@ -105,11 +105,11 @@ class LSF(Machine):
         return job_id
 
     # TODO: derive abstract methods
-    def sub_script_cmd(self, res: Any) -> None:  # noqa: ANN401
-        pass
+    def sub_script_cmd(self, res: "Resources") -> str:
+        return ""
 
-    def sub_script_head(self, res: Any) -> None:  # noqa: ANN401
-        pass
+    def sub_script_head(self, res: "Resources") -> str:
+        return ""
 
     @retry()
     def check_status(self, job: "Job") -> JobStatus:
