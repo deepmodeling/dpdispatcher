@@ -1,9 +1,12 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from dargs import Argument
 
 from dpdispatcher.dlog import dlog
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
 
 
 class BaseContext(metaclass=ABCMeta):
@@ -45,17 +48,17 @@ class BaseContext(metaclass=ABCMeta):
         context = context_class.load_from_dict(context_dict)
         return context
 
-    def bind_submission(self, submission: Any) -> None:  # noqa: ANN401
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
 
     @abstractmethod
-    def upload(self, submission: Any) -> None:  # noqa: ANN401
+    def upload(self, submission: "Submission") -> None:
         raise NotImplementedError("abstract method")
 
     @abstractmethod
     def download(
         self,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,
