@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import List
 from zipfile import ZipFile
 
 # def zip_file_list(root_path, zip_filename, file_list=[]):
@@ -7,7 +8,7 @@ from zipfile import ZipFile
 #         root_dir=root_path,)
 
 
-def zip_file_list(root_path, zip_filename, file_list=[]):
+def zip_file_list(root_path: str, zip_filename: str, file_list: List[str] = []) -> str:
     out_zip_file = os.path.join(root_path, zip_filename)
     # print('debug: file_list', file_list)
     zip_obj = ZipFile(out_zip_file, "w")
@@ -77,7 +78,7 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
 #     return False
 
 
-def unzip_file(zip_file, out_dir="./"):
+def unzip_file(zip_file: str, out_dir: str = "./") -> None:
     obj = ZipFile(zip_file, "r")
     for item in obj.namelist():
         obj.extract(item, out_dir)

@@ -2,13 +2,15 @@ import glob
 import os
 import shutil
 import uuid
+from typing import TYPE_CHECKING, Any, NoReturn, Optional
 from zipfile import ZipFile
 
 import tqdm
 
 try:
     from bohrium import Bohrium
-    from bohrium.resources import Job, Tiefblue
+    from bohrium.resources import Job as BohriumJob
+    from bohrium.resources import Tiefblue
 except ModuleNotFoundError as e:
     found_bohriumsdk = False
     import_bohrium_error = e
@@ -20,18 +22,22 @@ from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
 from dpdispatcher.utils.job_status import JobStatus
 
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job as DPJob
+    from dpdispatcher.submission import Submission
+
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
 
 
-def unzip_file(zip_file, out_dir="./"):
+def unzip_file(zip_file: str, out_dir: str = "./") -> None:
     obj = ZipFile(zip_file, "r")
     for item in obj.namelist():
         obj.extract(item, out_dir)
 
 
-def zip_file_list(root_path, zip_filename, file_list=[]):
+def zip_file_list(root_path: str, zip_filename: str, file_list: list[str] = []) -> str:
     out_zip_file = os.path.join(root_path, zip_filename)
     # print('debug: file_list', file_list)
     zip_obj = ZipFile(out_zip_file, "w")
@@ -58,12 +64,12 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
 class OpenAPIContext(BaseContext):
     def __init__(
         self,
-        local_root,
-        remote_root=None,
-        remote_profile={},
-        *args,
-        **kwargs,
-    ):
+        local_root: str,
+        remote_root: Optional[str] = None,
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         if not found_bohriumsdk:
             raise ModuleNotFoundError(
                 "bohriumsdk not installed. Install dpdispatcher with `pip install dpdispatcher[bohrium]`"
@@ -99,12 +105,12 @@ class OpenAPIContext(BaseContext):
             access_key=access_key, project_id=project_id, app_key=app_key
         )
         self.storage = Tiefblue()
-        self.job = Job(client=self.client)
+        self.job = BohriumJob(client=self.client)
         self.jgid = None
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
     @classmethod
-    def load_from_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> "OpenAPIContext":  # noqa: ANN401
         local_root = context_dict.get("local_root", "./")
         remote_root = context_dict.get("remote_root", None)
         remote_profile = context_dict.get("remote_profile", {})
@@ -116,7 +122,7 @@ class OpenAPIContext(BaseContext):
         )
         return bohrium_context
 
-    def bind_submission(self, submission):
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = "."
@@ -125,7 +131,7 @@ class OpenAPIContext(BaseContext):
 
         self.machine = submission.machine
 
-    def _gen_object_key(self, job, zip_filename):
+    def _gen_object_key(self, job: "DPJob", zip_filename: str) -> str:
         if hasattr(job, "upload_path") and job.upload_path:
             return job.upload_path
         else:
@@ -136,7 +142,9 @@ class OpenAPIContext(BaseContext):
             setattr(job, "upload_path", path)
             return path
 
-    def upload_job(self, job, common_files=None):
+    def upload_job(
+        self, job: "DPJob", common_files: Optional[list[str]] = None
+    ) -> None:
         if common_files is None:
             common_files = []
         self.machine.gen_local_script(job)
@@ -177,7 +185,7 @@ class OpenAPIContext(BaseContext):
 
         # self._backup(self.local_root, upload_zip)
 
-    def upload(self, submission):
+    def upload(self, submission: "Submission") -> None:
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
         # oss_task_zip = 'indicate/' + submission.submission_hash + '/' + zip_filename
@@ -207,8 +215,12 @@ class OpenAPIContext(BaseContext):
         # api.upload(self.oss_task_dir, zip_task_file)
 
     def download(
-        self, submission, check_exists=False, mark_failure=True, back_error=False
-    ):
+        self,
+        submission: "Submission",
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> bool:
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}
@@ -255,45 +267,47 @@ class OpenAPIContext(BaseContext):
         )
         return True
 
-    def write_file(self, fname, write_str):
+    def write_file(self, fname: str, write_str: str) -> bool:
         result = self.write_home_file(fname, write_str)
         return result
 
-    def write_local_file(self, fname, write_str):
+    def write_local_file(self, fname: str, write_str: str) -> str:
         local_filename = os.path.join(self.local_root, fname)
         with open(local_filename, "w") as f:
             f.write(write_str)
         return local_filename
 
-    def read_file(self, fname):
+    def read_file(self, fname: str) -> str:
         result = self.read_home_file(fname)
         return result
 
-    def write_home_file(self, fname, write_str):
+    def write_home_file(self, fname: str, write_str: str) -> bool:
         # os.makedirs(self.remote_root, exist_ok = True)
         with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname), "w") as fp:
             fp.write(write_str)
         return True
 
-    def read_home_file(self, fname):
+    def read_home_file(self, fname: str) -> str:
         with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname)) as fp:
             ret = fp.read()
         return ret
 
-    def check_file_exists(self, fname):
+    def check_file_exists(self, fname: str) -> bool:
         result = self.check_home_file_exits(fname)
         return result
 
-    def check_home_file_exits(self, fname):
+    def check_home_file_exits(self, fname: str) -> bool:
         return os.path.isfile(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname))
 
-    def clean(self):
+    def clean(self) -> bool:
         submission_file_name = f"{self.submission.submission_hash}.json"
         submission_json = os.path.join(DP_CLOUD_SERVER_HOME_DIR, submission_file_name)
         os.remove(submission_json)
         return True
 
-    def _check_if_job_has_already_downloaded(self, target, local_root):
+    def _check_if_job_has_already_downloaded(
+        self, target: str, local_root: str
+    ) -> bool:
         backup_file_location = os.path.join(
             local_root, "backup", os.path.split(target)[1]
         )
@@ -302,7 +316,7 @@ class OpenAPIContext(BaseContext):
         else:
             return False
 
-    def _backup(self, local_root, target):
+    def _backup(self, local_root: str, target: str) -> None:
         try:
             # move to backup directory
             os.makedirs(os.path.join(local_root, "backup"), exist_ok=True)
@@ -312,13 +326,13 @@ class OpenAPIContext(BaseContext):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def _clean_backup(self, local_root, keep_backup=True):
+    def _clean_backup(self, local_root: str, keep_backup: bool = True) -> None:
         if not keep_backup:
             dir_to_be_removed = os.path.join(local_root, "backup")
             if os.path.exists(dir_to_be_removed):
                 shutil.rmtree(dir_to_be_removed)
 
-    def block_call(self, cmd):
+    def block_call(self, cmd: str) -> NoReturn:
         raise RuntimeError(
             "Unsupported method. You may use an unsupported combination of the machine and the context."
         )

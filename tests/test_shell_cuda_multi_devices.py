@@ -19,10 +19,10 @@ from .context import (
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestShellCudaMultiDevices(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
-    def test_shell_cuda_multi_devices(self):
+    def test_shell_cuda_multi_devices(self) -> None:
         with open("jsons/machine_if_cuda_multi_devices.json") as f:
             machine_dict = json.load(f)
         machine = Machine.load_from_dict(machine_dict["machine"])
@@ -59,6 +59,6 @@ class TestShellCudaMultiDevices(unittest.TestCase):
         self.assertTrue(os.path.isfile("test_if_cuda_multi_devices/test_dir/out.txt"))
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         shutil.rmtree("tmp_if_cuda_multi_devices/")
         # pass

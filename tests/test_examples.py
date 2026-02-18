@@ -34,7 +34,7 @@ input_files: Sequence[Tuple[Argument, Path]] = (
 
 
 class TestExamples(unittest.TestCase):
-    def test_arguments(self):
+    def test_arguments(self) -> None:
         for arginfo, fn in input_files:
             fn = str(fn)
             with self.subTest(fn=fn):

@@ -153,7 +153,7 @@ def create_submission(metadata: dict, hash: str) -> Submission:
     )
 
 
-def run_pep723(script: str):
+def run_pep723(script: str) -> None:
     """Run a PEP 723 script.
 
     Parameters

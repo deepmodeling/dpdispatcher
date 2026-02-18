@@ -2,21 +2,25 @@ import os
 import shutil
 import tarfile
 from glob import glob
+from typing import TYPE_CHECKING, Any, Dict, List, NoReturn
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
 from dpdispatcher.utils.hdfs_cli import HDFS
 
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
+
 
 class HDFSContext(BaseContext):
     def __init__(
         self,
-        local_root,
-        remote_root,
-        remote_profile={},
-        *args,
-        **kwargs,
-    ):
+        local_root: str,
+        remote_root: str,
+        remote_profile: Dict[str, Any] = {},  # noqa: ANN401
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         assert isinstance(local_root, str)
         self.init_local_root = local_root
         self.init_remote_root = remote_root
@@ -25,7 +29,7 @@ class HDFSContext(BaseContext):
         self.remote_profile = remote_profile
 
     @classmethod
-    def load_from_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict: Dict[str, Any]) -> "HDFSContext":  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict["remote_root"]
         remote_profile = context_dict.get("remote_profile", {})
@@ -36,10 +40,10 @@ class HDFSContext(BaseContext):
         )
         return instance
 
-    def get_job_root(self):
+    def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission):
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(
@@ -48,7 +52,7 @@ class HDFSContext(BaseContext):
 
         HDFS.mkdir(self.remote_root)
 
-    def _put_files(self, files, dereference=True):
+    def _put_files(self, files: List[str], dereference: bool = True) -> None:
         of = self.submission.submission_hash + "_upload.tgz"
         # local tar
         if os.path.isfile(os.path.join(self.local_root, of)):
@@ -67,7 +71,7 @@ class HDFSContext(BaseContext):
         # clean up
         os.remove(from_f)
 
-    def upload(self, submission, dereference=True):
+    def upload(self, submission: "Submission", dereference: bool = True) -> None:
         """Upload forward files and forward command files to HDFS root dir.
 
         Parameters
@@ -111,8 +115,12 @@ class HDFSContext(BaseContext):
         self._put_files(file_list, dereference=dereference)
 
     def download(
-        self, submission, check_exists=False, mark_failure=True, back_error=False
-    ):
+        self,
+        submission: "Submission",
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> None:
         """Download backward files from HDFS root dir.
 
         Parameters
@@ -218,7 +226,7 @@ class HDFSContext(BaseContext):
         # remove tmp dir
         shutil.rmtree(gz_dir, ignore_errors=True)
 
-    def check_file_exists(self, fname):
+    def check_file_exists(self, fname: str) -> bool:
         """Check whether the given file exists, often used in checking whether the belonging job has finished.
 
         Parameters
@@ -232,20 +240,20 @@ class HDFSContext(BaseContext):
         """
         return HDFS.exists(os.path.join(self.remote_root, fname))
 
-    def clean(self):
+    def clean(self) -> None:
         HDFS.remove(self.remote_root)
 
-    def write_file(self, fname, write_str):
+    def write_file(self, fname: str, write_str: str) -> str:
         local_file = os.path.join("/tmp/", fname)
         with open(local_file, "w") as fp:
             fp.write(write_str)
         HDFS.copy_from_local(local_file, os.path.join(self.remote_root, fname))
         return local_file
 
-    def read_file(self, fname):
+    def read_file(self, fname: str) -> str:
         return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
 
-    def block_call(self, cmd):
+    def block_call(self, cmd: str) -> NoReturn:
         raise RuntimeError(
             "Unsupported method. You may use an unsupported combination of the machine and the context."
         )

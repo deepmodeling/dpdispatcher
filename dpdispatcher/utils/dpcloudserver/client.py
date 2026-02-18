@@ -2,6 +2,7 @@ import os
 import re
 import time
 import urllib.parse
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urljoin
 
 import requests
@@ -26,8 +27,13 @@ class RequestInfoException(Exception):
 
 class Client:
     def __init__(
-        self, email=None, password=None, debug=False, ticket=None, base_url=API_HOST
-    ):
+        self,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+        debug: bool = False,
+        ticket: Optional[str] = None,
+        base_url: str = API_HOST,
+    ) -> None:
         self.debug = debug
         self.debug = os.getenv("LBG_CLI_DEBUG_PRINT", debug)
         self.config = {}
@@ -39,15 +45,36 @@ class Client:
         self.last_log_offset = 0
         self.ticket = ticket
 
-    def post(self, url, data=None, header=None, params=None, retry=5):
+    def post(
+        self,
+        url: str,
+        data: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        header: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        retry: int = 5,
+    ) -> Dict[str, Any]:  # noqa: ANN401
         return self._req(
             "POST", url, data=data, header=header, params=params, retry=retry
         )
 
-    def get(self, url, header=None, params=None, retry=5):
+    def get(
+        self,
+        url: str,
+        header: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        retry: int = 5,
+    ) -> Dict[str, Any]:  # noqa: ANN401
         return self._req("GET", url, header=header, params=params, retry=retry)
 
-    def _req(self, method, url, data=None, header=None, params=None, retry=5):
+    def _req(
+        self,
+        method: str,
+        url: str,
+        data: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        header: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        retry: int = 5,
+    ) -> Dict[str, Any]:  # noqa: ANN401
         short_url = url
         url = urllib.parse.urljoin(self.base_url, url)
         if header is None:
@@ -94,7 +121,7 @@ class Client:
                 err = result.get("message") or result.get("error")
         raise RequestInfoException(resp_code, short_url, err)
 
-    def _login(self):
+    def _login(self) -> None:
         if self.config["email"] is None or self.config["password"] is None:
             raise RequestInfoException(
                 "can not find login information, please check your config"
@@ -105,7 +132,7 @@ class Client:
         # print(self.token)
         self.user_id = resp["user_id"]
 
-    def refresh_token(self, retry=3):
+    def refresh_token(self, retry: int = 3) -> None:
         self.ticket = os.environ.get("BOHR_TICKET", "")
         if self.ticket:
             return
@@ -137,7 +164,7 @@ class Client:
                 return
         raise RequestInfoException(resp_code, url, err)
 
-    def _get_oss_bucket(self, endpoint, bucket_name):
+    def _get_oss_bucket(self, endpoint: str, bucket_name: str) -> Any:  # noqa: ANN401
         #  res = get("/tools/sts_token", {})
         res = self.get("/data/get_sts_token", {})
         # print('debug>>>>>>>>>>>>>', res)
@@ -147,13 +174,15 @@ class Client:
         )
         return oss2.Bucket(auth, endpoint, bucket_name)
 
-    def download(self, oss_file, save_file, endpoint, bucket_name):
+    def download(
+        self, oss_file: str, save_file: str, endpoint: str, bucket_name: str
+    ) -> str:
         bucket = self._get_oss_bucket(endpoint, bucket_name)
         dlog.debug(f"download: oss_file:{oss_file}; save_file:{save_file}")
         bucket.get_object_to_file(oss_file, save_file)
         return save_file
 
-    def download_from_url(self, url, save_file):
+    def download_from_url(self, url: str, save_file: str) -> None:
         ret = None
         for retry_count in range(3):
             try:
@@ -178,7 +207,9 @@ class Client:
                     f.write(chunk)
             ret.close()
 
-    def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
+    def upload(
+        self, oss_task_zip: str, zip_task_file: str, endpoint: str, bucket_name: str
+    ) -> Any:  # noqa: ANN401
         dlog.debug(
             f"upload: oss_task_zip:{oss_task_zip}; zip_task_file:{zip_task_file}"
         )
@@ -207,8 +238,13 @@ class Client:
         return result
 
     def job_create(
-        self, job_type, oss_path, input_data, program_id=None, group_id=None
-    ):
+        self,
+        job_type: str,
+        oss_path: str,
+        input_data: Dict[str, Any],  # noqa: ANN401
+        program_id: Optional[int] = None,
+        group_id: Optional[int] = None,
+    ) -> Tuple[int, Optional[int]]:
         post_data = {
             "job_type": job_type,
             "oss_path": oss_path,
@@ -241,11 +277,11 @@ class Client:
         group_id = ret.get("jobGroupId")
         return ret["jobId"], group_id
 
-    def _camelize(self, str_or_iter):
+    def _camelize(self, str_or_iter: Any) -> str:  # noqa: ANN401
         # code reference from https://pypi.org/project/pyhumps/
         regex = re.compile(r"(?<=[^\-_\s])[\-_\s]+[^\-_\s]")
 
-        def _is_none(_in):
+        def _is_none(_in: Any) -> Union[str, Any]:  # noqa: ANN401
             return "" if _in is None else _in
 
         s = str(_is_none(str_or_iter))
@@ -256,7 +292,7 @@ class Client:
             s = s[0].lower() + s[1:]
         return regex.sub(lambda m: m.group(0)[-1].upper(), s)
 
-    def get_job_detail(self, job_id):
+    def get_job_detail(self, job_id: str) -> Optional[Dict[str, Any]]:  # noqa: ANN401
         try:
             ret = self.get(
                 f"brm/v1/job/{job_id}",
@@ -270,7 +306,7 @@ class Client:
 
         return ret
 
-    def get_log(self, job_id):
+    def get_log(self, job_id: str) -> str:
         url, size = self._get_job_log(job_id)
         if not url:
             return ""
@@ -284,7 +320,7 @@ class Client:
             dlog.error(f"Error decoding job log: {e}", stack_info=ENABLE_STACK)
             return ""
 
-    def _get_job_log(self, job_id):
+    def _get_job_log(self, job_id: str) -> Tuple[Optional[str], int]:
         ret = self.get(
             f"/brm/v1/job/{job_id}/log",
             params={
@@ -296,7 +332,7 @@ class Client:
             return d[0]["url"], d[0]["size"]
         return None, 0
 
-    def get_tasks_list(self, group_id, per_page=30):
+    def get_tasks_list(self, group_id: int, per_page: int = 30) -> List[Dict[str, Any]]:  # noqa: ANN401
         result = []
         page = 0
         while True:
@@ -315,7 +351,7 @@ class Client:
             page += 1
         return result
 
-    def get_job_result_url(self, job_id):
+    def get_job_result_url(self, job_id: str) -> Optional[str]:
         try:
             if not job_id:
                 return None
@@ -331,7 +367,7 @@ class Client:
             dlog.error(e, stack_info=ENABLE_STACK)
             return None
 
-    def kill(self, job_id):
+    def kill(self, job_id: str) -> Optional[Dict[str, Any]]:  # noqa: ANN401
         try:
             if not job_id:
                 return None

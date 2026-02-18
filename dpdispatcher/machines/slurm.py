@@ -1,7 +1,7 @@
 import math
 import pathlib
 import shlex
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from dargs import Argument
 
@@ -13,6 +13,9 @@ from dpdispatcher.utils.utils import (
     customized_script_header_template,
     retry,
 )
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job
 
 # from dpdispatcher.submission import Resources
 
@@ -32,11 +35,11 @@ wait
 
 
 class Slurm(Machine):
-    def gen_script(self, job):
+    def gen_script(self, job: "Job") -> str:
         slurm_script = super().gen_script(job)
         return slurm_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
         script_header_dict = {}
         script_header_dict["slurm_nodes_line"] = (
@@ -73,7 +76,7 @@ class Slurm(Machine):
         return slurm_script_header
 
     @retry()
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -119,7 +122,7 @@ class Slurm(Machine):
         return job_id
 
     @retry()
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
@@ -182,7 +185,7 @@ class Slurm(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
@@ -214,7 +217,7 @@ class Slurm(Machine):
             )
         ]
 
-    def kill(self, job):
+    def kill(self, job: "Job") -> None:
         """Kill the job.
 
         Parameters
@@ -233,7 +236,7 @@ class Slurm(Machine):
 class SlurmJobArray(Slurm):
     """Slurm with job array enabled for multiple tasks in a job."""
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         slurm_job_size = job.resources.kwargs.get("slurm_job_size", 1)
         if job.fail_count > 0:
             # resubmit jobs, check if some of tasks have been finished
@@ -252,7 +255,7 @@ class SlurmJobArray(Slurm):
             math.ceil(len(job.job_task_list) / slurm_job_size) - 1
         )
 
-    def gen_script_command(self, job):
+    def gen_script_command(self, job: "Job") -> str:
         resources = job.resources
         slurm_job_size = resources.kwargs.get("slurm_job_size", 1)
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
@@ -296,7 +299,7 @@ class SlurmJobArray(Slurm):
         script_command += "*)\nexit 1\n;;\nesac\n"
         return script_command
 
-    def gen_script_end(self, job):
+    def gen_script_end(self, job: "Job") -> str:
         # We cannot touch tag for job array
         # we may check task tag instead
         append_script = job.resources.append_script
@@ -306,7 +309,7 @@ class SlurmJobArray(Slurm):
         )
 
     @retry()
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
@@ -381,7 +384,7 @@ class SlurmJobArray(Slurm):
             else:
                 return JobStatus.terminated
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         results = []
         for task in job.job_task_list:
             task.get_task_state(self.context)

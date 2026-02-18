@@ -97,6 +97,7 @@ select = [
     "D",  # pydocstyle
     "UP", # pyupgrade
     "I",  # isort
+    "ANN",  # flake8-annotations
 ]
 ignore = [
     "E501", # line too long

@@ -1,6 +1,7 @@
 # /usr/bin/python
 
 import os
+from typing import List, Optional, Tuple, Union
 
 from dpdispatcher.utils.utils import run_cmd_with_all_output
 
@@ -9,7 +10,7 @@ class HDFS:
     """Fundamental class for HDFS basic manipulation."""
 
     @staticmethod
-    def exists(uri):
+    def exists(uri: str) -> Optional[bool]:
         """Check existence of hdfs uri
         Returns: True on exists
         Raises: RuntimeError.
@@ -32,7 +33,7 @@ class HDFS:
             ) from e
 
     @staticmethod
-    def remove(uri):
+    def remove(uri: str) -> Optional[bool]:
         """Check existence of hdfs uri
         Returns: True on exists
         Raises: RuntimeError.
@@ -51,7 +52,7 @@ class HDFS:
             raise RuntimeError(f"Cannot remove hdfs uri[{uri}] with cmd[{cmd}]") from e
 
     @staticmethod
-    def mkdir(uri):
+    def mkdir(uri: str) -> Optional[bool]:
         """Make new hdfs directory
         Returns: True on success
         Raises: RuntimeError.
@@ -72,7 +73,7 @@ class HDFS:
             ) from e
 
     @staticmethod
-    def copy_from_local(local_path, to_uri):
+    def copy_from_local(local_path: str, to_uri: str) -> Tuple[bool, bytes]:
         """Returns: True on success
         Raises: on unexpected error.
         """
@@ -95,7 +96,9 @@ class HDFS:
             ) from e
 
     @staticmethod
-    def copy_to_local(from_uri, local_path):
+    def copy_to_local(
+        from_uri: Union[str, List[str], Tuple[str, ...]], local_path: str
+    ) -> Optional[bool]:
         remote = ""
         if isinstance(from_uri, str):
             remote = from_uri
@@ -118,7 +121,7 @@ class HDFS:
             ) from e
 
     @staticmethod
-    def read_hdfs_file(uri):
+    def read_hdfs_file(uri: str) -> bytes:
         cmd = f"hadoop fs -text {uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)
@@ -133,7 +136,7 @@ class HDFS:
             raise RuntimeError(f"Cannot read text from uri[{uri}]cmd [{cmd}]") from e
 
     @staticmethod
-    def move(from_uri, to_uri):
+    def move(from_uri: str, to_uri: str) -> Optional[bool]:
         cmd = f"hadoop fs -mv {from_uri} {to_uri}"
         try:
             ret, out, err = run_cmd_with_all_output(cmd)

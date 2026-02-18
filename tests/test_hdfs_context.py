@@ -21,7 +21,7 @@ from .sample_class import SampleClass
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")
 class TestHDFSContext(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         with open("jsons/machine_yarn.json") as f:
             mdata = json.load(f)
         cls.machine = Machine.load_from_dict(mdata["machine"])
@@ -29,16 +29,16 @@ class TestHDFSContext(unittest.TestCase):
         cls.submission.bind_machine(cls.machine)
         cls.submission_hash = cls.submission.submission_hash
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = self.__class__.machine.context
 
-    def test_0_hdfs_context(self):
+    def test_0_hdfs_context(self) -> None:
         self.assertIsInstance(self.context, HDFSContext)
 
-    def test_1_upload(self):
+    def test_1_upload(self) -> None:
         self.context.upload(self.__class__.submission)
 
-    def test_2_fake_run(self):
+    def test_2_fake_run(self) -> None:
         rfile_tgz = (
             self.context.remote_root
             + "/"
@@ -79,7 +79,7 @@ class TestHDFSContext(unittest.TestCase):
         os.chdir(cwd)
         shutil.rmtree(tmp_dir)
 
-    def test_3_download(self):
+    def test_3_download(self) -> None:
         self.context.download(self.__class__.submission)
         file_list = [
             "bct-1/log.lammps",

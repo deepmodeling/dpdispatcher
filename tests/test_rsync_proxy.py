@@ -16,7 +16,7 @@ from dpdispatcher.utils.utils import rsync
 class TestRsyncProxyCommand(unittest.TestCase):
     """Test rsync function with proxy command support."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test files for rsync operations."""
         # Check if rsync is available before running tests
         if shutil.which("rsync") is None:
@@ -35,12 +35,12 @@ class TestRsyncProxyCommand(unittest.TestCase):
         self.remote_file_direct = f"root@server:{self.remote_test_dir}/test_direct.txt"
         self.remote_file_proxy = f"root@server:{self.remote_test_dir}/test_proxy.txt"
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up test files."""
         # Remove local test file
         os.unlink(self.local_file.name)
 
-    def test_rsync_with_proxy_command(self):
+    def test_rsync_with_proxy_command(self) -> None:
         """Test rsync with proxy command via jump host."""
         # Test rsync through jump host: test -> jumphost -> server
         rsync(
@@ -69,7 +69,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
         # Clean up
         os.unlink(download_path)
 
-    def test_rsync_direct_connection(self):
+    def test_rsync_direct_connection(self) -> None:
         """Test rsync without proxy command (direct connection)."""
         # Test direct rsync: test -> server
         rsync(
@@ -92,7 +92,7 @@ class TestRsyncProxyCommand(unittest.TestCase):
         # Clean up
         os.unlink(download_path)
 
-    def test_rsync_with_additional_options(self):
+    def test_rsync_with_additional_options(self) -> None:
         """Test rsync with proxy command and additional SSH options."""
         # Test rsync with custom port, timeout, and proxy
         rsync(

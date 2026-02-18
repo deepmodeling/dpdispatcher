@@ -11,12 +11,12 @@ from .sample_class import SampleClass
 
 
 class TestSubmissionInit(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
         # self.empty_submission = SampleClass.get_sample_empty_submission()
         # print('TestSubmissionInit.setUp:self.empty_submission.belonging_tasks', self.empty_submission.belonging_tasks)
 
-    def test_reigister_task(self):
+    def test_reigister_task(self) -> None:
         empty_submission = SampleClass.get_sample_empty_submission()
         task = SampleClass.get_sample_task()
         # print('TestSubmissionInit.test_reigister_task:self.empty_submission.belonging_tasks', empty_submission.belonging_tasks)
@@ -24,7 +24,7 @@ class TestSubmissionInit(unittest.TestCase):
         # print('7890809', SampleClass.get_sample_empty_submission().belonging_tasks)
         self.assertEqual([task], empty_submission.belonging_tasks)
 
-    def test_reigister_task_whether_copy(self):
+    def test_reigister_task_whether_copy(self) -> None:
         empty_submission = SampleClass.get_sample_empty_submission()
         task = SampleClass.get_sample_task()
         empty_submission.register_task(task=task)

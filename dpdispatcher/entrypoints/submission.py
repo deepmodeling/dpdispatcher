@@ -13,7 +13,7 @@ def handle_submission(
     download_finished_task: bool = False,
     clean: bool = False,
     reset_fail_count: bool = False,
-):
+) -> None:
     """Handle terminated submission.
 
     Parameters

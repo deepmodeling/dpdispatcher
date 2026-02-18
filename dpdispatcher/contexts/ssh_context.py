@@ -12,7 +12,7 @@ import uuid
 from functools import lru_cache
 from glob import glob
 from stat import S_ISDIR, S_ISREG
-from typing import List
+from typing import TYPE_CHECKING, Any, List, Optional
 
 import paramiko
 import paramiko.ssh_exception
@@ -30,23 +30,26 @@ from dpdispatcher.utils.utils import (
     rsync,
 )
 
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
+
 
 class SSHSession:
     def __init__(
         self,
-        hostname,
-        username,
-        password=None,
-        port=22,
-        key_filename=None,
-        passphrase=None,
-        timeout=10,
-        totp_secret=None,
-        tar_compress=True,
-        look_for_keys=True,
-        execute_command=None,
-        proxy_command=None,
-    ):
+        hostname: str,
+        username: str,
+        password: Optional[str] = None,
+        port: int = 22,
+        key_filename: Optional[str] = None,
+        passphrase: Optional[str] = None,
+        timeout: int = 10,
+        totp_secret: Optional[str] = None,
+        tar_compress: bool = True,
+        look_for_keys: bool = True,
+        execute_command: Optional[str] = None,
+        proxy_command: Optional[str] = None,
+    ) -> None:
         self.hostname = hostname
         self.username = username
         self.password = password
@@ -87,7 +90,7 @@ class SSHSession:
     #         count += 1
     #         time.sleep(sleep_time)
 
-    def ensure_alive(self, max_check=10, sleep_time=10):
+    def ensure_alive(self, max_check: int = 10, sleep_time: int = 10) -> None:
         count = 1
         while not self._check_alive():
             if count == max_check:
@@ -99,7 +102,7 @@ class SSHSession:
             count += 1
             time.sleep(sleep_time)
 
-    def _check_alive(self):
+    def _check_alive(self) -> Optional[bool]:
         if self.ssh is None:
             return False
         try:
@@ -129,7 +132,7 @@ class SSHSession:
     #     transport.set_keepalive(60)
 
     @retry(max_retry=6, sleep=1)
-    def _setup_ssh(self):
+    def _setup_ssh(self) -> None:
         # machine = self.machine
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
@@ -246,7 +249,9 @@ class SSHSession:
         if self.execute_command is not None:
             self.exec_command(self.execute_command)
 
-    def inter_handler(self, title, instructions, prompt_list):
+    def inter_handler(
+        self, title: str, instructions: str, prompt_list: list[tuple[str, bool]]
+    ) -> list[str]:
         """inter_handler: the callback for paramiko.transport.auth_interactive.
 
         The prototype for this function is defined by Paramiko, so all of the
@@ -287,18 +292,18 @@ class SSHSession:
 
         return resp
 
-    def get_ssh_client(self):
+    def get_ssh_client(self) -> paramiko.SSHClient:
         return self.ssh
 
     # def get_session_root(self):
     #     return self.remote_root
 
-    def close(self):
+    def close(self) -> None:
         assert self.ssh is not None
         self.ssh.close()
 
     @retry(sleep=1)
-    def exec_command(self, cmd):
+    def exec_command(self, cmd: str) -> tuple[Any, Any, Any]:  # noqa: ANN401
         """Calling self.ssh.exec_command but has an exception check."""
         assert self.ssh is not None
         try:
@@ -315,7 +320,7 @@ class SSHSession:
             raise RetrySignal(f"SSH session not active in calling {cmd}") from e
 
     @property
-    def sftp(self):
+    def sftp(self) -> paramiko.SFTPClient:
         """Returns sftp. Open a new one if not existing."""
         if self._sftp is None:
             assert self.ssh is not None
@@ -324,7 +329,7 @@ class SSHSession:
         return self._sftp
 
     @staticmethod
-    def arginfo():
+    def arginfo() -> list[Argument]:
         doc_hostname = "hostname or ip of ssh connection."
         doc_username = "username of target linux system"
         doc_password = (
@@ -411,7 +416,7 @@ class SSHSession:
         )
         return ssh_remote_profile_format
 
-    def put(self, from_f, to_f):
+    def put(self, from_f: str, to_f: str) -> Optional[paramiko.SFTPAttributes]:
         if self.rsync_available:
             # For rsync, we need to use %h:%p placeholders for target host/port
             proxy_cmd_rsync = None
@@ -429,7 +434,7 @@ class SSHSession:
             )
         return self.sftp.put(from_f, to_f)
 
-    def get(self, from_f, to_f):
+    def get(self, from_f: str, to_f: str) -> Optional[paramiko.SFTPAttributes]:
         if self.rsync_available:
             # For rsync, we need to use %h:%p placeholders for target host/port
             proxy_cmd_rsync = None
@@ -467,13 +472,13 @@ class SSHSession:
 class SSHContext(BaseContext):
     def __init__(
         self,
-        local_root,
-        remote_root,
-        remote_profile,
-        clean_asynchronously=False,
-        *args,
-        **kwargs,
-    ):
+        local_root: str,
+        remote_root: str,
+        remote_profile: dict[str, Any],  # noqa: ANN401
+        clean_asynchronously: bool = False,
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         assert isinstance(local_root, str)
         self.init_local_root = local_root
         self.init_remote_root = remote_root
@@ -501,7 +506,7 @@ class SSHContext(BaseContext):
             pass
 
     @classmethod
-    def load_from_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> "SSHContext":  # noqa: ANN401
         # instance = cls()
         # input = dict(
         #     hostname = jdata['hostname'],
@@ -535,20 +540,20 @@ class SSHContext(BaseContext):
         return ssh_context
 
     @property
-    def ssh(self):
+    def ssh(self) -> paramiko.SSHClient:
         return self.ssh_session.get_ssh_client()
 
     @property
-    def sftp(self):
+    def sftp(self) -> paramiko.SFTPClient:
         return self.ssh_session.sftp
 
-    def close(self):
+    def close(self) -> None:
         self.ssh_session.close()
 
-    def get_job_root(self):
+    def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission):
+    def bind_submission(self, submission: "Submission") -> None:
         assert self.ssh_session is not None
         assert self.ssh_session.ssh is not None
         self.submission = submission
@@ -597,7 +602,13 @@ class SSHContext(BaseContext):
         # except Exception:
         #     pass
 
-    def _walk_directory(self, files, work_path, file_list, directory_list):
+    def _walk_directory(
+        self,
+        files: list[str],
+        work_path: str,
+        file_list: list[str],
+        directory_list: list[str],
+    ) -> None:
         """Convert input path to list of files and directories."""
         for jj in files:
             file_name = os.path.join(work_path, jj)
@@ -628,10 +639,10 @@ class SSHContext(BaseContext):
     def upload(
         self,
         # job_dirs,
-        submission,
+        submission: "Submission",
         # local_up_files,
-        dereference=True,
-    ):
+        dereference: bool = True,
+    ) -> None:
         assert self.remote_root is not None
         dlog.info(f"remote path: {self.remote_root}")
         # remote_cwd =
@@ -705,7 +716,13 @@ class SSHContext(BaseContext):
             tar_compress=self.remote_profile.get("tar_compress", None),
         )
 
-    def list_remote_dir(self, sftp, remote_dir, ref_remote_root, result_list):
+    def list_remote_dir(
+        self,
+        sftp: paramiko.SFTPClient,
+        remote_dir: str,
+        ref_remote_root: str,
+        result_list: list[str],
+    ) -> None:
         for entry in sftp.listdir_attr(remote_dir):
             remote_name = pathlib.PurePath(
                 os.path.join(remote_dir, entry.filename)
@@ -719,13 +736,13 @@ class SSHContext(BaseContext):
 
     def download(
         self,
-        submission,
+        submission: "Submission",
         # job_dirs,
         # remote_down_files,
-        check_exists=False,
-        mark_failure=True,
-        back_error=False,
-    ):
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> None:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         file_list = []
@@ -797,7 +814,7 @@ class SSHContext(BaseContext):
                 tar_compress=self.remote_profile.get("tar_compress", None),
             )
 
-    def block_call(self, cmd):
+    def block_call(self, cmd: str) -> int:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         stdin, stdout, stderr = self.ssh_session.exec_command(
@@ -806,11 +823,11 @@ class SSHContext(BaseContext):
         exit_status = stdout.channel.recv_exit_status()
         return exit_status, stdin, stdout, stderr
 
-    def clean(self):
+    def clean(self) -> None:
         self.ssh_session.ensure_alive()
         self._rmtree(self.remote_root)
 
-    def write_file(self, fname, write_str):
+    def write_file(self, fname: str, write_str: str) -> None:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         fname = pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
@@ -827,7 +844,7 @@ class SSHContext(BaseContext):
             dlog.exception(f"Error writing to file {fname}")
             raise e
 
-    def read_file(self, fname):
+    def read_file(self, fname: str) -> str:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         with self.sftp.open(
@@ -837,7 +854,7 @@ class SSHContext(BaseContext):
             ret = fp.read().decode("utf-8")
         return ret
 
-    def check_file_exists(self, fname):
+    def check_file_exists(self, fname: str) -> bool:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         try:
@@ -849,24 +866,24 @@ class SSHContext(BaseContext):
             ret = False
         return ret
 
-    def call(self, cmd):
+    def call(self, cmd: str) -> dict[str, Any]:  # noqa: ANN401
         stdin, stdout, stderr = self.ssh_session.exec_command(cmd)
         # stdin, stdout, stderr = self.ssh.exec_command('echo $$; exec ' + cmd)
         # pid = stdout.readline().strip()
         # print(pid)
         return {"stdin": stdin, "stdout": stdout, "stderr": stderr}
 
-    def check_finish(self, proc):
+    def check_finish(self, proc: dict[str, Any]) -> bool:  # noqa: ANN401
         return proc["stdout"].channel.exit_status_ready()
 
-    def get_return(self, cmd_pipes):
+    def get_return(self, cmd_pipes: dict[str, Any]) -> tuple[Optional[int], Any, Any]:  # noqa: ANN401
         if not self.check_finish(cmd_pipes):
             return None, None, None
         else:
             retcode = cmd_pipes["stdout"].channel.recv_exit_status()
             return retcode, cmd_pipes["stdout"], cmd_pipes["stderr"]
 
-    def _rmtree(self, remotepath, verbose=False):
+    def _rmtree(self, remotepath: str, verbose: bool = False) -> None:
         """Remove the remote path."""
         # The original implementation method removes files one by one using sftp.
         # If the latency of the remote server is high, it is very slow.
@@ -884,11 +901,11 @@ class SSHContext(BaseContext):
 
     def _put_files(
         self,
-        files,
-        dereference=True,
-        directories=None,
-        tar_compress=True,
-    ):
+        files: list[str],
+        dereference: bool = True,
+        directories: Optional[list[str]] = None,
+        tar_compress: bool = True,
+    ) -> None:
         """Upload files to server.
 
         Parameters
@@ -957,7 +974,7 @@ class SSHContext(BaseContext):
         os.remove(from_f)
         self.sftp.remove(to_f)
 
-    def _get_files(self, files, tar_compress=True):
+    def _get_files(self, files: list[str], tar_compress: bool = True) -> None:
         assert self.remote_root is not None
         # avoid compressing duplicated files
         files = list(set(files))

@@ -6,7 +6,7 @@ import shlex
 import struct
 import subprocess
 import time
-from typing import TYPE_CHECKING, Callable, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple, Type, Union
 
 from dpdispatcher.dlog import dlog
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from dpdispatcher import Resources
 
 
-def get_sha256(filename):
+def get_sha256(filename: str) -> str:
     """Get sha256 of a file.
 
     Parameters
@@ -38,7 +38,7 @@ def get_sha256(filename):
     return sha256
 
 
-def hotp(key: str, period: int, token_length: int = 6, digest="sha1"):
+def hotp(key: str, period: int, token_length: int = 6, digest: str = "sha1") -> str:
     key_ = base64.b32decode(key.upper() + "=" * ((8 - len(key)) % 8))
     period_ = struct.pack(">Q", period)
     mac = hmac.new(key_, period_, digest).digest()
@@ -75,7 +75,7 @@ def generate_totp(secret: str, period: int = 30, token_length: int = 6) -> str:
     return hotp(secret, int(time.time() / period), token_length, digest)
 
 
-def run_cmd_with_all_output(cmd, shell=True):
+def run_cmd_with_all_output(cmd: str, shell: bool = True) -> Tuple[int, bytes, bytes]:
     with subprocess.Popen(
         cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     ) as proc:
@@ -91,7 +91,7 @@ def rsync(
     key_filename: Optional[str] = None,
     timeout: Union[int, float] = 10,
     proxy_command: Optional[str] = None,
-):
+) -> None:
     """Call rsync to transfer files.
 
     Parameters
@@ -186,10 +186,10 @@ def retry(
     ...     raise RetrySignal("Failed")
     """
 
-    def decorator(func):
+    def decorator(func: Callable) -> Callable:  # noqa: ANN401
         assert max_retry > 0, "max_retry must be greater than 0"
 
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             current_retry = 0
             errors = []
             while max_retry is None or current_retry < max_retry:

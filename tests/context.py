@@ -31,9 +31,9 @@ from dpdispatcher.utils.record import record  # noqa: F401
 from dpdispatcher.utils.utils import RetrySignal, retry  # noqa: F401
 
 
-def setUpModule():
+def setUpModule() -> None:
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
 
-def get_file_md5(file_path):
+def get_file_md5(file_path: str) -> str:
     return hashlib.md5(pathlib.Path(file_path).read_bytes()).hexdigest()

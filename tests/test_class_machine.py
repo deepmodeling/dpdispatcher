@@ -14,13 +14,13 @@ from .sample_class import SampleClass
 
 
 class TestMachineInit(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
-    def test_machine_serialize_deserialize(self):
+    def test_machine_serialize_deserialize(self) -> None:
         pbs = SampleClass.get_sample_pbs_local_context()
         self.assertEqual(pbs, Machine.deserialize(pbs.serialize()))
 
-    def test_machine_load_from_dict(self):
+    def test_machine_load_from_dict(self) -> None:
         pbs = SampleClass.get_sample_pbs_local_context()
         self.assertEqual(pbs, PBS.load_from_dict(pbs.serialize()))

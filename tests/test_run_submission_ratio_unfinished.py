@@ -18,7 +18,7 @@ from .context import (
 
 
 class RunSubmission:
-    def setUp(self):
+    def setUp(self) -> None:
         self.machine_dict = {
             "batch_type": "Shell",
             "context_type": "LocalContext",
@@ -55,7 +55,7 @@ class RunSubmission:
         ) as f:
             f.write("inp space")
 
-    def test_run_submission(self):
+    def test_run_submission(self) -> None:
         machine = Machine.load_from_dict(self.machine_dict)
         resources = Resources.load_from_dict(self.resources_dict)
 
@@ -90,7 +90,7 @@ class RunSubmission:
         )
         submission.run_submission()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(os.path.join(self.machine_dict["local_root"]))
 
 
@@ -99,7 +99,7 @@ class RunSubmission:
     "outside the slurm testing environment",
 )
 class TestSlurmRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "Slurm"
         self.resources_dict["queue_name"] = "normal"
@@ -110,7 +110,7 @@ class TestSlurmRun(RunSubmission, unittest.TestCase):
     "outside the slurm testing environment",
 )
 class TestSlurmJobArrayRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "SlurmJobArray"
         self.resources_dict["queue_name"] = "normal"
@@ -121,7 +121,7 @@ class TestSlurmJobArrayRun(RunSubmission, unittest.TestCase):
     "outside the slurm testing environment",
 )
 class TestSlurmJobArrayRun2(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "SlurmJobArray"
         self.resources_dict["queue_name"] = "normal"
@@ -132,7 +132,7 @@ class TestSlurmJobArrayRun2(RunSubmission, unittest.TestCase):
     os.environ.get("DPDISPATCHER_TEST") != "pbs", "outside the pbs testing environment"
 )
 class TestPBSRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["batch_type"] = "PBS"
         self.resources_dict["queue_name"] = "workq"
@@ -140,6 +140,6 @@ class TestPBSRun(RunSubmission, unittest.TestCase):
 
 @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
 class TestLazyLocalContext(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict["context_type"] = "LazyLocalContext"

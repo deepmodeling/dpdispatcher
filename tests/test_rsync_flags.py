@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+from typing import Any
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -13,7 +14,7 @@ class TestRsyncFlags(unittest.TestCase):
     """Test rsync function flags to ensure correct options are used."""
 
     @patch("dpdispatcher.utils.utils.run_cmd_with_all_output")
-    def test_rsync_flags_exclude_owner_group(self, mock_run_cmd):
+    def test_rsync_flags_exclude_owner_group(self, mock_run_cmd: Any) -> None:  # noqa: ANN401
         """Test that rsync uses flags that exclude owner and group preservation."""
         # Mock successful command execution
         mock_run_cmd.return_value = (0, "", "")
@@ -39,7 +40,7 @@ class TestRsyncFlags(unittest.TestCase):
         self.assertIn("-q", called_cmd)
 
     @patch("dpdispatcher.utils.utils.run_cmd_with_all_output")
-    def test_rsync_with_proxy_command_flags(self, mock_run_cmd):
+    def test_rsync_with_proxy_command_flags(self, mock_run_cmd: Any) -> None:  # noqa: ANN401
         """Test that rsync uses correct flags even with proxy command."""
         # Mock successful command execution
         mock_run_cmd.return_value = (0, "", "")
@@ -63,7 +64,7 @@ class TestRsyncFlags(unittest.TestCase):
         self.assertNotIn("-az", called_cmd)
 
     @patch("dpdispatcher.utils.utils.run_cmd_with_all_output")
-    def test_rsync_error_handling(self, mock_run_cmd):
+    def test_rsync_error_handling(self, mock_run_cmd: Any) -> None:  # noqa: ANN401
         """Test that rsync properly handles errors."""
         # Mock failed command execution
         mock_run_cmd.return_value = (

@@ -23,7 +23,7 @@ from .sample_class import SampleClass
 )
 class TestSSHContext(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         mdata = {
             "batch_type": "Shell",
             "context_type": "SSHContext",
@@ -60,18 +60,18 @@ class TestSSHContext(unittest.TestCase):
             cls.machine.context.write_file(file, "# mock log")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         cls.machine.context.clean()
         # close the server
         cls.machine.context.close()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = self.__class__.machine.context
 
-    def test_ssh_session(self):
+    def test_ssh_session(self) -> None:
         self.assertIsInstance(self.__class__.machine.context.ssh_session, SSHSession)
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         self.context.upload(self.__class__.submission)
         check_file_list = [
             "graph.pb",
@@ -86,7 +86,7 @@ class TestSSHContext(unittest.TestCase):
                 )
             )
 
-    def test_empty_transfer(self):
+    def test_empty_transfer(self) -> None:
         # Both forward_files and backward_files are empty
         machine = Machine.load_from_dict(self.machine.serialize())
         resources = Resources.load_from_dict(
@@ -116,7 +116,7 @@ class TestSSHContext(unittest.TestCase):
         )
         submission.run_submission()
 
-    def test_recover(self):
+    def test_recover(self) -> None:
         """Test recover from a previous submission."""
         machine = Machine.load_from_dict(self.machine.serialize())
         resources = Resources.load_from_dict(
@@ -163,7 +163,7 @@ class TestSSHContext(unittest.TestCase):
             )
             submission.run_submission()
 
-    def test_download(self):
+    def test_download(self) -> None:
         self.context.download(self.__class__.submission)
 
 
@@ -172,7 +172,7 @@ class TestSSHContext(unittest.TestCase):
 )
 class TestSSHContextNoCompress(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         mdata = {
             "batch_type": "Shell",
             "context_type": "SSHContext",
@@ -208,18 +208,18 @@ class TestSSHContextNoCompress(unittest.TestCase):
             cls.machine.context.write_file(file, "# mock log")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         cls.machine.context.clean()
         # close the server
         cls.machine.context.close()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = self.__class__.machine.context
 
-    def test_ssh_session(self):
+    def test_ssh_session(self) -> None:
         self.assertIsInstance(self.__class__.machine.context.ssh_session, SSHSession)
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         self.context.upload(self.__class__.submission)
         check_file_list = [
             "graph.pb",
@@ -234,5 +234,5 @@ class TestSSHContextNoCompress(unittest.TestCase):
                 )
             )
 
-    def test_download(self):
+    def test_download(self) -> None:
         self.context.download(self.__class__.submission)

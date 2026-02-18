@@ -20,10 +20,10 @@ from .context import (
 
 
 class TestJHUniSchedulerScriptGeneration(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
-    def test_shell_trival(self):
+    def test_shell_trival(self) -> None:
         with open("jsons/machine_lazy_local_jh_unischeduler.json") as f:
             machine_dict = json.load(f)
 
@@ -88,7 +88,7 @@ class TestJHUniSchedulerScriptGeneration(unittest.TestCase):
         self.assertEqual(header_str, benchmark_header)
 
     @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
-    def test_template(self):
+    def test_template(self) -> None:
         with open("jsons/machine_lazy_local_jh_unischeduler.json") as f:
             machine_dict = json.load(f)
 

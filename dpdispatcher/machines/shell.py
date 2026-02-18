@@ -1,9 +1,13 @@
 import shlex
+from typing import TYPE_CHECKING
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.utils import customized_script_header_template
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job
 
 shell_script_header_template = """
 #!/bin/bash -l
@@ -11,11 +15,11 @@ shell_script_header_template = """
 
 
 class Shell(Machine):
-    def gen_script(self, job):
+    def gen_script(self, job: "Job") -> str:
         shell_script = super().gen_script(job)
         return shell_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
         if (
             resources["strategy"].get("customized_script_header_template_file")
@@ -29,7 +33,7 @@ class Shell(Machine):
             shell_script_header = shell_script_header_template
         return shell_script_header
 
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> int:
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         job_id_name = job.job_hash + "_job_id"
@@ -60,7 +64,7 @@ class Shell(Machine):
         # self.context.write_file(job_id_name, job_id)
         # return job_id
 
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         job_id = job.job_id
         # print('shell.check_status.job_id', job_id)
         # job_state = JobStatus.unknown
@@ -101,12 +105,12 @@ class Shell(Machine):
     #             return True
     #     return False
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         # print('job finished: ',job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
 
-    def kill(self, job):
+    def kill(self, job: "Job") -> None:
         """Kill the job.
 
         Parameters
