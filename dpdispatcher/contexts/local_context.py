@@ -155,7 +155,7 @@ class LocalContext(BaseContext):
 
     def download(
         self,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,
