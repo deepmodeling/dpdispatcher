@@ -1,8 +1,11 @@
 import os
 import subprocess as sp
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from dpdispatcher.base_context import BaseContext
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
 
 
 class SPRetObj:
@@ -70,7 +73,7 @@ class LazyLocalContext(BaseContext):
         )
         return instance
 
-    def bind_submission(self, submission: Any) -> None:  # noqa: ANN401
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(self.temp_local_root, submission.work_base)
@@ -84,7 +87,7 @@ class LazyLocalContext(BaseContext):
 
     def upload(
         self,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         # local_up_files,
         dereference: bool = True,
     ) -> None:
@@ -92,7 +95,7 @@ class LazyLocalContext(BaseContext):
 
     def download(
         self,
-        submission: Any,  # noqa: ANN401
+        submission: "Submission",
         # remote_down_files,
         check_exists: bool = False,
         mark_failure: bool = True,
