@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -18,6 +18,9 @@ from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.record import record
+
+if TYPE_CHECKING:
+    from dpdispatcher.base_context import BaseContext
 
 # %%
 default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
@@ -707,7 +710,7 @@ class Task:
         task_format = Argument("task", dict, task_args)
         return task_format
 
-    def get_task_state(self, context: Any) -> None:  # noqa: ANN401
+    def get_task_state(self, context: "BaseContext") -> None:
         """Get the task state by checking the tag file.
 
         Parameters
