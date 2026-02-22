@@ -5,6 +5,7 @@ from typing import List, Optional
 from dpdispatcher.entrypoints.gui import start_dpgui
 from dpdispatcher.entrypoints.run import run
 from dpdispatcher.entrypoints.submission import handle_submission
+from dpdispatcher.entrypoints.submit import submit
 
 
 def main_parser() -> argparse.ArgumentParser:
@@ -94,6 +95,28 @@ def main_parser() -> argparse.ArgumentParser:
         type=str,
         help="Python script to run. PEP 723 metadata should be contained in this file.",
     )
+    ##########################################
+    # submit
+    parser_submit = subparsers.add_parser(
+        "submit",
+        help="Submit a submission from a JSON file.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser_submit.add_argument(
+        "filename",
+        type=str,
+        help="JSON file containing submission configuration.",
+    )
+    parser_submit.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only upload files without submitting.",
+    )
+    parser_submit.add_argument(
+        "--exit-on-submit",
+        action="store_true",
+        help="Exit after submitting without waiting for completion.",
+    )
     return parser
 
 
@@ -132,6 +155,12 @@ def main():
         )
     elif args.command == "run":
         run(filename=args.filename)
+    elif args.command == "submit":
+        submit(
+            filename=args.filename,
+            dry_run=args.dry_run,
+            exit_on_submit=args.exit_on_submit,
+        )
     elif args.command is None:
         pass
     else:

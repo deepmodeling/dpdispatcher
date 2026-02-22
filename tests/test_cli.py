@@ -9,5 +9,6 @@ class TestCLI(unittest.TestCase):
             "submission",
             "gui",
             "run",
+            "submit",
         ):
             sp.check_output(["dpdisp", subcommand, "-h"])
