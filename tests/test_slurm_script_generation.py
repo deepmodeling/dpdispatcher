@@ -20,10 +20,10 @@ from .context import (
 
 
 class TestSlurmScriptGeneration(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
-    def test_shell_trival(self):
+    def test_shell_trival(self) -> None:
         with open("jsons/machine_lazy_local_slurm.json") as f:
             machine_dict = json.load(f)
 
@@ -82,7 +82,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         self.assertEqual(str, benchmark_str)
 
     @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
-    def test_template(self):
+    def test_template(self) -> None:
         with open("jsons/machine_lazy_local_slurm.json") as f:
             machine_dict = json.load(f)
 

@@ -9,7 +9,7 @@ from .context import Machine, Resources, Task, setUpModule  # noqa: F401
 
 
 class TestJob(unittest.TestCase):
-    def test_machine_argcheck(self):
+    def test_machine_argcheck(self) -> None:
         norm_dict = Machine.load_from_dict(
             {
                 "batch_type": "slurm",
@@ -31,7 +31,7 @@ class TestJob(unittest.TestCase):
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
-    def test_resources_argcheck(self):
+    def test_resources_argcheck(self) -> None:
         norm_dict = Resources.load_from_dict(
             {
                 "number_node": 1,
@@ -70,7 +70,7 @@ class TestJob(unittest.TestCase):
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
-    def test_task_argcheck(self):
+    def test_task_argcheck(self) -> None:
         norm_dict = Task.load_from_dict(
             {
                 "command": "ls",

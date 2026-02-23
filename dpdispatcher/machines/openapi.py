@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from zipfile import ZipFile
 
 from dpdispatcher.utils.utils import customized_script_header_template
@@ -17,19 +18,24 @@ from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 
+if TYPE_CHECKING:
+    from dpdispatcher.contexts.context import Context
+    from dpdispatcher.submission import Job as SubmissionJob
+    from dpdispatcher.submission import Submission
+
 shell_script_header_template = """
 #!/bin/bash -l
 """
 
 
-def unzip_file(zip_file, out_dir="./"):
+def unzip_file(zip_file: str, out_dir: str = "./") -> None:
     obj = ZipFile(zip_file, "r")
     for item in obj.namelist():
         obj.extract(item, out_dir)
 
 
 class OpenAPI(Machine):
-    def __init__(self, context, **kwargs):
+    def __init__(self, context: "Context", **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(context=context, **kwargs)
         if not found_bohriumsdk:
             raise ModuleNotFoundError(
@@ -71,11 +77,11 @@ class OpenAPI(Machine):
         self.job = Job(client=self.client)
         self.group_id = None
 
-    def gen_script(self, job):
+    def gen_script(self, job: "SubmissionJob") -> str:
         shell_script = super().gen_script(job)
         return shell_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "SubmissionJob") -> str:
         resources = job.resources
         if (
             resources["strategy"].get("customized_script_header_template_file")
@@ -89,7 +95,7 @@ class OpenAPI(Machine):
             shell_script_header = shell_script_header_template
         return shell_script_header
 
-    def gen_local_script(self, job):
+    def gen_local_script(self, job: "SubmissionJob") -> str:
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         self.context.write_local_file(fname=script_file_name, write_str=script_str)
@@ -100,7 +106,7 @@ class OpenAPI(Machine):
         )
         return script_file_name
 
-    def _gen_backward_files_list(self, job):
+    def _gen_backward_files_list(self, job: "SubmissionJob") -> List[str]:
         result_file_list = []
         # result_file_list.extend(job.backward_common_files)
         for task in job.job_task_list:
@@ -110,7 +116,7 @@ class OpenAPI(Machine):
         result_file_list = list(set(result_file_list))
         return result_file_list
 
-    def do_submit(self, job):
+    def do_submit(self, job: "SubmissionJob") -> int:
         self.gen_local_script(job)
 
         project_id = self.remote_profile.get("project_id", 0)
@@ -143,7 +149,7 @@ class OpenAPI(Machine):
         job.job_state = JobStatus.waiting
         return job.job_id
 
-    def _get_job_detail(self, job_id, group_id):
+    def _get_job_detail(self, job_id: int, group_id: Optional[int]) -> Dict[str, Any]:
         check_return = self.job.detail(job_id)
         assert check_return is not None, (
             f"Failed to retrieve tasks information. To resubmit this job, please "
@@ -156,7 +162,7 @@ class OpenAPI(Machine):
         )
         return check_return
 
-    def check_status(self, job):
+    def check_status(self, job: "SubmissionJob") -> JobStatus:
         if job.job_id == "":
             return JobStatus.unsubmitted
         job_id = job.job_id
@@ -194,7 +200,7 @@ class OpenAPI(Machine):
             print(job_log, end="")
         return job_state
 
-    def _download_job(self, job):
+    def _download_job(self, job: "SubmissionJob") -> None:
         data = self.job.detail(job.job_id)
         job_url = data["resultUrl"]
         if not job_url:
@@ -217,19 +223,23 @@ class OpenAPI(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "SubmissionJob") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         dlog.info("check if job finished: ", job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
         # return
         # pass
 
-    def check_if_recover(self, submission):
+    def check_if_recover(self, submission: "Submission") -> bool:
         return False
         # pass
 
     @staticmethod
-    def map_dp_job_state(status, exit_code, ignore_exit_code=True):
+    def map_dp_job_state(
+        status: Union[int, JobStatus],
+        exit_code: int,
+        ignore_exit_code: bool = True,
+    ) -> JobStatus:
         if isinstance(status, JobStatus):
             return status
         map_dict = {
@@ -250,7 +260,7 @@ class OpenAPI(Machine):
             return JobStatus.finished
         return map_dict[status]
 
-    def kill(self, job):
+    def kill(self, job: "SubmissionJob") -> None:
         """Kill the job.
 
         Parameters
@@ -261,7 +271,7 @@ class OpenAPI(Machine):
         job_id = job.job_id
         self.job.kill(job_id)
 
-    def get_exit_code(self, job):
+    def get_exit_code(self, job: "SubmissionJob") -> int:
         """Get exit code of the job.
 
         Parameters

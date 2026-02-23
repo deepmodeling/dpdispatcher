@@ -1,17 +1,21 @@
 import os
 import subprocess as sp
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from dpdispatcher.base_context import BaseContext
 
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
+
 
 class SPRetObj:
-    def __init__(self, ret):
+    def __init__(self, ret: bytes) -> None:
         self.data = ret
 
-    def read(self):
+    def read(self) -> bytes:
         return self.data
 
-    def readlines(self):
+    def readlines(self) -> List[str]:
         lines = self.data.decode("utf-8").splitlines()
         ret = []
         for aa in lines:
@@ -38,12 +42,12 @@ class LazyLocalContext(BaseContext):
 
     def __init__(
         self,
-        local_root,
-        remote_root=None,
-        remote_profile={},
-        *args,
-        **kwargs,
-    ):
+        local_root: str,
+        remote_root: Optional[str] = None,
+        remote_profile: Dict[str, Any] = {},  # noqa: ANN401
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         assert isinstance(local_root, str)
         self.init_local_root = local_root
         self.init_remote_root = remote_root
@@ -58,7 +62,7 @@ class LazyLocalContext(BaseContext):
         #    self.job_uuid = str(uuid.uuid4())
 
     @classmethod
-    def load_from_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict: Dict[str, Any]) -> "LazyLocalContext":  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict.get("remote_root", None)
         remote_profile = context_dict.get("remote_profile", {})
@@ -69,7 +73,7 @@ class LazyLocalContext(BaseContext):
         )
         return instance
 
-    def bind_submission(self, submission):
+    def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(self.temp_local_root, submission.work_base)
@@ -78,25 +82,25 @@ class LazyLocalContext(BaseContext):
         #     "self.local_root:{self.local_root};"
         #     "self.remote_root:{self.remote_root}")
 
-    def get_job_root(self):
+    def get_job_root(self) -> str:
         return self.local_root
 
     def upload(
         self,
-        submission,
+        submission: "Submission",
         # local_up_files,
-        dereference=True,
-    ):
+        dereference: bool = True,
+    ) -> None:
         pass
 
     def download(
         self,
-        submission,
+        submission: "Submission",
         # remote_down_files,
-        check_exists=False,
-        mark_failure=True,
-        back_error=False,
-    ):
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> None:
         pass
 
     #    for ii in job_dirs :
@@ -112,7 +116,7 @@ class LazyLocalContext(BaseContext):
     #                else:
     #                    raise RuntimeError('do not find download file ' + fname)
 
-    def block_call(self, cmd):
+    def block_call(self, cmd: str) -> Tuple[int, None, SPRetObj, SPRetObj]:
         proc = sp.Popen(
             cmd, cwd=self.local_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
@@ -122,37 +126,39 @@ class LazyLocalContext(BaseContext):
         code = proc.returncode
         return code, None, stdout, stderr
 
-    def clean(self):
+    def clean(self) -> None:
         pass
 
-    def write_file(self, fname, write_str):
+    def write_file(self, fname: str, write_str: str) -> None:
         os.makedirs(self.remote_root, exist_ok=True)
         with open(os.path.join(self.remote_root, fname), "w") as fp:
             fp.write(write_str)
 
-    def read_file(self, fname):
+    def read_file(self, fname: str) -> str:
         with open(os.path.join(self.remote_root, fname)) as fp:
             ret = fp.read()
         return ret
 
-    def check_file_exists(self, fname):
+    def check_file_exists(self, fname: str) -> bool:
         # submission_work_base = os.path.join(self.local_root, self.submission.work_base)
         # file_to_be_checked = os.path.join(submission_work_base, fname)
         # print('debug:dpdispatcher.LazyLocalContext().check_file_exists:file_to_be_checked', file_to_be_checked)
         # return os.path.isfile(file_to_be_checked)
         return os.path.isfile(os.path.join(self.remote_root, fname))
 
-    def call(self, cmd):
+    def call(self, cmd: str) -> sp.Popen:  # type: ignore[type-arg]
         cwd = os.getcwd()
         proc = sp.Popen(
             cmd, cwd=self.local_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
         return proc
 
-    def check_finish(self, proc):
+    def check_finish(self, proc: sp.Popen) -> bool:  # type: ignore[type-arg]
         return proc.poll() is not None
 
-    def get_return(self, proc):
+    def get_return(
+        self, proc: sp.Popen
+    ) -> Tuple[Optional[int], Optional[SPRetObj], Optional[SPRetObj]]:  # type: ignore[type-arg]
         ret = proc.poll()
         if ret is None:
             return None, None, None

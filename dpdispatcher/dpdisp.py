@@ -120,7 +120,7 @@ def main_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_args(args: Optional[List[str]] = None):
+def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """Dpdispatcher commandline options argument parsing.
 
     Parameters
@@ -138,7 +138,7 @@ def parse_args(args: Optional[List[str]] = None):
     return parsed_args
 
 
-def main():
+def main() -> None:
     args = parse_args()
     if args.command == "submission":
         handle_submission(

@@ -3,6 +3,7 @@ import sys
 import textwrap
 import unittest
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
@@ -14,7 +15,7 @@ from test_run_submission import RunSubmission
     "outside the Bohrium testing environment",
 )
 class TestBohriumRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict.update(
             batch_type="Bohrium",
@@ -37,7 +38,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
         )
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> Any:  # noqa: ANN401
         return super().test_async_run_submission()
 
 
@@ -46,7 +47,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
     "outside the Bohrium testing environment",
 )
 class TestOpenAPIRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         bohrium_config = textwrap.dedent(
             """\
@@ -68,5 +69,5 @@ class TestOpenAPIRun(RunSubmission, unittest.TestCase):
         )
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> Any:  # noqa: ANN401
         return super().test_async_run_submission()

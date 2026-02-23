@@ -1,5 +1,5 @@
 import shlex
-from typing import List
+from typing import TYPE_CHECKING, Any, List
 
 from dargs import Argument
 
@@ -7,6 +7,9 @@ from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.utils import customized_script_header_template
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job
 
 pbs_script_header_template = """
 #!/bin/bash -l
@@ -20,11 +23,11 @@ class PBS(Machine):
     # def __init__(self, **kwargs):
     #     super().__init__(**kwargs)
 
-    def gen_script(self, job):
+    def gen_script(self, job: "Job") -> str:
         pbs_script = super().gen_script(job)
         return pbs_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
         pbs_script_header_dict = {}
         pbs_script_header_dict["select_node_line"] = (
@@ -49,7 +52,7 @@ class PBS(Machine):
             )
         return pbs_script_header
 
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -72,7 +75,7 @@ class PBS(Machine):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
@@ -105,11 +108,11 @@ class PBS(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
-    def kill(self, job):
+    def kill(self, job: "Job") -> None:
         """Kill the job.
 
         Parameters
@@ -122,7 +125,7 @@ class PBS(Machine):
 
 
 class Torque(PBS):
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
@@ -155,7 +158,7 @@ class Torque(PBS):
         else:
             return JobStatus.unknown
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         # ref: https://support.adaptivecomputing.com/wp-content/uploads/2021/02/torque/torque.htm#topics/torque/2-jobs/requestingRes.htm
         resources = job.resources
         pbs_script_header_dict = {}
@@ -191,10 +194,10 @@ sge_script_header_template = """
 
 
 class SGE(PBS):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(**kwargs)
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
         # resources.number_node is not used in SGE
         resources = job.resources
@@ -222,7 +225,7 @@ class SGE(PBS):
             )
         return sge_script_header
 
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -239,7 +242,7 @@ class SGE(PBS):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         ### https://softpanorama.org/HPC/Grid_engine/Queues/queue_states.shtml
         job_id = job.job_id
         status_line = None
@@ -283,7 +286,7 @@ class SGE(PBS):
             else:
                 return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 

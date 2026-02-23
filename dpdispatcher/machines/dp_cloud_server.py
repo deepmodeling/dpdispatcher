@@ -3,6 +3,7 @@ import shutil
 import time
 import uuid
 import warnings
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
@@ -10,6 +11,10 @@ from dpdispatcher.utils.dpcloudserver import Client, zip_file
 from dpdispatcher.utils.dpcloudserver.config import ALI_OSS_BUCKET_URL
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.utils import customized_script_header_template
+
+if TYPE_CHECKING:
+    from dpdispatcher.contexts.context import Context
+    from dpdispatcher.submission import Job, Submission
 
 shell_script_header_template = """
 #!/bin/bash -l
@@ -19,7 +24,7 @@ shell_script_header_template = """
 class Bohrium(Machine):
     alias = ("Lebesgue", "DpCloudServer")
 
-    def __init__(self, context, **kwargs):
+    def __init__(self, context: "Context", **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(context=context, **kwargs)
         self.context = context
         self.input_data = context.remote_profile["input_data"].copy()
@@ -67,11 +72,11 @@ class Bohrium(Machine):
 
         self.group_id = None
 
-    def gen_script(self, job):
+    def gen_script(self, job: "Job") -> str:
         shell_script = super(DpCloudServer, self).gen_script(job)
         return shell_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
         if (
             resources["strategy"].get("customized_script_header_template_file")
@@ -85,7 +90,7 @@ class Bohrium(Machine):
             shell_script_header = shell_script_header_template
         return shell_script_header
 
-    def gen_local_script(self, job):
+    def gen_local_script(self, job: "Job") -> str:
         script_str = self.gen_script(job)
         script_file_name = job.script_file_name
         self.context.write_local_file(fname=script_file_name, write_str=script_str)
@@ -96,7 +101,7 @@ class Bohrium(Machine):
         )
         return script_file_name
 
-    def _gen_backward_files_list(self, job):
+    def _gen_backward_files_list(self, job: "Job") -> List[str]:
         result_file_list = []
         # result_file_list.extend(job.backward_common_files)
         for task in job.job_task_list:
@@ -106,7 +111,7 @@ class Bohrium(Machine):
         result_file_list = list(set(result_file_list))
         return result_file_list
 
-    def _gen_oss_path(self, job, zip_filename):
+    def _gen_oss_path(self, job: "Job", zip_filename: str) -> str:
         if hasattr(job, "upload_path") and job.upload_path:
             return job.upload_path
         else:
@@ -122,7 +127,7 @@ class Bohrium(Machine):
             setattr(job, "upload_path", path)
             return path
 
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> str:
         self.gen_local_script(job)
         zip_filename = job.job_hash + ".zip"
         # oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
@@ -157,7 +162,7 @@ class Bohrium(Machine):
         job.job_state = JobStatus.waiting
         return job_id
 
-    def _get_job_detail(self, job_id, group_id):
+    def _get_job_detail(self, job_id: int, group_id: Optional[int]) -> Dict[str, Any]:
         check_return = self.api.get_job_detail(job_id)
         assert check_return is not None, (
             f"Failed to retrieve tasks information. To resubmit this job, please "
@@ -170,7 +175,7 @@ class Bohrium(Machine):
         )
         return check_return
 
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         if job.job_id == "":
             return JobStatus.unsubmitted
         job_id = job.job_id
@@ -217,7 +222,7 @@ class Bohrium(Machine):
             print(job_log, end="")
         return job_state
 
-    def _download_job(self, job):
+    def _download_job(self, job: "Job") -> None:
         job_url = self.api.get_job_result_url(job.job_id)
         if not job_url:
             return
@@ -239,19 +244,23 @@ class Bohrium(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         dlog.info("check if job finished: ", job.job_id, job_tag_finished)
         return self.context.check_file_exists(job_tag_finished)
         # return
         # pass
 
-    def check_if_recover(self, submission):
+    def check_if_recover(self, submission: "Submission") -> bool:
         return False
         # pass
 
     @staticmethod
-    def map_dp_job_state(status, exit_code, ignore_exit_code=True):
+    def map_dp_job_state(
+        status: Union[int, JobStatus],
+        exit_code: int,
+        ignore_exit_code: bool = True,
+    ) -> JobStatus:
         if isinstance(status, JobStatus):
             return status
         map_dict = {
@@ -272,7 +281,7 @@ class Bohrium(Machine):
             return JobStatus.finished
         return map_dict[status]
 
-    def kill(self, job):
+    def kill(self, job: "Job") -> None:
         """Kill the job.
 
         Parameters
@@ -283,7 +292,7 @@ class Bohrium(Machine):
         job_id = job.job_id
         self.api.kill(job_id)
 
-    def get_exit_code(self, job) -> int:
+    def get_exit_code(self, job: "Job") -> int:
         job_id = self._parse_job_id(job.job_id)
         if job_id <= 0:
             raise RuntimeError(f"cannot parse job id {job.job_id}")

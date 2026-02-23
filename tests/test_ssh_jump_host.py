@@ -16,7 +16,7 @@ from .context import (
 class TestSSHJumpHost(unittest.TestCase):
     """Test SSH jump host functionality."""
 
-    def test_proxy_command_connection(self):
+    def test_proxy_command_connection(self) -> None:
         """Test SSH connection using proxy_command via jump host."""
         # Test connection from test -> server via jumphost
         ssh_session = SSHSession(
@@ -44,7 +44,7 @@ class TestSSHJumpHost(unittest.TestCase):
 
         ssh_session.close()
 
-    def test_direct_connection_no_proxy(self):
+    def test_direct_connection_no_proxy(self) -> None:
         """Test direct SSH connection without proxy command."""
         # Test direct connection from test -> server (no proxy)
         ssh_session = SSHSession(
@@ -66,7 +66,7 @@ class TestSSHJumpHost(unittest.TestCase):
 
         ssh_session.close()
 
-    def test_jump_host_direct_connection(self):
+    def test_jump_host_direct_connection(self) -> None:
         """Test direct connection to jump host itself."""
         # Test direct connection from test -> jumphost
         ssh_session = SSHSession(
