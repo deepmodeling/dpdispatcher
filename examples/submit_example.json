@@ -1,0 +1,27 @@
+{
+    "work_base": "0_md/",
+    "machine": {
+        "batch_type": "Shell",
+        "local_root": "./",
+        "context_type": "LazyLocalContext"
+    },
+    "resources": {
+        "number_node": 1,
+        "cpu_per_node": 1,
+        "gpu_per_node": 0,
+        "queue_name": "",
+        "group_size": 1
+    },
+    "forward_common_files": [],
+    "backward_common_files": [],
+    "task_list": [
+        {
+            "command": "echo hello",
+            "task_work_path": "task1/",
+            "forward_files": [],
+            "backward_files": [],
+            "outlog": "log",
+            "errlog": "err"
+        }
+    ]
+}
