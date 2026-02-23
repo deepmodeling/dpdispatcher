@@ -1,0 +1,7 @@
+[console_scripts]
+dpdisp = dpdispatcher.dpdisp:main
+
+[dpgui]
+DPDispatcher Machine = dpdispatcher.arginfo:machine_dargs
+DPDispatcher Resources = dpdispatcher.arginfo:resources_dargs
+DPDispatcher Task = dpdispatcher.arginfo:task_dargs

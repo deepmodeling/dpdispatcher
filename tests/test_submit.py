@@ -57,11 +57,11 @@ class TestSubmitCommand(unittest.TestCase):
 
     def test_submit_help(self) -> None:
         """Test dpdisp submit --help."""
-        sp.check_output(["dpdisp", "submit", "-h"])
+        sp.check_output(["dpdisp", "submit", "-h"])  # noqa: S603, S607
 
     def test_submit_dry_run(self) -> None:
         """Test dpdisp submit --dry-run."""
-        output = sp.check_output(
+        output = sp.check_output(  # noqa: S603, S607
             ["dpdisp", "submit", "--dry-run", self.json_file],
             cwd=self.tmpdir,
             stderr=sp.STDOUT,
@@ -69,7 +69,7 @@ class TestSubmitCommand(unittest.TestCase):
         self.assertIn(b"submission succeeded", output)
 
     def test_submit_invalid_json(self) -> None:
-        """Test dpdisp submit with invalid JSON (missing required field)."""
+        """Test dpdisp submit with invalid JSON (missing required fields)."""
         invalid_json_file = os.path.join(self.tmpdir, "invalid.json")
         invalid_dict = {
             "work_base": "test_work/",
@@ -80,7 +80,7 @@ class TestSubmitCommand(unittest.TestCase):
             },
             "resources": {
                 "number_node": 1,
-                # missing group_size which is required
+                # missing required resource fields (group_size, etc.)
             },
             "task_list": [
                 {
@@ -93,7 +93,7 @@ class TestSubmitCommand(unittest.TestCase):
             json.dump(invalid_dict, f)
 
         with self.assertRaises(sp.CalledProcessError):
-            sp.check_output(
+            sp.check_output(  # noqa: S603, S607
                 ["dpdisp", "submit", "--dry-run", invalid_json_file],
                 cwd=self.tmpdir,
                 stderr=sp.STDOUT,
@@ -101,7 +101,7 @@ class TestSubmitCommand(unittest.TestCase):
 
     def test_submit_and_run(self) -> None:
         """Test dpdisp submit and run to completion."""
-        output = sp.check_output(
+        output = sp.check_output(  # noqa: S603, S607
             ["dpdisp", "submit", self.json_file],
             cwd=self.tmpdir,
             stderr=sp.STDOUT,
@@ -118,7 +118,7 @@ class TestSubmitCommand(unittest.TestCase):
 
     def test_submit_exit_on_submit(self) -> None:
         """Test dpdisp submit --exit-on-submit."""
-        output = sp.check_output(
+        output = sp.check_output(  # noqa: S603, S607
             ["dpdisp", "submit", "--exit-on-submit", self.json_file],
             cwd=self.tmpdir,
             stderr=sp.STDOUT,

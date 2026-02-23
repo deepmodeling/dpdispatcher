@@ -1,0 +1,2 @@
+[console_scripts]
+dargs = dargs.cli:main

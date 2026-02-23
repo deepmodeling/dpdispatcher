@@ -79,7 +79,7 @@ def load_submission_from_json(json_path: str) -> Submission:
     Submission
         Submission instance.
     """
-    with open(json_path) as f:
+    with open(json_path, encoding="utf-8") as f:
         submission_dict = json.load(f)
 
     # Normalize and check with arginfo
