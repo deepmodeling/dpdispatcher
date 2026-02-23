@@ -3,7 +3,7 @@ import shutil
 import time
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
@@ -257,7 +257,7 @@ class Bohrium(Machine):
 
     @staticmethod
     def map_dp_job_state(
-        status: int | JobStatus,
+        status: Union[int, JobStatus],
         exit_code: int,
         ignore_exit_code: bool = True,
     ) -> JobStatus:

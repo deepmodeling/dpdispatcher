@@ -1,7 +1,7 @@
 import os
 import shutil
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from zipfile import ZipFile
 
 from dpdispatcher.utils.utils import customized_script_header_template
@@ -236,7 +236,7 @@ class OpenAPI(Machine):
 
     @staticmethod
     def map_dp_job_state(
-        status: int | JobStatus,
+        status: Union[int, JobStatus],
         exit_code: int,
         ignore_exit_code: bool = True,
     ) -> JobStatus:
