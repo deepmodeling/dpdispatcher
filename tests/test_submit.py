@@ -8,13 +8,13 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from .context import setUpModule  # noqa: F401
+from .context import setUpModule
 
 
 class TestSubmitCommand(unittest.TestCase):
     """Test dpdisp submit command."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmpdir = tempfile.mkdtemp()
         self.json_file = os.path.join(self.tmpdir, "submission.json")
         self.work_dir = os.path.join(self.tmpdir, "test_work")
@@ -52,14 +52,14 @@ class TestSubmitCommand(unittest.TestCase):
         with open(self.json_file, "w") as f:
             json.dump(submission_dict, f)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmpdir)
 
-    def test_submit_help(self):
+    def test_submit_help(self) -> None:
         """Test dpdisp submit --help."""
         sp.check_output(["dpdisp", "submit", "-h"])
 
-    def test_submit_dry_run(self):
+    def test_submit_dry_run(self) -> None:
         """Test dpdisp submit --dry-run."""
         output = sp.check_output(
             ["dpdisp", "submit", "--dry-run", self.json_file],
@@ -68,7 +68,7 @@ class TestSubmitCommand(unittest.TestCase):
         )
         self.assertIn(b"submission succeeded", output)
 
-    def test_submit_invalid_json(self):
+    def test_submit_invalid_json(self) -> None:
         """Test dpdisp submit with invalid JSON (missing required field)."""
         invalid_json_file = os.path.join(self.tmpdir, "invalid.json")
         invalid_dict = {
@@ -99,7 +99,7 @@ class TestSubmitCommand(unittest.TestCase):
                 stderr=sp.STDOUT,
             )
 
-    def test_submit_and_run(self):
+    def test_submit_and_run(self) -> None:
         """Test dpdisp submit and run to completion."""
         output = sp.check_output(
             ["dpdisp", "submit", self.json_file],
@@ -115,3 +115,13 @@ class TestSubmitCommand(unittest.TestCase):
         with open(log_file) as f:
             content = f.read()
         self.assertIn("hello", content)
+
+    def test_submit_exit_on_submit(self) -> None:
+        """Test dpdisp submit --exit-on-submit."""
+        output = sp.check_output(
+            ["dpdisp", "submit", "--exit-on-submit", self.json_file],
+            cwd=self.tmpdir,
+            stderr=sp.STDOUT,
+        )
+        # Check that job was submitted (either succeeded or finished)
+        self.assertIn(b"was submitted", output)

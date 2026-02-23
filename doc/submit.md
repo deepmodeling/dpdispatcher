@@ -16,7 +16,9 @@ The JSON file must contain the submission configuration. An example of the JSON 
 The JSON entries for submission are defined as follows:
 
 ```{eval-rst}
-.. include:: submit.rst
+.. dargs::
+   :module: dpdispatcher.entrypoints.submit
+   :func: submission_args
 ```
 
 ## Options
