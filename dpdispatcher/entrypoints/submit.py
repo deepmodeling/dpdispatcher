@@ -101,7 +101,9 @@ def load_submission_from_json(json_path: str) -> Submission:
     )
 
 
-def submit(*, filename: str, dry_run: bool = False, exit_on_submit: bool = False) -> None:
+def submit(
+    *, filename: str, dry_run: bool = False, exit_on_submit: bool = False
+) -> None:
     """Submit a submission from a JSON file.
 
     Parameters
