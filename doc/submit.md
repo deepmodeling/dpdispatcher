@@ -9,8 +9,10 @@ dpdisp submit submission.json
 The JSON file must contain the submission configuration. An example of the JSON file is shown below.
 
 ```{literalinclude} ../examples/submit_example.json
-:language: json
-:linenos:
+---
+language: json
+linenos:
+---
 ```
 
 The JSON entries for submission are defined as follows:
