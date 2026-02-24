@@ -37,14 +37,6 @@ pip install dpdispatcher[bohrium]
 
 See [Getting Started](https://dpdispatcher.readthedocs.io/en/latest/getting-started.html) for usage.
 
-### `$ref` support (secure by default)
-
-DPDispatcher supports loading external JSON/YAML snippets through `"$ref"` (provided by `dargs>=0.5.0`).
-For security reasons, this behavior is **disabled by default** and must be explicitly enabled.
-
-- CLI (`dpdisp submit` / `dpdisp run`): add `--allow-ref`
-- Python API: pass `allow_ref=True` to loaders/entrypoints
-
 ## Contributing
 
 DPDispatcher is maintained by DeepModeling's developers and welcomes other people.
