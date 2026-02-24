@@ -67,10 +67,10 @@ class TestRun(unittest.TestCase):
                 create_submission(metadata, script_hash="abc", allow_ref=False)
 
             submission = create_submission(metadata, script_hash="abc", allow_ref=True)
-            self.assertEqual(len(submission.task_list), 2)
+            self.assertEqual(len(submission.belonging_tasks), 2)
             self.assertTrue(
                 all(
                     task.command.endswith(" $REMOTE_ROOT/script_abc.py")
-                    for task in submission.task_list
+                    for task in submission.belonging_tasks
                 )
             )
