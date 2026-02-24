@@ -36,11 +36,11 @@ class TestRun(unittest.TestCase):
 
             task_ref = Path(temp_dir) / "task.json"
             task_ref.write_text(
-                '{'
+                "{"
                 '"command":"echo hello",'
                 '"task_work_path":"*",'
                 '"forward_files":[],"backward_files":[],"outlog":"log","errlog":"err"'
-                '}'
+                "}"
             )
 
             metadata = {
