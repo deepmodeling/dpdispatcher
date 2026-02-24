@@ -135,7 +135,24 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict):
+    def load_from_dict(cls, machine_dict: dict, allow_ref: bool = False) -> "Machine":
+        """Load a Machine from a dict.
+
+        Parameters
+        ----------
+        machine_dict : dict
+            Machine configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
+        # normalize/check so top-level $ref can be resolved before dispatch
+        base = cls.arginfo()
+        machine_dict = base.normalize_value(
+            machine_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(machine_dict, strict=False, allow_ref=allow_ref)
+
         batch_type = machine_dict["batch_type"]
         try:
             machine_class = cls.subclasses_dict[batch_type]
@@ -145,9 +162,7 @@ class Machine(metaclass=ABCMeta):
             )
             raise e
         # check dict
-        base = cls.arginfo()
-        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
-        base.check_value(machine_dict, strict=False)
+        # machine_dict has already been normalized/checked above
 
         context = BaseContext.load_from_dict(machine_dict)
         retry_count = machine_dict.get("retry_count", 3)
@@ -167,7 +182,9 @@ class Machine(metaclass=ABCMeta):
         machine_dict["retry_count"] = self.retry_count
         # normalize the dict
         base = self.arginfo()
-        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
+        machine_dict = base.normalize_value(
+            machine_dict, trim_pattern="_*", allow_ref=False
+        )
         return machine_dict
 
     def __eq__(self, other):

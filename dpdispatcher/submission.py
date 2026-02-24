@@ -600,24 +600,56 @@ class Task:
         return sha1(json.dumps(self.serialize()).encode("utf-8")).hexdigest()
 
     @classmethod
-    def load_from_json(cls, json_file):
+    def load_from_json(cls, json_file: str, allow_ref: bool = False) -> "Task":
+        """Load a Task from a JSON file.
+
+        Parameters
+        ----------
+        json_file : str
+            Path to task JSON file.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         with open(json_file) as f:
             task_dict = json.load(f)
-        return cls.load_from_dict(task_dict)
+        return cls.load_from_dict(task_dict, allow_ref=allow_ref)
 
     @classmethod
-    def load_from_yaml(cls, yaml_file):
+    def load_from_yaml(cls, yaml_file: str, allow_ref: bool = False) -> "Task":
+        """Load a Task from a YAML file.
+
+        Parameters
+        ----------
+        yaml_file : str
+            Path to task YAML file.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         with open(yaml_file) as f:
             task_dict = yaml.safe_load(f)
-        task = cls.load_from_dict(task_dict=task_dict)
+        task = cls.load_from_dict(task_dict=task_dict, allow_ref=allow_ref)
         return task
 
     @classmethod
-    def load_from_dict(cls, task_dict: dict) -> "Task":
+    def load_from_dict(cls, task_dict: dict, allow_ref: bool = False) -> "Task":
+        """Load a Task from a dict.
+
+        Parameters
+        ----------
+        task_dict : dict
+            Task configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         # check dict
         base = cls.arginfo()
-        task_dict = base.normalize_value(task_dict, trim_pattern="_*")
-        base.check_value(task_dict, strict=False)
+        task_dict = base.normalize_value(
+            task_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(task_dict, strict=False, allow_ref=allow_ref)
 
         task = cls.deserialize(task_dict=task_dict)
         return task
@@ -1103,11 +1135,23 @@ class Resources:
         return resources
 
     @classmethod
-    def load_from_dict(cls, resources_dict):
+    def load_from_dict(cls, resources_dict: dict, allow_ref: bool = False):
+        """Load Resources from a dict.
+
+        Parameters
+        ----------
+        resources_dict : dict
+            Resources configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         # check dict
         base = cls.arginfo(detail_kwargs="batch_type" in resources_dict)
-        resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
-        base.check_value(resources_dict, strict=False)
+        resources_dict = base.normalize_value(
+            resources_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(resources_dict, strict=False, allow_ref=allow_ref)
 
         return cls.deserialize(resources_dict=resources_dict)
 

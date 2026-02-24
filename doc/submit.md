@@ -27,3 +27,4 @@ The JSON entries for submission are defined as follows:
 
 - `--dry-run`: Only upload files without submitting.
 - `--exit-on-submit`: Exit after submitting without waiting for completion.
+- `--allow-ref`: Allow loading external JSON/YAML snippets through `$ref` (disabled by default for security).
