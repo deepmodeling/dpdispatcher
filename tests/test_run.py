@@ -3,7 +3,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -35,6 +34,15 @@ class TestRun(unittest.TestCase):
             (task_dir / "a").mkdir(exist_ok=True)
             (task_dir / "b").mkdir(exist_ok=True)
 
+            task_ref = Path(temp_dir) / "task.json"
+            task_ref.write_text(
+                '{'
+                '"command":"echo hello",'
+                '"task_work_path":"*",'
+                '"forward_files":[],"backward_files":[],"outlog":"log","errlog":"err"'
+                '}'
+            )
+
             metadata = {
                 "work_base": work_base,
                 "forward_common_files": [],
@@ -52,29 +60,17 @@ class TestRun(unittest.TestCase):
                     "queue_name": "",
                     "group_size": 1,
                 },
-                "task_list": [
-                    {
-                        "command": "echo hello",
-                        "task_work_path": "*",
-                        "forward_files": [],
-                        "backward_files": [],
-                        "outlog": "log",
-                        "errlog": "err",
-                    }
-                ],
+                "task_list": [{"$ref": str(task_ref)}],
             }
 
-            calls = []
+            with self.assertRaises(Exception):
+                create_submission(metadata, script_hash="abc", allow_ref=False)
 
-            def _record_allow_ref(task_dict, allow_ref=False):
-                calls.append(allow_ref)
-                return task_dict
-
-            with patch(
-                "dpdispatcher.run.Task.load_from_dict", side_effect=_record_allow_ref
-            ):
-                with patch("dpdispatcher.run.Submission", return_value=object()):
-                    create_submission(metadata, script_hash="abc", allow_ref=True)
-
-            self.assertTrue(calls)
-            self.assertTrue(all(calls))
+            submission = create_submission(metadata, script_hash="abc", allow_ref=True)
+            self.assertEqual(len(submission.task_list), 2)
+            self.assertTrue(
+                all(
+                    task.command.endswith(" $REMOTE_ROOT/script_abc.py")
+                    for task in submission.task_list
+                )
+            )
