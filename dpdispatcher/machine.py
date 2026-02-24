@@ -135,9 +135,7 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     @classmethod
-    def load_from_dict(
-        cls, machine_dict: dict, allow_ref: bool = False
-    ) -> "Machine":
+    def load_from_dict(cls, machine_dict: dict, allow_ref: bool = False) -> "Machine":
         """Load a Machine from a dict.
 
         Parameters
