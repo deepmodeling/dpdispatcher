@@ -59,6 +59,15 @@ class TestSubmitCommand(unittest.TestCase):
         output = sp.check_output(["dpdisp", "submit", "-h"])  # noqa: S603, S607
         self.assertIn(b"--allow-ref", output)
 
+    def test_submit_allow_ref_flag(self) -> None:
+        """Test dpdisp submit --allow-ref."""
+        output = sp.check_output(  # noqa: S603, S607
+            ["dpdisp", "submit", "--allow-ref", "--dry-run", self.json_file],
+            cwd=self.tmpdir,
+            stderr=sp.STDOUT,
+        )
+        self.assertIn(b"submission succeeded", output)
+
     def test_submit_dry_run(self) -> None:
         """Test dpdisp submit --dry-run."""
         output = sp.check_output(  # noqa: S603, S607

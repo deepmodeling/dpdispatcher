@@ -600,16 +600,36 @@ class Task:
         return sha1(json.dumps(self.serialize()).encode("utf-8")).hexdigest()
 
     @classmethod
-    def load_from_json(cls, json_file):
+    def load_from_json(cls, json_file, allow_ref: bool = False):
+        """Load a Task from a JSON file.
+
+        Parameters
+        ----------
+        json_file : str
+            Path to task JSON file.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         with open(json_file) as f:
             task_dict = json.load(f)
-        return cls.load_from_dict(task_dict)
+        return cls.load_from_dict(task_dict, allow_ref=allow_ref)
 
     @classmethod
-    def load_from_yaml(cls, yaml_file):
+    def load_from_yaml(cls, yaml_file, allow_ref: bool = False):
+        """Load a Task from a YAML file.
+
+        Parameters
+        ----------
+        yaml_file : str
+            Path to task YAML file.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         with open(yaml_file) as f:
             task_dict = yaml.safe_load(f)
-        task = cls.load_from_dict(task_dict=task_dict)
+        task = cls.load_from_dict(task_dict=task_dict, allow_ref=allow_ref)
         return task
 
     @classmethod
