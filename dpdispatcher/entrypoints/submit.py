@@ -10,7 +10,7 @@ from dargs import Argument
 
 from dpdispatcher.arginfo import machine_dargs, resources_dargs, task_dargs
 from dpdispatcher.machine import Machine
-
+from dpdispatcher.submission import Resources, Submission, Task
 _CWD_LOCK = Lock()
 
 
