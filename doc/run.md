@@ -10,8 +10,10 @@ The script must include [inline script metadata](https://packaging.python.org/en
 An example of the script is shown below.
 
 ```{literalinclude} ../examples/dpdisp_run.py
-:language: py
-:linenos:
+---
+language: py
+linenos:
+---
 ```
 
 The PEP 723 metadata entries for `tool.dpdispatcher` are defined as follows:

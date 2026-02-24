@@ -99,8 +99,13 @@ and `task.json` is
 {
   "command": "lmp -i input.lammps",
   "task_work_path": "bct-0/",
-  "forward_files": ["conf.lmp", "input.lammps"],
-  "backward_files": ["log.lammps"],
+  "forward_files": [
+    "conf.lmp",
+    "input.lammps"
+  ],
+  "backward_files": [
+    "log.lammps"
+  ],
   "outlog": "log",
   "errlog": "err"
 }
