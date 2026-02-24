@@ -2,13 +2,27 @@
 
 import json
 import os
-from typing import List
+from contextlib import contextmanager
+from threading import Lock
+from typing import Iterator, List
 
 from dargs import Argument
 
 from dpdispatcher.arginfo import machine_dargs, resources_dargs, task_dargs
 from dpdispatcher.machine import Machine
-from dpdispatcher.submission import Resources, Submission, Task
+_CWD_LOCK = Lock()
+
+
+@contextmanager
+def _temporary_chdir(path: str) -> Iterator[None]:
+    """Temporarily switch CWD in a thread-safe scope for dargs `$ref` resolution."""
+    with _CWD_LOCK:
+        cwd = os.getcwd()
+        try:
+            os.chdir(path)
+            yield
+        finally:
+            os.chdir(cwd)
 
 
 def submission_args() -> Argument:
@@ -85,10 +99,7 @@ def load_submission_from_json(json_path: str, allow_ref: bool = False) -> Submis
     """
     json_abspath = os.path.abspath(json_path)
     json_dir = os.path.dirname(json_abspath)
-    cwd = os.getcwd()
-    try:
-        # Resolve relative `$ref` paths against the submission file directory.
-        os.chdir(json_dir)
+    with _temporary_chdir(json_dir):
         with open(json_abspath, encoding="utf-8") as f:
             submission_dict = json.load(f)
 
@@ -98,8 +109,6 @@ def load_submission_from_json(json_path: str, allow_ref: bool = False) -> Submis
             submission_dict, trim_pattern="_*", allow_ref=allow_ref
         )
         base.check_value(submission_dict, strict=False, allow_ref=allow_ref)
-    finally:
-        os.chdir(cwd)
 
     # Create Task list
     task_list = [

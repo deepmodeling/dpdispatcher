@@ -600,7 +600,9 @@ class Task:
         return sha1(json.dumps(self.serialize()).encode("utf-8")).hexdigest()
 
     @classmethod
-    def load_from_json(cls, json_file, allow_ref: bool = False):
+    def load_from_json(
+        cls, json_file: str, allow_ref: bool = False
+    ) -> "Task":
         """Load a Task from a JSON file.
 
         Parameters
@@ -616,7 +618,9 @@ class Task:
         return cls.load_from_dict(task_dict, allow_ref=allow_ref)
 
     @classmethod
-    def load_from_yaml(cls, yaml_file, allow_ref: bool = False):
+    def load_from_yaml(
+        cls, yaml_file: str, allow_ref: bool = False
+    ) -> "Task":
         """Load a Task from a YAML file.
 
         Parameters

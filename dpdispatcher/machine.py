@@ -135,7 +135,9 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict: dict, allow_ref: bool = False):
+    def load_from_dict(
+        cls, machine_dict: dict, allow_ref: bool = False
+    ) -> "Machine":
         """Load a Machine from a dict.
 
         Parameters
@@ -146,13 +148,6 @@ class Machine(metaclass=ABCMeta):
             Whether to allow loading external JSON/YAML snippets via ``$ref``.
             Disabled by default for security.
         """
-        # Keep historical KeyError behavior for missing required keys,
-        # while allowing top-level $ref indirection when explicitly enabled.
-        if not (allow_ref and "$ref" in machine_dict):
-            for required_key in ("batch_type", "context_type"):
-                if required_key not in machine_dict:
-                    raise KeyError(required_key)
-
         # normalize/check so top-level $ref can be resolved before dispatch
         base = cls.arginfo()
         machine_dict = base.normalize_value(
