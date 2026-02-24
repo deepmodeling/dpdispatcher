@@ -23,13 +23,13 @@ class TestAllowRef(unittest.TestCase):
             )
             submission = tmp / "submission.json"
             submission.write_text(
-                '{'
+                "{"
                 '"work_base":"work/",'
                 '"machine":{"$ref":"machine.json"},'
                 '"resources":{"number_node":1,"cpu_per_node":1,"gpu_per_node":0,"queue_name":"","group_size":1},'
                 '"forward_common_files":[],"backward_common_files":[],'
                 '"task_list":[{"command":"echo hello","task_work_path":"task1/","forward_files":[],"backward_files":[],"outlog":"log","errlog":"err"}]'
-                '}'
+                "}"
             )
 
             with self.assertRaises(Exception):
