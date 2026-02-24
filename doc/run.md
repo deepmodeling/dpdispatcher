@@ -22,7 +22,7 @@ The PEP 723 metadata entries for `tool.dpdispatcher` are defined as follows:
 .. include:: pep723.rst
 ```
 
-## `$ref` support (secure by default)
+## `$ref` support secure by default
 
 `dpdisp run` supports loading external JSON/YAML snippets via `$ref` in `tool.dpdispatcher` metadata.
 For security reasons, this feature is disabled by default.

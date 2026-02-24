@@ -146,7 +146,14 @@ class Machine(metaclass=ABCMeta):
             Whether to allow loading external JSON/YAML snippets via ``$ref``.
             Disabled by default for security.
         """
-        # normalize/check first so top-level $ref can be resolved before dispatch
+        # Keep historical KeyError behavior for missing required keys,
+        # while allowing top-level $ref indirection when explicitly enabled.
+        if not (allow_ref and "$ref" in machine_dict):
+            for required_key in ("batch_type", "context_type"):
+                if required_key not in machine_dict:
+                    raise KeyError(required_key)
+
+        # normalize/check so top-level $ref can be resolved before dispatch
         base = cls.arginfo()
         machine_dict = base.normalize_value(
             machine_dict, trim_pattern="_*", allow_ref=allow_ref

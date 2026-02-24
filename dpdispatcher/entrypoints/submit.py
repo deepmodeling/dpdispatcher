@@ -1,6 +1,7 @@
 """Submit a submission from JSON file."""
 
 import json
+import os
 from typing import List
 
 from dargs import Argument
@@ -82,15 +83,23 @@ def load_submission_from_json(json_path: str, allow_ref: bool = False) -> Submis
     Submission
         Submission instance.
     """
-    with open(json_path, encoding="utf-8") as f:
-        submission_dict = json.load(f)
+    json_abspath = os.path.abspath(json_path)
+    json_dir = os.path.dirname(json_abspath)
+    cwd = os.getcwd()
+    try:
+        # Resolve relative `$ref` paths against the submission file directory.
+        os.chdir(json_dir)
+        with open(json_abspath, encoding="utf-8") as f:
+            submission_dict = json.load(f)
 
-    # Normalize and check with arginfo
-    base = submission_args()
-    submission_dict = base.normalize_value(
-        submission_dict, trim_pattern="_*", allow_ref=allow_ref
-    )
-    base.check_value(submission_dict, strict=False, allow_ref=allow_ref)
+        # Normalize and check with arginfo
+        base = submission_args()
+        submission_dict = base.normalize_value(
+            submission_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(submission_dict, strict=False, allow_ref=allow_ref)
+    finally:
+        os.chdir(cwd)
 
     # Create Task list
     task_list = [
