@@ -66,9 +66,7 @@ def submission_args() -> Argument:
     )
 
 
-def load_submission_from_json(
-    json_path: str, allow_ref: bool = False
-) -> Submission:
+def load_submission_from_json(json_path: str, allow_ref: bool = False) -> Submission:
     """Load a Submission from a JSON file.
 
     Parameters
@@ -102,9 +100,7 @@ def load_submission_from_json(
         work_base=submission_dict["work_base"],
         forward_common_files=submission_dict["forward_common_files"],
         backward_common_files=submission_dict["backward_common_files"],
-        machine=Machine.load_from_dict(
-            submission_dict["machine"], allow_ref=allow_ref
-        ),
+        machine=Machine.load_from_dict(submission_dict["machine"], allow_ref=allow_ref),
         resources=Resources.load_from_dict(
             submission_dict["resources"], allow_ref=allow_ref
         ),

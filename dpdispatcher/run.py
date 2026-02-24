@@ -106,9 +106,7 @@ def pep723_args() -> Argument:
     )
 
 
-def create_submission(
-    metadata: dict, hash: str, allow_ref: bool = False
-) -> Submission:
+def create_submission(metadata: dict, hash: str, allow_ref: bool = False) -> Submission:
     """Create a Submission instance from a PEP 723 metadata.
 
     Parameters
@@ -124,9 +122,7 @@ def create_submission(
         Submission instance.
     """
     base = pep723_args()
-    metadata = base.normalize_value(
-        metadata, trim_pattern="_*", allow_ref=allow_ref
-    )
+    metadata = base.normalize_value(metadata, trim_pattern="_*", allow_ref=allow_ref)
     base.check_value(metadata, strict=False, allow_ref=allow_ref)
 
     tasks = []
