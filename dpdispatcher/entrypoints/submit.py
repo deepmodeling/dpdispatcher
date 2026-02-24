@@ -66,7 +66,9 @@ def submission_args() -> Argument:
     )
 
 
-def load_submission_from_json(json_path: str) -> Submission:
+def load_submission_from_json(
+    json_path: str, allow_ref: bool = False
+) -> Submission:
     """Load a Submission from a JSON file.
 
     Parameters
@@ -84,25 +86,38 @@ def load_submission_from_json(json_path: str) -> Submission:
 
     # Normalize and check with arginfo
     base = submission_args()
-    submission_dict = base.normalize_value(submission_dict, trim_pattern="_*")
-    base.check_value(submission_dict, strict=False)
+    submission_dict = base.normalize_value(
+        submission_dict, trim_pattern="_*", allow_ref=allow_ref
+    )
+    base.check_value(submission_dict, strict=False, allow_ref=allow_ref)
 
     # Create Task list
-    task_list = [Task.load_from_dict(task) for task in submission_dict["task_list"]]
+    task_list = [
+        Task.load_from_dict(task, allow_ref=allow_ref)
+        for task in submission_dict["task_list"]
+    ]
 
     # Create Submission
     return Submission(
         work_base=submission_dict["work_base"],
         forward_common_files=submission_dict["forward_common_files"],
         backward_common_files=submission_dict["backward_common_files"],
-        machine=Machine.load_from_dict(submission_dict["machine"]),
-        resources=Resources.load_from_dict(submission_dict["resources"]),
+        machine=Machine.load_from_dict(
+            submission_dict["machine"], allow_ref=allow_ref
+        ),
+        resources=Resources.load_from_dict(
+            submission_dict["resources"], allow_ref=allow_ref
+        ),
         task_list=task_list,
     )
 
 
 def submit(
-    *, filename: str, dry_run: bool = False, exit_on_submit: bool = False
+    *,
+    filename: str,
+    dry_run: bool = False,
+    exit_on_submit: bool = False,
+    allow_ref: bool = False,
 ) -> None:
     """Submit a submission from a JSON file.
 
@@ -115,5 +130,5 @@ def submit(
     exit_on_submit : bool
         If True, exit after submitting without waiting for completion.
     """
-    submission = load_submission_from_json(filename)
+    submission = load_submission_from_json(filename, allow_ref=allow_ref)
     submission.run_submission(dry_run=dry_run, exit_on_submit=exit_on_submit)

@@ -135,7 +135,7 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict):
+    def load_from_dict(cls, machine_dict, allow_ref: bool = False):
         batch_type = machine_dict["batch_type"]
         try:
             machine_class = cls.subclasses_dict[batch_type]
@@ -146,8 +146,10 @@ class Machine(metaclass=ABCMeta):
             raise e
         # check dict
         base = cls.arginfo()
-        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
-        base.check_value(machine_dict, strict=False)
+        machine_dict = base.normalize_value(
+            machine_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(machine_dict, strict=False, allow_ref=allow_ref)
 
         context = BaseContext.load_from_dict(machine_dict)
         retry_count = machine_dict.get("retry_count", 3)
@@ -167,7 +169,9 @@ class Machine(metaclass=ABCMeta):
         machine_dict["retry_count"] = self.retry_count
         # normalize the dict
         base = self.arginfo()
-        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
+        machine_dict = base.normalize_value(
+            machine_dict, trim_pattern="_*", allow_ref=True
+        )
         return machine_dict
 
     def __eq__(self, other):

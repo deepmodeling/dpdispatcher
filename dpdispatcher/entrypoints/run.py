@@ -3,7 +3,7 @@
 from dpdispatcher.run import run_pep723
 
 
-def run(*, filename: str):
+def run(*, filename: str, allow_ref: bool = False):
     with open(filename) as f:
         script = f.read()
-    run_pep723(script)
+    run_pep723(script, allow_ref=allow_ref)

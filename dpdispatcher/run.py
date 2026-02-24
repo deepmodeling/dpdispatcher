@@ -106,7 +106,9 @@ def pep723_args() -> Argument:
     )
 
 
-def create_submission(metadata: dict, hash: str) -> Submission:
+def create_submission(
+    metadata: dict, hash: str, allow_ref: bool = False
+) -> Submission:
     """Create a Submission instance from a PEP 723 metadata.
 
     Parameters
@@ -122,8 +124,10 @@ def create_submission(metadata: dict, hash: str) -> Submission:
         Submission instance.
     """
     base = pep723_args()
-    metadata = base.normalize_value(metadata, trim_pattern="_*")
-    base.check_value(metadata, strict=False)
+    metadata = base.normalize_value(
+        metadata, trim_pattern="_*", allow_ref=allow_ref
+    )
+    base.check_value(metadata, strict=False, allow_ref=allow_ref)
 
     tasks = []
     for task in metadata["task_list"]:
@@ -135,7 +139,7 @@ def create_submission(metadata: dict, hash: str) -> Submission:
             task["task_work_path"],
         )
         if os.path.isdir(task_work_path):
-            tasks.append(Task.load_from_dict(task))
+            tasks.append(Task.load_from_dict(task, allow_ref=allow_ref))
         elif glob(task_work_path):
             for file in glob(task_work_path):
                 tasks.append(Task.load_from_dict({**task, "task_work_path": file}))
@@ -147,13 +151,13 @@ def create_submission(metadata: dict, hash: str) -> Submission:
         work_base=metadata["work_base"],
         forward_common_files=metadata["forward_common_files"],
         backward_common_files=metadata["backward_common_files"],
-        machine=Machine.load_from_dict(metadata["machine"]),
-        resources=Resources.load_from_dict(metadata["resources"]),
+        machine=Machine.load_from_dict(metadata["machine"], allow_ref=allow_ref),
+        resources=Resources.load_from_dict(metadata["resources"], allow_ref=allow_ref),
         task_list=tasks,
     )
 
 
-def run_pep723(script: str):
+def run_pep723(script: str, allow_ref: bool = False):
     """Run a PEP 723 script.
 
     Parameters
@@ -166,7 +170,7 @@ def run_pep723(script: str):
         raise ValueError("No PEP 723 metadata found.")
     dpdispatcher_metadata = metadata["tool"]["dpdispatcher"]
     script_hash = sha1(script.encode("utf-8")).hexdigest()
-    submission = create_submission(dpdispatcher_metadata, script_hash)
+    submission = create_submission(dpdispatcher_metadata, script_hash, allow_ref)
     submission.machine.context.write_file(f"script_{script_hash}.py", script)
     # write script
     submission.run_submission()

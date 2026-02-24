@@ -603,21 +603,23 @@ class Task:
     def load_from_json(cls, json_file):
         with open(json_file) as f:
             task_dict = json.load(f)
-        return cls.load_from_dict(task_dict)
+        return cls.load_from_dict(task_dict, allow_ref=False)
 
     @classmethod
     def load_from_yaml(cls, yaml_file):
         with open(yaml_file) as f:
             task_dict = yaml.safe_load(f)
-        task = cls.load_from_dict(task_dict=task_dict)
+        task = cls.load_from_dict(task_dict=task_dict, allow_ref=False)
         return task
 
     @classmethod
-    def load_from_dict(cls, task_dict: dict) -> "Task":
+    def load_from_dict(cls, task_dict: dict, allow_ref: bool = False) -> "Task":
         # check dict
         base = cls.arginfo()
-        task_dict = base.normalize_value(task_dict, trim_pattern="_*")
-        base.check_value(task_dict, strict=False)
+        task_dict = base.normalize_value(
+            task_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(task_dict, strict=False, allow_ref=allow_ref)
 
         task = cls.deserialize(task_dict=task_dict)
         return task
@@ -1103,11 +1105,13 @@ class Resources:
         return resources
 
     @classmethod
-    def load_from_dict(cls, resources_dict):
+    def load_from_dict(cls, resources_dict, allow_ref: bool = False):
         # check dict
         base = cls.arginfo(detail_kwargs="batch_type" in resources_dict)
-        resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
-        base.check_value(resources_dict, strict=False)
+        resources_dict = base.normalize_value(
+            resources_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(resources_dict, strict=False, allow_ref=allow_ref)
 
         return cls.deserialize(resources_dict=resources_dict)
 

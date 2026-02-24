@@ -95,6 +95,11 @@ def main_parser() -> argparse.ArgumentParser:
         type=str,
         help="Python script to run. PEP 723 metadata should be contained in this file.",
     )
+    parser_run.add_argument(
+        "--allow-ref",
+        action="store_true",
+        help="Allow loading external JSON/YAML snippets through `$ref`. Disabled by default for security.",
+    )
     ##########################################
     # submit
     parser_submit = subparsers.add_parser(
@@ -116,6 +121,11 @@ def main_parser() -> argparse.ArgumentParser:
         "--exit-on-submit",
         action="store_true",
         help="Exit after submitting without waiting for completion.",
+    )
+    parser_submit.add_argument(
+        "--allow-ref",
+        action="store_true",
+        help="Allow loading external JSON/YAML snippets through `$ref`. Disabled by default for security.",
     )
     return parser
 
@@ -154,12 +164,13 @@ def main():
             bind_all=args.bind_all,
         )
     elif args.command == "run":
-        run(filename=args.filename)
+        run(filename=args.filename, allow_ref=args.allow_ref)
     elif args.command == "submit":
         submit(
             filename=args.filename,
             dry_run=args.dry_run,
             exit_on_submit=args.exit_on_submit,
+            allow_ref=args.allow_ref,
         )
     elif args.command is None:
         pass
