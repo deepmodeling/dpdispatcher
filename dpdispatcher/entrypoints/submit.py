@@ -73,6 +73,9 @@ def load_submission_from_json(json_path: str, allow_ref: bool = False) -> Submis
     ----------
     json_path : str
         Path to the JSON file.
+    allow_ref : bool, default=False
+        Whether to allow loading external JSON/YAML snippets via ``$ref``.
+        Disabled by default for security.
 
     Returns
     -------
@@ -125,6 +128,9 @@ def submit(
         If True, only upload files without submitting.
     exit_on_submit : bool
         If True, exit after submitting without waiting for completion.
+    allow_ref : bool, default=False
+        Whether to allow loading external JSON/YAML snippets via ``$ref``.
+        Disabled by default for security.
     """
     submission = load_submission_from_json(filename, allow_ref=allow_ref)
     submission.run_submission(dry_run=dry_run, exit_on_submit=exit_on_submit)

@@ -115,6 +115,9 @@ def create_submission(metadata: dict, hash: str, allow_ref: bool = False) -> Sub
         PEP 723 metadata.
     hash : str
         Submission hash.
+    allow_ref : bool, default=False
+        Whether to allow loading external JSON/YAML snippets via ``$ref``.
+        Disabled by default for security.
 
     Returns
     -------
@@ -160,6 +163,9 @@ def run_pep723(script: str, allow_ref: bool = False):
     ----------
     script : str
         Script content.
+    allow_ref : bool, default=False
+        Whether to allow loading external JSON/YAML snippets via ``$ref``.
+        Disabled by default for security.
     """
     metadata = read_pep723(script)
     if metadata is None:

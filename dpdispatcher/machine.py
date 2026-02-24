@@ -136,6 +136,16 @@ class Machine(metaclass=ABCMeta):
 
     @classmethod
     def load_from_dict(cls, machine_dict, allow_ref: bool = False):
+        """Load a Machine from a dict.
+
+        Parameters
+        ----------
+        machine_dict : dict
+            Machine configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         batch_type = machine_dict["batch_type"]
         try:
             machine_class = cls.subclasses_dict[batch_type]

@@ -614,6 +614,16 @@ class Task:
 
     @classmethod
     def load_from_dict(cls, task_dict: dict, allow_ref: bool = False) -> "Task":
+        """Load a Task from a dict.
+
+        Parameters
+        ----------
+        task_dict : dict
+            Task configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         # check dict
         base = cls.arginfo()
         task_dict = base.normalize_value(
@@ -1106,6 +1116,16 @@ class Resources:
 
     @classmethod
     def load_from_dict(cls, resources_dict, allow_ref: bool = False):
+        """Load Resources from a dict.
+
+        Parameters
+        ----------
+        resources_dict : dict
+            Resources configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         # check dict
         base = cls.arginfo(detail_kwargs="batch_type" in resources_dict)
         resources_dict = base.normalize_value(
