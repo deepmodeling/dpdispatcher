@@ -603,13 +603,13 @@ class Task:
     def load_from_json(cls, json_file):
         with open(json_file) as f:
             task_dict = json.load(f)
-        return cls.load_from_dict(task_dict, allow_ref=False)
+        return cls.load_from_dict(task_dict)
 
     @classmethod
     def load_from_yaml(cls, yaml_file):
         with open(yaml_file) as f:
             task_dict = yaml.safe_load(f)
-        task = cls.load_from_dict(task_dict=task_dict, allow_ref=False)
+        task = cls.load_from_dict(task_dict=task_dict)
         return task
 
     @classmethod
@@ -1115,7 +1115,7 @@ class Resources:
         return resources
 
     @classmethod
-    def load_from_dict(cls, resources_dict, allow_ref: bool = False):
+    def load_from_dict(cls, resources_dict: dict, allow_ref: bool = False):
         """Load Resources from a dict.
 
         Parameters

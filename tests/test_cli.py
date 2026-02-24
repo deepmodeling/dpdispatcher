@@ -11,4 +11,6 @@ class TestCLI(unittest.TestCase):
             "run",
             "submit",
         ):
-            sp.check_output(["dpdisp", subcommand, "-h"])
+            output = sp.check_output(["dpdisp", subcommand, "-h"])
+            if subcommand in ("run", "submit"):
+                self.assertIn(b"--allow-ref", output)

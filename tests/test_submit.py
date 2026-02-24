@@ -56,7 +56,8 @@ class TestSubmitCommand(unittest.TestCase):
 
     def test_submit_help(self) -> None:
         """Test dpdisp submit --help."""
-        sp.check_output(["dpdisp", "submit", "-h"])  # noqa: S603, S607
+        output = sp.check_output(["dpdisp", "submit", "-h"])  # noqa: S603, S607
+        self.assertIn(b"--allow-ref", output)
 
     def test_submit_dry_run(self) -> None:
         """Test dpdisp submit --dry-run."""

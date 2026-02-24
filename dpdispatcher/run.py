@@ -106,14 +106,16 @@ def pep723_args() -> Argument:
     )
 
 
-def create_submission(metadata: dict, hash: str, allow_ref: bool = False) -> Submission:
+def create_submission(
+    metadata: dict, script_hash: str, allow_ref: bool = False
+) -> Submission:
     """Create a Submission instance from a PEP 723 metadata.
 
     Parameters
     ----------
     metadata : dict
         PEP 723 metadata.
-    hash : str
+    script_hash : str
         Submission hash.
     allow_ref : bool, default=False
         Whether to allow loading external JSON/YAML snippets via ``$ref``.
@@ -131,7 +133,7 @@ def create_submission(metadata: dict, hash: str, allow_ref: bool = False) -> Sub
     tasks = []
     for task in metadata["task_list"]:
         task = task.copy()
-        task["command"] += f" $REMOTE_ROOT/script_{hash}.py"
+        task["command"] += f" $REMOTE_ROOT/script_{script_hash}.py"
         task_work_path = os.path.join(
             metadata["machine"]["local_root"],
             metadata["work_base"],
@@ -141,7 +143,11 @@ def create_submission(metadata: dict, hash: str, allow_ref: bool = False) -> Sub
             tasks.append(Task.load_from_dict(task, allow_ref=allow_ref))
         elif glob(task_work_path):
             for file in glob(task_work_path):
-                tasks.append(Task.load_from_dict({**task, "task_work_path": file}))
+                tasks.append(
+                    Task.load_from_dict(
+                        {**task, "task_work_path": file}, allow_ref=allow_ref
+                    )
+                )
         # TODO: Add tests for scenarios where the task work path is a glob pattern
         else:
             # TODO: Add tests for scenarios where the task work path is not found

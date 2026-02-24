@@ -135,7 +135,7 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict, allow_ref: bool = False):
+    def load_from_dict(cls, machine_dict: dict, allow_ref: bool = False):
         """Load a Machine from a dict.
 
         Parameters
@@ -180,7 +180,7 @@ class Machine(metaclass=ABCMeta):
         # normalize the dict
         base = self.arginfo()
         machine_dict = base.normalize_value(
-            machine_dict, trim_pattern="_*", allow_ref=True
+            machine_dict, trim_pattern="_*", allow_ref=False
         )
         return machine_dict
 
