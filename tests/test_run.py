@@ -8,8 +8,9 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 
-from .context import run
 from dpdispatcher.run import create_submission
+
+from .context import run
 
 
 class TestRun(unittest.TestCase):
@@ -69,7 +70,9 @@ class TestRun(unittest.TestCase):
                 calls.append(allow_ref)
                 return task_dict
 
-            with patch("dpdispatcher.run.Task.load_from_dict", side_effect=_record_allow_ref):
+            with patch(
+                "dpdispatcher.run.Task.load_from_dict", side_effect=_record_allow_ref
+            ):
                 with patch("dpdispatcher.run.Submission", return_value=object()):
                     create_submission(metadata, script_hash="abc", allow_ref=True)
 
