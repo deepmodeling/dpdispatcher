@@ -4,7 +4,7 @@ description: Run DPDispatcher submission workflows in agents. Use when you need 
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: "1.2"
+  version: '1.2'
 ---
 
 # dpdisp submit workflow (agent-friendly)
@@ -65,5 +65,5 @@ Useful flags:
 If your agent framework supports sub-agents (e.g., OpenClaw `sessions_spawn`), prefer running the DPDispatcher execution as a sub-agent task. The main agent should:
 
 1. collect/confirm config from user,
-2. delegate long-running execution to a sub-agent,
-3. report progress and final results back to user.
+1. delegate long-running execution to a sub-agent,
+1. report progress and final results back to user.
