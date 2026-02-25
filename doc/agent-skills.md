@@ -22,13 +22,11 @@ An agent skill is a directory under `skills/` containing a `SKILL.md` file.
 The easiest way is to ask the agent to install skills for you.
 Users usually do not need to perform manual installation.
 
-## What the agent should do
+## If you are an agent: install skills from this repository
 
-Tell the agent to:
-
-1. clone `deepmodeling/dpdispatcher`,
-1. copy required skill directories from `skills/` into your OpenClaw workspace skills directory,
-1. refresh/restart session so skills are reloaded.
+1. Clone `deepmodeling/dpdispatcher`.
+2. Copy required skill directories from `skills/` into the target OpenClaw workspace skills directory.
+3. Refresh/restart session so skills are reloaded.
 
 ## Minimal verification
 

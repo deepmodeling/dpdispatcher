@@ -1,6 +1,6 @@
 ---
 name: dpdisp-submit
-description: Use this skill when a user asks the agent to run shell commands on local or remote HPC systems and needs the agent to prepare, submit, and monitor the workflow.
+description: Use when a user asks the agent to run shell commands on local or remote HPC systems via `dpdisp submit`.
 compatibility: Requires uv and access to the internet.
 license: LGPL-3.0-or-later
 metadata:
