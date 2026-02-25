@@ -1,61 +1,69 @@
 ---
 name: dpdisp-submit
-description: Agent workflow for DPDispatcher to generate HPC scheduler job input scripts, submit jobs to local/remote HPC systems, and monitor (poke) them until completion using `dpdisp submit` plus `dargs` validation.
+description: Use this skill when a user asks the agent to run tasks on local or remote HPC systems and needs the agent to prepare, submit, and monitor the workflow.
+compatibility: Requires uv and access to the internet.
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: '1.4'
+  version: "1.5"
 ---
 
-# dpdisp-submit (agent instructions)
+# dpdisp-submit
 
-Use this skill when the user asks the agent to run DPDispatcher submissions on local or remote HPC systems.
+## Agent responsibilities
 
-## What you must do
+1. Collect enough information from the user in plain language.
+2. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
+3. Validate `submission.json` with `dargs`.
+4. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
+5. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
 
-1. Confirm required configuration with the user before execution.
-1. Validate the provided `submission.json` against the DPDispatcher submission schema.
-1. Submit with `dpdisp submit`.
-1. For long-running work, use a sub-agent/worker when your framework supports it and report progress.
+## Ask the user in plain language
 
-## Required configuration to confirm with the user
+If information is missing, ask questions users can understand, for example:
 
-If any item below is missing or ambiguous, ask before submitting.
+- Where should this run: your local machine or a remote HPC cluster?
+- What command should be executed?
+- How many CPUs/GPUs/nodes do you need?
+- Which queue/partition/account should we use (if applicable)?
+- Which input files should be uploaded, and which output files should be collected?
 
-- `machine`: `context_type`, `batch_type`, `local_root`, and remote fields when needed.
-- `resources`: queue/partition/account, node/CPU/GPU sizing, scheduler kwargs.
-- `task_list`: commands, `task_work_path`, forward/backward file lists.
+## Generate `submission.json` from user input
 
-## Command sequence
+Translate user answers into:
+
+- `machine` (where/how to run),
+- `resources` (compute resources),
+- `task_list` (what commands/files to run).
+
+## Required commands
 
 ```bash
-# 1) sanity
-uvx --from dpdispatcher dpdisp --help
-uvx --from dpdispatcher dpdisp submit --help
-uvx --with dpdispatcher dargs --help
-
-# 2) print full submission schema
+# Print full submission schema
 uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args
 
-# 3) validate user-provided input (must exist)
+# Validate generated submission.json
 uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json
 
-# 4) submit
+# Submit
 uvx --from dpdispatcher dpdisp submit submission.json
 ```
 
-Useful flags for submit:
+Useful flags:
 
 - `--dry-run`
 - `--exit-on-submit`
 - `--allow-ref`
 
-## Example run (self-contained)
+## Example (agent-generated input)
 
-This example does not assume files outside the current workspace.
+User request (natural language):
 
-```bash
-cat > submission.json <<'JSON'
+- "Please run `echo hello world` on my local machine."
+
+Agent-generated `submission.json`:
+
+```json
 {
   "work_base": "0_md/",
   "machine": {
@@ -74,7 +82,7 @@ cat > submission.json <<'JSON'
   "backward_common_files": [],
   "task_list": [
     {
-      "command": "echo hello",
+      "command": "echo hello world",
       "task_work_path": "task1/",
       "forward_files": [],
       "backward_files": [],
@@ -83,16 +91,17 @@ cat > submission.json <<'JSON'
     }
   ]
 }
-JSON
+```
 
+Then run:
+
+```bash
 uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json
 uvx --from dpdispatcher dpdisp submit submission.json
 ```
 
-## Agent output expectations
+## What to report back to the user
 
-Report back to user with:
-
-- confirmed config summary,
-- submission status,
-- output/log locations.
+- A short summary of what the user asked for (where to run, command, resources).
+- Submission status (started/running/finished/failed).
+- Output locations (for example `task1/log` and `task1/err`).

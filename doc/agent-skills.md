@@ -1,64 +1,58 @@
 # Agent Skills Installation and Usage
 
 This page is for users and agent maintainers.
-It describes how to install and use agent skills in this repository.
+It explains how to install skills from this repository.
+
+For a quick introduction to skills, see:
+
+- https://agentskills.io/what-are-skills
 
 ## What is an agent skill?
 
-An agent skill is a directory under `skills/` that contains a `SKILL.md` file.
-The `SKILL.md` file contains machine-readable metadata and instructions for agents.
+An agent skill is a directory under `skills/` containing a `SKILL.md` file.
+`SKILL.md` provides machine-readable metadata and instructions for agents.
 
 ## Repository skills
 
-- `dpdisp-submit`: help agents generate HPC scheduler job input scripts,
-  submit jobs to local/remote HPC systems, and monitor them until completion.
+- `dpdisp-submit`: enables agents to generate HPC scheduler systems jobs input scripts,
+  submit them to local/remote HPC systems, and monitor until completion.
 
-## Installation options
+## Recommended way: ask your agent to install skills
 
-### Option A: workspace skills (recommended for OpenClaw)
+The easiest way is to ask the agent to install skills for you.
+Users usually do not need to perform manual installation.
 
-Put the skill folder into your OpenClaw workspace:
+Tell the agent to:
 
-- `<workspace>/skills/<skill-name>/SKILL.md`
+1. clone `deepmodeling/dpdispatcher`,
+2. copy required skill directories from `skills/` into your OpenClaw workspace skills directory,
+3. refresh/restart session so skills are reloaded.
 
-Example:
+## Manual installation (if needed)
 
-- `~/.openclaw/workspace/skills/dpdisp-submit/SKILL.md`
+OpenClaw skill locations:
 
-Then start a new session (or restart gateway) so skills are re-indexed.
+- per-workspace: `<workspace>/skills/<skill-name>/SKILL.md`
+- shared (multi-agent): `~/.openclaw/skills/<skill-name>/SKILL.md`
 
-### Option B: shared managed skills
-
-For multi-agent/shared environments, place skills under:
-
-- `~/.openclaw/skills/<skill-name>/SKILL.md`
-
-## Install directly from this repository (no copy-paste)
-
-If your workspace is this repository root:
+If your current directory is this repository root:
 
 ```bash
 mkdir -p ~/.openclaw/workspace/skills
-ln -sfn "$(pwd)/skills/dpdisp-submit" ~/.openclaw/workspace/skills/dpdisp-submit
+cp -r ./skills/dpdisp-submit ~/.openclaw/workspace/skills/
 ```
 
-This keeps the skill linked to repository updates.
-
-## Agent-side installation instructions
-
-If an agent is asked to install skills, it should:
-
-1. create `<workspace>/skills/<skill-name>/`,
-1. write or link `SKILL.md` from this repository,
-1. refresh/restart session so skills are reloaded.
+Then start a new session (or restart gateway) so skills are re-indexed.
 
 ## Minimal verification
 
-After installation, ask the agent to run:
+Ask the agent to run this task:
+
+- "run `echo hello world` on the local machine using dpdisp-submit"
+
+Optional command-level checks:
 
 ```bash
 uvx --from dpdispatcher dpdisp --help
 uvx --with dpdispatcher dargs --help
 ```
-
-If both commands work, runtime dependencies are available.
