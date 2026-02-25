@@ -4,7 +4,7 @@ description: Submit DPDispatcher jobs from a unified submission schema. Use when
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: "1.1"
+  version: '1.1'
 ---
 
 # dpdisp submit workflow
