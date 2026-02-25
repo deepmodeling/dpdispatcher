@@ -34,6 +34,7 @@ Please cite the following paper if you use this project in your work:
    env
    run
    submit
+   agent-skill-submit
    cli
    api/api
 

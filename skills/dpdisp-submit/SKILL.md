@@ -1,62 +1,42 @@
 ---
 name: dpdisp-submit
-description: Submit DPDispatcher jobs from JSON safely using uvx. Use when preparing machine/resources/task configs, checking argument docs with dargs, and running `dpdisp submit` in automation/agent workflows.
+description: Submit DPDispatcher jobs from a unified submission schema. Use when you need to print the full submission argument docs, validate submission JSON, and run `dpdisp submit` in agent workflows.
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: '1.0'
+  version: "1.1"
 ---
 
 # dpdisp submit workflow
 
-Use this skill when you want a repeatable, agent-friendly job submission flow for DPDispatcher.
+Use this skill for a compact, agent-friendly `submission.json` flow.
 
-## 1) Quick command sanity checks
+## 1) Quick checks
 
 ```bash
-uvx --from=dpdispatcher dpdisp --help
-uvx --from=dpdispatcher dpdisp submit --help
-uvx --from=dargs dargs --help
+uvx --from dpdispatcher dpdisp --help
+uvx --from dpdispatcher dpdisp submit --help
+uvx --from dpdispatcher dargs --help
 ```
 
-## 2) Pre-submit checklist
+## 2) Print full submission argument docs
 
-Before submitting `submission.json`, confirm these three parts are correct:
-
-1. **machine**
-   - `batch_type`, `context_type`, local/remote paths, remote profile.
-   - Start from `examples/machine/*.json` when possible.
-1. **resources**
-   - Queue/partition, node/cpu/gpu settings, scheduler kwargs, env/source settings.
-   - Start from `examples/resources/*.json`.
-1. **task** (inside `job_list`)
-   - `command`, `task_work_path`, `forward_files`, `backward_files`, logging behavior.
-   - Start from `examples/task/*.json`.
-
-## 3) Read full parameter docs with dargs
-
-`dargs` is a separate package. To inspect DPDispatcher arg schemas, include DPDispatcher in the same uvx environment with `--with=dpdispatcher`:
+Use the submission-level arg function to print the entire schema (including nested `machine`, `resources`, and `task_list`):
 
 ```bash
-uvx --from=dargs --with=dpdispatcher dargs doc dpdispatcher.arginfo.machine_dargs
-uvx --from=dargs --with=dpdispatcher dargs doc dpdispatcher.arginfo.resources_dargs
-uvx --from=dargs --with=dpdispatcher dargs doc dpdispatcher.arginfo.task_dargs
+uvx --from dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args
 ```
 
-> Tip: these are the practical “full parameter docs” commands for machine/resources/task.
-
-## 4) Optional strict JSON checks
+## 3) Validate a submission JSON with the same schema
 
 ```bash
-uvx --from=dargs --with=dpdispatcher dargs check -f dpdispatcher.arginfo.machine_dargs examples/machine/lazy_local.json
-uvx --from=dargs --with=dpdispatcher dargs check -f dpdispatcher.arginfo.resources_dargs examples/resources/expanse_cpu.json
-uvx --from=dargs --with=dpdispatcher dargs check -f dpdispatcher.arginfo.task_dargs examples/task/g16.json
+uvx --from dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args examples/submit_example.json
 ```
 
-## 5) Submit
+## 4) Submit
 
 ```bash
-uvx --from=dpdispatcher dpdisp submit submission.json
+uvx --from dpdispatcher dpdisp submit submission.json
 ```
 
 Useful flags:
