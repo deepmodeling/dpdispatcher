@@ -13,10 +13,10 @@ metadata:
 ## Agent responsibilities
 
 1. Collect enough information from the user in plain language.
-2. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
-3. Validate `submission.json` before submission.
-4. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
-5. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
+1. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
+1. Validate `submission.json` before submission.
+1. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
+1. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
 
 ## Ask the user in plain language
 
