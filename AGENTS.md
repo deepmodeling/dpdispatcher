@@ -66,6 +66,66 @@ Always reference these instructions first and fallback to search or bash command
   python examples/dpdisp_run.py
   ```
 
+### Agent skills: submission checklist and workflow
+
+When using agent-driven workflows, prefer `dpdisp submit` with explicit JSON inputs.
+
+#### Pre-submit checklist (machine/resources/task)
+
+Before creating or submitting `submission.json`, verify that each JSON block can be parsed and validated:
+
+1. **Machine JSON (`machine`)**
+   - Confirm `batch_type`, `context_type`, and path fields are valid for your environment.
+   - Start from `examples/machine/*.json` when possible.
+2. **Resources JSON (`resources`)**
+   - Confirm scheduler-related options (nodes/CPU/GPU/queue/custom flags) match your target system.
+   - Start from `examples/resources/*.json`.
+3. **Task JSON (`task` items under `job_list`)**
+   - Confirm command, work path, forward/backward files, and log behavior.
+   - Start from `examples/task/*.json`.
+
+Optional strict validation examples (requires a JSON file that matches each arg schema):
+
+```bash
+uvx --from=dargs --with=dpdispatcher dargs check -f dpdispatcher.arginfo.machine_dargs examples/machine/lazy_local.json
+uvx --from=dargs --with=dpdispatcher dargs check -f dpdispatcher.arginfo.resources_dargs examples/resources/expanse_cpu.json
+uvx --from=dargs --with=dpdispatcher dargs check -f dpdispatcher.arginfo.task_dargs examples/task/g16.json
+```
+
+#### Parameter documentation commands (validated)
+
+Use `dargs` to inspect the argument schemas before editing JSON:
+
+```bash
+uvx --from=dargs dargs --help
+uvx --from=dargs --with=dpdispatcher dargs doc dpdispatcher.arginfo.machine_dargs
+uvx --from=dargs --with=dpdispatcher dargs doc dpdispatcher.arginfo.resources_dargs
+uvx --from=dargs --with=dpdispatcher dargs doc dpdispatcher.arginfo.task_dargs
+```
+
+> Why `--with=dpdispatcher`? `dargs` is a separate dependency; adding `--with=dpdispatcher` ensures `dpdispatcher.arginfo.*` is importable in the same ephemeral environment.
+
+#### Submission flow (agent-friendly)
+
+1. Inspect CLI and submit options:
+
+   ```bash
+   uvx --from=dpdispatcher dpdisp --help
+   uvx --from=dpdispatcher dpdisp submit --help
+   ```
+
+2. Prepare `submission.json` with `machine`, `resources`, and `job_list` (`task` entries).
+3. Submit with:
+
+   ```bash
+   uvx --from=dpdispatcher dpdisp submit submission.json
+   ```
+
+4. Use optional flags when needed:
+   - `--dry-run`: upload only, do not submit.
+   - `--exit-on-submit`: return immediately after submit.
+   - `--allow-ref`: allow loading external JSON/YAML snippets via `$ref`.
+
 ## Validation
 
 - **ALWAYS run the test suite after making code changes.** Tests execute quickly (~25 seconds) and should never be cancelled.
