@@ -4,7 +4,7 @@ description: Agent workflow for submitting DPDispatcher jobs on local or remote 
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: "1.3"
+  version: '1.3'
 ---
 
 # dpdisp submit (for agents)
@@ -14,9 +14,9 @@ Use this skill when an agent needs to execute DPDispatcher tasks (local or remot
 ## Agent responsibilities
 
 1. Confirm required config with the user before execution.
-2. Validate `submission.json` against submission schema.
-3. Submit with `dpdisp submit`.
-4. For long runs, prefer a sub-agent/worker and report progress + final status.
+1. Validate `submission.json` against submission schema.
+1. Submit with `dpdisp submit`.
+1. For long runs, prefer a sub-agent/worker and report progress + final status.
 
 ## Required config checklist (ask user if missing)
 
