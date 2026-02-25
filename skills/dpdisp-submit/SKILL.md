@@ -5,7 +5,7 @@ compatibility: Requires uv and access to the internet.
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: "1.0"
+  version: '1.0'
 ---
 
 # dpdisp-submit
@@ -13,10 +13,10 @@ metadata:
 ## Agent responsibilities
 
 1. Collect enough information from the user in plain language.
-2. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
-3. Validate `submission.json` with `dargs`.
-4. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
-5. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
+1. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
+1. Validate `submission.json` with `dargs`.
+1. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
+1. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
 
 ## Ask the user in plain language
 
