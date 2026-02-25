@@ -1,6 +1,6 @@
 ---
 name: dpdisp-submit
-description: Use when a user asks the agent to run shell commands on local or remote HPC systems via `dpdisp submit`.
+description: Generate DPDispatcher `submission.json` from user intent, validate it, run shell commands on local/remote HPC via `uvx --from dpdispatcher dpdisp submit`, and report status/log paths.
 compatibility: Requires uv and access to the internet.
 license: LGPL-3.0-or-later
 metadata:
@@ -9,6 +9,17 @@ metadata:
 ---
 
 # dpdisp-submit
+
+Use this skill for DPDispatcher submit workflows.
+
+## Trigger hints
+
+Use this skill when the request implies any of the following:
+
+- run a shell command on local machine or HPC cluster;
+- generate/validate `submission.json`;
+- submit jobs with `dpdisp submit`;
+- monitor and report job status/log paths.
 
 ## Agent responsibilities
 
@@ -77,7 +88,7 @@ Agent-generated `submission.json`:
 
 ```json
 {
-  "work_base": "0_md/",
+  "work_base": ".",
   "machine": {
     "batch_type": "Shell",
     "local_root": "./",
