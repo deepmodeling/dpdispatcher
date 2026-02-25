@@ -1,77 +1,57 @@
-Agent skill-style workflow for `dpdisp submit`
-=============================================
+Install the `dpdisp-submit` agent skill
+=======================================
 
-This page explains how an agent (for example OpenClaw) should install/use the
-`dpdisp-submit` skill and execute DPDispatcher submission safely.
+This page is for users. It explains how to install the `dpdisp-submit` skill
+so your agent can use DPDispatcher submission workflows.
 
-Scope
------
+What this skill adds
+--------------------
 
-Use this workflow when users ask an agent to submit DPDispatcher tasks from JSON.
+After installation, the agent can:
 
-User communication before execution
------------------------------------
+- validate ``submission.json`` with ``dargs``;
+- submit jobs with ``dpdisp submit``;
+- handle local or remote DPDispatcher configurations.
 
-Before submission, the agent should explicitly confirm required configuration
-with the user. If anything is missing, ask first.
+Install for OpenClaw (recommended)
+----------------------------------
 
-Required items:
+Option A: install into workspace skills
 
-- machine/context: ``context_type``, ``batch_type``, local/remote roots,
-  connection profile;
-- resources: queue/partition/account, nodes/CPU/GPU and scheduler kwargs;
-- task command and expected runtime behavior;
-- forward/backward files and work paths.
+1. Put this folder in your OpenClaw workspace:
 
-Command checks
---------------
+   ``<workspace>/skills/dpdisp-submit/SKILL.md``
 
-.. code-block:: bash
+   Example workspace path:
 
-   uvx --from dpdispatcher dpdisp --help
-   uvx --from dpdispatcher dpdisp submit --help
-   uvx --with dpdispatcher dargs --help
+   ``~/.openclaw/workspace/skills/dpdisp-submit/SKILL.md``
 
-Generate full submission parameter docs
----------------------------------------
+2. Start a new agent session (or restart gateway) so skills are re-indexed.
 
-Use submission-level args to print the full schema
-(including nested ``machine``/``resources``/``task_list``):
+Option B: install with ClawHub (when published)
 
 .. code-block:: bash
 
-   uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args
+   clawhub install dpdisp-submit
 
-Validate submission JSON
-------------------------
+By default, ClawHub installs to ``./skills`` (or your configured workspace),
+which OpenClaw loads as ``<workspace>/skills``.
 
-.. code-block:: bash
+Agent-side install instruction
+------------------------------
 
-   uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json
+If you want another agent to install it for you, ask it to do exactly this:
 
-Example file:
+1. create ``<workspace>/skills/dpdisp-submit/``;
+2. write ``SKILL.md`` into that folder;
+3. refresh/restart session so OpenClaw reloads skills.
 
-.. code-block:: bash
+Minimal verification
+--------------------
 
-   uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args examples/submit_example.json
+In a new session, ask the agent to use ``dpdisp-submit`` and run:
 
-Submit
-------
+- ``uvx --from dpdispatcher dpdisp --help``
+- ``uvx --with dpdispatcher dargs --help``
 
-.. code-block:: bash
-
-   uvx --from dpdispatcher dpdisp submit submission.json
-
-Useful flags
-------------
-
-- ``--dry-run``: upload/prepare only, do not submit.
-- ``--exit-on-submit``: return immediately after submit.
-- ``--allow-ref``: allow loading external JSON/YAML snippets via ``$ref``.
-
-Sub-agent recommendation for long runs
---------------------------------------
-
-For long-running submissions, the main agent should delegate execution to a
-sub-agent when available (for OpenClaw, typically via ``sessions_spawn``),
-then report progress and final status back to the user.
+If both run, the skill and runtime dependencies are ready.
