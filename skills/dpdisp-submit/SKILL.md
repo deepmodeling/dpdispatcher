@@ -13,10 +13,10 @@ metadata:
 ## Agent responsibilities
 
 1. Collect enough information from the user in plain language.
-1. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
-1. Validate `submission.json` with `dargs`.
-1. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
-1. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
+2. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
+3. Validate `submission.json` before submission.
+4. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
+5. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
 
 ## Ask the user in plain language
 
@@ -27,6 +27,15 @@ If information is missing, ask questions users can understand, for example:
 - How many CPUs/GPUs/nodes do you need?
 - Which queue/partition/account should we use (if applicable)?
 - Which input files should be uploaded, and which output files should be collected?
+
+## One-shot success defaults (recommended)
+
+When the user asks for a simple local shell task, prefer these defaults to avoid common failures:
+
+- `machine.context_type = "LazyLocalContext"`
+- `machine.batch_type = "Shell"`
+- `task_list[0].task_work_path = "."` (avoid non-existing subdirectory failures)
+- `resources.group_size = 1`
 
 ## Generate `submission.json` from user input
 
@@ -39,13 +48,16 @@ Translate user answers into:
 ## Required commands
 
 ```bash
-# Print full submission schema
+# 1) Syntax check JSON
+uv run -m json.tool submission.json >/dev/null
+
+# 2) Print full submission schema
 uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args
 
-# Validate generated submission.json
+# 3) Validate generated submission.json
 uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json
 
-# Submit
+# 4) Submit
 uvx --from dpdispatcher dpdisp submit submission.json
 ```
 
@@ -83,7 +95,7 @@ Agent-generated `submission.json`:
   "task_list": [
     {
       "command": "echo hello world",
-      "task_work_path": "task1/",
+      "task_work_path": ".",
       "forward_files": [],
       "backward_files": [],
       "outlog": "log",
@@ -96,6 +108,7 @@ Agent-generated `submission.json`:
 Then run:
 
 ```bash
+uv run -m json.tool submission.json >/dev/null
 uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json
 uvx --from dpdispatcher dpdisp submit submission.json
 ```
@@ -104,4 +117,4 @@ uvx --from dpdispatcher dpdisp submit submission.json
 
 - A short summary of what the user asked for (where to run, command, resources).
 - Submission status (started/running/finished/failed).
-- Output locations (for example `task1/log` and `task1/err`).
+- Output locations (for example `log` and `err` when `task_work_path` is `.`).
