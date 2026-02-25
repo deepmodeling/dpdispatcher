@@ -77,10 +77,10 @@ Before creating or submitting `submission.json`, verify that each JSON block can
 1. **Machine JSON (`machine`)**
    - Confirm `batch_type`, `context_type`, and path fields are valid for your environment.
    - Start from `examples/machine/*.json` when possible.
-2. **Resources JSON (`resources`)**
+1. **Resources JSON (`resources`)**
    - Confirm scheduler-related options (nodes/CPU/GPU/queue/custom flags) match your target system.
    - Start from `examples/resources/*.json`.
-3. **Task JSON (`task` items under `job_list`)**
+1. **Task JSON (`task` items under `job_list`)**
    - Confirm command, work path, forward/backward files, and log behavior.
    - Start from `examples/task/*.json`.
 
@@ -114,14 +114,16 @@ uvx --from=dargs --with=dpdispatcher dargs doc dpdispatcher.arginfo.task_dargs
    uvx --from=dpdispatcher dpdisp submit --help
    ```
 
-2. Prepare `submission.json` with `machine`, `resources`, and `job_list` (`task` entries).
-3. Submit with:
+1. Prepare `submission.json` with `machine`, `resources`, and `job_list` (`task` entries).
+
+1. Submit with:
 
    ```bash
    uvx --from=dpdispatcher dpdisp submit submission.json
    ```
 
-4. Use optional flags when needed:
+1. Use optional flags when needed:
+
    - `--dry-run`: upload only, do not submit.
    - `--exit-on-submit`: return immediately after submit.
    - `--allow-ref`: allow loading external JSON/YAML snippets via `$ref`.
