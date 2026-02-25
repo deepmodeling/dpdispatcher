@@ -4,7 +4,7 @@ description: Submit DPDispatcher jobs from JSON safely using uvx. Use when prepa
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: "1.0"
+  version: '1.0'
 ---
 
 # dpdisp submit workflow
@@ -26,10 +26,10 @@ Before submitting `submission.json`, confirm these three parts are correct:
 1. **machine**
    - `batch_type`, `context_type`, local/remote paths, remote profile.
    - Start from `examples/machine/*.json` when possible.
-2. **resources**
+1. **resources**
    - Queue/partition, node/cpu/gpu settings, scheduler kwargs, env/source settings.
    - Start from `examples/resources/*.json`.
-3. **task** (inside `job_list`)
+1. **task** (inside `job_list`)
    - `command`, `task_work_path`, `forward_files`, `backward_files`, logging behavior.
    - Start from `examples/task/*.json`.
 
