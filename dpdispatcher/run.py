@@ -54,10 +54,8 @@ def read_pep723(script: str) -> Optional[dict]:
 def pep723_args() -> Argument:
     """Return the argument parser for PEP 723 metadata."""
     machine_args = machine_dargs()
-    machine_args.fold_subdoc = True
     machine_args.doc = "Machine configuration. See related documentation for details."
     resources_args = resources_dargs(detail_kwargs=False)
-    resources_args.fold_subdoc = True
     resources_args.doc = (
         "Resources configuration. See related documentation for details."
     )

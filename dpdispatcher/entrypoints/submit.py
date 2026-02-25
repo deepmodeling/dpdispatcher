@@ -36,11 +36,9 @@ def submission_args() -> Argument:
         submission argument
     """
     machine_args = machine_dargs()
-    machine_args.fold_subdoc = True
     machine_args.doc = "Machine configuration. See related documentation for details."
 
     resources_args = resources_dargs(detail_kwargs=False)
-    resources_args.fold_subdoc = True
     resources_args.doc = (
         "Resources configuration. See related documentation for details."
     )
