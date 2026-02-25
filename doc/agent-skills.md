@@ -49,8 +49,8 @@ This keeps the skill linked to repository updates.
 If an agent is asked to install skills, it should:
 
 1. create `<workspace>/skills/<skill-name>/`,
-2. write or link `SKILL.md` from this repository,
-3. refresh/restart session so skills are reloaded.
+1. write or link `SKILL.md` from this repository,
+1. refresh/restart session so skills are reloaded.
 
 ## Minimal verification
 

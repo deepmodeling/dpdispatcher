@@ -4,7 +4,7 @@ description: Agent workflow for DPDispatcher to generate HPC scheduler job input
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: "1.4"
+  version: '1.4'
 ---
 
 # dpdisp-submit (agent instructions)
@@ -14,9 +14,9 @@ Use this skill when the user asks the agent to run DPDispatcher submissions on l
 ## What you must do
 
 1. Confirm required configuration with the user before execution.
-2. Validate the provided `submission.json` against the DPDispatcher submission schema.
-3. Submit with `dpdisp submit`.
-4. For long-running work, use a sub-agent/worker when your framework supports it and report progress.
+1. Validate the provided `submission.json` against the DPDispatcher submission schema.
+1. Submit with `dpdisp submit`.
+1. For long-running work, use a sub-agent/worker when your framework supports it and report progress.
 
 ## Required configuration to confirm with the user
 
