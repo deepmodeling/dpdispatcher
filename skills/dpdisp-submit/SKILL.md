@@ -1,11 +1,11 @@
 ---
 name: dpdisp-submit
-description: Use this skill when a user asks the agent to run tasks on local or remote HPC systems and needs the agent to prepare, submit, and monitor the workflow.
+description: Use this skill when a user asks the agent to run shell commands on local or remote HPC systems and needs the agent to prepare, submit, and monitor the workflow.
 compatibility: Requires uv and access to the internet.
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: '1.5'
+  version: "1.0"
 ---
 
 # dpdisp-submit
@@ -13,17 +13,17 @@ metadata:
 ## Agent responsibilities
 
 1. Collect enough information from the user in plain language.
-1. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
-1. Validate `submission.json` with `dargs`.
-1. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
-1. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
+2. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
+3. Validate `submission.json` with `dargs`.
+4. Submit with `uvx --from dpdispatcher dpdisp submit submission.json`.
+5. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
 
 ## Ask the user in plain language
 
 If information is missing, ask questions users can understand, for example:
 
 - Where should this run: your local machine or a remote HPC cluster?
-- What command should be executed?
+- What shell command should be executed?
 - How many CPUs/GPUs/nodes do you need?
 - Which queue/partition/account should we use (if applicable)?
 - Which input files should be uploaded, and which output files should be collected?
@@ -34,7 +34,7 @@ Translate user answers into:
 
 - `machine` (where/how to run),
 - `resources` (compute resources),
-- `task_list` (what commands/files to run).
+- `task_list` (which shell commands/files to run).
 
 ## Required commands
 
