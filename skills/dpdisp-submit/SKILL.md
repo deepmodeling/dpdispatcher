@@ -1,6 +1,6 @@
 ---
 name: dpdisp-submit
-description: Generate DPDispatcher `submission.json` from user intent, validate it, run shell commands on local/remote HPC via `uvx --from dpdispatcher dpdisp submit`, and report status/log paths.
+description: Run Shell commands as computational jobs, on local machines or HPC clusters, through Shell, Slurm, PBS, LSF, Bohrium, etc.
 compatibility: Requires uv and access to the internet.
 license: LGPL-3.0-or-later
 metadata:
@@ -10,19 +10,11 @@ metadata:
 
 # dpdisp-submit
 
-Use this skill for DPDispatcher submit workflows.
-
-## Trigger hints
-
-Use this skill when the request implies any of the following:
-
-- run a shell command on local machine or HPC cluster;
-- generate/validate `submission.json`;
-- submit jobs with `dpdisp submit`;
-- monitor and report job status/log paths.
+This skill uses the DPDispatcher tool to run Shell commands as computational jobs, on local machines or HPC clusters, through Shell, Slurm, PBS, LSF, Bohrium, etc.
 
 ## Agent responsibilities
 
+1. Execute `uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args` to learn what information needs to be filled.
 1. Collect enough information from the user in plain language.
 1. Generate `submission.json` yourself (do **not** ask the user to hand-write it).
 1. Validate `submission.json` before submission.
@@ -30,6 +22,8 @@ Use this skill when the request implies any of the following:
 1. For long-running work, delegate execution to a sub-agent/worker when available and report progress.
 
 ## Ask the user in plain language
+
+Before this step, always execute `uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args` to learn what information needs to be filled.
 
 If information is missing, ask questions users can understand, for example:
 
@@ -39,7 +33,15 @@ If information is missing, ask questions users can understand, for example:
 - Which queue/partition/account should we use (if applicable)?
 - Which input files should be uploaded, and which output files should be collected?
 
-## One-shot success defaults (recommended)
+## Generate `submission.json` from user input
+
+According the result of `uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args`, translate user answers into:
+
+- `machine` (where/how to run),
+- `resources` (compute resources),
+- `task_list` (which shell commands/files to run).
+
+### Simple local shell tasks
 
 When the user asks for a simple local shell task, prefer these defaults to avoid common failures:
 
@@ -48,22 +50,14 @@ When the user asks for a simple local shell task, prefer these defaults to avoid
 - `task_list[0].task_work_path = "."` (avoid non-existing subdirectory failures)
 - `resources.group_size = 1`
 
-## Generate `submission.json` from user input
-
-Translate user answers into:
-
-- `machine` (where/how to run),
-- `resources` (compute resources),
-- `task_list` (which shell commands/files to run).
-
 ## Required commands
 
 ```bash
-# 1) Syntax check JSON
-uv run -m json.tool submission.json >/dev/null
-
-# 2) Print full submission schema
+# 1) Print full submission schema
 uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args
+
+# 2) Syntax check JSON
+uv run -m json.tool submission.json >/dev/null
 
 # 3) Validate generated submission.json
 uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json

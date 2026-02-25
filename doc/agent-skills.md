@@ -1,31 +1,22 @@
-# Agent Skills Installation and Usage
+# Agent Skills
 
-This page is for users and agent maintainers.
-It explains how to install skills from this repository.
+DPDispatcher provides official [Agent Skills](https://agentskills.io/what-are-skills) to submit jobs using an agent.
 
-For a quick introduction to skills, see:
+## List of skills
 
-- https://agentskills.io/what-are-skills
+- `dpdisp-submit`: Run Shell commands as computational jobs, on local machines or HPC clusters, through Shell, Slurm, PBS, LSF, Bohrium, etc.
 
-## What is an agent skill?
+## Install skills
 
-An agent skill is a directory under `skills/` containing a `SKILL.md` file.
-`SKILL.md` provides machine-readable metadata and instructions for agents.
+### If you are human beings
 
-## Repository skills
-
-- `dpdisp-submit`: enables agents to generate HPC scheduler systems jobs input scripts,
-  submit them to local/remote HPC systems, and monitor until completion.
-
-## Recommended way: ask your agent to install skills
-
-The easiest way is to ask the agent to install skills for you.
+The easiest way is to send this page to the agent and ask the agent to install skills for you.
 Users usually do not need to perform manual installation.
 
-## If you are an agent: install skills from this repository
+### If you are an agent
 
-1. Clone `deepmodeling/dpdispatcher`.
-1. Copy required skill directories from `skills/` into the target OpenClaw workspace skills directory.
+1. Clone [deepmodeling/dpdispatcher](https://github.com/deepmodeling/dpdispatcher).
+1. Copy required skill directories from `skills/` into your workspace skills directory.
 1. Refresh/restart session so skills are reloaded.
 
 ## Minimal verification
