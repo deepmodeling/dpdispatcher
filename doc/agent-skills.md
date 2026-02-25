@@ -25,8 +25,8 @@ Users usually do not need to perform manual installation.
 Tell the agent to:
 
 1. clone `deepmodeling/dpdispatcher`,
-2. copy required skill directories from `skills/` into your OpenClaw workspace skills directory,
-3. refresh/restart session so skills are reloaded.
+1. copy required skill directories from `skills/` into your OpenClaw workspace skills directory,
+1. refresh/restart session so skills are reloaded.
 
 ## Manual installation (if needed)
 
