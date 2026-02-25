@@ -1,70 +1,98 @@
 ---
 name: dpdisp-submit
-description: Agent workflow for submitting DPDispatcher jobs on local or remote servers. It validates `submission.json` with dargs, runs `dpdisp submit`, and reports progress/results back to the user.
+description: Agent workflow for DPDispatcher to generate HPC scheduler job input scripts, submit jobs to local/remote HPC systems, and monitor (poke) them until completion using `dpdisp submit` plus `dargs` validation.
 license: LGPL-3.0-or-later
 metadata:
   author: deepmodeling
-  version: '1.3'
+  version: "1.4"
 ---
 
-# dpdisp submit (for agents)
+# dpdisp-submit (agent instructions)
 
-Use this skill when an agent needs to execute DPDispatcher tasks (local or remote) from a `submission.json` file.
+Use this skill when the user asks the agent to run DPDispatcher submissions on local or remote HPC systems.
 
-## Agent responsibilities
+## What you must do
 
-1. Confirm required config with the user before execution.
-1. Validate `submission.json` against submission schema.
-1. Submit with `dpdisp submit`.
-1. For long runs, prefer a sub-agent/worker and report progress + final status.
+1. Confirm required configuration with the user before execution.
+2. Validate the provided `submission.json` against the DPDispatcher submission schema.
+3. Submit with `dpdisp submit`.
+4. For long-running work, use a sub-agent/worker when your framework supports it and report progress.
 
-## Required config checklist (ask user if missing)
+## Required configuration to confirm with the user
 
-- **Machine/context**: `context_type`, `batch_type`, `local_root`, `remote_root` (if needed), auth profile.
-- **Resources**: queue/partition/account, node/CPU/GPU, scheduler kwargs.
-- **Tasks**: commands, `task_work_path`, input/output file lists.
+If any item below is missing or ambiguous, ask before submitting.
 
-## Commands
+- `machine`: `context_type`, `batch_type`, `local_root`, and remote fields when needed.
+- `resources`: queue/partition/account, node/CPU/GPU sizing, scheduler kwargs.
+- `task_list`: commands, `task_work_path`, forward/backward file lists.
+
+## Command sequence
 
 ```bash
-# sanity checks
+# 1) sanity
 uvx --from dpdispatcher dpdisp --help
 uvx --from dpdispatcher dpdisp submit --help
 uvx --with dpdispatcher dargs --help
 
-# print full submission schema
+# 2) print full submission schema
 uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args
 
-# validate input
+# 3) validate user-provided input (must exist)
 uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json
 
-# submit
+# 4) submit
 uvx --from dpdispatcher dpdisp submit submission.json
 ```
 
-Useful flags:
+Useful flags for submit:
 
 - `--dry-run`
 - `--exit-on-submit`
 - `--allow-ref`
 
-## Example (agent execution)
+## Example run (self-contained)
 
-### Input (from user)
-
-- Run `echo hello` on local shell backend.
-- Use one task in `task1/`.
-
-### Agent actions
+This example does not assume files outside the current workspace.
 
 ```bash
-cp examples/submit_example.json submission.json
+cat > submission.json <<'JSON'
+{
+  "work_base": "0_md/",
+  "machine": {
+    "batch_type": "Shell",
+    "local_root": "./",
+    "context_type": "LazyLocalContext"
+  },
+  "resources": {
+    "number_node": 1,
+    "cpu_per_node": 1,
+    "gpu_per_node": 0,
+    "queue_name": "",
+    "group_size": 1
+  },
+  "forward_common_files": [],
+  "backward_common_files": [],
+  "task_list": [
+    {
+      "command": "echo hello",
+      "task_work_path": "task1/",
+      "forward_files": [],
+      "backward_files": [],
+      "outlog": "log",
+      "errlog": "err"
+    }
+  ]
+}
+JSON
+
 uvx --with dpdispatcher dargs check -f dpdispatcher.entrypoints.submit.submission_args submission.json
 uvx --from dpdispatcher dpdisp submit submission.json
 ```
 
-### Agent output to user
+## Agent output expectations
 
-- Confirmed config (machine/resources/task).
-- Submission started/completed.
-- Where logs/results are written (e.g., `task1/log`, `task1/err`).
+Report back to user with:
+
+- confirmed config summary,
+- submission status,
+- output/log locations.
