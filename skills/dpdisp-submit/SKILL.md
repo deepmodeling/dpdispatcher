@@ -50,12 +50,14 @@ If the user indicates that a specific value (like a username, token, or remote p
 
 If the user specifies values that must be loaded from local environment variables (e.g., sensitive tokens, dynamic paths), do **not** write them directly into the final JSON. Instead:
 
-1. Generate a `submission.template.json` file using the `${VAR_NAME}` syntax.
+1. Generate a `submission.template.json` file using the `${VAR_NAME}` syntax **only for the variables you intend to substitute**.
    *Example:* `"remote_root": "${MY_HPC_WORKSPACE}"`
-1. Use `envsubst` to inject the variables and create the final file:
-   `envsubst < submission.template.json > submission.json`
+1. Use `envsubst` with an explicit variable list to inject only those variables and create the final file. This avoids accidentally expanding unrelated `$...` tokens in the JSON (such as a `"$ref"` key):
+   `envsubst '${MY_HPC_WORKSPACE}' < submission.template.json > submission.json`
 1. **CRITICAL SECURITY CONSTRAINT: DO NOT read or print the contents of the newly generated `submission.json` file.** Once `envsubst` replaces the variables, the file contains raw sensitive data. Reading it will leak these secrets into your context, which is strictly prohibited.
 
+If multiple environment variables are needed, list them all explicitly in the `envsubst` call, for example:
+`envsubst '${MY_HPC_WORKSPACE} ${MY_OTHER_VAR}' < submission.template.json > submission.json`
 If no environment variables are needed, simply generate `submission.json` directly.
 
 ### Simple local shell tasks
