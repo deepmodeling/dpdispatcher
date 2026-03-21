@@ -30,6 +30,8 @@ Before this step, always execute `uvx --with dpdispatcher dargs doc dpdispatcher
 If information is missing, ask questions users can understand, for example:
 
 - Where should this run: your local machine or a remote HPC cluster?
+- Are there any existing configuration files?
+- Is any sensitive information in the environment variables?
 - What shell command should be executed?
 - How many CPUs/GPUs/nodes do you need?
 - Which queue/partition/account should we use (if applicable)?
@@ -44,20 +46,20 @@ According the result of `uvx --with dpdispatcher dargs doc dpdispatcher.entrypoi
 - `task_list` (which shell commands/files to run).
 
 If the user indicates that a specific value (like a username, token, or remote path) should be read from a local environment variable, format that value in the JSON template as `${ENV_VAR_NAME}`.
-*Example:* `"remote_root": "${MY_HPC_WORKSPACE}"`
+*Example:* `"remote_root": "${USER_HPC_WORKSPACE}"`
 
 ### Handling Environment Variables
 
 If the user specifies values that must be loaded from local environment variables (e.g., sensitive tokens, dynamic paths), do **not** write them directly into the final JSON. Instead:
 
 1. Generate a `submission.template.json` file using the `${VAR_NAME}` syntax **only for the variables you intend to substitute**.
-   *Example:* `"remote_root": "${MY_HPC_WORKSPACE}"`
+   *Example:* `"remote_root": "${USER_HPC_WORKSPACE}"`
 1. Use `envsubst` with an explicit variable list to inject only those variables and create the final file. This avoids accidentally expanding unrelated `$...` tokens in the JSON (such as a `"$ref"` key):
-   `envsubst '${MY_HPC_WORKSPACE}' < submission.template.json > submission.json`
+   `envsubst '${USER_HPC_WORKSPACE}' < submission.template.json > submission.json`
 1. **CRITICAL SECURITY CONSTRAINT: DO NOT read or print the contents of the newly generated `submission.json` file.** Once `envsubst` replaces the variables, the file contains raw sensitive data. Reading it will leak these secrets into your context, which is strictly prohibited.
 
 If multiple environment variables are needed, list them all explicitly in the `envsubst` call, for example:
-`envsubst '${MY_HPC_WORKSPACE} ${MY_OTHER_VAR}' < submission.template.json > submission.json`
+`envsubst '${USER_HPC_WORKSPACE} ${USER_OTHER_VAR}' < submission.template.json > submission.json`
 If no environment variables are needed, simply generate `submission.json` directly.
 
 ### Simple local shell tasks
@@ -71,12 +73,14 @@ When the user asks for a simple local shell task, prefer these defaults to avoid
 
 ## Required commands
 
+### Core Flow
+
 ```bash
 # 1) Print full submission schema
 uvx --with dpdispatcher dargs doc dpdispatcher.entrypoints.submit.submission_args
 
 # 2) [Optional] Substitute environment variables if a template was generated
-envsubst < submission.template.json > submission.json
+envsubst '${USER_VAR} ${USER_OTHER_VAR}' < submission.template.json > submission.json
 
 # 3) Syntax check JSON
 uv run -m json.tool submission.json >/dev/null
@@ -90,22 +94,26 @@ uvx --from dpdispatcher dpdisp submit submission.json
 
 ### Best Practices for Long-Running Jobs
 
-When executing tasks that are expected to take a long time, it is crucial to prevent the monitoring process from dying due to SSH timeouts or closed terminals. Ensure the DPDispatcher daemon safely runs in the background using one of the following methods:
+When executing tasks that are expected to take a long time, it is important to avoid losing the monitoring process due to SSH timeouts or closed terminals. Use one of the following approaches:
+- **Wrap in `tmux`:** Run the `dpdisp submit` command inside a `tmux` session. This keeps the process alive and allows you to detach and reattach safely if your network connection drops.
+- **Use the `--exit-on-submit` flag:** Add this flag if you only need to submit the job and return immediately. This exits as soon as the job has been successfully handed off to the scheduling system (for example, Slurm), without waiting for execution to finish or for outputs to be downloaded. However, a successful return from `dpdisp submit` with `--exit-on-submit` is **not** a signal that the overall job is finished. It only confirms successful submission. A separate follow-up step is still required to monitor job status and verify that results have been downloaded back to the local workspace.
 
-- **Wrap in `tmux`:** Run the `dpdisp submit` command inside a `tmux` session. This keeps the execution alive and allows you to detach/reattach safely even if your network connection drops.
-- **Use the `--exit-on-submit` flag:** Add this flag to your submit command. It exits immediately after successfully pushing the job to the scheduling system (e.g., Slurm) without holding the terminal to wait for job completion.
+### More Useful Flags
 
-### Some Useful Flags
+- **`--dry-run`**: Parses the configuration, generates local directories, and validates the schema, but does **not** actually submit the job to the machine or cluster. Useful for a final safety check before real execution.
+- **`--allow-ref`**: Allows nesting and referencing other JSON files using `{"$ref": "other.json"}` for reusable config snippets. The referenced file is loaded first, and then the current file's fields override or extend it. If your configuration uses `$ref`, you should also pass `--allow-ref` to ***all related*** validation and submission commands (for example, `dargs check` and `dpdisp submit`). Otherwise, the config may fail to parse or validate even if the JSON content itself is correct.
 
-- `--dry-run`: Parses the configuration, generates local directories, and validates the schema, but does **not** actually submit the job to the machine or cluster. Useful for a final safety check before real execution.
-- `--allow-ref`: Allows nesting and referencing other JSON files using `{"$ref": "other.json"}` for reusable config snippets. The contents of the referenced file are loaded first, and then the current file's fields override or append to those loaded values.
+## Submission vs. Completion
 
-## Definition of Job Completion
-
-A job is considered **fully completed** ONLY when both of the following are true:
-
-1. **Command Success:** The `dpdisp submit` command naturally finishes executing with a success exit code (`0`).
-1. **Files Retrieved:** The tasks have finished computing on the backend, **AND** all corresponding output files (e.g., `log`, `err`, and result files) have been successfully downloaded back to the local `task_work_path`. *(Note: Just finishing on the cluster queue is not enough).*
+It is important to distinguish between **successful submission** and **full completion**:
+1. **Successfully Submitted**
+- The `dpdisp submit` command exits with a success code (`0`).
+- If `--exit-on-submit` is used, this only means the job was accepted and submitted to the backend scheduler.
+- At this stage, the tasks may still be queued or running, and output files may not yet be available locally.
+2. **Fully Completed**
+A job is considered **fully completed** only when both of the following are true:
+- The backend tasks have finished successfully.
+- All required output files (for example, `log`, `err`, and result files) have been retrieved to the local `task_work_path`.
 
 ## Resuming Jobs (Failure Handling & Recovery)
 
@@ -117,7 +125,7 @@ DPDispatcher is inherently idempotent and features built-in state tracking. It w
 - The user explicitly asks to "resume", "retry", or "recover" a previously interrupted or failed job.
 - The Agent's SSH or network connection drops during job monitoring.
 
-**Action:** Do **NOT** modify `submission.json` or attempt to clean up the remote directories. Simply re-execute the exact same submission command (`uvx --from dpdispatcher dpdisp submit submission.json`) in the same directory. The tool will safely skip successful tasks and only resubmit or resume the pending/failed ones.
+**Action:** Do **NOT** modify `submission.json` or attempt to clean up the remote directories. Simply re-execute the exact same submission command (such as `uvx --from dpdispatcher dpdisp submit submission.json --allow-ref`) in the same directory. The tool will safely skip successful tasks and only resubmit or resume the pending/failed ones.
 
 ## Example
 
@@ -165,7 +173,7 @@ Agent-generated `submission.template.json`:
 Then run:
 
 ```bash
-envsubst < submission.template.json > submission.json
+envsubst '${HPC_USER} ${HPC_WORKDIR}' < submission.template.json > submission.json
 uv run -m json.tool submission.json >/dev/null
 uvx --with dpdispatcher dargs check --allow-ref -f dpdispatcher.entrypoints.submit.submission_args submission.json
 tmux new-session -d -s dpdisp_job "uvx --from dpdispatcher dpdisp submit --allow-ref submission.json"
