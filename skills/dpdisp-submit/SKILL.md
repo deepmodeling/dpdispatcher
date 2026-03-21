@@ -95,6 +95,7 @@ uvx --from dpdispatcher dpdisp submit submission.json
 ### Best Practices for Long-Running Jobs
 
 When executing tasks that are expected to take a long time, it is important to avoid losing the monitoring process due to SSH timeouts or closed terminals. Use one of the following approaches:
+
 - **Wrap in `tmux`:** Run the `dpdisp submit` command inside a `tmux` session. This keeps the process alive and allows you to detach and reattach safely if your network connection drops.
 - **Use the `--exit-on-submit` flag:** Add this flag if you only need to submit the job and return immediately. This exits as soon as the job has been successfully handed off to the scheduling system (for example, Slurm), without waiting for execution to finish or for outputs to be downloaded. However, a successful return from `dpdisp submit` with `--exit-on-submit` is **not** a signal that the overall job is finished. It only confirms successful submission. A separate follow-up step is still required to monitor job status and verify that results have been downloaded back to the local workspace.
 
@@ -106,12 +107,16 @@ When executing tasks that are expected to take a long time, it is important to a
 ## Submission vs. Completion
 
 It is important to distinguish between **successful submission** and **full completion**:
+
 1. **Successfully Submitted**
+
 - The `dpdisp submit` command exits with a success code (`0`).
 - If `--exit-on-submit` is used, this only means the job was accepted and submitted to the backend scheduler.
 - At this stage, the tasks may still be queued or running, and output files may not yet be available locally.
+
 2. **Fully Completed**
-A job is considered **fully completed** only when both of the following are true:
+   A job is considered **fully completed** only when both of the following are true:
+
 - The backend tasks have finished successfully.
 - All required output files (for example, `log`, `err`, and result files) have been retrieved to the local `task_work_path`.
 
