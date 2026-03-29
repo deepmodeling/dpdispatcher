@@ -36,43 +36,58 @@ def submission_args() -> Argument:
         submission argument
     """
     machine_args = machine_dargs()
-    machine_args.doc = "Machine configuration. See related documentation for details."
+    machine_args.doc = (
+        "Machine configuration: where the jobs run, which backend is used, and which local/remote roots are involved."
+    )
 
     resources_args = resources_dargs(detail_kwargs=False)
     resources_args.doc = (
-        "Resources configuration. See related documentation for details."
+        "Resources configuration: how many resources each generated job requests and how tasks are grouped/concurrentized."
     )
 
     task_args = task_dargs()
     task_args.name = "task_list"
-    task_args.doc = "List of tasks to execute."
+    task_args.doc = (
+        "List of task entries. Each task has its own task_work_path, command, and per-task file transfer rules."
+    )
     task_args.repeat = True
     task_args.dtype = (list,)
 
     return Argument(
         "submission",
         dtype=dict,
-        doc="Submission configuration",
+        doc=(
+            "Submission configuration. In the most common layout, the local task directory for one task is "
+            "local_root/work_base/task_work_path."
+        ),
         sub_fields=[
             Argument(
                 "work_base",
                 dtype=str,
                 optional=False,
-                doc="Base directory for the work",
+                doc=(
+                    "Submission working base relative to machine.local_root. For a minimal local example, use '.'."
+                ),
             ),
             Argument(
                 "forward_common_files",
                 dtype=List[str],
                 optional=True,
                 default=[],
-                doc="Common files to forward to the remote machine",
+                doc=(
+                    "Files shared by all tasks and uploaded once from work_base before execution. Use this for common inputs; "
+                    "task-specific inputs belong in each task's forward_files."
+                ),
             ),
             Argument(
                 "backward_common_files",
                 dtype=List[str],
                 optional=True,
                 default=[],
-                doc="Common files to backward from the remote machine",
+                doc=(
+                    "Files shared by all tasks and downloaded back to work_base after execution. Use this for common outputs; "
+                    "task-specific outputs belong in each task's backward_files."
+                ),
             ),
             machine_args,
             resources_args,

@@ -407,17 +407,29 @@ class Machine(metaclass=ABCMeta):
     @classmethod
     def arginfo(cls):
         # TODO: change the possible value of batch and context types after we refactor the code
-        doc_batch_type = "The batch job system type. Option: " + ", ".join(cls.options)
+        doc_batch_type = (
+            "Batch backend used to execute jobs. Option: " + ", ".join(cls.options)
+        )
         doc_context_type = (
-            "The connection used to remote machine. Option: "
+            "Execution context / connection type used to reach the execution environment. Option: "
             + ", ".join(BaseContext.options)
         )
-        doc_local_root = "The dir where the tasks and relating files locate. Typically the project dir."
-        doc_remote_root = "The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local."
-        doc_clean_asynchronously = (
-            "Clean the remote directory asynchronously after the job finishes."
+        doc_local_root = (
+            "Local project root used by DPDispatcher to find task directories and local files. "
+            "submission.work_base is resolved inside this directory."
         )
-        doc_retry_count = "Number of retries to resubmit failed jobs."
+        doc_remote_root = (
+            "Remote working root for this submission when using a non-local context such as SSH. "
+            "Tasks are executed beneath this directory. Reusing the same remote_root may allow "
+            "DPDispatcher to recover/resume existing submission state instead of behaving like a logically fresh run."
+        )
+        doc_clean_asynchronously = (
+            "Clean the remote working directory asynchronously after the job finishes. Avoid enabling this while debugging, "
+            "because it can remove remote artifacts before you inspect them."
+        )
+        doc_retry_count = (
+            "How many times DPDispatcher will retry a failed job before raising an error."
+        )
 
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
