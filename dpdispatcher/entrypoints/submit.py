@@ -58,7 +58,11 @@ def submission_args() -> Argument:
                 "work_base",
                 dtype=str,
                 optional=False,
-                doc="Base directory for the work. Combined with machine.local_root to locate task directories.",
+                doc=(
+                    "Base directory for the work, relative to machine.local_root. "
+                    "This must be a relative path; if an absolute path is provided it "
+                    "will not be combined with machine.local_root."
+                ),
             ),
             Argument(
                 "forward_common_files",
