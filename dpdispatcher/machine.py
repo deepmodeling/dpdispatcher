@@ -416,7 +416,8 @@ class Machine(metaclass=ABCMeta):
         )
         doc_local_root = (
             "Local project root used by DPDispatcher to find task directories and local files. "
-            "submission.work_base is resolved inside this directory."
+            "If submission.work_base is a relative path, it is resolved inside this directory; if "
+            "submission.work_base is absolute, it is used as-is and local_root is ignored."
         )
         doc_remote_root = (
             "Remote root directory used by non-local contexts such as SSH. DPDispatcher creates and uses a "

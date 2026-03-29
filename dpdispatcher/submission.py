@@ -690,9 +690,10 @@ class Task:
             "wrapping it and saving diagnostics to files that are listed in backward_files."
         )
         doc_task_work_path = (
-            "Working directory of this task, resolved relative to submission.work_base. "
-            "For the smallest local example, use '.'. If you use a subdirectory such as 'task1/', "
-            "the command runs inside that subdirectory."
+            "Working directory of this task, specified as a relative path inside submission.work_base. "
+            "Absolute paths are not supported and may break staging or remote execution. For the smallest "
+            "local example, use '.'. If you use a subdirectory such as 'task1/', the command runs inside "
+            "that subdirectory."
         )
         doc_forward_files = (
             "Files to upload for this task before execution. Paths are resolved relative to this "
@@ -702,7 +703,7 @@ class Task:
         doc_backward_files = (
             "Files to download for this task after execution. Paths are collected from this task's "
             "task_work_path on the execution side and synchronized back to the same relative task "
-            "directory under local_root/work_base."
+            "directory under the local staging root (typically machine.local_root/work_base)."
         )
         doc_outlog = (
             "Filename used to redirect stdout inside task_work_path while the task runs. If this file is "
