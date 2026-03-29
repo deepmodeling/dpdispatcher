@@ -15,11 +15,10 @@ Users usually do not need to perform manual installation.
 
 ### If you are an agent
 
-1. Run the following commands in your workspace:
+1. Run the following command in your workspace:
    ```sh
-   npx -y skills add deepmodeling/dpdispatcher -a openclaw -y
-   ```
-   In this command, `openclaw` is the agent.
+   npx -y skills add deepmodeling/dpdispatcher -a <your-agent-name> -y
+   
    The command uses [the skill CLI](https://github.com/vercel-labs/skills) to clone [deepmodeling/dpdispatcher](https://github.com/deepmodeling/dpdispatcher) and copy skill directories from `skills/` into your workspace skills directory.
 1. Refresh/restart the session so skills are reloaded.
 
