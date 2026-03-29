@@ -407,8 +407,8 @@ class Machine(metaclass=ABCMeta):
     @classmethod
     def arginfo(cls):
         # TODO: change the possible value of batch and context types after we refactor the code
-        doc_batch_type = (
-            "Batch backend used to execute jobs. Option: " + ", ".join(cls.options)
+        doc_batch_type = "Batch backend used to execute jobs. Option: " + ", ".join(
+            cls.options
         )
         doc_context_type = (
             "Execution context / connection type used to reach the execution environment. Option: "
@@ -426,9 +426,7 @@ class Machine(metaclass=ABCMeta):
             "Clean the remote working directory asynchronously after the job finishes. Avoid enabling this while debugging, "
             "because it can remove remote artifacts before you inspect them."
         )
-        doc_retry_count = (
-            "How many times DPDispatcher will retry a failed job before raising an error."
-        )
+        doc_retry_count = "How many times DPDispatcher will retry a failed job before raising an error."
 
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
