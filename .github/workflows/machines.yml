@@ -20,6 +20,8 @@ jobs:
           - ssh_rsync
     steps:
     - uses: actions/checkout@v6
+    - name: Mark workspace as safe for git (setuptools_scm)
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - run: ./ci/${{ matrix.machine }}.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
