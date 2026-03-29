@@ -15,9 +15,13 @@ Users usually do not need to perform manual installation.
 
 ### If you are an agent
 
-1. Clone [deepmodeling/dpdispatcher](https://github.com/deepmodeling/dpdispatcher).
-1. Copy required skill directories from `skills/` into your workspace skills directory.
-1. Refresh/restart session so skills are reloaded.
+1. Run the following command in your workspace:
+   ```sh
+   npx -y skills add deepmodeling/dpdispatcher -a <your-agent-name> -y
+
+   The command uses [the skill CLI](https://github.com/vercel-labs/skills) to clone [deepmodeling/dpdispatcher](https://github.com/deepmodeling/dpdispatcher) and copy skill directories from `skills/` into your workspace skills directory.
+   ```
+1. Refresh/restart the session so skills are reloaded.
 
 ## Minimal verification
 
