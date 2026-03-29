@@ -48,7 +48,6 @@ The protocol allows the use of the `{"$ref": "other.json"}` syntax to nest and r
 
 - **Base Directory (`work_base`)**: Defines the base working directory level for all tasks, typically set to `.` (i.e., the current execution directory).
 - **Task and File Path Resolution**: `task_work_path` is resolved relative to `work_base`, whereas the file paths specified in `forward_files` are strictly resolved relative to `task_work_path`.
-- **Simple local default**: for a minimal local Shell task, prefer `work_base = "."`, `task_work_path = "."`, and `resources.group_size = 1` unless the user clearly needs a different layout.
 
 ### Dry-Run Testing (--dry-run)
 
