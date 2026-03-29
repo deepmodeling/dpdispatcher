@@ -419,9 +419,8 @@ class Machine(metaclass=ABCMeta):
             "submission.work_base is resolved inside this directory."
         )
         doc_remote_root = (
-            "Remote working root for this submission when using a non-local context such as SSH. "
-            "Tasks are executed beneath this directory. Reusing the same remote_root may allow "
-            "DPDispatcher to recover/resume existing submission state instead of behaving like a logically fresh run."
+            "Remote root directory used by non-local contexts such as SSH. DPDispatcher creates and uses a "
+            "submission-specific working directory beneath this root on the remote side. For SSHContext, this path should be absolute."
         )
         doc_clean_asynchronously = (
             "Clean the remote working directory asynchronously after the job finishes. Avoid enabling this while debugging, "

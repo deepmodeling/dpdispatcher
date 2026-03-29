@@ -1,5 +1,5 @@
 {
-    "work_base": ".",
+    "work_base": "0_md/",
     "machine": {
         "batch_type": "Shell",
         "local_root": "./",
@@ -10,15 +10,14 @@
         "cpu_per_node": 1,
         "gpu_per_node": 0,
         "queue_name": "",
-        "group_size": 1,
-        "para_deg": 1
+        "group_size": 1
     },
     "forward_common_files": [],
     "backward_common_files": [],
     "task_list": [
         {
             "command": "echo hello",
-            "task_work_path": ".",
+            "task_work_path": "task1/",
             "forward_files": [],
             "backward_files": [],
             "outlog": "log",

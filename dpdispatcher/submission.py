@@ -692,7 +692,7 @@ class Task:
         doc_task_work_path = (
             "Working directory of this task, resolved relative to submission.work_base. "
             "For the smallest local example, use '.'. If you use a subdirectory such as 'task1/', "
-            "make sure that directory exists under local_root/work_base before submission."
+            "the command runs inside that subdirectory."
         )
         doc_forward_files = (
             "Files to upload for this task before execution. Paths are resolved relative to this "
