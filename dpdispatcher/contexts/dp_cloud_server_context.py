@@ -289,7 +289,7 @@ class BohriumContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = "Configuration for Bohrium / DP Cloud Server submission, including login credentials, project selection, and job-handling behavior."
+        doc_remote_profile = "Configuration for Bohrium submission, including login credentials, project selection, and job-handling behavior."
         doc_retry_count = "How many times a terminated remote job is retried on the platform side before giving up."
         doc_ignore_exit_code = """Whether a non-zero exit code from the remote platform is still treated as finished. If False, such jobs are marked as terminated."""
         return [
@@ -301,7 +301,7 @@ class BohriumContext(BaseContext):
                         "email",
                         str,
                         optional=True,
-                        doc="Email address used to log in to Bohrium / DP Cloud Server.",
+                        doc="Email address used to log in to Bohrium.",
                     ),
                     Argument(
                         "password",
@@ -346,7 +346,7 @@ class BohriumContext(BaseContext):
                         "input_data",
                         dict,
                         optional=False,
-                        doc="Platform-specific job configuration passed through to the Bohrium / DP Cloud Server API.",
+                        doc="Platform-specific job configuration passed through to the Bohrium API.",
                     ),
                 ],
                 doc=doc_remote_profile,
