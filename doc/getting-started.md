@@ -72,6 +72,7 @@ where `machine.json` is
   "context_type": "SSHContext",
   "local_root": "/home/user123/workplace/22_new_project/",
   "remote_root": "/home/user123/dpdispatcher_work_dir/",
+  "create_remote_root": true,
   "remote_profile": {
     "hostname": "39.106.xx.xxx",
     "username": "user123",
