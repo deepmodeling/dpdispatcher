@@ -299,8 +299,8 @@ class SGE(PBS):
         list[Argument]
             resources subfields
         """
-        doc_pe_name = "The parallel environment name of SGE system."
-        doc_job_name = "The name of SGE's job."
+        doc_pe_name = "Parallel environment name used by SGE, for example `mpi`. This controls the `#$ -pe ...` header line in SGE mode."
+        doc_job_name = "Job name shown by SGE for this submission."
 
         return [
             Argument(
@@ -324,6 +324,6 @@ class SGE(PBS):
                     ),
                 ],
                 optional=False,
-                doc="Extra arguments.",
+                doc="SGE-specific extra arguments.",
             )
         ]

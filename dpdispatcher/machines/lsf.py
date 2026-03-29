@@ -162,15 +162,13 @@ class LSF(Machine):
         list[Argument]
             resources subfields
         """
-        doc_custom_gpu_line = "Custom GPU configuration, starting with #BSUB"
-        doc_gpu_usage = "Choosing if GPU is used in the calculation step. "
+        doc_custom_gpu_line = "Custom GPU header line starting with #BSUB. When set, it overrides the GPU-related LSF header generated from the other GPU kwargs."
+        doc_gpu_usage = "Whether DPDispatcher should emit an LSF GPU request line at all. If False, no GPU request header is added."
         doc_gpu_new_syntax = (
-            "For LFS >= 10.1.0.3, new option -gpu for #BSUB could be used. "
-            "If False, and old syntax would be used."
+            "Whether to use the newer `#BSUB -gpu` syntax instead of the older resource string syntax. This is typically used on newer LSF versions."
         )
         doc_gpu_exclusive = (
-            "Only take effect when new syntax enabled. "
-            "Control whether submit tasks in exclusive way for GPU."
+            "Only meaningful when gpu_new_syntax is enabled. Controls whether the submitted job requests GPUs in exclusive mode."
         )
         return [
             Argument(
@@ -207,7 +205,7 @@ class LSF(Machine):
                     ),
                 ],
                 optional=False,
-                doc="Extra arguments.",
+                doc="LSF-specific extra arguments.",
             )
         ]
 

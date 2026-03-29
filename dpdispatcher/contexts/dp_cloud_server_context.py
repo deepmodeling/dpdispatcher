@@ -290,24 +290,24 @@ class BohriumContext(BaseContext):
             machine subfields
         """
         doc_remote_profile = (
-            "The information used to maintain the connection with remote machine."
+            "Configuration for Bohrium / DP Cloud Server submission, including login credentials, project selection, and job-handling behavior."
         )
-        doc_retry_count = "The retry count when a job is terminated"
-        doc_ignore_exit_code = """The job state will be marked as finished if the exit code is non-zero when set to True. Otherwise,
-              the job state will be designated as terminated."""
+        doc_retry_count = "How many times a terminated remote job is retried on the platform side before giving up."
+        doc_ignore_exit_code = """Whether a non-zero exit code from the remote platform is still treated as finished. If False, such jobs are marked as terminated."""
         return [
             Argument(
                 "remote_profile",
                 dict,
                 [
-                    Argument("email", str, optional=True, doc="Email"),
-                    Argument("password", str, optional=True, doc="Password"),
+                    Argument("email", str, optional=True, doc="Email address used to log in to Bohrium / DP Cloud Server."),
+                    Argument("password", str, optional=True, doc="Password used together with email or phone login. If BOHR_TICKET is set, password-based login can be skipped."),
+                    Argument("phone", str, optional=True, doc="Phone number used to log in when email is not used."),
                     Argument(
                         "program_id",
                         int,
                         optional=False,
                         alias=["project_id"],
-                        doc="Program ID",
+                        doc="Program / project ID used to place uploaded jobs under the correct Bohrium project namespace.",
                     ),
                     Argument(
                         "retry_count",
@@ -327,10 +327,10 @@ class BohriumContext(BaseContext):
                         "keep_backup",
                         bool,
                         optional=True,
-                        doc="keep download and upload zip",
+                        doc="Whether to keep uploaded/downloaded zip archives in the local backup directory after transfer.",
                     ),
                     Argument(
-                        "input_data", dict, optional=False, doc="Configuration of job"
+                        "input_data", dict, optional=False, doc="Platform-specific job configuration passed through to the Bohrium / DP Cloud Server API."
                     ),
                 ],
                 doc=doc_remote_profile,
