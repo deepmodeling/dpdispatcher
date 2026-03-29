@@ -58,21 +58,25 @@ def submission_args() -> Argument:
                 "work_base",
                 dtype=str,
                 optional=False,
-                doc="Base directory for the work",
+                doc=(
+                    "Base directory for the work, relative to machine.local_root. "
+                    "This must be a relative path; if an absolute path is provided it "
+                    "will not be combined with machine.local_root."
+                ),
             ),
             Argument(
                 "forward_common_files",
                 dtype=List[str],
                 optional=True,
                 default=[],
-                doc="Common files to forward to the remote machine",
+                doc="Files shared by all tasks and uploaded from work_base before execution.",
             ),
             Argument(
                 "backward_common_files",
                 dtype=List[str],
                 optional=True,
                 default=[],
-                doc="Common files to backward from the remote machine",
+                doc="Files shared by all tasks and downloaded back to work_base after execution.",
             ),
             machine_args,
             resources_args,

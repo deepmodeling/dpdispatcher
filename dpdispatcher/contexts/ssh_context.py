@@ -325,31 +325,24 @@ class SSHSession:
 
     @staticmethod
     def arginfo():
-        doc_hostname = "hostname or ip of ssh connection."
-        doc_username = "username of target linux system"
+        doc_hostname = "Hostname or IP address of the SSH target machine."
+        doc_username = "Username used to log in to the target system."
         doc_password = (
             "(deprecated) password of linux system. Please use "
             "`SSH keys <https://www.ssh.com/academy/ssh/key>`_ instead to improve security."
         )
-        doc_port = "ssh connection port."
+        doc_port = "SSH port of the target machine. Usually 22."
         doc_key_filename = (
-            "key filename used by ssh connection. If left None, find key in ~/.ssh or "
-            "use password for login"
+            "Path to the private key file used for SSH authentication. If left None, DPDispatcher can "
+            "try discoverable keys in ~/.ssh or fall back to password-based login if configured."
         )
-        doc_passphrase = "passphrase of key used by ssh connection"
-        doc_timeout = "timeout of ssh connection"
-        doc_totp_secret = (
-            "Time-based one time password secret. It should be a base32-encoded string"
-            " extracted from the 2D code."
-        )
-        doc_tar_compress = "The archive will be compressed in upload and download if it is True. If not, compression will be skipped."
-        doc_look_for_keys = (
-            "enable searching for discoverable private key files in ~/.ssh/"
-        )
-        doc_execute_command = "execute command after ssh connection is established."
-        doc_proxy_command = (
-            "ProxyCommand to use for SSH connection through intermediate servers."
-        )
+        doc_passphrase = "Passphrase for the SSH private key, if the key is encrypted."
+        doc_timeout = "Timeout in seconds for establishing the SSH connection."
+        doc_totp_secret = "Time-based one-time-password secret used for keyboard-interactive 2FA. It should be a base32-encoded string."
+        doc_tar_compress = "Whether upload/download tar archives are compressed. Keeping this True usually reduces transfer size at the cost of extra CPU time."
+        doc_look_for_keys = "Whether to search for discoverable private key files in ~/.ssh when key_filename is not provided."
+        doc_execute_command = "Optional command executed immediately after the SSH connection is established."
+        doc_proxy_command = "Optional SSH ProxyCommand used to reach the target through an intermediate host or tunnel."
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -1020,9 +1013,7 @@ class SSHContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = (
-            "The information used to maintain the connection with remote machine."
-        )
+        doc_remote_profile = "SSH connection settings for the remote machine, including authentication, timeouts, and optional proxy/jump-host behavior."
         remote_profile_format = SSHSession.arginfo()
         remote_profile_format.name = "remote_profile"
         remote_profile_format.doc = doc_remote_profile
