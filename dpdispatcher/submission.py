@@ -705,12 +705,12 @@ class Task:
             "directory under local_root/work_base."
         )
         doc_outlog = (
-            "Filename for stdout redirection inside task_work_path. The local result is typically "
-            "available under local_root/work_base/task_work_path/outlog after synchronization."
+            "Filename used to redirect stdout inside task_work_path while the task runs. If this file is "
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
         )
         doc_errlog = (
-            "Filename for stderr redirection inside task_work_path. The local result is typically "
-            "available under local_root/work_base/task_work_path/errlog after synchronization."
+            "Filename used to redirect stderr inside task_work_path while the task runs. If this file is "
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
         )
 
         task_args = [
