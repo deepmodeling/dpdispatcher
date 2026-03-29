@@ -29,6 +29,8 @@ Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Ba
 Files will be copied to the remote directory via SSH channels before jobs start and copied back after jobs finish.
 To use SSH, one needs to provide necessary parameters in {dargs:argument}`remote_profile <machine[SSHContext]/remote_profile>`, such as {dargs:argument}`username <machine[SSHContext]/remote_profile/hostname>` and {dargs:argument}`hostname <username[SSHContext]/remote_profile/hostname>`.
 
+By default, DPDispatcher requires {dargs:argument}`remote_root <machine/remote_root>` to already exist on the remote machine, which helps catch typos in remote paths. If you want DPDispatcher to recursively create that directory tree for you, set {dargs:argument}`create_remote_root <machine[SSHContext]/create_remote_root>` to `true`.
+
 It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/OpenSSH/Keys) and transfer the public key to the remote server in advance, which is more secure than password authentication.
 
 Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.

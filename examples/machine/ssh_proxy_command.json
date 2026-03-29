@@ -3,6 +3,7 @@
   "context_type": "SSHContext",
   "local_root": "./",
   "remote_root": "/home/user/work",
+  "create_remote_root": true,
   "remote_profile": {
     "hostname": "internal-server.company.com",
     "username": "user",

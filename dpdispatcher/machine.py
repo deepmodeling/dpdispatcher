@@ -175,6 +175,10 @@ class Machine(metaclass=ABCMeta):
         machine_dict["context_type"] = self.context.__class__.__name__
         machine_dict["local_root"] = self.context.init_local_root
         machine_dict["remote_root"] = self.context.init_remote_root
+        if hasattr(self.context, "clean_asynchronously"):
+            machine_dict["clean_asynchronously"] = self.context.clean_asynchronously
+        if hasattr(self.context, "create_remote_root"):
+            machine_dict["create_remote_root"] = self.context.create_remote_root
         if not if_empty_remote_profile:
             machine_dict["remote_profile"] = self.context.remote_profile
         else:
