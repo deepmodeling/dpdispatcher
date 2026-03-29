@@ -338,17 +338,11 @@ class SSHSession:
         )
         doc_passphrase = "Passphrase for the SSH private key, if the key is encrypted."
         doc_timeout = "Timeout in seconds for establishing the SSH connection."
-        doc_totp_secret = (
-            "Time-based one-time-password secret used for keyboard-interactive 2FA. It should be a base32-encoded string."
-        )
+        doc_totp_secret = "Time-based one-time-password secret used for keyboard-interactive 2FA. It should be a base32-encoded string."
         doc_tar_compress = "Whether upload/download tar archives are compressed. Keeping this True usually reduces transfer size at the cost of extra CPU time."
-        doc_look_for_keys = (
-            "Whether to search for discoverable private key files in ~/.ssh when key_filename is not provided."
-        )
+        doc_look_for_keys = "Whether to search for discoverable private key files in ~/.ssh when key_filename is not provided."
         doc_execute_command = "Optional command executed immediately after the SSH connection is established."
-        doc_proxy_command = (
-            "Optional SSH ProxyCommand used to reach the target through an intermediate host or tunnel."
-        )
+        doc_proxy_command = "Optional SSH ProxyCommand used to reach the target through an intermediate host or tunnel."
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -1019,9 +1013,7 @@ class SSHContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = (
-            "SSH connection settings for the remote machine, including authentication, timeouts, and optional proxy/jump-host behavior."
-        )
+        doc_remote_profile = "SSH connection settings for the remote machine, including authentication, timeouts, and optional proxy/jump-host behavior."
         remote_profile_format = SSHSession.arginfo()
         remote_profile_format.name = "remote_profile"
         remote_profile_format.doc = doc_remote_profile
