@@ -18,7 +18,6 @@ from dpdispatcher.utils.utils import (
 
 slurm_script_header_template = """\
 #!/bin/bash -l
-#SBATCH --parsable
 {slurm_nodes_line}
 {slurm_ntasks_per_node_line}
 {slurm_number_gpu_line}
@@ -36,7 +35,7 @@ class Slurm(Machine):
         slurm_script = super().gen_script(job)
         return slurm_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job) -> str:
         resources = job.resources
         script_header_dict = {}
         script_header_dict["slurm_nodes_line"] = (
@@ -46,12 +45,14 @@ class Slurm(Machine):
             f"#SBATCH --ntasks-per-node {resources.cpu_per_node}"
         )
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
-        if not custom_gpu_line:
+        if custom_gpu_line is not None:
+            script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
+        elif resources.gpu_per_node > 0:
             script_header_dict["slurm_number_gpu_line"] = (
                 f"#SBATCH --gres=gpu:{resources.gpu_per_node}"
             )
         else:
-            script_header_dict["slurm_number_gpu_line"] = custom_gpu_line
+            script_header_dict["slurm_number_gpu_line"] = ""
         if resources.queue_name != "":
             script_header_dict["slurm_partition_line"] = (
                 f"#SBATCH --partition {resources.queue_name}"

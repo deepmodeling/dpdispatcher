@@ -11,7 +11,7 @@ linenos:
 ---
 ```
 
-Expanse's standard compute nodes are each powered by two 64-core AMD EPYC 7742 processors and contain 256 GB of DDR4 memory. Here, we request one node with 32 cores and 16 GB memory from the `shared` partition. Expanse does not support `--gres=gpu:0` command, so we use {ref}`custom_gpu_line <resources[Slurm]/kwargs/custom_gpu_line>` to customize the statement.
+Expanse's standard compute nodes are each powered by two 64-core AMD EPYC 7742 processors and contain 256 GB of DDR4 memory. Here, we request one node with 32 cores and 16 GB memory from the `shared` partition. Since CPU Slurm jobs omit GPU directives by default, no GPU override is needed for this example. If a site requires an explicit GPU directive such as `--gpus=0`, use {ref}`custom_gpu_line <resources[Slurm]/kwargs/custom_gpu_line>` to customize the statement.
 
 ```{literalinclude} ../../examples/resources/expanse_cpu.json
 ---
