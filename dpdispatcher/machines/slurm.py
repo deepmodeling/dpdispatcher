@@ -67,8 +67,8 @@ class Slurm(Machine):
                 resources,
             )
         else:
-            slurm_script_header = slurm_script_header_template.format(
-                **script_header_dict
+            slurm_script_header = self.apply_login_shell_option(
+                slurm_script_header_template.format(**script_header_dict), resources
             )
         return slurm_script_header
 

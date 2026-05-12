@@ -71,7 +71,9 @@ class LSF(Machine):
                 resources,
             )
         else:
-            lsf_script_header = lsf_script_header_template.format(**script_header_dict)
+            lsf_script_header = self.apply_login_shell_option(
+                lsf_script_header_template.format(**script_header_dict), resources
+            )
 
         return lsf_script_header
 

@@ -223,6 +223,12 @@ class Machine(metaclass=ABCMeta):
             "abstract method do_submit should be implemented by derived class"
         )
 
+    @staticmethod
+    def apply_login_shell_option(script_header: str, resources) -> str:
+        if resources.kwargs.get("login_shell", True):
+            return script_header
+        return script_header.replace("#!/bin/bash -l", "#!/bin/bash", 1)
+
     def gen_script_run_command(self, job):
         return f"source $REMOTE_ROOT/{job.script_file_name}.run"
 
@@ -496,7 +502,14 @@ class Machine(metaclass=ABCMeta):
         """
         return [
             Argument(
-                "kwargs", dict, optional=True, doc="This field is empty for this batch."
+                "kwargs",
+                dict,
+                optional=True,
+                doc=(
+                    "Machine-specific settings. For Bash submission scripts, "
+                    "set login_shell to false to use #!/bin/bash instead of "
+                    "#!/bin/bash -l."
+                ),
             )
         ]
 

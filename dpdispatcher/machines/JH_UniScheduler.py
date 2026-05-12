@@ -52,8 +52,9 @@ class JH_UniScheduler(Machine):
                 resources,
             )
         else:
-            JH_UniScheduler_script_header = (
-                JH_UniScheduler_script_header_template.format(**script_header_dict)
+            JH_UniScheduler_script_header = self.apply_login_shell_option(
+                JH_UniScheduler_script_header_template.format(**script_header_dict),
+                resources,
             )
 
         return JH_UniScheduler_script_header

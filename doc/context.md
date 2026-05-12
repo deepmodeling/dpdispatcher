@@ -10,6 +10,7 @@ One needs to set {dargs:argument}`context_type <machine/context_type>` to one of
 `LazyLocal` directly runs jobs in the local server and local directory.
 
 Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environment variables. Therefore, it's advisable to explicitly set the environment variables using {dargs:argument}`envs <resources/envs>` or {dargs:argument}`source_list <resources/source_list>`.
+For backends that generate Bash submission scripts, set `kwargs.login_shell` to `false` to use `#!/bin/bash` instead of `#!/bin/bash -l`. User-provided script header templates control their own shebang line.
 
 ## Local
 
@@ -20,6 +21,7 @@ Files will be symlinked to the remote directory before jobs start and copied bac
 If the local directory is not accessible with the [batch system](./batch.md), turn off {dargs:argument}`symlink <machine[LocalContext]/remote_profile/symlink>`, and then files on the local directory will be copied to the remote directory.
 
 Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) is used in the shebang line of the submission scripts, the [login shell startup files](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Bash) will be executed, potentially overriding the current environment variables. Therefore, it's advisable to explicitly set the environment variables using {dargs:argument}`envs <resources/envs>` or {dargs:argument}`source_list <resources/source_list>`.
+For backends that generate Bash submission scripts, set `kwargs.login_shell` to `false` to use `#!/bin/bash` instead of `#!/bin/bash -l`. User-provided script header templates control their own shebang line.
 
 ## SSH
 

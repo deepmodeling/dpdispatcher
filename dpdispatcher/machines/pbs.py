@@ -44,8 +44,8 @@ class PBS(Machine):
                 resources,
             )
         else:
-            pbs_script_header = pbs_script_header_template.format(
-                **pbs_script_header_dict
+            pbs_script_header = self.apply_login_shell_option(
+                pbs_script_header_template.format(**pbs_script_header_dict), resources
             )
         return pbs_script_header
 
@@ -176,8 +176,8 @@ class Torque(PBS):
                 resources,
             )
         else:
-            pbs_script_header = pbs_script_header_template.format(
-                **pbs_script_header_dict
+            pbs_script_header = self.apply_login_shell_option(
+                pbs_script_header_template.format(**pbs_script_header_dict), resources
             )
         return pbs_script_header
 

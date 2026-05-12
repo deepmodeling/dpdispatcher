@@ -26,7 +26,9 @@ class Shell(Machine):
                 resources,
             )
         else:
-            shell_script_header = shell_script_header_template
+            shell_script_header = self.apply_login_shell_option(
+                shell_script_header_template, resources
+            )
         return shell_script_header
 
     def do_submit(self, job):
