@@ -20,8 +20,5 @@
     "TF_INTER_OP_PARALLELISM_THREADS": 8,
     "DP_AUTO_PARALLELIZATION": 1
   },
-  "batch_type": "Slurm",
-  "kwargs": {
-    "custom_gpu_line": "#SBATCH --gpus=0"
-  }
+  "batch_type": "Slurm"
 }

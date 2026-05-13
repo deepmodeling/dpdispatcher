@@ -1,5 +1,4 @@
 #!/bin/bash -l
-#SBATCH --parsable
 #SBATCH --nodes={number_node}
 #SBATCH --ntasks-per-node={cpu_per_node}
 #SBATCH --qos={kwargs[qos]}
