@@ -359,7 +359,7 @@ class LocalContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = "The information used to maintain the local machine."
+        doc_remote_profile = "Options controlling how files are staged between local_root and remote_root when both paths are on the local filesystem."
         return [
             Argument(
                 "remote_profile",
@@ -372,7 +372,7 @@ class LocalContext(BaseContext):
                         bool,
                         optional=True,
                         default=True,
-                        doc="Whether to use symbolic links to replace copy. This option should be turned off if the local directory is not accessible on the Batch system.",
+                        doc="Whether to use symbolic links instead of copying files from local_root into remote_root. Disable this when the execution side cannot access the original local path through the same filesystem view.",
                     ),
                 ],
             )

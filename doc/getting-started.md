@@ -111,7 +111,7 @@ and `task.json` is
 }
 ```
 
-You may also submit mutiple GPU jobs:
+You may also submit multiple GPU jobs:
 complex resources example
 
 ```python3

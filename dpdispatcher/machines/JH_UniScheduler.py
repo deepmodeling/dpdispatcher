@@ -137,7 +137,7 @@ class JH_UniScheduler(Machine):
         list[Argument]
             resources subfields
         """
-        doc_custom_gpu_line = "Custom GPU configuration, starting with #JSUB"
+        doc_custom_gpu_line = "Custom GPU header line starting with #JSUB. When set, it overrides the default UniScheduler GPU line generated from gpu_per_node."
 
         return [
             Argument(
@@ -153,7 +153,7 @@ class JH_UniScheduler(Machine):
                     ),
                 ],
                 optional=False,
-                doc="Extra arguments.",
+                doc="JH_UniScheduler-specific extra arguments.",
             )
         ]
 
