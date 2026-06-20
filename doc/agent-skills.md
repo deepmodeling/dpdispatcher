@@ -10,7 +10,7 @@ DPDispatcher provides official [Agent Skills](https://agentskills.io/what-are-sk
 
 The `dpdisp-submit` skill is one of the core workflow components described in the following paper:
 
-- Mingwei Ding, Chen Huang, Yibo Hu, Yifan Li, Zitian Lu, Xingtai Yu, Duo Zhang, Wenxi Zhai, Tong Zhu, Qiangqiang Gu, and Jinzhe Zeng. [Automating Computational Chemistry Workflows via OpenClaw and Domain-Specific Skills](https://doi.org/10.48550/arXiv.2603.25522). arXiv:2603.25522, 2026.
+- Mingwei Ding, Chen Huang, Yibo Hu, Yifan Li, Zitian Lu, Xingtai Yu, Duo Zhang, Wenxi Zhai, Tong Zhu, Qiangqiang Gu, and Jinzhe Zeng. [Automating Computational Chemistry Workflows via OpenClaw and Domain-Specific Skills](https://doi.org/10.1021/acs.jctc.6c00622). _J. Chem. Theory Comput._, 2026, DOI: [10.1021/acs.jctc.6c00622](https://doi.org/10.1021/acs.jctc.6c00622).
 
 ## Install skills
 
