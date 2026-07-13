@@ -464,6 +464,7 @@ class SSHContext(BaseContext):
         remote_root,
         remote_profile,
         clean_asynchronously=False,
+        create_remote_root=False,
         *args,
         **kwargs,
     ):
@@ -480,6 +481,7 @@ class SSHContext(BaseContext):
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
+        self.create_remote_root = create_remote_root
         # self.job_uuid = job_uuid
         # if job_uuid:
         #    self.job_uuid=job_uuid
@@ -488,10 +490,7 @@ class SSHContext(BaseContext):
         self.ssh_session = SSHSession(**remote_profile)
         # self.temp_remote_root = os.path.join(self.ssh_session.get_session_root())
         self.ssh_session.ensure_alive()
-        try:
-            self.sftp.mkdir(self.temp_remote_root)
-        except OSError:
-            pass
+        self._mkdir(self.temp_remote_root, recursive=self.create_remote_root)
 
     @classmethod
     def load_from_dict(cls, context_dict):
@@ -511,12 +510,14 @@ class SSHContext(BaseContext):
         remote_root = context_dict["remote_root"]
         remote_profile = context_dict["remote_profile"]
         clean_asynchronously = context_dict.get("clean_asynchronously", False)
+        create_remote_root = context_dict.get("create_remote_root", False)
 
         ssh_context = cls(
             local_root=local_root,
             remote_root=remote_root,
             remote_profile=remote_profile,
             clean_asynchronously=clean_asynchronously,
+            create_remote_root=create_remote_root,
         )
         # local_root = jdata['local_root']
         # ssh_session = SSHSession(**input)
@@ -540,6 +541,28 @@ class SSHContext(BaseContext):
 
     def get_job_root(self):
         return self.remote_root
+
+    def _mkdir(self, remote_dir, recursive=False):
+        if not remote_dir:
+            return
+
+        sftp = self.sftp
+        if not recursive:
+            try:
+                sftp.mkdir(remote_dir)
+            except OSError:
+                pass
+            return
+
+        path = pathlib.PurePosixPath(remote_dir)
+        current = path.root if path.is_absolute() else ""
+        parts = path.parts[1:] if path.is_absolute() else path.parts
+        for part in parts:
+            current = pathlib.PurePosixPath(current, part).as_posix()
+            try:
+                sftp.mkdir(current)
+            except OSError:
+                pass
 
     def bind_submission(self, submission):
         assert self.ssh_session is not None
@@ -572,11 +595,7 @@ class SSHContext(BaseContext):
             # if the new directory exists and the old directory does not contain files, then move the old directory
             self._rmtree(old_remote_root)
 
-        sftp = self.ssh_session.ssh.open_sftp()
-        try:
-            sftp.mkdir(self.remote_root)
-        except OSError:
-            pass
+        self._mkdir(self.remote_root, recursive=self.create_remote_root)
 
         # self.job_uuid = submission.submission_hash
         # dlog.debug("debug:SSHContext.bind_submission"
@@ -1013,8 +1032,22 @@ class SSHContext(BaseContext):
         list[Argument]
             machine subfields
         """
+        doc_create_remote_root = (
+            "Whether DPDispatcher should recursively create the configured SSH remote_root "
+            "when parent directories do not already exist. Keep this disabled by default "
+            "to avoid silently creating directories for a mistyped path."
+        )
         doc_remote_profile = "SSH connection settings for the remote machine, including authentication, timeouts, and optional proxy/jump-host behavior."
         remote_profile_format = SSHSession.arginfo()
         remote_profile_format.name = "remote_profile"
         remote_profile_format.doc = doc_remote_profile
-        return [remote_profile_format]
+        return [
+            Argument(
+                "create_remote_root",
+                bool,
+                optional=True,
+                default=False,
+                doc=doc_create_remote_root,
+            ),
+            remote_profile_format,
+        ]

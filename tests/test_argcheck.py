@@ -31,6 +31,69 @@ class TestJob(unittest.TestCase):
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
+    def test_ssh_machine_argcheck(self):
+        from .context import SSHContext
+
+        original_init = SSHContext.__init__
+
+        def fake_init(
+            self,
+            local_root,
+            remote_root,
+            remote_profile,
+            clean_asynchronously=False,
+            create_remote_root=False,
+            *args,
+            **kwargs,
+        ):
+            self.init_local_root = local_root
+            self.init_remote_root = remote_root
+            self.remote_profile = remote_profile
+            self.clean_asynchronously = clean_asynchronously
+            self.create_remote_root = create_remote_root
+
+        SSHContext.__init__ = fake_init
+        try:
+            norm_dict = Machine.load_from_dict(
+                {
+                    "batch_type": "slurm",
+                    "context_type": "ssh",
+                    "local_root": "./",
+                    "remote_root": "/some/path",
+                    "remote_profile": {
+                        "hostname": "host",
+                        "username": "user",
+                    },
+                    "create_remote_root": True,
+                }
+            ).serialize()
+        finally:
+            SSHContext.__init__ = original_init
+
+        expected_dict = {
+            "batch_type": "Slurm",
+            "context_type": "SSHContext",
+            "local_root": "./",
+            "remote_root": "/some/path",
+            "remote_profile": {
+                "hostname": "host",
+                "username": "user",
+                "port": 22,
+                "key_filename": None,
+                "passphrase": None,
+                "timeout": 10,
+                "totp_secret": None,
+                "tar_compress": True,
+                "look_for_keys": True,
+                "execute_command": None,
+                "proxy_command": None,
+            },
+            "clean_asynchronously": False,
+            "create_remote_root": True,
+            "retry_count": 3,
+        }
+        self.assertDictEqual(norm_dict, expected_dict)
+
     def test_resources_argcheck(self):
         norm_dict = Resources.load_from_dict(
             {
