@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -568,15 +568,16 @@ class Task:
         self,
         command,
         task_work_path,
-        forward_files=[],
-        backward_files=[],
+        forward_files: Optional[Sequence[str]] = None,
+        backward_files: Optional[Sequence[str]] = None,
         outlog="log",
         errlog="err",
     ):
         self.command = command
         self.task_work_path = task_work_path
-        self.forward_files = forward_files
-        self.backward_files = backward_files
+        # Detach task state from caller-owned lists and constructor defaults.
+        self.forward_files = list(forward_files) if forward_files is not None else []
+        self.backward_files = list(backward_files) if backward_files is not None else []
         self.outlog = outlog
         self.errlog = errlog
 
@@ -1033,16 +1034,16 @@ class Resources:
         queue_name,
         group_size,
         *,
-        custom_flags=[],
-        strategy=default_strategy,
+        custom_flags: Optional[Sequence[str]] = None,
+        strategy: Optional[Dict[str, Any]] = None,
         para_deg=1,
-        module_unload_list=[],
+        module_unload_list: Optional[Sequence[str]] = None,
         module_purge=False,
-        module_list=[],
-        source_list=[],
-        envs={},
-        prepend_script=[],
-        append_script=[],
+        module_list: Optional[Sequence[str]] = None,
+        source_list: Optional[Sequence[str]] = None,
+        envs: Optional[Dict[str, Any]] = None,
+        prepend_script: Optional[Sequence[str]] = None,
+        append_script: Optional[Sequence[str]] = None,
         wait_time=0,
         **kwargs,
     ):
@@ -1053,20 +1054,24 @@ class Resources:
         self.group_size = group_size
 
         # self.extra_specification = extra_specification
-        self.custom_flags = custom_flags
-        self.strategy = strategy
+        # Resource configuration is JSON-like, so deep copies also isolate
+        # nested environment and backend options from later caller mutation.
+        self.custom_flags = list(custom_flags) if custom_flags is not None else []
+        self.strategy = copy.deepcopy(strategy) if strategy is not None else {}
         self.para_deg = para_deg
         self.module_purge = module_purge
-        self.module_unload_list = module_unload_list
-        self.module_list = module_list
-        self.source_list = source_list
-        self.envs = envs
-        self.prepend_script = prepend_script
-        self.append_script = append_script
+        self.module_unload_list = (
+            list(module_unload_list) if module_unload_list is not None else []
+        )
+        self.module_list = list(module_list) if module_list is not None else []
+        self.source_list = list(source_list) if source_list is not None else []
+        self.envs = copy.deepcopy(envs) if envs is not None else {}
+        self.prepend_script = list(prepend_script) if prepend_script is not None else []
+        self.append_script = list(append_script) if append_script is not None else []
         self.wait_time = wait_time
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
-        self.kwargs = kwargs.get("kwargs", kwargs)
+        self.kwargs = copy.deepcopy(kwargs.get("kwargs", kwargs))
 
         self.gpu_in_use = 0
         self.task_in_para = 0
@@ -1121,16 +1126,16 @@ class Resources:
             gpu_per_node=resources_dict.get("gpu_per_node", 0),
             queue_name=resources_dict.get("queue_name", ""),
             group_size=resources_dict["group_size"],
-            custom_flags=resources_dict.get("custom_flags", []),
-            strategy=resources_dict.get("strategy", default_strategy),
+            custom_flags=resources_dict.get("custom_flags"),
+            strategy=resources_dict.get("strategy"),
             para_deg=resources_dict.get("para_deg", 1),
             module_purge=resources_dict.get("module_purge", False),
-            module_unload_list=resources_dict.get("module_unload_list", []),
-            module_list=resources_dict.get("module_list", []),
-            source_list=resources_dict.get("source_list", []),
-            envs=resources_dict.get("envs", {}),
-            prepend_script=resources_dict.get("prepend_script", []),
-            append_script=resources_dict.get("append_script", []),
+            module_unload_list=resources_dict.get("module_unload_list"),
+            module_list=resources_dict.get("module_list"),
+            source_list=resources_dict.get("source_list"),
+            envs=resources_dict.get("envs"),
+            prepend_script=resources_dict.get("prepend_script"),
+            append_script=resources_dict.get("append_script"),
             wait_time=resources_dict.get("wait_time", 0),
             **resources_dict.get("kwargs", {}),
         )
