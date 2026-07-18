@@ -560,8 +560,8 @@ class Task:
         the files to be transmitted from remote machine after the comand finished.
     outlog : Str
         the filename to which command redirect stdout
-    errlog : Str
-        the filename to which command redirect stderr
+    errlog : Str or None
+        the filename to which command redirects stderr, or None to inherit stderr
     """
 
     def __init__(
@@ -707,11 +707,13 @@ class Task:
         )
         doc_outlog = (
             "Filename used to redirect stdout inside task_work_path while the task runs. If this file is "
-            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side. "
+            "Set this to null to inherit stdout without creating a task output log."
         )
         doc_errlog = (
             "Filename used to redirect stderr inside task_work_path while the task runs. If this file is "
-            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side. "
+            "Set this to null to inherit stderr without creating a task error log; automatic last-error excerpts are then disabled."
         )
 
         task_args = [
