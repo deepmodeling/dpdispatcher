@@ -5,13 +5,14 @@
       - 'dependabot/**'
       - 'pre-commit-ci-update-config'
   pull_request:
-name: Type checker
+name: ty
 jobs:
-  test:
-    name: pyright
+  ty:
+    name: ty
     runs-on: ubuntu-slim
     steps:
     - uses: actions/checkout@v7
     - name: Install the latest version of uv
       uses: astral-sh/setup-uv@v7
-    - run: uvx --from ty==0.0.17 --with .[cloudserver,gui] --with tomli ty check
+    - name: Run ty
+      run: uvx --from ty==0.0.17 --with .[cloudserver,gui] --with tomli ty check
