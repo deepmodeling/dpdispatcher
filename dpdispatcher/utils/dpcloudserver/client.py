@@ -2,6 +2,7 @@ import os
 import re
 import time
 import urllib.parse
+from typing import Dict
 from urllib.parse import urljoin
 
 import requests
@@ -36,8 +37,13 @@ class Client:
         self.config["email"] = email
         self.config["password"] = password
         self.base_url = base_url
-        self.last_log_offset = 0
+        # Each cloud job has an independent log stream and byte position.
+        self.last_log_offsets: Dict[str, int] = {}
         self.ticket = ticket
+
+    def _effective_ticket(self) -> str:
+        """Return the ticket for this request without losing caller configuration."""
+        return os.environ.get("BOHR_TICKET") or self.ticket or ""
 
     def post(self, url, data=None, header=None, params=None, retry=5):
         return self._req(
@@ -54,9 +60,8 @@ class Client:
             header = {}
         if not self.token:
             self.refresh_token()
-        self.ticket = os.environ.get("BOHR_TICKET", "")
         header["Authorization"] = f"jwt {self.token}"
-        header["Brm-Ticket"] = self.ticket
+        header["Brm-Ticket"] = self._effective_ticket()
         resp_code = None
         err = None
         for i in range(retry):
@@ -106,8 +111,7 @@ class Client:
         self.user_id = resp["user_id"]
 
     def refresh_token(self, retry=3):
-        self.ticket = os.environ.get("BOHR_TICKET", "")
-        if self.ticket:
+        if self._effective_ticket():
             return
         url = "/account/login"
         post_data = {"email": self.config["email"], "password": self.config["password"]}
@@ -274,10 +278,12 @@ class Client:
         url, size = self._get_job_log(job_id)
         if not url:
             return ""
-        if self.last_log_offset >= size:
+        job_key = str(job_id)
+        offset = self.last_log_offsets.get(job_key, 0)
+        if offset >= size:
             return ""
-        resp = requests.get(url, headers={"Range": f"bytes={self.last_log_offset}-"})
-        self.last_log_offset += len(resp.content)
+        resp = requests.get(url, headers={"Range": f"bytes={offset}-"})
+        self.last_log_offsets[job_key] = offset + len(resp.content)
         try:
             return resp.content.decode("utf-8")
         except Exception as e:
