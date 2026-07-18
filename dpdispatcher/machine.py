@@ -2,13 +2,16 @@ import json
 import pathlib
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import yaml
 from dargs import Argument, Variant
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Task
 
 script_template = """\
 {script_header}
@@ -36,7 +39,7 @@ cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
   {command_env} ( {command} ) {log_err_part}
-  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > $REMOTE_ROOT/{flag_if_job_task_fail};tail -v -c 1000 $REMOTE_ROOT/{task_work_path}/{err_file} > $REMOTE_ROOT/{last_err_file};fi
+  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > $REMOTE_ROOT/{flag_if_job_task_fail};{failure_diagnostic_part}fi
 fi &
 """
 
@@ -339,6 +342,7 @@ class Machine(metaclass=ABCMeta):
 
             flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
             last_err_file = job.job_hash + "_last_err_file"
+            failure_diagnostic_part = self._gen_failure_diagnostic(task, last_err_file)
             single_script_command = script_command_template.format(
                 flag_if_job_task_fail=flag_if_job_task_fail,
                 command_env=command_env,
@@ -348,13 +352,24 @@ class Machine(metaclass=ABCMeta):
                 command=task.command,
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part,
-                err_file=shlex.quote(task.errlog),
-                last_err_file=shlex.quote(last_err_file),
+                failure_diagnostic_part=failure_diagnostic_part,
             )
             script_command += single_script_command
 
             script_command += self.gen_script_wait(resources=resources)
         return script_command
+
+    @staticmethod
+    def _gen_failure_diagnostic(task: "Task", last_err_file: str) -> str:
+        """Generate a last-error excerpt only when stderr has a task log."""
+        if task.errlog is None:
+            return ""
+        task_work_path = shlex.quote(pathlib.PurePath(task.task_work_path).as_posix())
+        return (
+            "tail -v -c 1000 "
+            f"$REMOTE_ROOT/{task_work_path}/{shlex.quote(task.errlog)} "
+            f"> $REMOTE_ROOT/{shlex.quote(last_err_file)};"
+        )
 
     def gen_script_end(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"

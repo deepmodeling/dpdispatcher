@@ -272,6 +272,7 @@ class SlurmJobArray(Slurm):
 
             flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
             last_err_file = job.job_hash + "_last_err_file"
+            failure_diagnostic_part = self._gen_failure_diagnostic(task, last_err_file)
             single_script_command = script_command_template.format(
                 flag_if_job_task_fail=flag_if_job_task_fail,
                 command_env=command_env,
@@ -281,8 +282,7 @@ class SlurmJobArray(Slurm):
                 command=task.command,
                 task_tag_finished=task_tag_finished,
                 log_err_part=log_err_part,
-                err_file=shlex.quote(task.errlog),
-                last_err_file=shlex.quote(last_err_file),
+                failure_diagnostic_part=failure_diagnostic_part,
             )
             if ii % slurm_job_size == 0:
                 script_command += f"{ii // slurm_job_size})\n"
