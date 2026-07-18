@@ -1,5 +1,9 @@
 from dpdispatcher.dlog import dlog
-from dpdispatcher.machine import Machine
+from dpdispatcher.machine import (
+    Machine,
+    _format_export_lines,
+    _format_source_command,
+)
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.utils import (
     customized_script_header_template,
@@ -64,17 +68,11 @@ class DistributedShell(Machine):
 
         source_list = job.resources.source_list
         for ii in source_list:
-            line = f"{{ source {ii}; }} \n"
-            source_files_part += line
+            source_command = _format_source_command(ii)
+            if source_command:
+                source_files_part += f"{{ {source_command}; }} \n"
 
-        export_envs_part = ""
-        envs = job.resources.envs
-        for k, v in envs.items():
-            if isinstance(v, list):
-                for each_value in v:
-                    export_envs_part += f"export {k}={each_value}\n"
-            else:
-                export_envs_part += f"export {k}={v}\n"
+        export_envs_part = _format_export_lines(job.resources.envs)
 
         prepend_script = job.resources.prepend_script
         prepend_script_part = "\n".join(prepend_script)
