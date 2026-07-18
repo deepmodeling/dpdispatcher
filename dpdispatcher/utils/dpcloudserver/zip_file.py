@@ -2,6 +2,8 @@ import glob
 import os
 from zipfile import ZipFile
 
+from dpdispatcher.utils.archive import safe_extract_zip
+
 # def zip_file_list(root_path, zip_filename, file_list=[]):
 #     shutil.make_archive(base_name=zip_filename,
 #         root_dir=root_path,)
@@ -77,7 +79,7 @@ def zip_file_list(root_path, zip_filename, file_list=[]):
 #     return False
 
 
-def unzip_file(zip_file, out_dir="./"):
-    obj = ZipFile(zip_file, "r")
-    for item in obj.namelist():
-        obj.extract(item, out_dir)
+def unzip_file(zip_file: str, out_dir: str = "./") -> None:
+    """Extract a cloud result zip after validating every archive member."""
+    with ZipFile(zip_file, "r") as obj:
+        safe_extract_zip(obj, out_dir)

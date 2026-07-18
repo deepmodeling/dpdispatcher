@@ -20,6 +20,7 @@ from dargs.dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.utils.archive import safe_extract_tar
 
 # from dpdispatcher.submission import Machine
 from dpdispatcher.utils.utils import (
@@ -999,7 +1000,7 @@ class SSHContext(BaseContext):
         self.ssh_session.get(from_f, to_f)
         # extract
         with tarfile.open(to_f, mode=tarfile_mode) as tar:
-            tar.extractall(path=self.local_root)
+            safe_extract_tar(tar, self.local_root)
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
