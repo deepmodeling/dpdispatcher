@@ -1202,14 +1202,22 @@ class Resources:
             "within that job. Keep para_deg=1 for the safest default."
         )
         doc_source_list = (
-            "Shell scripts or environment files sourced before task commands run. Useful on HPC systems for "
-            "activating software stacks explicitly instead of relying on login-shell defaults."
+            "Static shell script names and optional arguments sourced before task commands run. Each entry is "
+            "parsed into shell words and safely quoted; quote a path containing spaces inside the entry. Use "
+            "prepend_script instead when shell operators or variable/command expansion is intentional. Empty "
+            "entries are ignored for compatibility."
         )
         doc_module_purge = "Whether to run 'module purge' before applying module_unload_list and module_list. Mainly useful on HPC systems."
         doc_module_unload_list = "Modules to unload before loading the requested modules. Mainly relevant on HPC systems with environment modules."
         doc_module_list = "Modules to load before executing tasks. Mainly relevant on HPC systems with environment modules."
-        doc_envs = "Environment variables exported before executing tasks."
-        doc_prepend_script = "Optional shell lines inserted before task commands in the generated job script."
+        doc_envs = (
+            "Environment variables exported before executing tasks. Names must be valid POSIX identifiers and "
+            "values are shell-quoted. A list value emits one export per item in order; an empty list emits none."
+        )
+        doc_prepend_script = (
+            "Optional trusted shell lines inserted before task commands in the generated job script. Use this "
+            "for intentional variable expansion, command substitution, or source commands that need shell syntax."
+        )
         doc_append_script = "Optional shell lines inserted after task commands in the generated job script."
         doc_wait_time = (
             "Delay in seconds inserted after a job is submitted or resubmitted. Usually keep 0 unless the "

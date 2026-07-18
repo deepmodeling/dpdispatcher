@@ -16,15 +16,18 @@
       "cluster": "oryx",
       "group_size": 1,
       "source_list": ["/opt/intel/oneapi/setvars.sh"],
+      "prepend_script": [
+        "export HADOOP_HOME=\"${HADOOP_HOME:-/opt/tiger/yarn_deploy/hadoop}\"",
+        "export JAVA_HOME=\"${JAVA_HOME:-/opt/tiger/jdk/jdk1.8}\"",
+        "export LD_LIBRARY_PATH=\"${LD_LIBRARY_PATH}:${HADOOP_HOME}/lib/native:${JAVA_HOME}/jre/lib/amd64/server\"",
+        "export CLASSPATH=\"$(${HADOOP_HOME}/bin/hadoop classpath --glob)\"",
+        "export PATH=\"${HADOOP_HOME}/bin:/opt/vasp.5.4.4/bin:${PATH}\""
+      ],
       "kwargs": {
       	"yarn_path": "/opt/tiger/yarn_deploy/hadoop/share/hadoop/yarn",
       	"img_name": "hub.byted.org/md/dpgen_fp:v1",
       	"mem_limit": 64
       },
-      "envs" : {"HADOOP_HOME" : "${HADOOP_HOME:-/opt/tiger/yarn_deploy/hadoop}",
-      	"JAVA_HOME": "${JAVA_HOME:-/opt/tiger/jdk/jdk1.8}",
-      	"LD_LIBRARY_PATH": "${LD_LIBRARY_PATH}:${HADOOP_HOME}/lib/native:${JAVA_HOME}/jre/lib/amd64/server",
-      	"CLASSPATH": "`${HADOOP_HOME}/bin/hadoop classpath --glob`",
-      	"PATH": "${HADOOP_HOME}/bin:/opt/vasp.5.4.4/bin:${PATH}"}
+      "envs": {}
     }
 }

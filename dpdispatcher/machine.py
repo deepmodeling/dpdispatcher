@@ -1,8 +1,9 @@
 import json
 import pathlib
+import re
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import List, Tuple
+from typing import Any, List, Mapping, Sequence, Tuple
 
 import yaml
 from dargs import Argument, Variant
@@ -50,6 +51,91 @@ if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1
 
 {append_script_part}
 """
+
+_POSIX_ENVIRONMENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_UNSAFE_SOURCE_EXPANSIONS = (
+    "$",
+    "`",
+    "\n",
+    "\r",
+    ";",
+    "&",
+    "|",
+    "<",
+    ">",
+    "(",
+    ")",
+    "*",
+    "?",
+    "[",
+    "]",
+    "{",
+    "}",
+    "~",
+    "#",
+)
+
+
+def _format_source_command(source: str) -> str:
+    """Return a safely quoted ``source`` command for one static entry.
+
+    ``source_list`` historically accepts both a script name and optional
+    arguments, such as ``"activate deepmd"``.  Parse those static shell words
+    and quote each word independently to preserve that behavior.  Shell
+    operators and expansions are rejected with an actionable error instead of
+    being silently converted to literals; intentional shell code belongs in
+    ``prepend_script``.
+    """
+    if not isinstance(source, str):
+        raise TypeError("source_list entries must be strings")
+    if source.strip() == "":
+        # Historical Fugaku examples use an empty entry as a no-op placeholder.
+        return ""
+    if "\x00" in source:
+        raise ValueError("source_list entries must be NUL-free")
+    if any(marker in source for marker in _UNSAFE_SOURCE_EXPANSIONS):
+        raise ValueError(
+            "source_list entries must contain only static shell words; "
+            "put shell operators or expansions in prepend_script"
+        )
+    try:
+        arguments = shlex.split(source, posix=True)
+    except ValueError as error:
+        raise ValueError(f"Invalid source_list entry {source!r}: {error}") from error
+    if not arguments:
+        raise ValueError("source_list entries must contain at least one shell word")
+    if arguments[0].startswith("-"):
+        raise ValueError(
+            "A source script name must not begin with '-'; use prepend_script "
+            "for an intentional source option"
+        )
+    return "source " + " ".join(shlex.quote(argument) for argument in arguments)
+
+
+def _format_export_lines(envs: Mapping[str, Any]) -> str:
+    """Render validated environment values as deterministic export lines.
+
+    Scalar values produce one export.  List values preserve their configured
+    order and produce one export per element, matching DPDispatcher's existing
+    behavior while making the final value deterministic and shell-safe.  An
+    empty list emits no export and therefore leaves an inherited value intact.
+    """
+    lines: List[str] = []
+    for name, value in envs.items():
+        if not isinstance(name, str):
+            raise TypeError("Environment variable names must be strings")
+        if _POSIX_ENVIRONMENT_NAME.fullmatch(name) is None:
+            raise ValueError(f"Invalid POSIX environment variable name: {name!r}")
+
+        values: Sequence[Any] = value if isinstance(value, list) else [value]
+        for item in values:
+            item_text = str(item)
+            if "\x00" in item_text:
+                raise ValueError(
+                    f"Environment variable {name!r} contains a NUL character"
+                )
+            lines.append(f"export {name}={shlex.quote(item_text)}\n")
+    return "".join(lines)
 
 
 class Machine(metaclass=ABCMeta):
@@ -285,7 +371,9 @@ class Machine(metaclass=ABCMeta):
 
         source_list = job.resources.source_list
         for ii in source_list:
-            source_files_part += f"source {ii}\n"
+            source_command = _format_source_command(ii)
+            if source_command:
+                source_files_part += source_command + "\n"
 
         export_envs_part = ""
         envs = job.resources.envs
@@ -298,12 +386,7 @@ class Machine(metaclass=ABCMeta):
             "DPDISPATCHER_GROUP_SIZE": job.resources.group_size,
             **envs,
         }
-        for k, v in envs.items():
-            if isinstance(v, list):
-                for each_value in v:
-                    export_envs_part += f"export {k}={each_value}\n"
-            else:
-                export_envs_part += f"export {k}={v}\n"
+        export_envs_part = _format_export_lines(envs)
 
         prepend_script = job.resources.prepend_script
         prepend_script_part = "\n".join(prepend_script)

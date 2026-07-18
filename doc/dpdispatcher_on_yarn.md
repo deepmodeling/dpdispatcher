@@ -172,16 +172,17 @@ An example of machine.json is as follows, whose batch_type is `DistributedShell`
         "queue_name": "queue_name",
         "group_size": 1,
         "source_list": ["/opt/intel/oneapi/setvars.sh"],
+        "prepend_script": [
+          "export HADOOP_HOME=\"${HADOOP_HOME:-/path/to/hadoop}\"",
+          "export CLASSPATH=\"$(${HADOOP_HOME}/bin/hadoop classpath --glob)\"",
+          "export PATH=\"${HADOOP_HOME}/bin:${PATH}\""
+        ],
         "kwargs": {
           "img_name": "",
           "mem_limit": 32,
           "yarn_path": "/path/to/yarn/jars"
         },
-        "envs" : {
-          "HADOOP_HOME" : "${HADOOP_HOME:/path/to/hadoop/bin}",
-          "CLASSPATH": "`${HADOOP_HOME}/bin/hadoop classpath --glob`",
-          "PATH": "${HADOOP_HOME}/bin:${PATH}"}
-        }
+        "envs": {}
       }
     }
   ]
