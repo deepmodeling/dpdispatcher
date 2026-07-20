@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -298,12 +298,14 @@ class Submission:
             )
         return self.serialize()
 
-    def _should_clean(self, clean, all_genuinely_finished: bool = True) -> bool:
+    def _should_clean(
+        self, clean: Union[bool, str], all_genuinely_finished: bool = True
+    ) -> bool:
         """Determine whether remote workdir should be cleaned.
 
         Parameters
         ----------
-        clean : bool or str
+        clean : Union[bool, str]
             - True or "always": always clean
             - False or "never": never clean
             - "on_success": clean only when all jobs genuinely finished
@@ -317,6 +319,11 @@ class Submission:
         -------
         bool
             Whether to perform clean.
+
+        Raises
+        ------
+        ValueError
+            If clean is not a recognized strategy.
         """
         if clean is True or clean == "always":
             return True
@@ -324,12 +331,10 @@ class Submission:
             return False
         if clean == "on_success":
             return all_genuinely_finished
-        # Unknown clean value — treat as True for backward compatibility
-        dlog.warning(
-            f"Unknown clean strategy '{clean}', treating as True. "
+        raise ValueError(
+            f"Unknown clean strategy '{clean}'. "
             f"Valid options: True, False, 'always', 'never', 'on_success'."
         )
-        return True
 
     def try_download_result(self):
         start_time = time.time()

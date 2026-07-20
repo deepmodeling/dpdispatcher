@@ -67,13 +67,13 @@ class TestShouldClean(unittest.TestCase):
         # When called without the second arg, defaults to True
         self.assertTrue(sub._should_clean("on_success"))
 
-    def test_unknown_strategy_warns_and_cleans(self):
-        """Unknown clean value should warn and default to True."""
+    def test_unknown_strategy_raises(self):
+        """Unknown clean value should raise ValueError (fail loudly, not silently clean)."""
         sub = self._make_submission_with_jobs([JobStatus.finished])
-        with self.assertLogs("dpdispatcher", level="WARNING") as cm:
-            result = sub._should_clean("invalid_value")
-        self.assertTrue(result)
-        self.assertTrue(any("Unknown clean strategy" in msg for msg in cm.output))
+        with self.assertRaises(ValueError) as ctx:
+            sub._should_clean("invalid_value")
+        self.assertIn("Unknown clean strategy", str(ctx.exception))
+        self.assertIn("invalid_value", str(ctx.exception))
 
 
 class TestCleanWithRatioUnfinished(unittest.TestCase):
