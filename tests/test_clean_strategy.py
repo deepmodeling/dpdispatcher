@@ -3,7 +3,7 @@
 import os
 import sys
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -26,7 +26,9 @@ class TestShouldClean(unittest.TestCase):
 
     def test_clean_true_always_cleans(self):
         """clean=True (legacy) should always return True regardless of job states."""
-        sub = self._make_submission_with_jobs([JobStatus.finished, JobStatus.terminated])
+        sub = self._make_submission_with_jobs(
+            [JobStatus.finished, JobStatus.terminated]
+        )
         self.assertTrue(sub._should_clean(True, all_genuinely_finished=False))
 
     def test_clean_false_never_cleans(self):
