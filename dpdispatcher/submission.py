@@ -260,10 +260,53 @@ class Submission:
                 pass
         self.handle_unexpected_submission_state()
         self.try_download_result()
+        self.try_download_error_info()
         self.submission_to_json()
         if clean:
             self.clean_jobs()
         return self.serialize()
+
+    def try_download_error_info(self):
+        """Download error diagnostic files for failed/terminated jobs.
+
+        For each job that did not finish successfully, attempts to download
+        the ``{job_hash}_last_err_file`` from the remote root to the local root.
+        This preserves error diagnostics even when ``clean=True`` deletes the
+        remote workdir afterward.
+
+        The error file contains the last 1000 bytes of stderr from the most
+        recently failed task in the job, written by the generated bash script.
+        """
+        if self.machine is None:
+            return
+        for job in self.belonging_jobs:
+            if job.job_state != JobStatus.finished:
+                err_file_name = job.job_hash + "_last_err_file"
+                try:
+                    if self.machine.context.check_file_exists(err_file_name):
+                        err_content = self.machine.context.read_file(err_file_name)
+                        # Write to local root for post-mortem access
+                        local_err_path = os.path.join(
+                            self.machine.context.local_root, err_file_name
+                        )
+                        os.makedirs(
+                            os.path.dirname(local_err_path), exist_ok=True
+                        )
+                        with open(local_err_path, "w") as f:
+                            f.write(err_content)
+                        dlog.info(
+                            f"Downloaded error info for job {job.job_hash} to "
+                            f"{local_err_path}"
+                        )
+                        # Also log the error content for immediate visibility
+                        dlog.warning(
+                            f"Job {job.job_hash} failed. Last error output:\n"
+                            f"{err_content}"
+                        )
+                except Exception as e:
+                    dlog.debug(
+                        f"Could not download error file for job {job.job_hash}: {e}"
+                    )
 
     def try_download_result(self):
         start_time = time.time()
