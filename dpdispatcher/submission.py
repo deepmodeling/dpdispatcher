@@ -289,9 +289,7 @@ class Submission:
                         local_err_path = os.path.join(
                             self.machine.context.local_root, err_file_name
                         )
-                        os.makedirs(
-                            os.path.dirname(local_err_path), exist_ok=True
-                        )
+                        os.makedirs(os.path.dirname(local_err_path), exist_ok=True)
                         with open(local_err_path, "w") as f:
                             f.write(err_content)
                         dlog.info(

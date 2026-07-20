@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -15,7 +15,9 @@ from dpdispatcher.utils.job_status import JobStatus
 class TestDownloadErrorInfo(unittest.TestCase):
     """Unit tests for Submission.try_download_error_info()."""
 
-    def _make_submission(self, job_states, err_file_exists=True, err_content="LAMMPS error: lost atoms"):
+    def _make_submission(
+        self, job_states, err_file_exists=True, err_content="LAMMPS error: lost atoms"
+    ):
         """Create a Submission with mocked machine/context and jobs."""
         submission = Submission.__new__(Submission)
         submission.belonging_jobs = []
@@ -44,6 +46,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
 
     def tearDown(self):
         import shutil
+
         if hasattr(self, "_tmpdir") and os.path.exists(self._tmpdir):
             shutil.rmtree(self._tmpdir)
 
@@ -90,20 +93,22 @@ class TestDownloadErrorInfo(unittest.TestCase):
         sub.try_download_error_info()
 
         # Only job 1 (terminated) should have error file
-        self.assertFalse(os.path.exists(
-            os.path.join(self._tmpdir, "hash_0000_last_err_file")
-        ))
-        self.assertTrue(os.path.exists(
-            os.path.join(self._tmpdir, "hash_0001_last_err_file")
-        ))
-        self.assertFalse(os.path.exists(
-            os.path.join(self._tmpdir, "hash_0002_last_err_file")
-        ))
+        self.assertFalse(
+            os.path.exists(os.path.join(self._tmpdir, "hash_0000_last_err_file"))
+        )
+        self.assertTrue(
+            os.path.exists(os.path.join(self._tmpdir, "hash_0001_last_err_file"))
+        )
+        self.assertFalse(
+            os.path.exists(os.path.join(self._tmpdir, "hash_0002_last_err_file"))
+        )
 
     def test_context_exception_does_not_crash(self):
         """If context raises during error download, it's caught gracefully."""
         sub = self._make_submission([JobStatus.terminated])
-        sub.machine.context.check_file_exists = MagicMock(side_effect=OSError("network error"))
+        sub.machine.context.check_file_exists = MagicMock(
+            side_effect=OSError("network error")
+        )
 
         # Should not raise
         sub.try_download_error_info()
