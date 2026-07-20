@@ -248,6 +248,11 @@ class Submission:
             self.handle_unexpected_submission_state()
 
         ratio_unfinished = self.resources.strategy["ratio_unfinished"]
+        # Track whether all jobs genuinely succeeded (before any state mutation).
+        # remove_unfinished_tasks() rewrites killed jobs' state to "finished",
+        # which would fool _should_clean("on_success"). We capture the real
+        # outcome here: True only if the loop exits normally (all finished).
+        all_jobs_genuinely_finished = False
         while not self.check_all_finished():
             if exit_on_submit is True:
                 dlog.info(f"submission succeeded: {self.submission_hash}")
@@ -273,12 +278,16 @@ class Submission:
                 self.handle_unexpected_submission_state()
             finally:
                 pass
+        else:
+            # Loop exited normally (check_all_finished() was True from the start
+            # or became True without hitting the ratio_unfinished early-exit).
+            all_jobs_genuinely_finished = True
         self.handle_unexpected_submission_state()
         self.try_download_result()
         self.submission_to_json()
 
         # Determine whether to clean remote workdir
-        should_clean = self._should_clean(clean)
+        should_clean = self._should_clean(clean, all_jobs_genuinely_finished)
         if should_clean:
             self.clean_jobs()
         elif clean == "on_success":
@@ -289,7 +298,7 @@ class Submission:
             )
         return self.serialize()
 
-    def _should_clean(self, clean) -> bool:
+    def _should_clean(self, clean, all_genuinely_finished: bool = True) -> bool:
         """Determine whether remote workdir should be cleaned.
 
         Parameters
@@ -297,7 +306,12 @@ class Submission:
         clean : bool or str
             - True or "always": always clean
             - False or "never": never clean
-            - "on_success": clean only when all jobs finished successfully
+            - "on_success": clean only when all jobs genuinely finished
+              (not killed by ratio_unfinished early-exit)
+        all_genuinely_finished : bool
+            Whether all jobs completed successfully without intervention.
+            When ratio_unfinished triggers remove_unfinished_tasks(), this
+            is False even though job states have been mutated to "finished".
 
         Returns
         -------
@@ -309,9 +323,7 @@ class Submission:
         if clean is False or clean == "never":
             return False
         if clean == "on_success":
-            return all(
-                job.job_state == JobStatus.finished for job in self.belonging_jobs
-            )
+            return all_genuinely_finished
         # Unknown clean value — treat as True for backward compatibility
         dlog.warning(
             f"Unknown clean strategy '{clean}', treating as True. "
