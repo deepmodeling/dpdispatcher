@@ -902,6 +902,9 @@ class Job:
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
                 raise RuntimeError(err_msg)
+            # Re-upload forward files before retry to handle cases where remote
+            # workdir was cleaned or files were removed between attempts.
+            self._ensure_forward_files_on_retry()
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
@@ -986,6 +989,35 @@ class Job:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message
+
+    def _ensure_forward_files_on_retry(self):
+        """Re-upload forward files if they are missing on remote before retry.
+
+        When a job is retried after termination, the forward files may have been
+        removed (e.g., by clean, NFS race, or a previous failed attempt). This
+        method checks if the key forward files exist on the remote workdir and
+        re-uploads them if missing.
+        """
+        if self.machine is None:
+            return
+        context = self.machine.context
+        for task in self.job_task_list:
+            remote_job = os.path.join(context.remote_root, task.task_work_path)
+            local_job = os.path.join(context.local_root, task.task_work_path)
+            for fwd in task.forward_files:
+                remote_file = os.path.join(remote_job, fwd)
+                if not context.check_file_exists(fwd):
+                    local_file = os.path.join(local_job, fwd)
+                    if os.path.exists(local_file):
+                        dlog.info(
+                            f"re-uploading missing forward file on retry: {fwd}"
+                        )
+                        os.makedirs(os.path.dirname(remote_file), exist_ok=True)
+                        context._copy_from_local_to_remote(local_file, remote_file)
+                    else:
+                        dlog.warning(
+                            f"forward file missing both locally and remotely: {fwd}"
+                        )
 
 
 class Resources:
