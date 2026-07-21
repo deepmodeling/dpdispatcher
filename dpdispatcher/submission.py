@@ -1006,15 +1006,23 @@ class Job:
             local_job = os.path.join(context.local_root, task.task_work_path)
             for fwd in task.forward_files:
                 remote_file = os.path.join(remote_job, fwd)
-                if not context.check_file_exists(fwd):
+                # check_file_exists expects path relative to remote_root
+                relative_path = os.path.join(task.task_work_path, fwd)
+                # Use os.path.exists for the absolute path since check_file_exists
+                # only tests isfile (misses directories)
+                if not os.path.exists(remote_file):
                     local_file = os.path.join(local_job, fwd)
                     if os.path.exists(local_file):
-                        dlog.info(f"re-uploading missing forward file on retry: {fwd}")
+                        dlog.info(
+                            f"re-uploading missing forward file on retry: "
+                            f"{relative_path}"
+                        )
                         os.makedirs(os.path.dirname(remote_file), exist_ok=True)
                         context._copy_from_local_to_remote(local_file, remote_file)
                     else:
                         dlog.warning(
-                            f"forward file missing both locally and remotely: {fwd}"
+                            f"forward file missing both locally and remotely: "
+                            f"{relative_path}"
                         )
 
 
