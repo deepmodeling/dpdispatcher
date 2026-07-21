@@ -1009,9 +1009,7 @@ class Job:
                 if not context.check_file_exists(fwd):
                     local_file = os.path.join(local_job, fwd)
                     if os.path.exists(local_file):
-                        dlog.info(
-                            f"re-uploading missing forward file on retry: {fwd}"
-                        )
+                        dlog.info(f"re-uploading missing forward file on retry: {fwd}")
                         os.makedirs(os.path.dirname(remote_file), exist_ok=True)
                         context._copy_from_local_to_remote(local_file, remote_file)
                     else:
