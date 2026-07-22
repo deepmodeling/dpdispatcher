@@ -1048,9 +1048,9 @@ class Job:
         rel_prefix : str
             Prefix for constructing paths relative to remote_root.
         """
-        from glob import glob
         import shlex
         import shutil
+        from glob import glob
 
         for pattern in file_patterns:
             # Expand glob patterns
@@ -1066,7 +1066,9 @@ class Job:
             for local_file in matched_files:
                 rel_file = os.path.relpath(local_file, start=local_base)
                 # check_file_exists expects path relative to remote_root
-                check_path = os.path.join(rel_prefix, rel_file) if rel_prefix else rel_file
+                check_path = (
+                    os.path.join(rel_prefix, rel_file) if rel_prefix else rel_file
+                )
                 if not context.check_file_exists(check_path):
                     remote_file = os.path.join(remote_base, rel_file)
                     dlog.info(
@@ -1083,9 +1085,7 @@ class Job:
                             start=context.remote_root,
                         )
                         if remote_dir and remote_dir != ".":
-                            context.block_call(
-                                f"mkdir -p {shlex.quote(remote_dir)}"
-                            )
+                            context.block_call(f"mkdir -p {shlex.quote(remote_dir)}")
                         # Binary-safe: read as bytes, use shutil for local or
                         # sftp put for SSH (write_file is text-only)
                         if hasattr(context, "sftp"):
