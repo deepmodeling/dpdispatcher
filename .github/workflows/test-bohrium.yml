@@ -20,7 +20,7 @@ jobs:
     environment: bohrium
     if: github.repository_owner == 'deepmodeling' && (github.event.label.name == 'Test Bohrium' || github.event_name == 'push')
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         ref: "${{ github.event.pull_request.merge_commit_sha }}"
     - name: Set up Python 3.12
@@ -38,7 +38,7 @@ jobs:
         BOHRIUM_PASSWORD: ${{ secrets.BOHRIUM_PASSWORD }}
         BOHRIUM_PROJECT_ID: ${{ secrets.BOHRIUM_PROJECT_ID }}
         BOHRIUM_ACCESS_KEY: ${{ secrets.BOHRIUM_ACCESS_KEY }}
-    - uses: codecov/codecov-action@v5
+    - uses: codecov/codecov-action@v7
       with:
         use_oidc: true
   remove_label:
