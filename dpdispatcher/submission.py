@@ -1021,12 +1021,8 @@ class Job:
                         remote_file = os.path.join(remote_job, fwd)
                         if hasattr(context, "_copy_from_local_to_remote"):
                             # LocalContext: create parent dirs + copy
-                            os.makedirs(
-                                os.path.dirname(remote_file), exist_ok=True
-                            )
-                            context._copy_from_local_to_remote(
-                                local_file, remote_file
-                            )
+                            os.makedirs(os.path.dirname(remote_file), exist_ok=True)
+                            context._copy_from_local_to_remote(local_file, remote_file)
                         else:
                             # Non-local contexts (SSH, etc.): mkdir via shell,
                             # then write file content through the context
@@ -1037,7 +1033,7 @@ class Job:
                             if remote_dir and remote_dir != ".":
                                 context.block_call(f"mkdir -p {remote_dir}")
                             # Read and write via context's write_file
-                            with open(local_file, "r") as f:
+                            with open(local_file) as f:
                                 content = f.read()
                             context.write_file(relative_path, content)
                     else:
