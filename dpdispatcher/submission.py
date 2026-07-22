@@ -995,56 +995,106 @@ class Job:
 
         When a job is retried after termination, the forward files may have been
         removed (e.g., by clean, NFS race, or a previous failed attempt). This
-        method checks if the key forward files exist on the remote workdir and
-        re-uploads them if missing.
+        method checks each forward file (both per-task and common) on the remote
+        workdir and re-uploads from local if missing.
 
-        Note: Uses context.check_file_exists() for cross-context compatibility,
-        and the context's own copy mechanism for re-upload. For contexts without
-        a single-file upload method (e.g., SSHContext), logs a warning and skips.
+        Handles both regular files and glob patterns in forward_files lists.
+        Uses binary-safe copy to avoid corrupting model weights (.pb, .pt, .npy).
         """
         if self.machine is None:
             return
         context = self.machine.context
+
+        # Re-upload per-task forward files
         for task in self.job_task_list:
             remote_job = os.path.join(context.remote_root, task.task_work_path)
             local_job = os.path.join(context.local_root, task.task_work_path)
-            for fwd in task.forward_files:
-                # check_file_exists takes a path relative to remote_root
-                relative_path = os.path.join(task.task_work_path, fwd)
-                if not context.check_file_exists(relative_path):
-                    local_file = os.path.join(local_job, fwd)
-                    if os.path.exists(local_file):
-                        dlog.info(
-                            f"re-uploading missing forward file on retry: "
-                            f"{relative_path}"
-                        )
-                        remote_file = os.path.join(remote_job, fwd)
-                        if hasattr(context, "_copy_from_local_to_remote"):
-                            # LocalContext: create parent dirs + copy
-                            os.makedirs(
-                                os.path.dirname(remote_file), exist_ok=True
-                            )
-                            context._copy_from_local_to_remote(
-                                local_file, remote_file
-                            )
-                        else:
-                            # Non-local contexts (SSH, etc.): mkdir via shell,
-                            # then write file content through the context
-                            remote_dir = os.path.relpath(
-                                os.path.dirname(remote_file),
-                                start=context.remote_root,
-                            )
-                            if remote_dir and remote_dir != ".":
-                                context.block_call(f"mkdir -p {remote_dir}")
-                            # Read and write via context's write_file
-                            with open(local_file, "r") as f:
-                                content = f.read()
-                            context.write_file(relative_path, content)
+            self._reupload_files(
+                context, task.forward_files, local_job, remote_job, task.task_work_path
+            )
+
+        # Re-upload forward_common_files (shared across tasks, at remote_root level)
+        submission = self._get_submission()
+        if submission is not None and submission.forward_common_files:
+            self._reupload_files(
+                context,
+                submission.forward_common_files,
+                context.local_root,
+                context.remote_root,
+                "",
+            )
+
+    def _get_submission(self):
+        """Get the parent Submission object if available."""
+        # Walk up: Job is in Submission.belonging_jobs
+        # This is set during bind_machine / generate_jobs
+        # If not accessible, return None (forward_common_files won't be re-uploaded)
+        return getattr(self, "_submission", None)
+
+    @staticmethod
+    def _reupload_files(context, file_patterns, local_base, remote_base, rel_prefix):
+        """Re-upload missing files matching the given patterns.
+
+        Parameters
+        ----------
+        context : BaseContext
+            The context object for file operations.
+        file_patterns : list
+            List of file paths or glob patterns.
+        local_base : str
+            Local base directory containing the files.
+        remote_base : str
+            Remote base directory where files should exist.
+        rel_prefix : str
+            Prefix for constructing paths relative to remote_root.
+        """
+        from glob import glob
+        import shlex
+        import shutil
+
+        for pattern in file_patterns:
+            # Expand glob patterns
+            matched_files = glob(os.path.join(local_base, pattern))
+            if not matched_files:
+                # Pattern didn't match — check as literal path
+                literal = os.path.join(local_base, pattern)
+                if os.path.exists(literal):
+                    matched_files = [literal]
+                else:
+                    continue
+
+            for local_file in matched_files:
+                rel_file = os.path.relpath(local_file, start=local_base)
+                # check_file_exists expects path relative to remote_root
+                check_path = os.path.join(rel_prefix, rel_file) if rel_prefix else rel_file
+                if not context.check_file_exists(check_path):
+                    remote_file = os.path.join(remote_base, rel_file)
+                    dlog.info(
+                        f"re-uploading missing forward file on retry: {check_path}"
+                    )
+                    if hasattr(context, "_copy_from_local_to_remote"):
+                        # LocalContext: create parent dirs + binary-safe copy
+                        os.makedirs(os.path.dirname(remote_file), exist_ok=True)
+                        context._copy_from_local_to_remote(local_file, remote_file)
                     else:
-                        dlog.warning(
-                            f"forward file missing both locally and remotely: "
-                            f"{relative_path}"
+                        # Non-local contexts: mkdir via shell + binary copy
+                        remote_dir = os.path.relpath(
+                            os.path.dirname(remote_file),
+                            start=context.remote_root,
                         )
+                        if remote_dir and remote_dir != ".":
+                            context.block_call(
+                                f"mkdir -p {shlex.quote(remote_dir)}"
+                            )
+                        # Binary-safe: read as bytes, use shutil for local or
+                        # sftp put for SSH (write_file is text-only)
+                        if hasattr(context, "sftp"):
+                            # SSHContext: use sftp.put for binary safety
+                            context.ssh_session.ensure_alive()
+                            context.sftp.put(local_file, remote_file)
+                        else:
+                            # Fallback: direct binary copy (works for local-like contexts)
+                            shutil.copy2(local_file, remote_file)
 
 
 class Resources:
