@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -210,6 +210,21 @@ class Submission:
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         If dry_run is True, submission will be uploaded but not be executed and exit.
         If exit_on_submit is True, submission will exit.
+
+        Parameters
+        ----------
+        dry_run : bool
+            If True, only upload without execution.
+        exit_on_submit : bool
+            If True, exit after submission without waiting.
+        clean : bool or str
+            Controls whether to clean remote working directory after completion.
+            - True or "always": always clean (default, backward compatible)
+            - False or "never": never clean
+            - "on_success": only clean when all jobs finished successfully;
+              preserve remote workdir on failure for debugging.
+        check_interval : int
+            Seconds between status polling iterations.
         """
         assert self.resources is not None
         if not self.belonging_jobs:
@@ -233,6 +248,11 @@ class Submission:
             self.handle_unexpected_submission_state()
 
         ratio_unfinished = self.resources.strategy["ratio_unfinished"]
+        # Track whether all jobs genuinely succeeded (before any state mutation).
+        # remove_unfinished_tasks() rewrites killed jobs' state to "finished",
+        # which would fool _should_clean("on_success"). We capture the real
+        # outcome here: True only if the loop exits normally (all finished).
+        all_jobs_genuinely_finished = False
         while not self.check_all_finished():
             if exit_on_submit is True:
                 dlog.info(f"submission succeeded: {self.submission_hash}")
@@ -258,12 +278,63 @@ class Submission:
                 self.handle_unexpected_submission_state()
             finally:
                 pass
+        else:
+            # Loop exited normally (check_all_finished() was True from the start
+            # or became True without hitting the ratio_unfinished early-exit).
+            all_jobs_genuinely_finished = True
         self.handle_unexpected_submission_state()
         self.try_download_result()
         self.submission_to_json()
-        if clean:
+
+        # Determine whether to clean remote workdir
+        should_clean = self._should_clean(clean, all_jobs_genuinely_finished)
+        if should_clean:
             self.clean_jobs()
+        elif clean == "on_success":
+            dlog.info(
+                "clean='on_success': some jobs did not finish successfully, "
+                "preserving remote workdir for debugging at: "
+                f"{self.machine.context.remote_root}"
+            )
         return self.serialize()
+
+    def _should_clean(
+        self, clean: Union[bool, str], all_genuinely_finished: bool = True
+    ) -> bool:
+        """Determine whether remote workdir should be cleaned.
+
+        Parameters
+        ----------
+        clean : Union[bool, str]
+            - True or "always": always clean
+            - False or "never": never clean
+            - "on_success": clean only when all jobs genuinely finished
+              (not killed by ratio_unfinished early-exit)
+        all_genuinely_finished : bool
+            Whether all jobs completed successfully without intervention.
+            When ratio_unfinished triggers remove_unfinished_tasks(), this
+            is False even though job states have been mutated to "finished".
+
+        Returns
+        -------
+        bool
+            Whether to perform clean.
+
+        Raises
+        ------
+        ValueError
+            If clean is not a recognized strategy.
+        """
+        if clean is True or clean == "always":
+            return True
+        if clean is False or clean == "never":
+            return False
+        if clean == "on_success":
+            return all_genuinely_finished
+        raise ValueError(
+            f"Unknown clean strategy '{clean}'. "
+            f"Valid options: True, False, 'always', 'never', 'on_success'."
+        )
 
     def try_download_result(self):
         start_time = time.time()
