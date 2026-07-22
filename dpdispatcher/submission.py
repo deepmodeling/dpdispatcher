@@ -990,13 +990,17 @@ class Job:
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message
 
-    def _ensure_forward_files_on_retry(self):
+    def _ensure_forward_files_on_retry(self) -> None:
         """Re-upload forward files if they are missing on remote before retry.
 
         When a job is retried after termination, the forward files may have been
         removed (e.g., by clean, NFS race, or a previous failed attempt). This
         method checks if the key forward files exist on the remote workdir and
         re-uploads them if missing.
+
+        Note: Uses context.check_file_exists() for cross-context compatibility,
+        and the context's own copy mechanism for re-upload. For contexts without
+        a single-file upload method (e.g., SSHContext), logs a warning and skips.
         """
         if self.machine is None:
             return
@@ -1005,20 +1009,37 @@ class Job:
             remote_job = os.path.join(context.remote_root, task.task_work_path)
             local_job = os.path.join(context.local_root, task.task_work_path)
             for fwd in task.forward_files:
-                remote_file = os.path.join(remote_job, fwd)
-                # check_file_exists expects path relative to remote_root
+                # check_file_exists takes a path relative to remote_root
                 relative_path = os.path.join(task.task_work_path, fwd)
-                # Use os.path.exists for the absolute path since check_file_exists
-                # only tests isfile (misses directories)
-                if not os.path.exists(remote_file):
+                if not context.check_file_exists(relative_path):
                     local_file = os.path.join(local_job, fwd)
                     if os.path.exists(local_file):
                         dlog.info(
                             f"re-uploading missing forward file on retry: "
                             f"{relative_path}"
                         )
-                        os.makedirs(os.path.dirname(remote_file), exist_ok=True)
-                        context._copy_from_local_to_remote(local_file, remote_file)
+                        remote_file = os.path.join(remote_job, fwd)
+                        if hasattr(context, "_copy_from_local_to_remote"):
+                            # LocalContext: create parent dirs + copy
+                            os.makedirs(
+                                os.path.dirname(remote_file), exist_ok=True
+                            )
+                            context._copy_from_local_to_remote(
+                                local_file, remote_file
+                            )
+                        else:
+                            # Non-local contexts (SSH, etc.): mkdir via shell,
+                            # then write file content through the context
+                            remote_dir = os.path.relpath(
+                                os.path.dirname(remote_file),
+                                start=context.remote_root,
+                            )
+                            if remote_dir and remote_dir != ".":
+                                context.block_call(f"mkdir -p {remote_dir}")
+                            # Read and write via context's write_file
+                            with open(local_file, "r") as f:
+                                content = f.read()
+                            context.write_file(relative_path, content)
                     else:
                         dlog.warning(
                             f"forward file missing both locally and remotely: "
