@@ -19,20 +19,22 @@ requirements:
     - git
   host:
     - git
-    - python >=3.6
+    - python >=3.7.4
     - pip
     - setuptools_scm
-    - dargs
+    - dargs >=0.5.0
     - paramiko
     - requests
-    - tqdm
+    - tqdm >=4.9.0
 
   run:
-    - python >=3.6
-    - dargs
+    - python >=3.7.4
+    - dargs >=0.5.0
     - paramiko
+    - pyyaml
     - requests
-    - tqdm
+    - tomli >=1.1.0  # [py<311]
+    - tqdm >=4.9.0
 
 test:
   imports:
