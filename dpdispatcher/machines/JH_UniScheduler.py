@@ -34,13 +34,17 @@ class JH_UniScheduler(Machine):
         script_header_dict = {
             "JH_UniScheduler_nodes_line": f"#JSUB -n {resources.number_node * resources.cpu_per_node}",
             "JH_UniScheduler_ptile_line": f"#JSUB -R 'span[ptile={resources.cpu_per_node}]'",
-            "JH_UniScheduler_partition_line": f"#JSUB -q {resources.queue_name}",
+            "JH_UniScheduler_partition_line": (
+                f"#JSUB -q {resources.queue_name}" if resources.queue_name else ""
+            ),
         }
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
-        if not custom_gpu_line:
+        if not custom_gpu_line and resources.gpu_per_node > 0:
             script_header_dict["JH_UniScheduler_number_gpu_line"] = (
                 f"#JSUB -gpgpu {resources.gpu_per_node}"
             )
+        elif not custom_gpu_line:
+            script_header_dict["JH_UniScheduler_number_gpu_line"] = ""
         else:
             script_header_dict["JH_UniScheduler_number_gpu_line"] = custom_gpu_line
         if (
