@@ -128,12 +128,20 @@ class LSF(Machine):
             raise RetrySignal(
                 f"Get error code {ret} in checking status with job: {job.job_hash} . message: {err_str}"
             )
-        status_out = stdout.read().decode("utf-8").split("\n")
+        # Some LSF installations return only the header after a job disappears
+        # from the active queue.  Ignore blank trailing lines and consult the
+        # finish tag before treating the missing data row as unknown.
+        status_out = [
+            line for line in stdout.read().decode("utf-8").splitlines() if line.strip()
+        ]
         if len(status_out) < 2:
+            return (
+                JobStatus.finished if self.check_finish_tag(job) else JobStatus.unknown
+            )
+        status_fields = status_out[1].split()
+        if len(status_fields) < 3:
             return JobStatus.unknown
-        else:
-            status_line = status_out[1]
-            status_word = status_line.split()[2]
+        status_word = status_fields[2]
 
         # ref: https://www.ibm.com/support/knowledgecenter/en/SSETD4_9.1.2/lsf_command_ref/bjobs.1.html
         if status_word in ["PEND", "WAIT", "PSUSP"]:
