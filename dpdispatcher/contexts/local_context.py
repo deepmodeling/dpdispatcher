@@ -92,8 +92,13 @@ class LocalContext(BaseContext):
             raise FileNotFoundError(
                 f"cannot find uploaded file {os.path.join(local_path)}"
             )
-        if os.path.exists(remote_path):
-            os.remove(remote_path)
+        # ``lexists`` also finds broken symlinks, which must be unlinked before
+        # copying instead of accidentally following their missing target.
+        if os.path.lexists(remote_path):
+            if os.path.isdir(remote_path) and not os.path.islink(remote_path):
+                shutil.rmtree(remote_path)
+            else:
+                os.remove(remote_path)
         _check_file_path(remote_path)
 
         if self.symlink:
