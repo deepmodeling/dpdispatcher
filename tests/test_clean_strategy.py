@@ -78,6 +78,29 @@ class TestShouldClean(unittest.TestCase):
         self.assertIn("invalid_value", str(ctx.exception))
 
 
+class TestInvalidStrategyFailsFast(unittest.TestCase):
+    """Invalid clean strategy must raise ValueError BEFORE upload_jobs() is called."""
+
+    def test_invalid_strategy_raises_before_upload(self):
+        """Passing an invalid clean strategy raises ValueError without calling upload_jobs."""
+        from unittest.mock import patch
+
+        sub = Submission.__new__(Submission)
+        sub.belonging_jobs = []
+        sub.belonging_tasks = []
+        sub.submission_hash = "test_hash"
+        sub.machine = MagicMock()
+        sub.resources = MagicMock()
+        sub.resources.strategy = {"ratio_unfinished": 0.0}
+        sub.resources.wait_time = 0
+
+        with patch.object(Submission, "upload_jobs") as mock_upload:
+            with self.assertRaises(ValueError) as ctx:
+                sub.run_submission(clean="on_sucess", check_interval=0)
+            self.assertIn("Unknown clean strategy", str(ctx.exception))
+            mock_upload.assert_not_called()
+
+
 class TestCleanWithRatioUnfinished(unittest.TestCase):
     """Integration test: on_success should NOT clean when ratio_unfinished triggers early exit.
 

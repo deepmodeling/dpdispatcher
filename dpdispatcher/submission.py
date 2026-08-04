@@ -227,6 +227,8 @@ class Submission:
             Seconds between status polling iterations.
         """
         assert self.resources is not None
+        # Fail-fast: reject invalid clean strategies before recovery/upload/submission.
+        self._should_clean(clean, all_genuinely_finished=False)
         if not self.belonging_jobs:
             self.generate_jobs()
         self.try_recover_from_json()
