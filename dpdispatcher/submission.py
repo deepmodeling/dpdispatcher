@@ -253,9 +253,7 @@ class Submission:
                     dlog.exception(e)
                     dlog.info(f"submission exit: {self.submission_hash}")
                     dlog.info(f"at {self.machine.context.remote_root}")
-                    dlog.info(
-                        f"Submission information is saved in {str(record_path)}."
-                    )
+                    dlog.info(f"Submission information is saved in {str(record_path)}.")
                     dlog.debug(self.serialize())
                     raise e
                 else:
