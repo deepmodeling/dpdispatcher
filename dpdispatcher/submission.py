@@ -259,8 +259,6 @@ class Submission:
                 else:
                     self.update_submission_state()
                     self.handle_unexpected_submission_state()
-                finally:
-                    pass
             self.handle_unexpected_submission_state()
             self.try_download_result()
         finally:
@@ -276,7 +274,7 @@ class Submission:
             self.clean_jobs()
         return self.serialize()
 
-    def try_download_error_info(self):
+    def try_download_error_info(self) -> None:
         """Download error diagnostic files for failed/terminated jobs.
 
         For each job that did not finish successfully, attempts to download
@@ -290,7 +288,7 @@ class Submission:
         if self.machine is None:
             return
         for job in self.belonging_jobs:
-            if job.job_state != JobStatus.finished:
+            if job.job_state in (JobStatus.terminated, JobStatus.unknown):
                 err_file_name = job.job_hash + "_last_err_file"
                 try:
                     if self.machine.context.check_file_exists(err_file_name):

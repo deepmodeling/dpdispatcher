@@ -186,8 +186,8 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
         sub.try_download_result = MagicMock()
 
         # check_all_finished: first call returns True (skips else branch),
-        # then returns False (enters while loop), then True (exits loop).
-        # The second handle_unexpected_submission_state (after while) will raise.
+        # every later call also returns True so the while loop exits immediately.
+        # handle_unexpected_submission_state() after the loop then raises.
         call_count = {"n": 0}
 
         def fake_check_all_finished():
@@ -195,8 +195,8 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
             # 1st call (initial check): True → skip else branch
             if call_count["n"] == 1:
                 return True
-            # 2nd call (while condition): False → enter loop body not needed,
-            # actually we want to exit loop immediately so handle_unexpected fires
+            # while condition: True → exit loop immediately,
+            # then handle_unexpected_submission_state() fires
             return True
 
         sub.check_all_finished = fake_check_all_finished
