@@ -201,7 +201,12 @@ class Submission:
         return self
 
     def run_submission(
-        self, *, dry_run=False, exit_on_submit=False, clean=True, check_interval=30
+        self,
+        *,
+        dry_run=False,
+        exit_on_submit=False,
+        clean: Union[bool, str] = True,
+        check_interval=30,
     ):
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
@@ -392,9 +397,10 @@ class Submission:
         May raise Error if pass `clean=True` explicitly when submit to pbs or slurm.
         """
         kwargs = {**{"clean": False}, **kwargs}
-        if kwargs["clean"]:
+        if self._should_clean(kwargs["clean"]):
             dlog.warning(
-                "Using async submission with `clean=True`, job may fail in queue system"
+                "Using async submission with a clean strategy that can delete "
+                "the remote workdir. Jobs may fail in queue systems."
             )
         loop = asyncio.get_event_loop()
         wrapped_submission = functools.partial(self.run_submission, **kwargs)
