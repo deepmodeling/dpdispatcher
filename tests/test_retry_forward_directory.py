@@ -1,4 +1,4 @@
-"""Regression test for PR #629 reviewer issue: retry upload with forwarded directories.
+"""Regression test for retry upload with forwarded directories.
 
 Verifies that `_copy_from_local_to_remote` and `context.upload()` handle
 existing remote directories correctly without raising `IsADirectoryError`.
