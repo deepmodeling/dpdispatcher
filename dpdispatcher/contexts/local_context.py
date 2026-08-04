@@ -93,7 +93,10 @@ class LocalContext(BaseContext):
                 f"cannot find uploaded file {os.path.join(local_path)}"
             )
         if os.path.exists(remote_path):
-            os.remove(remote_path)
+            if os.path.isdir(remote_path):
+                shutil.rmtree(remote_path)
+            else:
+                os.remove(remote_path)
         _check_file_path(remote_path)
 
         if self.symlink:
