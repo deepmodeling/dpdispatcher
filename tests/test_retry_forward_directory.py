@@ -112,7 +112,9 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         self.ctx._copy_from_local_to_remote(local_dir, remote_dir)
 
         self.assertTrue(os.path.exists(os.path.join(remote_dir, "top.txt")))
-        self.assertTrue(os.path.exists(os.path.join(remote_dir, "subdir", "nested.txt")))
+        self.assertTrue(
+            os.path.exists(os.path.join(remote_dir, "subdir", "nested.txt"))
+        )
         with open(os.path.join(remote_dir, "subdir", "nested.txt")) as f:
             self.assertEqual(f.read(), "nested")
 
