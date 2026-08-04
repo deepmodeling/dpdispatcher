@@ -233,34 +233,46 @@ class Submission:
             self.handle_unexpected_submission_state()
 
         ratio_unfinished = self.resources.strategy["ratio_unfinished"]
-        while not self.check_all_finished():
-            if exit_on_submit is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_tasks()
-                break
+        try:
+            while not self.check_all_finished():
+                if exit_on_submit is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    return self.serialize()
+                if ratio_unfinished > 0.0 and self.check_ratio_unfinished(
+                    ratio_unfinished
+                ):
+                    self.remove_unfinished_tasks()
+                    break
 
+                try:
+                    time.sleep(check_interval)
+                except (Exception, KeyboardInterrupt, SystemExit) as e:
+                    self.submission_to_json()
+                    record_path = record.write(self)
+                    dlog.exception(e)
+                    dlog.info(f"submission exit: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    dlog.info(
+                        f"Submission information is saved in {str(record_path)}."
+                    )
+                    dlog.debug(self.serialize())
+                    raise e
+                else:
+                    self.update_submission_state()
+                    self.handle_unexpected_submission_state()
+                finally:
+                    pass
+            self.handle_unexpected_submission_state()
+            self.try_download_result()
+        finally:
+            # Always attempt error diagnostics download, even on failure paths
+            # (e.g. when handle_unexpected_submission_state raises RuntimeError
+            # after exhausting retries).
             try:
-                time.sleep(check_interval)
-            except (Exception, KeyboardInterrupt, SystemExit) as e:
-                self.submission_to_json()
-                record_path = record.write(self)
-                dlog.exception(e)
-                dlog.info(f"submission exit: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                dlog.info(f"Submission information is saved in {str(record_path)}.")
-                dlog.debug(self.serialize())
-                raise e
-            else:
-                self.update_submission_state()
-                self.handle_unexpected_submission_state()
-            finally:
+                self.try_download_error_info()
+            except Exception:
                 pass
-        self.handle_unexpected_submission_state()
-        self.try_download_result()
-        self.try_download_error_info()
         self.submission_to_json()
         if clean:
             self.clean_jobs()

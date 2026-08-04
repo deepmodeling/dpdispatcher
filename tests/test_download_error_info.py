@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -120,6 +120,150 @@ class TestDownloadErrorInfo(unittest.TestCase):
         submission.belonging_jobs = []
         # Should not raise
         submission.try_download_error_info()
+
+
+class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
+    """Integration test: error files are downloaded even when retries are exhausted.
+
+    When handle_unexpected_submission_state() raises RuntimeError (because a job
+    exhausted its retry limit), the try/finally in run_submission() must still
+    call try_download_error_info() before propagating the exception.
+    """
+
+    def setUp(self):
+        self._tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+
+        if os.path.exists(self._tmpdir):
+            shutil.rmtree(self._tmpdir)
+
+    def _make_submission_for_run(self, err_content="FATAL: out of memory"):
+        """Build a Submission wired to simulate exhausted retries in run_submission."""
+        sub = Submission.__new__(Submission)
+
+        # Resources with strategy
+        sub.resources = MagicMock()
+        sub.resources.strategy = {"ratio_unfinished": 0.0}
+
+        # Machine/context mocks
+        sub.machine = MagicMock()
+        sub.machine.context.local_root = self._tmpdir
+        sub.machine.context.remote_root = "/tmp/fake_remote"
+        sub.machine.context.check_file_exists = MagicMock(return_value=True)
+        sub.machine.context.read_file = MagicMock(return_value=err_content)
+
+        # Submission attributes
+        sub.submission_hash = "test_hash_exhausted"
+
+        # Create a terminated job
+        job = MagicMock()
+        job.job_state = JobStatus.terminated
+        job.job_hash = "hash_retry_exhausted"
+        # Make handle_unexpected_job_state raise to simulate exhausted retries
+        job.handle_unexpected_job_state.side_effect = RuntimeError(
+            "Job exceeded maximum retries"
+        )
+        sub.belonging_jobs = [job]
+
+        return sub
+
+    @patch("dpdispatcher.submission.record")
+    def test_error_file_downloaded_when_retries_exhausted(self, mock_record):
+        """run_submission raises RuntimeError but error file is still written."""
+        mock_record.write.return_value = "/tmp/fake_record.json"
+
+        sub = self._make_submission_for_run(err_content="SEGFAULT in lammps")
+
+        # Patch methods that run before the failure point
+        sub.generate_jobs = MagicMock()
+        sub.try_recover_from_json = MagicMock()
+        sub.update_submission_state = MagicMock()
+        sub.submission_to_json = MagicMock()
+        sub.upload_jobs = MagicMock()
+        sub.serialize = MagicMock(return_value={})
+        sub.try_download_result = MagicMock()
+
+        # check_all_finished: first call returns True (skips else branch),
+        # then returns False (enters while loop), then True (exits loop).
+        # The second handle_unexpected_submission_state (after while) will raise.
+        call_count = {"n": 0}
+
+        def fake_check_all_finished():
+            call_count["n"] += 1
+            # 1st call (initial check): True → skip else branch
+            if call_count["n"] == 1:
+                return True
+            # 2nd call (while condition): False → enter loop body not needed,
+            # actually we want to exit loop immediately so handle_unexpected fires
+            return True
+
+        sub.check_all_finished = fake_check_all_finished
+
+        # The RuntimeError should propagate from handle_unexpected_submission_state
+        with self.assertRaises(RuntimeError) as ctx:
+            sub.run_submission(check_interval=0, clean=False)
+
+        self.assertIn("unexpected submission state", str(ctx.exception).lower())
+
+        # Despite the RuntimeError, the error file must have been downloaded
+        local_err_path = os.path.join(
+            self._tmpdir, "hash_retry_exhausted_last_err_file"
+        )
+        self.assertTrue(
+            os.path.exists(local_err_path),
+            f"Error file not found at {local_err_path}; "
+            "try_download_error_info was not called on the failure path.",
+        )
+        with open(local_err_path) as f:
+            content = f.read()
+        self.assertIn("SEGFAULT in lammps", content)
+
+    @patch("dpdispatcher.submission.record")
+    def test_error_file_downloaded_when_retries_exhausted_in_loop(self, mock_record):
+        """Error in handle_unexpected inside the while-loop still downloads error file."""
+        mock_record.write.return_value = "/tmp/fake_record.json"
+
+        sub = self._make_submission_for_run(err_content="MPI_ABORT called")
+
+        sub.generate_jobs = MagicMock()
+        sub.try_recover_from_json = MagicMock()
+        sub.update_submission_state = MagicMock()
+        sub.submission_to_json = MagicMock()
+        sub.upload_jobs = MagicMock()
+        sub.serialize = MagicMock(return_value={})
+        sub.try_download_result = MagicMock()
+
+        call_count = {"n": 0}
+
+        def fake_check_all_finished():
+            call_count["n"] += 1
+            # 1st: initial check → True (skip else branch)
+            if call_count["n"] == 1:
+                return True
+            # 2nd: while condition → False (enter loop)
+            if call_count["n"] == 2:
+                return False
+            # Should not reach here since handle_unexpected raises in the loop
+            return True
+
+        sub.check_all_finished = fake_check_all_finished
+
+        with self.assertRaises(RuntimeError):
+            sub.run_submission(check_interval=0, clean=False)
+
+        # Error file must still be present
+        local_err_path = os.path.join(
+            self._tmpdir, "hash_retry_exhausted_last_err_file"
+        )
+        self.assertTrue(
+            os.path.exists(local_err_path),
+            "try_download_error_info was not called when handle_unexpected "
+            "raised inside the while-loop.",
+        )
+        with open(local_err_path) as f:
+            self.assertIn("MPI_ABORT called", f.read())
 
 
 if __name__ == "__main__":
