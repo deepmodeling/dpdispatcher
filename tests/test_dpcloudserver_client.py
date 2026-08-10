@@ -2,7 +2,10 @@ import os
 import unittest
 from unittest.mock import MagicMock, call, patch
 
+import requests
+
 from dpdispatcher.utils.dpcloudserver.client import Client
+from dpdispatcher.utils.dpcloudserver.config import HTTP_TIME_OUT
 
 
 class TestClientTicket(unittest.TestCase):
@@ -111,7 +114,7 @@ class TestClientLogOffsets(unittest.TestCase):
         )
         responses = []
         for content in (b"abc", b"wxyz", b"def"):
-            response = MagicMock(content=content)
+            response = MagicMock(content=content, ok=True)
             responses.append(response)
 
         with patch(
@@ -125,9 +128,21 @@ class TestClientLogOffsets(unittest.TestCase):
         self.assertEqual(
             request_get.call_args_list,
             [
-                call("https://example.test/a.log", headers={"Range": "bytes=0-"}),
-                call("https://example.test/b.log", headers={"Range": "bytes=0-"}),
-                call("https://example.test/a.log", headers={"Range": "bytes=3-"}),
+                call(
+                    "https://example.test/a.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
+                call(
+                    "https://example.test/b.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
+                call(
+                    "https://example.test/a.log",
+                    headers={"Range": "bytes=3-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
             ],
         )
 
@@ -140,8 +155,8 @@ class TestClientLogOffsets(unittest.TestCase):
                 ("https://example.test/b.log", 2),
             ]
         )
-        first_response = MagicMock(content=b"abc")
-        second_response = MagicMock(content=b"de")
+        first_response = MagicMock(content=b"abc", ok=True)
+        second_response = MagicMock(content=b"de", ok=True)
 
         with patch(
             "dpdispatcher.utils.dpcloudserver.client.requests.get",
@@ -154,8 +169,85 @@ class TestClientLogOffsets(unittest.TestCase):
         self.assertEqual(
             request_get.call_args_list,
             [
-                call("https://example.test/a.log", headers={"Range": "bytes=0-"}),
-                call("https://example.test/b.log", headers={"Range": "bytes=0-"}),
+                call(
+                    "https://example.test/a.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
+                call(
+                    "https://example.test/b.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
+            ],
+        )
+
+    def test_failed_response_does_not_advance_offset(self):
+        """An HTTP error body is neither returned nor counted as log data."""
+        client = Client()
+        client._get_job_log = MagicMock(
+            return_value=("https://example.test/job.log", 100)
+        )
+        failed_response = MagicMock(
+            content=b"temporary error", ok=False, status_code=503
+        )
+        successful_response = MagicMock(content=b"abc", ok=True)
+
+        with patch(
+            "dpdispatcher.utils.dpcloudserver.client.requests.get",
+            side_effect=[failed_response, successful_response],
+        ) as request_get:
+            with patch("dpdispatcher.utils.dpcloudserver.client.dlog.error"):
+                self.assertEqual(client.get_log("job"), "")
+                self.assertNotIn("job", client.last_log_offsets)
+                self.assertEqual(client.get_log("job"), "abc")
+
+        self.assertEqual(
+            request_get.call_args_list,
+            [
+                call(
+                    "https://example.test/job.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
+                call(
+                    "https://example.test/job.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
+            ],
+        )
+
+    def test_request_exception_does_not_advance_offset(self):
+        """A timed-out download is retried from the same byte position."""
+        client = Client()
+        client._get_job_log = MagicMock(
+            return_value=("https://example.test/job.log", 100)
+        )
+        successful_response = MagicMock(content=b"abc", ok=True)
+
+        with patch(
+            "dpdispatcher.utils.dpcloudserver.client.requests.get",
+            side_effect=[requests.Timeout("timed out"), successful_response],
+        ) as request_get:
+            with patch("dpdispatcher.utils.dpcloudserver.client.dlog.error"):
+                self.assertEqual(client.get_log("job"), "")
+                self.assertNotIn("job", client.last_log_offsets)
+                self.assertEqual(client.get_log("job"), "abc")
+
+        self.assertEqual(
+            request_get.call_args_list,
+            [
+                call(
+                    "https://example.test/job.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
+                call(
+                    "https://example.test/job.log",
+                    headers={"Range": "bytes=0-"},
+                    timeout=HTTP_TIME_OUT,
+                ),
             ],
         )
 

@@ -282,7 +282,24 @@ class Client:
         offset = self.last_log_offsets.get(job_key, 0)
         if offset >= size:
             return ""
-        resp = requests.get(url, headers={"Range": f"bytes={offset}-"})
+        try:
+            resp = requests.get(
+                url,
+                headers={"Range": f"bytes={offset}-"},
+                timeout=HTTP_TIME_OUT,
+            )
+        except requests.RequestException as error:
+            dlog.error(
+                f"Error fetching job log for {job_id}: {error}",
+                stack_info=ENABLE_STACK,
+            )
+            return ""
+        if not resp.ok:
+            dlog.error(
+                f"Error fetching job log for {job_id}: HTTP {resp.status_code}",
+                stack_info=ENABLE_STACK,
+            )
+            return ""
         self.last_log_offsets[job_key] = offset + len(resp.content)
         try:
             return resp.content.decode("utf-8")
