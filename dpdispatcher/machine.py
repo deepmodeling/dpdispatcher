@@ -53,11 +53,9 @@ if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1
 """
 
 _POSIX_ENVIRONMENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-_UNSAFE_SOURCE_EXPANSIONS = (
+_UNQUOTED_SOURCE_SYNTAX = (
     "$",
     "`",
-    "\n",
-    "\r",
     ";",
     "&",
     "|",
@@ -74,6 +72,46 @@ _UNSAFE_SOURCE_EXPANSIONS = (
     "~",
     "#",
 )
+_DOUBLE_QUOTED_SOURCE_EXPANSIONS = ("$", "`")
+
+
+def _has_active_source_syntax(source: str) -> bool:
+    """Return whether a source entry contains active POSIX shell syntax.
+
+    Static filenames may legitimately contain glob, comment, or operator
+    characters when those characters are quoted or escaped.  Dollar and
+    backtick expansion remain active inside double quotes, while single quotes
+    make every character literal.
+    """
+    quote = None
+    escaped = False
+    for character in source:
+        # Keep generated source commands on one logical shell line even when a
+        # newline appears inside quotes or after a backslash.
+        if character in ("\n", "\r"):
+            return True
+        if quote == "'":
+            if character == "'":
+                quote = None
+            continue
+        if escaped:
+            escaped = False
+            continue
+        if character == "\\":
+            escaped = True
+            continue
+        if character == "'" and quote is None:
+            quote = "'"
+            continue
+        if character == '"':
+            quote = None if quote == '"' else '"'
+            continue
+        if quote == '"':
+            if character in _DOUBLE_QUOTED_SOURCE_EXPANSIONS:
+                return True
+        elif character in _UNQUOTED_SOURCE_SYNTAX:
+            return True
+    return False
 
 
 def _format_source_command(source: str) -> str:
@@ -93,7 +131,7 @@ def _format_source_command(source: str) -> str:
         return ""
     if "\x00" in source:
         raise ValueError("source_list entries must be NUL-free")
-    if any(marker in source for marker in _UNSAFE_SOURCE_EXPANSIONS):
+    if _has_active_source_syntax(source):
         raise ValueError(
             "source_list entries must contain only static shell words; "
             "put shell operators or expansions in prepend_script"

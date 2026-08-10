@@ -92,6 +92,20 @@ class TestMachineScriptEnvironment(unittest.TestCase):
             "export DPDISPATCHER_QUEUE_NAME='gpu queue; not-a-command'\n", script
         )
 
+    def test_allows_quoted_static_filename_characters(self) -> None:
+        """Quoted filename punctuation is not mistaken for shell syntax."""
+        source_list = [
+            "'/opt/envs/C# [release]/setup.sh'",
+            "'/opt/envs/(nightly)*?/setup.sh'",
+            "'${HOME}/literal-setup.sh'",
+        ]
+
+        script = self.machine.gen_script_env(_job(source_list=source_list))
+
+        self.assertIn("source '/opt/envs/C# [release]/setup.sh'\n", script)
+        self.assertIn("source '/opt/envs/(nightly)*?/setup.sh'\n", script)
+        self.assertIn("source '${HOME}/literal-setup.sh'\n", script)
+
     def test_rejects_invalid_environment_names(self) -> None:
         """Generated exports accept only portable POSIX identifiers."""
         invalid_names = (
@@ -128,6 +142,8 @@ class TestMachineScriptEnvironment(unittest.TestCase):
             "$(touch injected)",
             "`touch injected`",
             "${HOME}/setup.sh",
+            '"${HOME}/setup.sh"',
+            '"`touch injected`"',
             "setup-*.sh",
             "setup.sh | tee output",
             "-p injected",
