@@ -171,13 +171,11 @@ class OpenAPIContext(BaseContext):
         job.job_id = data["jobId"]
         job.jgid = data.get("jobGroupId", "")
 
-        # Sandbox job/create returns a job-scoped storeHost. The global Tiefblue
-        # endpoint cannot route uploads to that sandbox store.
+        # job/create may return a job-scoped storeHost. Uploads must target that
+        # endpoint; the global Tiefblue host cannot route into the job store.
         store_host = str(data.get("storeHost") or "").rstrip("/")
-        if os.getenv("BOHRIUM_USE_SANDBOX", "0") == "1" and store_host:
-            self.storage = Tiefblue(base_url=store_host)
-
-        self.storage.upload_From_file_multi_part(
+        storage = Tiefblue(base_url=store_host) if store_host else self.storage
+        storage.upload_From_file_multi_part(
             object_key=object_key, file_path=upload_zip, token=token
         )
 

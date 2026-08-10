@@ -1,4 +1,3 @@
-import os
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -9,7 +8,7 @@ class TestOpenAPIContextSandboxUpload(unittest.TestCase):
     @patch("dpdispatcher.contexts.openapi_context.Tiefblue")
     @patch("dpdispatcher.contexts.openapi_context.Job")
     @patch("dpdispatcher.contexts.openapi_context.Bohrium")
-    def test_upload_job_uses_store_host_in_sandbox_mode(
+    def test_upload_job_uses_store_host_when_create_returns_it(
         self, mock_bohrium, mock_job_cls, mock_tiefblue_cls
     ):
         mock_job_api = MagicMock()
@@ -22,12 +21,15 @@ class TestOpenAPIContextSandboxUpload(unittest.TestCase):
         }
         mock_job_cls.return_value = mock_job_api
 
-        storage_instances = []
+        default_storage = MagicMock()
         upload_storage = MagicMock()
+        storage_instances = []
 
         def make_storage(*args, **kwargs):
             storage_instances.append(kwargs)
-            return upload_storage
+            if kwargs:
+                return upload_storage
+            return default_storage
 
         mock_tiefblue_cls.side_effect = make_storage
 
@@ -44,14 +46,15 @@ class TestOpenAPIContextSandboxUpload(unittest.TestCase):
         job.script_file_name = "run.sh"
         job.job_task_list = []
 
-        with patch.dict(os.environ, {"BOHRIUM_USE_SANDBOX": "1"}, clear=False):
-            with patch(
-                "dpdispatcher.contexts.openapi_context.zip_file_list",
-                return_value="/tmp/work/abc123.zip",
-            ):
-                context.upload_job(job)
+        with patch(
+            "dpdispatcher.contexts.openapi_context.zip_file_list",
+            return_value="/tmp/work/abc123.zip",
+        ):
+            context.upload_job(job)
 
-        self.assertEqual(storage_instances[-1], {"base_url": "https://sandbox-store.example.com"})
+        self.assertEqual(
+            storage_instances[-1], {"base_url": "https://sandbox-store.example.com"}
+        )
         upload_storage.upload_From_file_multi_part.assert_called_once_with(
             object_key="jobs/13375/123/abc123.zip",
             file_path="/tmp/work/abc123.zip",
@@ -59,11 +62,12 @@ class TestOpenAPIContextSandboxUpload(unittest.TestCase):
         )
         self.assertEqual(job.upload_path, "jobs/13375/123/abc123.zip")
         self.assertNotIn("?", job.upload_path)
+        self.assertIs(context.storage, default_storage)
 
     @patch("dpdispatcher.contexts.openapi_context.Tiefblue")
     @patch("dpdispatcher.contexts.openapi_context.Job")
     @patch("dpdispatcher.contexts.openapi_context.Bohrium")
-    def test_upload_job_keeps_default_storage_without_sandbox(
+    def test_upload_job_keeps_default_storage_without_store_host(
         self, mock_bohrium, mock_job_cls, mock_tiefblue_cls
     ):
         mock_job_api = MagicMock()
@@ -72,10 +76,11 @@ class TestOpenAPIContextSandboxUpload(unittest.TestCase):
             "jobGroupId": "grp-1",
             "token": "upload-token",
             "storePath": "jobs/13375/123",
-            "storeHost": "https://sandbox-store.example.com",
         }
         mock_job_cls.return_value = mock_job_api
-        mock_tiefblue_cls.return_value = MagicMock()
+
+        default_storage = MagicMock()
+        mock_tiefblue_cls.return_value = default_storage
 
         context = OpenAPIContext(
             local_root="/tmp/work",
@@ -90,15 +95,18 @@ class TestOpenAPIContextSandboxUpload(unittest.TestCase):
         job.script_file_name = "run.sh"
         job.job_task_list = []
 
-        with patch.dict(os.environ, {"BOHRIUM_USE_SANDBOX": "0"}, clear=False):
-            with patch(
-                "dpdispatcher.contexts.openapi_context.zip_file_list",
-                return_value="/tmp/work/abc123.zip",
-            ):
-                context.upload_job(job)
+        with patch(
+            "dpdispatcher.contexts.openapi_context.zip_file_list",
+            return_value="/tmp/work/abc123.zip",
+        ):
+            context.upload_job(job)
 
-        self.assertEqual(mock_tiefblue_cls.call_count, 1)
-        mock_tiefblue_cls.assert_called_with()
+        mock_tiefblue_cls.assert_called_once_with()
+        default_storage.upload_From_file_multi_part.assert_called_once_with(
+            object_key="jobs/13375/123/abc123.zip",
+            file_path="/tmp/work/abc123.zip",
+            token="upload-token",
+        )
         self.assertEqual(job.upload_path, "jobs/13375/123/abc123.zip")
 
 
