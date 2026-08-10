@@ -9,7 +9,7 @@ import tarfile
 import tempfile
 import unicodedata
 import zipfile
-from typing import Any, Dict, Iterable, List, NamedTuple, Tuple
+from typing import Any, Dict, Iterable, List, NamedTuple, Set, Tuple
 
 
 class UnsafeArchiveError(ValueError):
@@ -116,6 +116,7 @@ def _validate_manifest(
     """Validate all members before extraction writes any output."""
     validated: List[_ValidatedMember] = []
     path_types: Dict[str, bool] = {}
+    parent_paths: Set[str] = set()
 
     for source, name, is_directory, mode in candidates:
         parts = _canonical_member_parts(name, is_directory)
@@ -128,10 +129,12 @@ def _validate_manifest(
                 f"Archive contains duplicate output path: {canonical_path!r}"
             )
 
+        member_parent_paths = []
         for index in range(1, len(parts)):
             parent_key = unicodedata.normalize(
                 "NFC", "/".join(parts[:index])
             ).casefold()
+            member_parent_paths.append(parent_key)
             if path_types.get(parent_key) is False:
                 raise UnsafeArchiveError(
                     "Archive file conflicts with a descendant member: "
@@ -139,14 +142,14 @@ def _validate_manifest(
                 )
 
         if not is_directory:
-            descendant_prefix = path_key + "/"
-            if any(key.startswith(descendant_prefix) for key in path_types):
+            if path_key in parent_paths:
                 raise UnsafeArchiveError(
                     "Archive file conflicts with an existing directory member: "
                     f"{canonical_path!r}"
                 )
 
         path_types[path_key] = is_directory
+        parent_paths.update(member_parent_paths)
         validated.append(_ValidatedMember(source, parts, is_directory, mode))
 
     return validated
@@ -154,13 +157,18 @@ def _validate_manifest(
 
 def _prepare_root(destination: str) -> str:
     """Create and resolve the trusted extraction root."""
-    os.makedirs(destination, exist_ok=True)
-    root = os.path.realpath(os.path.abspath(destination))
-    if not os.path.isdir(root):
+    destination_path = os.path.abspath(destination)
+    os.makedirs(destination_path, exist_ok=True)
+    destination_stat = os.lstat(destination_path)
+    if _is_unsafe_link(destination_path, destination_stat):
+        raise UnsafeArchiveError(
+            f"Archive extraction destination is a link: {destination!r}"
+        )
+    if not stat.S_ISDIR(destination_stat.st_mode):
         raise UnsafeArchiveError(
             f"Archive extraction destination is not a directory: {destination!r}"
         )
-    return root
+    return os.path.realpath(destination_path)
 
 
 def _ensure_directory(root: str, parts: Tuple[str, ...]) -> str:
