@@ -550,8 +550,17 @@ class SSHContext(BaseContext):
         if not recursive:
             try:
                 sftp.mkdir(remote_dir)
-            except OSError:
-                pass
+            except OSError as mkdir_error:
+                # SFTP does not expose an atomic mkdir-if-absent operation.
+                # Ignore the failure only when the requested path is already
+                # a directory; permission and path-type errors must surface.
+                try:
+                    existing = sftp.stat(remote_dir)
+                except OSError:
+                    raise mkdir_error
+                existing_mode = existing.st_mode
+                if existing_mode is None or not S_ISDIR(existing_mode):
+                    raise mkdir_error
             return
 
         path = pathlib.PurePosixPath(remote_dir)
@@ -561,8 +570,14 @@ class SSHContext(BaseContext):
             current = pathlib.PurePosixPath(current, part).as_posix()
             try:
                 sftp.mkdir(current)
-            except OSError:
-                pass
+            except OSError as mkdir_error:
+                try:
+                    existing = sftp.stat(current)
+                except OSError:
+                    raise mkdir_error
+                existing_mode = existing.st_mode
+                if existing_mode is None or not S_ISDIR(existing_mode):
+                    raise mkdir_error
 
     def bind_submission(self, submission):
         assert self.ssh_session is not None

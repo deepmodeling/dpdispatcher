@@ -1,4 +1,5 @@
 import os
+import stat
 import sys
 import unittest
 from unittest.mock import MagicMock
@@ -33,6 +34,7 @@ class TestSSHCreateRemoteRoot(unittest.TestCase):
                 raise OSError("already exists")
 
         context.ssh_session.sftp.mkdir.side_effect = mkdir
+        context.ssh_session.sftp.stat.return_value.st_mode = stat.S_IFDIR | 0o755
 
         context._mkdir("/data/home/user/work", recursive=True)
 
@@ -45,6 +47,50 @@ class TestSSHCreateRemoteRoot(unittest.TestCase):
                 "/data/home/user/work",
             ],
         )
+
+    def test_recursive_mkdir_reraises_permission_failure(self):
+        """A failed mkdir is not mistaken for an existing directory."""
+        context = SSHContext.__new__(SSHContext)
+        context.ssh_session = MagicMock()
+        mkdir_error = OSError("permission denied")
+        context.ssh_session.sftp.mkdir.side_effect = mkdir_error
+        context.ssh_session.sftp.stat.side_effect = OSError("not found")
+
+        with self.assertRaises(OSError) as raised:
+            context._mkdir("/restricted/work", recursive=True)
+
+        self.assertIs(raised.exception, mkdir_error)
+
+    def test_recursive_mkdir_rejects_file_component(self):
+        """An existing regular file cannot stand in for a parent directory."""
+        context = SSHContext.__new__(SSHContext)
+        context.ssh_session = MagicMock()
+        mkdir_error = OSError("already exists")
+
+        def mkdir(path):
+            if path == "/data/home":
+                raise mkdir_error
+
+        context.ssh_session.sftp.mkdir.side_effect = mkdir
+        context.ssh_session.sftp.stat.return_value.st_mode = stat.S_IFREG | 0o644
+
+        with self.assertRaises(OSError) as raised:
+            context._mkdir("/data/home/work", recursive=True)
+
+        self.assertIs(raised.exception, mkdir_error)
+
+    def test_non_recursive_mkdir_rejects_existing_file(self):
+        """The legacy non-recursive path applies the same type check."""
+        context = SSHContext.__new__(SSHContext)
+        context.ssh_session = MagicMock()
+        mkdir_error = OSError("already exists")
+        context.ssh_session.sftp.mkdir.side_effect = mkdir_error
+        context.ssh_session.sftp.stat.return_value.st_mode = stat.S_IFREG | 0o644
+
+        with self.assertRaises(OSError) as raised:
+            context._mkdir("/data/work", recursive=False)
+
+        self.assertIs(raised.exception, mkdir_error)
 
     def test_machine_roundtrip_keeps_create_remote_root(self):
         machine_dict = {
