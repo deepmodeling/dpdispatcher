@@ -7,8 +7,9 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from dpdispatcher.contexts import openapi_context
 from test_run_submission import RunSubmission
+
+from dpdispatcher.contexts import openapi_context
 
 if openapi_context.found_bohriumsdk:
     from dpdispatcher.contexts.openapi_context import OpenAPIContext
