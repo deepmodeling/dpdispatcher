@@ -1019,10 +1019,12 @@ class Job:
 
         class _RetryPayload:
             belonging_tasks: List
+            belonging_jobs: List
             forward_common_files: List
 
         payload = _RetryPayload()
         payload.belonging_tasks = self.job_task_list
+        payload.belonging_jobs = [self]
         payload.forward_common_files = submission.forward_common_files
         context.upload(payload)
 

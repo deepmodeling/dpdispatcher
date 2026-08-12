@@ -64,6 +64,40 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
         payload = job.machine.context.upload.call_args[0][0]
         self.assertEqual(payload.forward_common_files, ["shared_model.pb"])
 
+    def test_payload_contains_retry_job(self):
+        """Upload payload includes the job collection required by cloud contexts."""
+        job = self._make_job()
+        job._ensure_forward_files_on_retry()
+        payload = job.machine.context.upload.call_args[0][0]
+        self.assertEqual(payload.belonging_jobs, [job])
+
+    def test_cloud_upload_contexts_receive_retry_job(self):
+        """Both cloud upload implementations can consume the retry payload."""
+        from dpdispatcher.contexts.dp_cloud_server_context import (
+            BohriumContext,
+        )
+        from dpdispatcher.contexts.openapi_context import (
+            OpenAPIContext,
+        )
+        from dpdispatcher.utils.job_status import (
+            JobStatus,
+        )
+
+        for upload_method in (OpenAPIContext.upload, BohriumContext.upload):
+            with self.subTest(context=upload_method.__qualname__):
+                job = self._make_job(forward_common_files=["shared_model.pb"])
+                job.job_state = JobStatus.terminated
+                context = job.machine.context
+                context.upload_job = MagicMock()
+
+                def run_real_upload(payload, method=upload_method, ctx=context):
+                    return method(ctx, payload)
+
+                context.upload.side_effect = run_real_upload
+                job._ensure_forward_files_on_retry()
+
+                context.upload_job.assert_called_once_with(job, ["shared_model.pb"])
+
     def test_no_submission_on_context(self):
         """If context has no submission attr, method returns early (no-op)."""
         job = self._make_job()

@@ -118,6 +118,44 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         with open(os.path.join(remote_dir, "subdir", "nested.txt")) as f:
             self.assertEqual(f.read(), "nested")
 
+    def test_replace_live_directory_symlink(self):
+        """The default symlink mode replaces an existing directory symlink."""
+        self.ctx.symlink = True
+        local_dir = os.path.join(self.local_root, "inputs")
+        os.makedirs(local_dir)
+        with open(os.path.join(local_dir, "new.txt"), "w") as f:
+            f.write("new")
+
+        old_target = os.path.join(self.tmpdir, "old-inputs")
+        os.makedirs(old_target)
+        remote_dir = os.path.join(self.remote_root, "inputs")
+        os.symlink(old_target, remote_dir)
+
+        self.ctx._copy_from_local_to_remote(local_dir, remote_dir)
+
+        self.assertTrue(os.path.islink(remote_dir))
+        self.assertEqual(os.path.realpath(remote_dir), os.path.realpath(local_dir))
+        self.assertTrue(os.path.exists(os.path.join(remote_dir, "new.txt")))
+
+    def test_replace_broken_symlink(self):
+        """A broken destination symlink is removed before retry upload."""
+        self.ctx.symlink = True
+        local_file = os.path.join(self.local_root, "input.txt")
+        with open(local_file, "w") as f:
+            f.write("new")
+
+        remote_file = os.path.join(self.remote_root, "input.txt")
+        os.symlink(os.path.join(self.tmpdir, "missing-target"), remote_file)
+        self.assertTrue(os.path.lexists(remote_file))
+        self.assertFalse(os.path.exists(remote_file))
+
+        self.ctx._copy_from_local_to_remote(local_file, remote_file)
+
+        self.assertTrue(os.path.islink(remote_file))
+        self.assertEqual(os.path.realpath(remote_file), os.path.realpath(local_file))
+        with open(remote_file) as f:
+            self.assertEqual(f.read(), "new")
+
 
 class TestRetryUploadForwardDirectory(unittest.TestCase):
     """Integration test: retry upload with a forwarded directory via context.upload()."""
