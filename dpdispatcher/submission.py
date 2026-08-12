@@ -1018,9 +1018,9 @@ class Job:
         # context.upload() expects .belonging_tasks and .forward_common_files.
 
         class _RetryPayload:
-            belonging_tasks: List
-            belonging_jobs: List
-            forward_common_files: List
+            belonging_tasks: List["Task"]
+            belonging_jobs: List["Job"]
+            forward_common_files: List[str]
 
         payload = _RetryPayload()
         payload.belonging_tasks = self.job_task_list
