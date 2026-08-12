@@ -265,6 +265,35 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
         with open(local_err_path) as f:
             self.assertIn("MPI_ABORT called", f.read())
 
+    def test_recovered_terminated_job_downloads_error_before_reraise(self):
+        """The first failure-handling call is inside the diagnostic guard."""
+        sub = self._make_submission_for_run(err_content="recovered job stderr")
+
+        sub.generate_jobs = MagicMock()
+        sub.try_recover_from_json = MagicMock()
+        sub.update_submission_state = MagicMock()
+        sub.submission_to_json = MagicMock()
+        sub.upload_jobs = MagicMock()
+        sub.serialize = MagicMock(return_value={})
+        sub.try_download_result = MagicMock()
+        sub.check_all_finished = MagicMock(return_value=False)
+
+        with self.assertRaises(RuntimeError):
+            sub.run_submission(check_interval=0, clean=False)
+
+        sub.try_recover_from_json.assert_called_once()
+        sub.upload_jobs.assert_called_once()
+        sub.try_download_result.assert_not_called()
+        local_err_path = os.path.join(
+            self._tmpdir, "hash_retry_exhausted_last_err_file"
+        )
+        self.assertTrue(
+            os.path.exists(local_err_path),
+            "Recovered-job diagnostics were not downloaded before re-raising.",
+        )
+        with open(local_err_path) as f:
+            self.assertIn("recovered job stderr", f.read())
+
 
 if __name__ == "__main__":
     unittest.main()

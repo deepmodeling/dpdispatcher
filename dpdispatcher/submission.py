@@ -214,26 +214,26 @@ class Submission:
         assert self.resources is not None
         if not self.belonging_jobs:
             self.generate_jobs()
-        self.try_recover_from_json()
-        self.update_submission_state()
-        if self.check_all_finished():
-            dlog.info("check_all_finished: True")
-        else:
-            dlog.info("check_all_finished: False")
-            self.upload_jobs()
-            if dry_run is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            self.handle_unexpected_submission_state()
-            self.submission_to_json()
-            time.sleep(1)
-            self.update_submission_state()
-            self.check_all_finished()
-            self.handle_unexpected_submission_state()
-
-        ratio_unfinished = self.resources.strategy["ratio_unfinished"]
         try:
+            self.try_recover_from_json()
+            self.update_submission_state()
+            if self.check_all_finished():
+                dlog.info("check_all_finished: True")
+            else:
+                dlog.info("check_all_finished: False")
+                self.upload_jobs()
+                if dry_run is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    return self.serialize()
+                self.handle_unexpected_submission_state()
+                self.submission_to_json()
+                time.sleep(1)
+                self.update_submission_state()
+                self.check_all_finished()
+                self.handle_unexpected_submission_state()
+
+            ratio_unfinished = self.resources.strategy["ratio_unfinished"]
             while not self.check_all_finished():
                 if exit_on_submit is True:
                     dlog.info(f"submission succeeded: {self.submission_hash}")
@@ -262,9 +262,8 @@ class Submission:
             self.handle_unexpected_submission_state()
             self.try_download_result()
         finally:
-            # Always attempt error diagnostics download, even on failure paths
-            # (e.g. when handle_unexpected_submission_state raises RuntimeError
-            # after exhausting retries).
+            # Cover recovery, initial submission, polling, and final download
+            # failures so exhausted retries always preserve diagnostics.
             try:
                 self.try_download_error_info()
             except Exception:
