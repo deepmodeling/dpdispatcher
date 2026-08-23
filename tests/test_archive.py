@@ -65,11 +65,14 @@ class SafeTarExtractionTest(unittest.TestCase):
                 with tarfile.open(archive_path, "r") as archive:
                     safe_extract_tar(archive, output_dir)
 
+            # Extraction uses the trusted real path.  On macOS, temporary
+            # directories under /var resolve through the /private/var alias.
+            resolved_output_dir = os.path.realpath(output_dir)
             self.assertEqual(
                 chmod.call_args_list,
                 [
-                    call(os.path.join(output_dir, "parent", "child"), 0o700),
-                    call(os.path.join(output_dir, "parent"), 0o400),
+                    call(os.path.join(resolved_output_dir, "parent", "child"), 0o700),
+                    call(os.path.join(resolved_output_dir, "parent"), 0o400),
                 ],
             )
 
