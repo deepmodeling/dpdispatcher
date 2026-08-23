@@ -803,7 +803,9 @@ class Job:
         self.job_uuid = uuid.uuid4()
 
         self.job_hash = self.get_hash()
-        self.script_file_name = self.job_hash + ".sub"
+        # Keep generated scheduler artifacts in the work root for compatibility with
+        # existing contexts, but hide them from normal directory listings.
+        self.script_file_name = f".{self.job_hash}.sub"
 
     def __repr__(self):
         return str(self.serialize())
