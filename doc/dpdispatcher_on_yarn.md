@@ -174,8 +174,8 @@ An example of machine.json is as follows, whose batch_type is `DistributedShell`
         "source_list": ["/opt/intel/oneapi/setvars.sh"],
         "prepend_script": [
           "export HADOOP_HOME=\"${HADOOP_HOME:-/path/to/hadoop}\"",
-          "export CLASSPATH=\"$(${HADOOP_HOME}/bin/hadoop classpath --glob)\"",
-          "export PATH=\"${HADOOP_HOME}/bin:${PATH}\""
+          "export CLASSPATH=\"$(\"${HADOOP_HOME}/bin/hadoop\" classpath --glob)\"",
+          "export PATH=\"${HADOOP_HOME}/bin${PATH:+:${PATH}}\""
         ],
         "kwargs": {
           "img_name": "",
