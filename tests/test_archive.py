@@ -184,6 +184,30 @@ class SafeTarExtractionTest(unittest.TestCase):
 
             self.assertFalse(os.path.exists(os.path.join(outside_dir, "result.txt")))
 
+    def test_rejects_symlink_parent_of_extraction_root(self) -> None:
+        """A parent link cannot redirect creation of the tar destination."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = os.path.join(temp_dir, "result.tar")
+            output_parent = os.path.join(temp_dir, "output")
+            outside_dir = os.path.join(temp_dir, "outside")
+            redirected_parent = os.path.join(output_parent, "redirect")
+            output_dir = os.path.join(redirected_parent, "results")
+            os.mkdir(output_parent)
+            os.mkdir(outside_dir)
+            try:
+                os.symlink(outside_dir, redirected_parent, target_is_directory=True)
+            except (NotImplementedError, OSError) as error:
+                self.skipTest(f"symlinks are unavailable: {error}")
+
+            with tarfile.open(archive_path, "w") as archive:
+                self._add_file(archive, "result.txt", b"result")
+
+            with tarfile.open(archive_path, "r") as archive:
+                with self.assertRaisesRegex(UnsafeArchiveError, "link"):
+                    safe_extract_tar(archive, output_dir)
+
+            self.assertFalse(os.path.exists(os.path.join(outside_dir, "results")))
+
     def test_replaces_hardlinks_without_modifying_outside_inode(self) -> None:
         """Atomic replacement breaks an old hardlink before writing results."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -402,6 +426,30 @@ class SafeZipExtractionTest(unittest.TestCase):
                     safe_extract_zip(archive, output_dir)
 
             self.assertFalse(os.path.exists(os.path.join(outside_dir, "result.txt")))
+
+    def test_rejects_symlink_parent_of_extraction_root(self) -> None:
+        """A parent link cannot redirect creation of the zip destination."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = os.path.join(temp_dir, "result.zip")
+            output_parent = os.path.join(temp_dir, "output")
+            outside_dir = os.path.join(temp_dir, "outside")
+            redirected_parent = os.path.join(output_parent, "redirect")
+            output_dir = os.path.join(redirected_parent, "results")
+            os.mkdir(output_parent)
+            os.mkdir(outside_dir)
+            try:
+                os.symlink(outside_dir, redirected_parent, target_is_directory=True)
+            except (NotImplementedError, OSError) as error:
+                self.skipTest(f"symlinks are unavailable: {error}")
+
+            with zipfile.ZipFile(archive_path, "w") as archive:
+                archive.writestr("result.txt", b"result")
+
+            with zipfile.ZipFile(archive_path, "r") as archive:
+                with self.assertRaisesRegex(UnsafeArchiveError, "link"):
+                    safe_extract_zip(archive, output_dir)
+
+            self.assertFalse(os.path.exists(os.path.join(outside_dir, "results")))
 
     @unittest.skipUnless(os.name == "nt", "requires Windows directory junctions")
     def test_rejects_windows_junction_extraction_root(self) -> None:

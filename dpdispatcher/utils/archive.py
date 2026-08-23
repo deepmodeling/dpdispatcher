@@ -129,7 +129,7 @@ def _validate_manifest(
                 f"Archive contains duplicate output path: {canonical_path!r}"
             )
 
-        member_parent_paths = []
+        member_parent_paths: List[str] = []
         for index in range(1, len(parts)):
             parent_key = unicodedata.normalize(
                 "NFC", "/".join(parts[:index])
@@ -156,8 +156,34 @@ def _validate_manifest(
 
 
 def _prepare_root(destination: str) -> str:
-    """Create and resolve the trusted extraction root."""
+    """Create a trusted extraction root without following parent links."""
     destination_path = os.path.abspath(destination)
+
+    drive, tail = os.path.splitdrive(destination_path)
+    anchor = drive + os.sep
+    destination_parts = tuple(part for part in tail.split(os.sep) if part)
+    if destination_parts:
+        # Resolve one platform-owned top-level alias, such as macOS /var to
+        # /private/var, then reject links in caller-controlled descendants.
+        anchor = os.path.realpath(os.path.join(anchor, destination_parts[0]))
+        destination_parts = destination_parts[1:]
+
+    destination_path = anchor
+    for part in destination_parts:
+        destination_path = os.path.join(destination_path, part)
+        if not os.path.lexists(destination_path):
+            continue
+        component_stat = os.lstat(destination_path)
+        if _is_unsafe_link(destination_path, component_stat):
+            raise UnsafeArchiveError(
+                f"Archive extraction destination contains a link: {destination_path!r}"
+            )
+        if not stat.S_ISDIR(component_stat.st_mode):
+            raise UnsafeArchiveError(
+                "Archive extraction destination contains a non-directory: "
+                f"{destination_path!r}"
+            )
+
     os.makedirs(destination_path, exist_ok=True)
     destination_stat = os.lstat(destination_path)
     if _is_unsafe_link(destination_path, destination_stat):
@@ -275,7 +301,9 @@ def _create_directories(root: str, members: List[_ValidatedMember]) -> None:
 
 def _apply_directory_modes(root: str, members: List[_ValidatedMember]) -> None:
     """Apply child modes before restrictive permissions on their parents."""
-    directories = [member for member in members if member.is_directory and member.parts]
+    directories: List[_ValidatedMember] = [
+        member for member in members if member.is_directory and member.parts
+    ]
     for member in sorted(directories, key=lambda item: len(item.parts), reverse=True):
         directory = _ensure_directory(root, member.parts)
         os.chmod(directory, (member.mode & 0o777) or 0o755)
