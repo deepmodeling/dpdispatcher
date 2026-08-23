@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import warnings
 import zipfile
+from unittest.mock import call, patch
 
 from dpdispatcher.utils.archive import (
     UnsafeArchiveError,
@@ -44,6 +45,33 @@ class SafeTarExtractionTest(unittest.TestCase):
 
             with open(os.path.join(output_dir, "task", "result.txt"), "rb") as fp:
                 self.assertEqual(fp.read(), b"result")
+
+    def test_applies_directory_modes_deepest_first(self) -> None:
+        """Restrictive parent modes are finalized after their children."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = os.path.join(temp_dir, "directory-modes.tar")
+            output_dir = os.path.join(temp_dir, "output")
+            with tarfile.open(archive_path, "w") as archive:
+                parent = tarfile.TarInfo("parent")
+                parent.type = tarfile.DIRTYPE
+                parent.mode = 0o400
+                archive.addfile(parent)
+                child = tarfile.TarInfo("parent/child")
+                child.type = tarfile.DIRTYPE
+                child.mode = 0o700
+                archive.addfile(child)
+
+            with patch("dpdispatcher.utils.archive.os.chmod") as chmod:
+                with tarfile.open(archive_path, "r") as archive:
+                    safe_extract_tar(archive, output_dir)
+
+            self.assertEqual(
+                chmod.call_args_list,
+                [
+                    call(os.path.join(output_dir, "parent", "child"), 0o700),
+                    call(os.path.join(output_dir, "parent"), 0o400),
+                ],
+            )
 
     def test_rejects_traversal_and_absolute_paths_before_extracting(self) -> None:
         """Portable traversal and absolute path spellings are all rejected."""

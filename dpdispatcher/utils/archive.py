@@ -274,11 +274,11 @@ def _create_directories(root: str, members: List[_ValidatedMember]) -> None:
 
 
 def _apply_directory_modes(root: str, members: List[_ValidatedMember]) -> None:
-    """Apply safe directory permissions after all child files are written."""
-    for member in members:
-        if member.is_directory and member.parts:
-            directory = _ensure_directory(root, member.parts)
-            os.chmod(directory, (member.mode & 0o777) or 0o755)
+    """Apply child modes before restrictive permissions on their parents."""
+    directories = [member for member in members if member.is_directory and member.parts]
+    for member in sorted(directories, key=lambda item: len(item.parts), reverse=True):
+        directory = _ensure_directory(root, member.parts)
+        os.chmod(directory, (member.mode & 0o777) or 0o755)
 
 
 def safe_extract_tar(archive: tarfile.TarFile, destination: str) -> None:
