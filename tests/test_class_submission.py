@@ -98,7 +98,19 @@ class TestSubmission(unittest.TestCase):
         self.assertTrue(submission_json_dict, self.submission.serialize())
 
     def test_try_recover_from_json(self):
-        pass
+        context = self.submission.machine.context
+        context.check_file_exists = MagicMock(return_value=True)
+        context.read_file = MagicMock(
+            return_value=json.dumps(self.submission.serialize())
+        )
+
+        # Recovery must not deserialize the serialized machine because that would
+        # establish a second connection instead of reusing the authenticated one.
+        with patch("dpdispatcher.submission.Machine.deserialize") as deserialize:
+            self.submission.try_recover_from_json()
+
+        deserialize.assert_not_called()
+        self.assertIs(self.submission.machine.context, context)
 
     def test_repr(self):
         submission_repr = repr(self.submission)

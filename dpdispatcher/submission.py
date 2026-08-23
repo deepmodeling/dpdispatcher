@@ -524,8 +524,12 @@ class Submission:
                 fname=submission_file_name
             )
             submission_dict = json.loads(submission_dict_str)
-            submission = Submission.deserialize(submission_dict=submission_dict)
-            submission.bind_machine(machine=self.machine)
+            # Reuse the authenticated machine that read the recovery file. Creating a
+            # second SSHContext here can fail for one-time authentication methods such
+            # as TOTP, and the reconstructed machine would be discarded immediately.
+            submission = Submission.deserialize(
+                submission_dict=submission_dict, machine=self.machine
+            )
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.belonging_tasks = [
