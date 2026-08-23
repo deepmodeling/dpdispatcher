@@ -1,7 +1,10 @@
+import errno
 import os
 import socket
 import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from paramiko.ssh_exception import SSHException
 
@@ -10,12 +13,84 @@ __package__ = "tests"
 from .context import (
     Machine,
     Resources,
+    SSHContext,
     SSHSession,
     Submission,
     Task,
     setUpModule,  # noqa: F401
 )
 from .sample_class import SampleClass
+
+
+class TestSSHContextRemoteRootRecovery(unittest.TestCase):
+    """Test submission rebinding without requiring an SSH server."""
+
+    old_remote_root = "/remote/old-hash"
+    new_remote_root = "/remote/new-hash"
+
+    def setUp(self):
+        self.context = SSHContext.__new__(SSHContext)
+        self.context.temp_local_root = "/local"
+        self.context.temp_remote_root = "/remote"
+        self.context.remote_root = self.old_remote_root
+        self.context.ssh_session = MagicMock()
+        self.sftp = self.context.ssh_session.sftp
+        self.context.ssh_session.ssh.open_sftp.return_value = self.sftp
+        self.submission = SimpleNamespace(work_base="work", submission_hash="new-hash")
+
+    def test_empty_old_root_is_removed_instead_of_moved(self):
+        """An empty old hash is a disposable placeholder, not recovery data."""
+        self.sftp.listdir.return_value = []
+
+        self.context.bind_submission(self.submission)
+
+        self.sftp.rmdir.assert_called_once_with(self.old_remote_root)
+        self.sftp.rename.assert_not_called()
+        self.sftp.mkdir.assert_called_once_with(self.new_remote_root)
+
+    def test_non_empty_old_root_is_moved_when_destination_is_absent(self):
+        """Files from an interrupted submission remain available for recovery."""
+        self.sftp.listdir.return_value = ["task-state.json"]
+        self.sftp.stat.side_effect = FileNotFoundError(errno.ENOENT, "not found")
+
+        self.context.bind_submission(self.submission)
+
+        self.sftp.rename.assert_called_once_with(
+            self.old_remote_root, self.new_remote_root
+        )
+        self.sftp.rmdir.assert_not_called()
+
+    def test_source_disappearance_during_move_is_tolerated(self):
+        """Concurrent recovery can consume the old directory first."""
+        self.sftp.listdir.return_value = ["task-state.json"]
+        self.sftp.stat.side_effect = FileNotFoundError(errno.ENOENT, "not found")
+        self.sftp.rename.side_effect = FileNotFoundError(errno.ENOENT, "not found")
+
+        self.context.bind_submission(self.submission)
+
+        self.sftp.mkdir.assert_called_once_with(self.new_remote_root)
+
+    def test_unrelated_move_error_is_not_masked(self):
+        """Permission and transport-related move failures remain actionable."""
+        self.sftp.listdir.return_value = ["task-state.json"]
+        self.sftp.stat.side_effect = FileNotFoundError(errno.ENOENT, "not found")
+        move_error = PermissionError(errno.EACCES, "permission denied")
+        self.sftp.rename.side_effect = move_error
+
+        with self.assertRaises(PermissionError) as raised:
+            self.context.bind_submission(self.submission)
+
+        self.assertIs(raised.exception, move_error)
+
+    def test_existing_destination_is_not_overwritten(self):
+        """A new hash directory wins over stale non-empty recovery data."""
+        self.sftp.listdir.return_value = ["task-state.json"]
+        self.sftp.stat.return_value = MagicMock()
+
+        self.context.bind_submission(self.submission)
+
+        self.sftp.rename.assert_not_called()
+        self.sftp.rmdir.assert_not_called()
 
 
 @unittest.skipIf(
