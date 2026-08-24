@@ -2,8 +2,10 @@
 
 import os
 import tempfile
+import threading
 import unittest
-from unittest.mock import MagicMock
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import MagicMock, patch
 
 from dpdispatcher.contexts.local_context import LocalContext
 from dpdispatcher.submission import Job
@@ -29,7 +31,7 @@ class TestRetryCommonFiles(unittest.TestCase):
 
         job._ensure_forward_files_on_retry()
 
-        payload = context.upload.call_args.args[0]
+        payload = context.upload.call_args[0][0]
         self.assertTrue(payload.preserve_existing_forward_common_files)
 
     def test_existing_common_entries_are_preserved_while_missing_entries_are_added(
@@ -64,6 +66,51 @@ class TestRetryCommonFiles(unittest.TestCase):
                 self.assertEqual(fp.read(), "in use by sibling job")
             with open(os.path.join(remote_common, "config.json")) as fp:
                 self.assertEqual(fp.read(), "new config")
+
+    def test_concurrent_retries_publish_shared_directory_atomically(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_root = os.path.join(tmpdir, "local")
+            remote_root = os.path.join(tmpdir, "remote")
+            local_common = os.path.join(local_root, "shared")
+            remote_common = os.path.join(remote_root, "shared")
+            os.makedirs(local_common)
+            os.makedirs(remote_root)
+            with open(os.path.join(local_common, "model.pb"), "w") as fp:
+                fp.write("complete model")
+
+            context = LocalContext.__new__(LocalContext)
+            context.symlink = False
+            publish_barrier = threading.Barrier(2)
+            rename = os.rename
+
+            def synchronized_rename(source, target):
+                publish_barrier.wait(timeout=5)
+                return rename(source, target)
+
+            with patch(
+                "dpdispatcher.contexts.local_context.os.rename",
+                side_effect=synchronized_rename,
+            ):
+                with ThreadPoolExecutor(max_workers=2) as executor:
+                    futures = [
+                        executor.submit(
+                            context._copy_missing_from_local_to_remote,
+                            local_common,
+                            remote_common,
+                        )
+                        for _ in range(2)
+                    ]
+                    for future in futures:
+                        future.result()
+
+            with open(os.path.join(remote_common, "model.pb")) as fp:
+                self.assertEqual(fp.read(), "complete model")
+            self.assertFalse(
+                any(
+                    name.startswith(".dpdispatcher-")
+                    for name in os.listdir(remote_root)
+                )
+            )
 
 
 if __name__ == "__main__":
