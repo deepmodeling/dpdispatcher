@@ -53,7 +53,7 @@ class TestCloudJobError(unittest.TestCase):
 
         machine.do_submit(self.job)
 
-        input_data = machine.api.job_create.call_args.kwargs["input_data"]
+        input_data = machine.api.job_create.call_args[1]["input_data"]
         self.assertEqual(
             input_data["backward_files"], ["custom.log", "cloud-job_last_err_file"]
         )
