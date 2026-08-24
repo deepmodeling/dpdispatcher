@@ -290,8 +290,8 @@ class Submission:
             if job.job_state in (JobStatus.terminated, JobStatus.unknown):
                 err_file_name = job.job_hash + "_last_err_file"
                 try:
-                    if self.machine.context.check_file_exists(err_file_name):
-                        err_content = self.machine.context.read_file(err_file_name)
+                    err_content = self.machine.get_job_error(job)
+                    if err_content is not None:
                         # Write to local root for post-mortem access
                         local_err_path = os.path.join(
                             self.machine.context.local_root, err_file_name
@@ -1028,9 +1028,8 @@ class Job:
     def get_last_error_message(self) -> Optional[str]:
         """Get last error message when the job is terminated."""
         assert self.machine is not None
-        last_err_file = self.job_hash + "_last_err_file"
-        if self.machine.context.check_file_exists(last_err_file):
-            last_error_message = self.machine.context.read_file(last_err_file)
+        last_error_message = self.machine.get_job_error(self)
+        if last_error_message is not None:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message

@@ -102,6 +102,13 @@ class Machine(metaclass=ABCMeta):
     def bind_context(self, context):
         self.context = context
 
+    def get_job_error(self, job):
+        """Return the saved error diagnostic for a job, if available."""
+        error_file = job.job_hash + "_last_err_file"
+        if self.context.check_file_exists(error_file):
+            return self.context.read_file(error_file)
+        return None
+
     # def __init__ (self,
     #             context):
     #     self.context = context

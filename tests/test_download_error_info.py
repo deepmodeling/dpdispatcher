@@ -27,14 +27,10 @@ class TestDownloadErrorInfo(unittest.TestCase):
         self._tmpdir = tempfile.mkdtemp()
         submission.machine.context.local_root = self._tmpdir
 
-        def mock_check_file_exists(fname):
-            return err_file_exists
+        def mock_get_job_error(job):
+            return err_content if err_file_exists else None
 
-        def mock_read_file(fname):
-            return err_content
-
-        submission.machine.context.check_file_exists = mock_check_file_exists
-        submission.machine.context.read_file = mock_read_file
+        submission.machine.get_job_error = MagicMock(side_effect=mock_get_job_error)
 
         for i, state in enumerate(job_states):
             job = MagicMock()
@@ -106,9 +102,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
     def test_context_exception_does_not_crash(self):
         """If context raises during error download, it's caught gracefully."""
         sub = self._make_submission([JobStatus.terminated])
-        sub.machine.context.check_file_exists = MagicMock(
-            side_effect=OSError("network error")
-        )
+        sub.machine.get_job_error = MagicMock(side_effect=OSError("network error"))
 
         # Should not raise
         sub.try_download_error_info()
@@ -151,8 +145,7 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
         sub.machine = MagicMock()
         sub.machine.context.local_root = self._tmpdir
         sub.machine.context.remote_root = "/tmp/fake_remote"
-        sub.machine.context.check_file_exists = MagicMock(return_value=True)
-        sub.machine.context.read_file = MagicMock(return_value=err_content)
+        sub.machine.get_job_error = MagicMock(return_value=err_content)
 
         # Submission attributes
         sub.submission_hash = "test_hash_exhausted"
