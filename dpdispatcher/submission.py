@@ -1021,11 +1021,13 @@ class Job:
             belonging_tasks: List["Task"]
             belonging_jobs: List["Job"]
             forward_common_files: List[str]
+            preserve_existing_forward_common_files: bool
 
         payload = _RetryPayload()
         payload.belonging_tasks = self.job_task_list
         payload.belonging_jobs = [self]
         payload.forward_common_files = submission.forward_common_files
+        payload.preserve_existing_forward_common_files = True
         context.upload(payload)
 
 

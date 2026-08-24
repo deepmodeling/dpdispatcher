@@ -109,6 +109,22 @@ class LocalContext(BaseContext):
         else:
             raise ValueError(f"Unknown file type: {local_path}")
 
+    def _copy_missing_from_local_to_remote(self, local_path, remote_path):
+        """Copy missing paths without replacing an existing remote entry."""
+        if os.path.lexists(remote_path):
+            if (
+                os.path.isdir(local_path)
+                and os.path.isdir(remote_path)
+                and not os.path.islink(remote_path)
+            ):
+                for name in os.listdir(local_path):
+                    self._copy_missing_from_local_to_remote(
+                        os.path.join(local_path, name),
+                        os.path.join(remote_path, name),
+                    )
+            return
+        self._copy_from_local_to_remote(local_path, remote_path)
+
     def upload(self, submission):
         os.makedirs(self.remote_root, exist_ok=True)
         for ii in submission.belonging_tasks:
@@ -149,9 +165,12 @@ class LocalContext(BaseContext):
             file_list.extend(rel_file_list)
 
         for jj in file_list:
-            self._copy_from_local_to_remote(
-                os.path.join(local_job, jj), os.path.join(remote_job, jj)
-            )
+            local_path = os.path.join(local_job, jj)
+            remote_path = os.path.join(remote_job, jj)
+            if getattr(submission, "preserve_existing_forward_common_files", False):
+                self._copy_missing_from_local_to_remote(local_path, remote_path)
+            else:
+                self._copy_from_local_to_remote(local_path, remote_path)
 
     def download(
         self, submission, check_exists=False, mark_failure=True, back_error=False
