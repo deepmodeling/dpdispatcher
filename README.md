@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./doc/_static/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./doc/_static/logo.svg">
+    <img alt="DPDispatcher logo" src="./doc/_static/logo.svg" width="720">
+  </picture>
+</p>
+
 # DPDispatcher
 
 [![conda-forge](https://img.shields.io/conda/dn/conda-forge/dpdispatcher?color=red&label=conda-forge&logo=conda-forge)](https://anaconda.org/conda-forge/dpdispatcher)
