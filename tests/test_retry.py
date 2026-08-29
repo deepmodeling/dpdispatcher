@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from typing import List, NoReturn
+from typing import NoReturn
 
 from .context import (
     RetrySignal,
@@ -29,7 +29,7 @@ class TestRetry(unittest.TestCase):
         retry_times = [0]
 
         @retry(max_retry=3, sleep=0.05, catch_exception=RetrySignal)
-        def some_method(retry_times: List[int]) -> None:
+        def some_method(retry_times: list[int]) -> None:
             if retry_times[0] < 2:
                 retry_times[0] += 1
                 raise RetrySignal("Failed to do something")

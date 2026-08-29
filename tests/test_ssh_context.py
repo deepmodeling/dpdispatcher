@@ -1,6 +1,5 @@
 import errno
 import os
-import socket
 import sys
 import unittest
 from types import SimpleNamespace
@@ -124,7 +123,7 @@ class TestSSHContext(unittest.TestCase):
         cls.mdata = mdata
         try:
             cls.machine = Machine.load_from_dict(mdata)
-        except (SSHException, socket.timeout):
+        except (TimeoutError, SSHException):
             raise unittest.SkipTest("SSHException ssh cannot connect")
         cls.submission = SampleClass.get_sample_submission(backward_wildcard=True)
         cls.submission.bind_machine(cls.machine)
@@ -272,7 +271,7 @@ class TestSSHContextNoCompress(unittest.TestCase):
         }
         try:
             cls.machine = Machine.load_from_dict(mdata)
-        except (SSHException, socket.timeout):
+        except (TimeoutError, SSHException):
             raise unittest.SkipTest("SSHException ssh cannot connect")
         cls.submission = SampleClass.get_sample_submission(backward_wildcard=True)
         cls.submission.bind_machine(cls.machine)

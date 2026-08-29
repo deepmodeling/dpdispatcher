@@ -3,7 +3,7 @@
 import os
 import sys
 import unittest
-from typing import Sequence
+from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -117,9 +117,11 @@ class TestDownloadResult(unittest.TestCase):
         # Mock the module logger as well as the clock: older Python logging
         # implementations call ``time.time()`` while formatting this expected
         # retry error, which would otherwise consume the test clock values.
-        with patch("dpdispatcher.submission.dlog"), patch(
-            "dpdispatcher.submission.time.time", side_effect=[0, 86400]
-        ), patch("dpdispatcher.submission.time.sleep") as mock_sleep:
+        with (
+            patch("dpdispatcher.submission.dlog"),
+            patch("dpdispatcher.submission.time.time", side_effect=[0, 86400]),
+            patch("dpdispatcher.submission.time.sleep") as mock_sleep,
+        ):
             self.assertFalse(sub.try_download_result())
 
         sub.download_jobs.assert_called_once_with()

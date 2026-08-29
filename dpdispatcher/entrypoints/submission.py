@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.submission import Submission
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from dpdispatcher.submission import Task
 
 
-def _configured_log_files(task: "Task") -> List[str]:
+def _configured_log_files(task: "Task") -> list[str]:
     """Return only task log filenames that are explicitly configured."""
     return [log_file for log_file in (task.outlog, task.errlog) if log_file is not None]
 

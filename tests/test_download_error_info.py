@@ -4,7 +4,6 @@ import os
 import sys
 import tempfile
 import unittest
-from typing import List, Optional
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -18,7 +17,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
 
     def _make_submission(
         self,
-        job_states: List[JobStatus],
+        job_states: list[JobStatus],
         err_file_exists: bool = True,
         err_content: str = "LAMMPS error: lost atoms",
     ) -> Submission:
@@ -31,7 +30,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
         self._tmpdir = tempfile.mkdtemp()
         submission.machine.context.local_root = self._tmpdir
 
-        def mock_get_job_error(job: object) -> Optional[str]:
+        def mock_get_job_error(job: object) -> str | None:
             return err_content if err_file_exists else None
 
         submission.machine.get_job_error = MagicMock(side_effect=mock_get_job_error)

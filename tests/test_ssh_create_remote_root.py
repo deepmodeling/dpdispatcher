@@ -2,7 +2,7 @@ import os
 import stat
 import sys
 import unittest
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -115,7 +115,7 @@ class TestSSHCreateRemoteRoot(unittest.TestCase):
             self: SSHContext,
             local_root: str,
             remote_root: str,
-            remote_profile: Dict[str, Any],  # noqa: ANN401
+            remote_profile: dict[str, Any],  # noqa: ANN401
             clean_asynchronously: bool = False,
             create_remote_root: bool = False,
             *args: Any,  # noqa: ANN401

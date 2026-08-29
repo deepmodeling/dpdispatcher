@@ -3,7 +3,7 @@ import shutil
 import time
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
@@ -101,7 +101,7 @@ class Bohrium(Machine):
         )
         return script_file_name
 
-    def _gen_backward_files_list(self, job: "Job") -> List[str]:
+    def _gen_backward_files_list(self, job: "Job") -> list[str]:
         result_file_list = []
         # result_file_list.extend(job.backward_common_files)
         for task in job.job_task_list:
@@ -171,8 +171,8 @@ class Bohrium(Machine):
         return job_id
 
     def _get_job_detail(
-        self, job_id: Union[str, int], group_id: Optional[int]
-    ) -> Dict[str, Any]:
+        self, job_id: str | int, group_id: int | None
+    ) -> dict[str, Any]:
         check_return = self.api.get_job_detail(job_id)
         assert check_return is not None, (
             f"Failed to retrieve tasks information. To resubmit this job, please "
@@ -254,7 +254,7 @@ class Bohrium(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def get_job_error(self, job: "Job") -> Optional[str]:
+    def get_job_error(self, job: "Job") -> str | None:
         """Retrieve diagnostics from the cloud result or job log."""
         try:
             self._download_job(job)
@@ -288,7 +288,7 @@ class Bohrium(Machine):
 
     @staticmethod
     def map_dp_job_state(
-        status: Union[int, JobStatus],
+        status: int | JobStatus,
         exit_code: int,
         ignore_exit_code: bool = True,
     ) -> JobStatus:
@@ -331,7 +331,7 @@ class Bohrium(Machine):
         check_return = self._get_job_detail(job_id, self.group_id)
         return check_return.get("exitCode", -999)
 
-    def _parse_job_id(self, str_job_id: Union[str, int]) -> int:
+    def _parse_job_id(self, str_job_id: str | int) -> int:
         str_job_id = str(str_job_id)
         job_id = 0
         if "job_group_id" in str_job_id:

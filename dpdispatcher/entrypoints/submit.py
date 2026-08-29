@@ -2,9 +2,9 @@
 
 import json
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
 from threading import Lock
-from typing import Iterator, List
 
 from dargs import Argument
 
@@ -66,14 +66,14 @@ def submission_args() -> Argument:
             ),
             Argument(
                 "forward_common_files",
-                dtype=List[str],
+                dtype=list[str],
                 optional=True,
                 default=[],
                 doc="Files shared by all tasks and uploaded from work_base before execution.",
             ),
             Argument(
                 "backward_common_files",
-                dtype=List[str],
+                dtype=list[str],
                 optional=True,
                 default=[],
                 doc="Files shared by all tasks and downloaded back to work_base after execution.",

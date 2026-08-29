@@ -1,7 +1,6 @@
 import os
 import sys
 import unittest
-from typing import Dict
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -41,7 +40,7 @@ class TestJob(unittest.TestCase):
             self: SSHContext,
             local_root: str,
             remote_root: str,
-            remote_profile: Dict[str, object],
+            remote_profile: dict[str, object],
             clean_asynchronously: bool = False,
             create_remote_root: bool = False,
             *args: object,

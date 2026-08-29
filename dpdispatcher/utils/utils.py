@@ -6,7 +6,8 @@ import shlex
 import struct
 import subprocess
 import time
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence, Tuple, Type, Union
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
 
 from dpdispatcher.dlog import dlog
 
@@ -76,8 +77,8 @@ def generate_totp(secret: str, period: int = 30, token_length: int = 6) -> str:
 
 
 def run_cmd_with_all_output(
-    cmd: Union[str, Sequence[str]], shell: bool = True
-) -> Tuple[int, bytes, bytes]:
+    cmd: str | Sequence[str], shell: bool = True
+) -> tuple[int, bytes, bytes]:
     """Run a command and return its status, standard output, and standard error.
 
     When shell execution is disabled, callers may pass an argument sequence so
@@ -95,9 +96,9 @@ def rsync(
     from_file: str,
     to_file: str,
     port: int = 22,
-    key_filename: Optional[str] = None,
-    timeout: Union[int, float] = 10,
-    proxy_command: Optional[str] = None,
+    key_filename: str | None = None,
+    timeout: int | float = 10,
+    proxy_command: str | None = None,
 ) -> None:
     """Call rsync to transfer files.
 
@@ -167,8 +168,8 @@ class RetrySignal(Exception):
 
 def retry(
     max_retry: int = 3,
-    sleep: Union[int, float] = 60,
-    catch_exception: Type[BaseException] = RetrySignal,
+    sleep: int | float = 60,
+    catch_exception: type[BaseException] = RetrySignal,
 ) -> Callable:
     """Retry the function until it succeeds or fails for certain times.
 

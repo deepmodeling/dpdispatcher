@@ -53,6 +53,8 @@ class Record:
         ----------
         hash : str
             Hash of submission data.
+        not_exist_ok : bool
+            If True, return the expected path even when the record does not exist.
 
         Returns
         -------

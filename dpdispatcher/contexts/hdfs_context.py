@@ -2,7 +2,7 @@ import os
 import shutil
 import tarfile
 from glob import glob
-from typing import TYPE_CHECKING, Any, Dict, List, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
@@ -18,7 +18,7 @@ class HDFSContext(BaseContext):
         self,
         local_root: str,
         remote_root: str,
-        remote_profile: Dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -30,7 +30,7 @@ class HDFSContext(BaseContext):
         self.remote_profile = remote_profile
 
     @classmethod
-    def load_from_dict(cls, context_dict: Dict[str, Any]) -> "HDFSContext":  # noqa: ANN401
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> "HDFSContext":  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict["remote_root"]
         remote_profile = context_dict.get("remote_profile", {})
@@ -54,7 +54,7 @@ class HDFSContext(BaseContext):
 
         HDFS.mkdir(self.remote_root)
 
-    def _put_files(self, files: List[str], dereference: bool = True) -> None:
+    def _put_files(self, files: list[str], dereference: bool = True) -> None:
         assert self.submission.submission_hash is not None
         of = self.submission.submission_hash + "_upload.tgz"
         # local tar

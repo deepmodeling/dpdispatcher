@@ -11,7 +11,6 @@ if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
-from typing import List, Optional
 
 from dargs import Argument
 
@@ -20,7 +19,7 @@ from dpdispatcher.arginfo import machine_dargs, resources_dargs, task_dargs
 REGEX = r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
 
 
-def read_pep723(script: str) -> Optional[dict]:
+def read_pep723(script: str) -> dict | None:
     """Read a PEP 723 script metadata from a script string.
 
     Parameters
@@ -85,14 +84,14 @@ def pep723_args() -> Argument:
             ),
             Argument(
                 "forward_common_files",
-                dtype=List[str],
+                dtype=list[str],
                 optional=True,
                 default=[],
                 doc="Common files to forward to the remote machine",
             ),
             Argument(
                 "backward_common_files",
-                dtype=List[str],
+                dtype=list[str],
                 optional=True,
                 default=[],
                 doc="Common files to backward from the remote machine",

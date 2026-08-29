@@ -10,7 +10,7 @@ __package__ = "tests"
 import json
 import unittest
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .context import (
     Machine,
@@ -25,8 +25,8 @@ class TestSlurmScriptGeneration(unittest.TestCase):
 
     def _make_header(
         self,
-        resource_updates: Optional[Dict[str, Any]] = None,
-        remove_resource_keys: Optional[List[str]] = None,
+        resource_updates: dict[str, Any] | None = None,
+        remove_resource_keys: list[str] | None = None,
     ) -> str:
         with open("jsons/machine_lazy_local_slurm.json") as f:
             machine_dict = json.load(f)

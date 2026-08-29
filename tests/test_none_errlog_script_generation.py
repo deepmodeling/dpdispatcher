@@ -1,6 +1,6 @@
 import unittest
+from collections.abc import Sequence
 from types import SimpleNamespace
-from typing import Sequence
 
 from dpdispatcher import Resources, Task
 from dpdispatcher.entrypoints.submission import _configured_log_files
