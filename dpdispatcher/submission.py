@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -206,8 +206,13 @@ class Submission:
         return self
 
     def run_submission(
-        self, *, dry_run=False, exit_on_submit=False, clean=True, check_interval=30
-    ):
+        self,
+        *,
+        dry_run: bool = False,
+        exit_on_submit: bool = False,
+        clean: Union[bool, str] = True,
+        check_interval: int = 30,
+    ) -> Dict[str, Any]:
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -215,10 +220,31 @@ class Submission:
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         If dry_run is True, submission will be uploaded but not be executed and exit.
         If exit_on_submit is True, submission will exit.
+
+        Parameters
+        ----------
+        dry_run : bool
+            If True, only upload without execution.
+        exit_on_submit : bool
+            If True, exit after submission without waiting.
+        clean : bool or str
+            Controls whether to clean remote working directory after completion.
+
+            - True or "always": always clean (default, backward compatible)
+            - False or "never": never clean
+            - "on_success": only clean when all jobs finished successfully;
+              preserve remote workdir on failure for debugging.
+        check_interval : int
+            Seconds between status polling iterations.
         """
         assert self.resources is not None
+        # Fail-fast: reject invalid clean strategies before recovery/upload/submission.
+        self._should_clean(clean, all_genuinely_finished=False)
         if not self.belonging_jobs:
             self.generate_jobs()
+        # This remains false when ratio-based early termination rewrites killed
+        # jobs as finished, so on_success never mistakes that state for success.
+        all_jobs_genuinely_finished = False
         try:
             self.try_recover_from_json()
             self.update_submission_state()
@@ -264,8 +290,14 @@ class Submission:
                 else:
                     self.update_submission_state()
                     self.handle_unexpected_submission_state()
+            else:
+                # The loop condition became false without ratio-based early exit.
+                all_jobs_genuinely_finished = True
             self.handle_unexpected_submission_state()
-            self.try_download_result()
+            results_downloaded = self.try_download_result()
+            all_jobs_genuinely_finished = (
+                all_jobs_genuinely_finished and results_downloaded
+            )
         finally:
             # Cover recovery, initial submission, polling, and final download
             # failures so exhausted retries always preserve diagnostics.
@@ -274,9 +306,56 @@ class Submission:
             except Exception:
                 pass
         self.submission_to_json()
-        if clean:
+
+        # Determine whether to clean remote workdir
+        should_clean = self._should_clean(clean, all_jobs_genuinely_finished)
+        if should_clean:
             self.clean_jobs()
+        elif clean == "on_success":
+            dlog.info(
+                "clean='on_success': some jobs did not finish successfully, "
+                "preserving remote workdir for debugging at: "
+                f"{self.machine.context.remote_root}"
+            )
         return self.serialize()
+
+    def _should_clean(
+        self, clean: Union[bool, str], all_genuinely_finished: bool = True
+    ) -> bool:
+        """Determine whether remote workdir should be cleaned.
+
+        Parameters
+        ----------
+        clean : Union[bool, str]
+            - True or "always": always clean
+            - False or "never": never clean
+            - "on_success": clean only when all jobs genuinely finished
+              (not killed by ratio_unfinished early-exit)
+        all_genuinely_finished : bool
+            Whether all jobs completed successfully without intervention.
+            When ratio_unfinished triggers remove_unfinished_tasks(), this
+            is False even though job states have been mutated to "finished".
+
+        Returns
+        -------
+        bool
+            Whether to perform clean.
+
+        Raises
+        ------
+        ValueError
+            If clean is not a recognized strategy.
+        """
+        if clean is True or clean == "always":
+            return True
+        if clean is False or clean == "never":
+            return False
+        if clean == "on_success":
+            return all_genuinely_finished
+        raise ValueError(
+            f"Unknown clean strategy '{clean}'. "
+            f"Valid options: True, False, 'always', 'never', 'on_success'."
+        )
 
     def try_download_error_info(self) -> None:
         """Download error diagnostic files for failed/terminated jobs.
@@ -318,7 +397,16 @@ class Submission:
                         f"Could not download error file for job {job.job_hash}: {e}"
                     )
 
-    def try_download_result(self):
+    def try_download_result(self) -> bool:
+        """Download result files, retrying transient failures for up to 24 hours.
+
+        Returns
+        -------
+        bool
+            Whether all result files were downloaded successfully. A false
+            result prevents ``clean='on_success'`` from deleting the only
+            remaining remote copy after retry exhaustion.
+        """
         start_time = time.time()
         retry_interval = 60  # retry every 1 minute
         success = False
@@ -342,6 +430,7 @@ class Submission:
                 else:  # > 24 h
                     dlog.info("Maximum retries time reached. Exiting.")
                     break
+        return success
 
     async def async_run_submission(self, **kwargs):
         """Async interface of run_submission.
@@ -372,9 +461,10 @@ class Submission:
         May raise Error if pass `clean=True` explicitly when submit to pbs or slurm.
         """
         kwargs = {**{"clean": False}, **kwargs}
-        if kwargs["clean"]:
+        if self._should_clean(kwargs["clean"]):
             dlog.warning(
-                "Using async submission with `clean=True`, job may fail in queue system"
+                "Using async submission with a clean strategy that can delete "
+                "the remote workdir. Jobs may fail in queue systems."
             )
         loop = asyncio.get_event_loop()
         wrapped_submission = functools.partial(self.run_submission, **kwargs)
@@ -627,13 +717,13 @@ class Task:
 
     def __init__(
         self,
-        command,
-        task_work_path,
+        command: str,
+        task_work_path: str,
         forward_files: Optional[Sequence[str]] = None,
         backward_files: Optional[Sequence[str]] = None,
-        outlog="log",
-        errlog="err",
-    ):
+        outlog: Optional[str] = "log",
+        errlog: Optional[str] = "err",
+    ) -> None:
         self.command = command
         self.task_work_path = task_work_path
         # Detach task state from caller-owned lists and constructor defaults.
@@ -1132,25 +1222,25 @@ class Resources:
 
     def __init__(
         self,
-        number_node,
-        cpu_per_node,
-        gpu_per_node,
-        queue_name,
-        group_size,
+        number_node: int,
+        cpu_per_node: int,
+        gpu_per_node: int,
+        queue_name: str,
+        group_size: int,
         *,
         custom_flags: Optional[Sequence[str]] = None,
         strategy: Optional[Dict[str, Any]] = None,
-        para_deg=1,
+        para_deg: int = 1,
         module_unload_list: Optional[Sequence[str]] = None,
-        module_purge=False,
+        module_purge: bool = False,
         module_list: Optional[Sequence[str]] = None,
         source_list: Optional[Sequence[str]] = None,
         envs: Optional[Dict[str, Any]] = None,
         prepend_script: Optional[Sequence[str]] = None,
         append_script: Optional[Sequence[str]] = None,
-        wait_time=0,
-        **kwargs,
-    ):
+        wait_time: int = 0,
+        **kwargs: Any,
+    ) -> None:
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node
