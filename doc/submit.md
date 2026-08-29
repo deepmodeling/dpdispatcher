@@ -28,3 +28,8 @@ The JSON entries for submission are defined as follows:
 - `--dry-run`: Only upload files without submitting.
 - `--exit-on-submit`: Exit after submitting without waiting for completion.
 - `--allow-ref`: Allow loading external JSON/YAML snippets through `$ref` (disabled by default for security).
+- `--no-clean`: Keep the remote submission directory after results are downloaded.
+
+By default, `dpdisp submit` removes the submission-specific remote directory after
+downloading the declared `backward_files` and `backward_common_files`. Use
+`--no-clean` when the complete remote directory must remain available for inspection.

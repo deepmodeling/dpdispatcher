@@ -127,6 +127,15 @@ def main_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Allow loading external JSON/YAML snippets through `$ref`. Disabled by default for security.",
     )
+    parser_submit.add_argument(
+        "--no-clean",
+        action="store_false",
+        dest="clean",
+        help=(
+            "Keep the remote submission directory after downloading results. "
+            "By default the remote directory is removed."
+        ),
+    )
     return parser
 
 
@@ -171,6 +180,7 @@ def main():
             dry_run=args.dry_run,
             exit_on_submit=args.exit_on_submit,
             allow_ref=args.allow_ref,
+            clean=args.clean,
         )
     elif args.command is None:
         pass
