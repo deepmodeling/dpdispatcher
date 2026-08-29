@@ -188,6 +188,7 @@ def retry(
 
     def decorator(func: Callable) -> Callable:  # noqa: ANN401
         assert max_retry > 0, "max_retry must be greater than 0"
+        function_name = getattr(func, "__name__", func.__class__.__name__)
 
         def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             current_retry = 0
@@ -197,7 +198,7 @@ def retry(
                     return func(*args, **kwargs)
                 except (catch_exception,) as e:
                     errors.append(e)
-                    dlog.exception("Failed to run %s: %s", func.__name__, e)
+                    dlog.exception("Failed to run %s: %s", function_name, e)
                     # sleep certain seconds
                     dlog.warning("Sleep %s s and retry...", sleep)
                     time.sleep(sleep)
@@ -205,7 +206,7 @@ def retry(
             else:
                 # raise all exceptions
                 raise RuntimeError(
-                    f"Failed to run {func.__name__} for {current_retry} times"
+                    f"Failed to run {function_name} for {current_retry} times"
                 ) from errors[-1]
 
         return wrapper

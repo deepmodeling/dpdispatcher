@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import json
 import pathlib
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from dargs import Argument, Variant
@@ -69,9 +71,9 @@ class Machine(metaclass=ABCMeta):
     options = set()
     # alias: for subclasses_dict key
     # notes: this attribute can be inherited
-    alias: Tuple[str, ...] = tuple()
+    alias: tuple[str, ...] = tuple()
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "Machine":  # noqa: ANN401
+    def __new__(cls, *args: Any, **kwargs: Any) -> Machine:  # noqa: ANN401
         if cls is Machine:
             subcls = cls.subclasses_dict[kwargs["batch_type"]]
             instance = subcls.__new__(subcls, *args, **kwargs)
@@ -81,14 +83,14 @@ class Machine(metaclass=ABCMeta):
 
     def __init__(
         self,
-        batch_type: Optional[str] = None,
-        context_type: Optional[str] = None,
-        local_root: Optional[str] = None,
-        remote_root: Optional[str] = None,
-        remote_profile: Dict[str, Any] = {},  # noqa: ANN401
+        batch_type: str | None = None,
+        context_type: str | None = None,
+        local_root: str | None = None,
+        remote_root: str | None = None,
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
         retry_count: int = 3,
         *,
-        context: Optional[BaseContext] = None,
+        context: BaseContext | None = None,
     ) -> None:
         if context is None:
             assert isinstance(self, self.__class__.subclasses_dict[batch_type])
@@ -105,6 +107,21 @@ class Machine(metaclass=ABCMeta):
 
     def bind_context(self, context: BaseContext) -> None:
         self.context = context
+
+    def get_job_error(self, job: Job) -> str | None:
+        """Return the saved error diagnostic for a job, if available."""
+        error_file = job.job_hash + "_last_err_file"
+        if self.context.check_file_exists(error_file):
+            return self.context.read_file(error_file)
+        return None
+
+    def gen_local_script(self, job: Job) -> str:
+        """Generate a local staging script for cloud backends.
+
+        Only cloud machine implementations support this operation; the base
+        declaration keeps their context interface type-safe.
+        """
+        raise NotImplementedError("machine does not support local script staging")
 
     # def __init__ (self,
     #             context):
@@ -125,21 +142,40 @@ class Machine(metaclass=ABCMeta):
         # cls.subclasses.append(cls)
 
     @classmethod
-    def load_from_json(cls, json_path: str) -> "Machine":
+    def load_from_json(cls, json_path: str) -> Machine:
         with open(json_path) as f:
             machine_dict = json.load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     @classmethod
-    def load_from_yaml(cls, yaml_path: str) -> "Machine":
+    def load_from_yaml(cls, yaml_path: str) -> Machine:
         with open(yaml_path) as f:
             machine_dict = yaml.safe_load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict: Dict[str, Any]) -> "Machine":  # noqa: ANN401
+    def load_from_dict(
+        cls, machine_dict: dict[str, Any], allow_ref: bool = False
+    ) -> Machine:  # noqa: ANN401
+        """Load a Machine from a dict.
+
+        Parameters
+        ----------
+        machine_dict : dict
+            Machine configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
+        # normalize/check so top-level $ref can be resolved before dispatch
+        base = cls.arginfo()
+        machine_dict = base.normalize_value(
+            machine_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(machine_dict, strict=False, allow_ref=allow_ref)
+
         batch_type = machine_dict["batch_type"]
         try:
             machine_class = cls.subclasses_dict[batch_type]
@@ -149,21 +185,24 @@ class Machine(metaclass=ABCMeta):
             )
             raise e
         # check dict
-        base = cls.arginfo()
-        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
-        base.check_value(machine_dict, strict=False)
+        # machine_dict has already been normalized/checked above
 
         context = BaseContext.load_from_dict(machine_dict)
         retry_count = machine_dict.get("retry_count", 3)
         machine = machine_class(context=context, retry_count=retry_count)
         return machine
 
-    def serialize(self, if_empty_remote_profile: bool = False) -> Dict[str, Any]:  # noqa: ANN401
+    def serialize(self, if_empty_remote_profile: bool = False) -> dict[str, Any]:  # noqa: ANN401
         machine_dict = {}
         machine_dict["batch_type"] = self.__class__.__name__
         machine_dict["context_type"] = self.context.__class__.__name__
         machine_dict["local_root"] = self.context.init_local_root
         machine_dict["remote_root"] = self.context.init_remote_root
+        machine_dict["clean_asynchronously"] = getattr(
+            self.context, "clean_asynchronously", False
+        )
+        if hasattr(self.context, "create_remote_root"):
+            machine_dict["create_remote_root"] = self.context.create_remote_root
         if not if_empty_remote_profile:
             machine_dict["remote_profile"] = self.context.remote_profile
         else:
@@ -171,49 +210,51 @@ class Machine(metaclass=ABCMeta):
         machine_dict["retry_count"] = self.retry_count
         # normalize the dict
         base = self.arginfo()
-        machine_dict = base.normalize_value(machine_dict, trim_pattern="_*")
+        machine_dict = base.normalize_value(
+            machine_dict, trim_pattern="_*", allow_ref=False
+        )
         return machine_dict
 
     def __eq__(self, other: object) -> bool:
-        return self.serialize() == other.serialize()
+        return isinstance(other, Machine) and self.serialize() == other.serialize()
 
     @classmethod
-    def deserialize(cls, machine_dict: Dict[str, Any]) -> "Machine":  # noqa: ANN401
+    def deserialize(cls, machine_dict: dict[str, Any]) -> Machine:  # noqa: ANN401
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     @abstractmethod
-    def check_status(self, job: "Job") -> JobStatus:
+    def check_status(self, job: Job) -> JobStatus:
         raise NotImplementedError(
             "abstract method check_status should be implemented by derived class"
         )
 
-    def default_resources(self, res: "Resources") -> "Resources":
+    def default_resources(self, res: Resources) -> Resources:
         raise NotImplementedError(
             "abstract method default_resources should be implemented by derived class"
         )
 
-    def sub_script_head(self, res: "Resources") -> str:
+    def sub_script_head(self, res: Resources) -> str:
         raise NotImplementedError(
             "abstract method sub_script_head should be implemented by derived class"
         )
 
-    def sub_script_cmd(self, res: "Resources") -> str:
+    def sub_script_cmd(self, res: Resources) -> str:
         raise NotImplementedError(
             "abstract method sub_script_cmd should be implemented by derived class"
         )
 
     @abstractmethod
-    def do_submit(self, job: "Job") -> str:
+    def do_submit(self, job: Job) -> str | int:
         """Submit a single job, assuming that no job is running there."""
         raise NotImplementedError(
             "abstract method do_submit should be implemented by derived class"
         )
 
-    def gen_script_run_command(self, job: "Job") -> str:
+    def gen_script_run_command(self, job: Job) -> str:
         return f"source $REMOTE_ROOT/{job.script_file_name}.run"
 
-    def gen_script(self, job: "Job") -> str:
+    def gen_script(self, job: Job) -> str:
         script_header = self.gen_script_header(job)
         script_custom_flags = self.gen_script_custom_flags_lines(job)
         script_env = self.gen_script_env(job)
@@ -228,25 +269,25 @@ class Machine(metaclass=ABCMeta):
         )
         return script
 
-    def check_if_recover(self, submission: "Submission") -> bool:
+    def check_if_recover(self, submission: Submission) -> bool:
         submission_hash = submission.submission_hash
         submission_file_name = f"{submission_hash}.json"
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 
     @abstractmethod
-    def check_finish_tag(self, job: "Job") -> bool:
+    def check_finish_tag(self, job: Job) -> bool:
         raise NotImplementedError(
             "abstract method check_finish_tag should be implemented by derived class"
         )
 
     @abstractmethod
-    def gen_script_header(self, job: "Job") -> str:
+    def gen_script_header(self, job: Job) -> str:
         raise NotImplementedError(
             "abstract method gen_script_header should be implemented by derived class"
         )
 
-    def gen_script_custom_flags_lines(self, job: "Job") -> str:
+    def gen_script_custom_flags_lines(self, job: Job) -> str:
         custom_flags_lines = ""
         custom_flags = job.resources.custom_flags
         for ii in custom_flags:
@@ -254,7 +295,7 @@ class Machine(metaclass=ABCMeta):
             custom_flags_lines += line
         return custom_flags_lines
 
-    def gen_script_env(self, job: "Job") -> str:
+    def gen_script_env(self, job: Job) -> str:
         source_files_part = ""
 
         module_unload_part = ""
@@ -308,7 +349,7 @@ class Machine(metaclass=ABCMeta):
         )
         return script_env
 
-    def gen_script_command(self, job: "Job") -> str:
+    def gen_script_command(self, job: Job) -> str:
         script_command = ""
         resources = job.resources
         # in_para_task_num = 0
@@ -343,7 +384,7 @@ class Machine(metaclass=ABCMeta):
             script_command += self.gen_script_wait(resources=resources)
         return script_command
 
-    def gen_script_end(self, job: "Job") -> str:
+    def gen_script_end(self, job: Job) -> str:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 
@@ -357,7 +398,7 @@ class Machine(metaclass=ABCMeta):
         )
         return script_end
 
-    def gen_script_wait(self, resources: "Resources") -> str:
+    def gen_script_wait(self, resources: Resources) -> str:
         # if not resources.strategy.get('if_cuda_multi_devices', None):
         #     return "wait \n"
         para_deg = resources.para_deg
@@ -375,7 +416,7 @@ class Machine(metaclass=ABCMeta):
             return "wait \n"
         return ""
 
-    def gen_command_env_cuda_devices(self, resources: "Resources") -> str:
+    def gen_command_env_cuda_devices(self, resources: Resources) -> str:
         # task_need_resources = task.task_need_resources
         # task_need_gpus = task_need_resources.get('task_need_gpus', 1)
         command_env = ""
@@ -394,17 +435,27 @@ class Machine(metaclass=ABCMeta):
     @classmethod
     def arginfo(cls) -> Argument:
         # TODO: change the possible value of batch and context types after we refactor the code
-        doc_batch_type = "The batch job system type. Option: " + ", ".join(cls.options)
+        doc_batch_type = "Batch backend used to execute jobs. Option: " + ", ".join(
+            cls.options
+        )
         doc_context_type = (
-            "The connection used to remote machine. Option: "
+            "Execution context / connection type used to reach the execution environment. Option: "
             + ", ".join(BaseContext.options)
         )
-        doc_local_root = "The dir where the tasks and relating files locate. Typically the project dir."
-        doc_remote_root = "The dir where the tasks are executed on the remote machine. Only needed when context is not lazy-local."
-        doc_clean_asynchronously = (
-            "Clean the remote directory asynchronously after the job finishes."
+        doc_local_root = (
+            "Local project root used by DPDispatcher to find task directories and local files. "
+            "If submission.work_base is a relative path, it is resolved inside this directory; if "
+            "submission.work_base is absolute, it is used as-is and local_root is ignored."
         )
-        doc_retry_count = "Number of retries to resubmit failed jobs."
+        doc_remote_root = (
+            "Remote root directory used by non-local contexts such as SSH. DPDispatcher creates and uses a "
+            "submission-specific working directory beneath this root on the remote side. For SSHContext, this path should be absolute."
+        )
+        doc_clean_asynchronously = (
+            "Clean the remote working directory asynchronously after the job finishes. Avoid enabling this while debugging, "
+            "because it can remove remote artifacts before you inspect them."
+        )
+        doc_retry_count = "How many times DPDispatcher will retry a failed job before raising an error."
 
         machine_args = [
             Argument("batch_type", str, optional=False, doc=doc_batch_type),
@@ -463,7 +514,7 @@ class Machine(metaclass=ABCMeta):
         )
 
     @classmethod
-    def resources_subfields(cls) -> List[Argument]:
+    def resources_subfields(cls) -> list[Argument]:
         """Generate the resources subfields.
 
         Returns
@@ -477,7 +528,7 @@ class Machine(metaclass=ABCMeta):
             )
         ]
 
-    def kill(self, job: "Job") -> None:
+    def kill(self, job: Job) -> None:
         """Kill the job.
 
         If not implemented, pass and let the user manually kill it.
@@ -489,7 +540,7 @@ class Machine(metaclass=ABCMeta):
         """
         dlog.warning(f"Job {job.job_id} should be manually killed")
 
-    def get_exit_code(self, job: "Job") -> int:
+    def get_exit_code(self, job: Job) -> int:
         """Get exit code of the job.
 
         Parameters

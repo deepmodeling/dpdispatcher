@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import glob
 import os
 import shutil
 import uuid
-from typing import TYPE_CHECKING, Any, NoReturn, Optional
+from typing import TYPE_CHECKING, Any, NoReturn
 from zipfile import ZipFile
 
 import tqdm
@@ -65,7 +67,7 @@ class OpenAPIContext(BaseContext):
     def __init__(
         self,
         local_root: str,
-        remote_root: Optional[str] = None,
+        remote_root: str | None = None,
         remote_profile: dict[str, Any] = {},  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
@@ -110,7 +112,7 @@ class OpenAPIContext(BaseContext):
         os.makedirs(DP_CLOUD_SERVER_HOME_DIR, exist_ok=True)
 
     @classmethod
-    def load_from_dict(cls, context_dict: dict[str, Any]) -> "OpenAPIContext":  # noqa: ANN401
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> OpenAPIContext:  # noqa: ANN401
         local_root = context_dict.get("local_root", "./")
         remote_root = context_dict.get("remote_root", None)
         remote_profile = context_dict.get("remote_profile", {})
@@ -122,16 +124,17 @@ class OpenAPIContext(BaseContext):
         )
         return bohrium_context
 
-    def bind_submission(self, submission: "Submission") -> None:
+    def bind_submission(self, submission: Submission) -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = "."
 
         self.submission_hash = submission.submission_hash
 
+        assert submission.machine is not None
         self.machine = submission.machine
 
-    def _gen_object_key(self, job: "DPJob", zip_filename: str) -> str:
+    def _gen_object_key(self, job: DPJob, zip_filename: str) -> str:
         if hasattr(job, "upload_path") and job.upload_path:
             return job.upload_path
         else:
@@ -142,9 +145,7 @@ class OpenAPIContext(BaseContext):
             setattr(job, "upload_path", path)
             return path
 
-    def upload_job(
-        self, job: "DPJob", common_files: Optional[list[str]] = None
-    ) -> None:
+    def upload_job(self, job: DPJob, common_files: list[str] | None = None) -> None:
         if common_files is None:
             common_files = []
         self.machine.gen_local_script(job)
@@ -185,7 +186,7 @@ class OpenAPIContext(BaseContext):
 
         # self._backup(self.local_root, upload_zip)
 
-    def upload(self, submission: "Submission") -> None:
+    def upload(self, submission: Submission) -> None:
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
         # oss_task_zip = 'indicate/' + submission.submission_hash + '/' + zip_filename
@@ -216,7 +217,7 @@ class OpenAPIContext(BaseContext):
 
     def download(
         self,
-        submission: "Submission",
+        submission: Submission,
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,

@@ -60,3 +60,4 @@ err
 log
 # JSON files with hash names (job state files)
 [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*.json
+.venv/

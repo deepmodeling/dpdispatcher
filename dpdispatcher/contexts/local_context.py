@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 import shutil
 import subprocess as sp
 from glob import glob
 from subprocess import TimeoutExpired
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from dargs import Argument
 
@@ -21,7 +23,7 @@ class SPRetObj:
     def read(self) -> bytes:
         return self.data
 
-    def readlines(self) -> List[str]:
+    def readlines(self) -> list[str]:
         lines = self.data.decode("utf-8").splitlines()
         ret = []
         for aa in lines:
@@ -56,7 +58,7 @@ class LocalContext(BaseContext):
         self,
         local_root: str,
         remote_root: str,
-        remote_profile: Dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -69,7 +71,7 @@ class LocalContext(BaseContext):
         self.symlink = remote_profile.get("symlink", True)
 
     @classmethod
-    def load_from_dict(cls, context_dict: Dict[str, Any]) -> "LocalContext":  # noqa: ANN401
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> LocalContext:  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict["remote_root"]
         remote_profile = context_dict.get("remote_profile", {})
@@ -83,8 +85,9 @@ class LocalContext(BaseContext):
     def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission: "Submission") -> None:
+    def bind_submission(self, submission: Submission) -> None:
         self.submission = submission
+        assert submission.submission_hash is not None
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(
             self.temp_remote_root, submission.submission_hash
@@ -109,7 +112,7 @@ class LocalContext(BaseContext):
         else:
             raise ValueError(f"Unknown file type: {local_path}")
 
-    def upload(self, submission: "Submission") -> None:
+    def upload(self, submission: Submission) -> None:
         os.makedirs(self.remote_root, exist_ok=True)
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
@@ -155,7 +158,7 @@ class LocalContext(BaseContext):
 
     def download(
         self,
-        submission: "Submission",
+        submission: Submission,
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,
@@ -308,7 +311,7 @@ class LocalContext(BaseContext):
                 # no nothing in the case of linked files
                 pass
 
-    def block_call(self, cmd: str) -> Tuple[int, None, SPRetObj, SPRetObj]:
+    def block_call(self, cmd: str) -> tuple[int, None, SPRetObj, SPRetObj]:
         proc = sp.Popen(
             cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
@@ -334,18 +337,18 @@ class LocalContext(BaseContext):
     def check_file_exists(self, fname: str) -> bool:
         return os.path.isfile(os.path.join(self.remote_root, fname))
 
-    def call(self, cmd: str) -> sp.Popen:  # type: ignore[type-arg]
+    def call(self, cmd: str) -> sp.Popen:
         proc = sp.Popen(
             cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
         return proc
 
-    def check_finish(self, proc: sp.Popen) -> bool:  # type: ignore[type-arg]
+    def check_finish(self, proc: sp.Popen) -> bool:
         return proc.poll() is not None
 
     def get_return(
         self, proc: sp.Popen
-    ) -> Tuple[Optional[int], Optional[SPRetObj], Optional[SPRetObj]]:  # type: ignore[type-arg]
+    ) -> tuple[int | None, SPRetObj | None, SPRetObj | None]:
         ret = proc.poll()
         if ret is None:
             return None, None, None
@@ -360,7 +363,7 @@ class LocalContext(BaseContext):
         return ret, stdout, stderr
 
     @classmethod
-    def machine_subfields(cls) -> List[Argument]:
+    def machine_subfields(cls) -> list[Argument]:
         """Generate the machine subfields.
 
         Returns
@@ -368,7 +371,7 @@ class LocalContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = "The information used to maintain the local machine."
+        doc_remote_profile = "Options controlling how files are staged between local_root and remote_root when both paths are on the local filesystem."
         return [
             Argument(
                 "remote_profile",
@@ -381,7 +384,7 @@ class LocalContext(BaseContext):
                         bool,
                         optional=True,
                         default=True,
-                        doc="Whether to use symbolic links to replace copy. This option should be turned off if the local directory is not accessible on the Batch system.",
+                        doc="Whether to use symbolic links instead of copying files from local_root into remote_root. Disable this when the execution side cannot access the original local path through the same filesystem view.",
                     ),
                 ],
             )

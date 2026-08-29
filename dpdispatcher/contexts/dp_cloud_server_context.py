@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # %%
+from __future__ import annotations
+
 import os
 import shutil
 import uuid
-from typing import TYPE_CHECKING, Any, List, NoReturn, Optional
+from typing import TYPE_CHECKING, Any, NoReturn
 
 import tqdm
 from dargs.dargs import Argument
@@ -35,7 +37,7 @@ class BohriumContext(BaseContext):
     def __init__(
         self,
         local_root: str,
-        remote_root: Optional[str] = None,
+        remote_root: str | None = None,
         remote_profile: dict[str, Any] = {},  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
@@ -70,7 +72,7 @@ class BohriumContext(BaseContext):
         self.api = Client(account, password)
 
     @classmethod
-    def load_from_dict(cls, context_dict: dict[str, Any]) -> "BohriumContext":  # noqa: ANN401
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> BohriumContext:  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict.get("remote_root", None)
         remote_profile = context_dict.get("remote_profile", {})
@@ -82,20 +84,21 @@ class BohriumContext(BaseContext):
         )
         return dp_cloud_server_context
 
-    def bind_submission(self, submission: "Submission") -> None:
+    def bind_submission(self, submission: Submission) -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = "."
 
         self.submission_hash = submission.submission_hash
 
+        assert submission.machine is not None
         self.machine = submission.machine
 
         # def zip_files(self, submission):
         #     file_uuid = uuid.uuid1().hex
         # oss_task_dir = os.path.join()
 
-    def _gen_oss_path(self, job: "Job", zip_filename: str) -> str:
+    def _gen_oss_path(self, job: Job, zip_filename: str) -> str:
         if hasattr(job, "upload_path") and job.upload_path:
             return job.upload_path
         else:
@@ -108,7 +111,7 @@ class BohriumContext(BaseContext):
             setattr(job, "upload_path", path)
             return path
 
-    def upload_job(self, job: "Job", common_files: Optional[list[str]] = None) -> None:
+    def upload_job(self, job: Job, common_files: list[str] | None = None) -> None:
         MAX_RETRY = 3
         if common_files is None:
             common_files = []
@@ -136,7 +139,7 @@ class BohriumContext(BaseContext):
         retry_count = 0
         self._backup(self.local_root, upload_zip)
 
-    def upload(self, submission: "Submission") -> None:
+    def upload(self, submission: Submission) -> None:
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
         # oss_task_zip = 'indicate/' + submission.submission_hash + '/' + zip_filename
@@ -166,7 +169,7 @@ class BohriumContext(BaseContext):
 
     def download(
         self,
-        submission: "Submission",
+        submission: Submission,
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,
@@ -179,7 +182,7 @@ class BohriumContext(BaseContext):
             ids = job.job_id.split(":job_group_id:")
             jid = int(ids[0])
             job_hashs[jid] = job.job_hash
-            jobinfo = self.api.get_job_detail(jid)
+            jobinfo = self.api.get_job_detail(str(jid))
             job_result.append(jobinfo)
         # if group_id is not None:
         #     job_result = self.api.get_tasks_list(group_id)
@@ -290,7 +293,7 @@ class BohriumContext(BaseContext):
     #         return retcode, cmd_pipes['stdout'], cmd_pipes['stderr']
 
     @classmethod
-    def machine_subfields(cls) -> List[Argument]:
+    def machine_subfields(cls) -> list[Argument]:
         """Generate the machine subfields.
 
         Returns
@@ -298,25 +301,38 @@ class BohriumContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = (
-            "The information used to maintain the connection with remote machine."
-        )
-        doc_retry_count = "The retry count when a job is terminated"
-        doc_ignore_exit_code = """The job state will be marked as finished if the exit code is non-zero when set to True. Otherwise,
-              the job state will be designated as terminated."""
+        doc_remote_profile = "Configuration for Bohrium submission, including login credentials, project selection, and job-handling behavior."
+        doc_retry_count = "How many times a terminated remote job is retried on the platform side before giving up."
+        doc_ignore_exit_code = """Whether a non-zero exit code from the remote platform is still treated as finished. If False, such jobs are marked as terminated."""
         return [
             Argument(
                 "remote_profile",
                 dict,
                 [
-                    Argument("email", str, optional=True, doc="Email"),
-                    Argument("password", str, optional=True, doc="Password"),
+                    Argument(
+                        "email",
+                        str,
+                        optional=True,
+                        doc="Email address used to log in to Bohrium.",
+                    ),
+                    Argument(
+                        "password",
+                        str,
+                        optional=True,
+                        doc="Password used together with email or phone login. If BOHR_TICKET is set, password-based login can be skipped.",
+                    ),
+                    Argument(
+                        "phone",
+                        str,
+                        optional=True,
+                        doc="Phone number used to log in when email is not used.",
+                    ),
                     Argument(
                         "program_id",
                         int,
                         optional=False,
                         alias=["project_id"],
-                        doc="Program ID",
+                        doc="Program / project ID used to place uploaded jobs under the correct Bohrium project namespace.",
                     ),
                     Argument(
                         "retry_count",
@@ -336,10 +352,13 @@ class BohriumContext(BaseContext):
                         "keep_backup",
                         bool,
                         optional=True,
-                        doc="keep download and upload zip",
+                        doc="Whether to keep uploaded/downloaded zip archives in the local backup directory after transfer.",
                     ),
                     Argument(
-                        "input_data", dict, optional=False, doc="Configuration of job"
+                        "input_data",
+                        dict,
+                        optional=False,
+                        doc="Platform-specific job configuration passed through to the Bohrium API.",
                     ),
                 ],
                 doc=doc_remote_profile,

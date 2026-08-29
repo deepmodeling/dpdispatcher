@@ -8,6 +8,10 @@ name: Python package
       - 'pre-commit-ci-update-config'
   pull_request:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   test:
     runs-on: ${{ matrix.platform }}
@@ -30,9 +34,9 @@ jobs:
           - python-version: "3.7"
             platform: macos-15-intel
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
     - uses: astral-sh/setup-uv@v7
@@ -48,9 +52,9 @@ jobs:
         python -m coverage run -p --source=./dpdispatcher -m dpdispatcher -h
         python -m coverage combine
         python -m coverage report
-    - uses: codecov/codecov-action@v5
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    - uses: codecov/codecov-action@v7
+      with:
+        use_oidc: true
   pass:
     needs: [test]
     runs-on: ubuntu-latest

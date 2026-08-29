@@ -30,7 +30,7 @@ Always reference these instructions first and fallback to search or bash command
   pre-commit run --all-files
   ```
 
-  - **TIMING: Linting takes <5 seconds.**
+  - **TIMING: Linting takes \<5 seconds.**
   - **Fallback:** If pre-commit fails with network issues, use `ruff check . && ruff format --check .`
 
 - **Run type checking:**
@@ -61,6 +61,7 @@ Always reference these instructions first and fallback to search or bash command
   ```
 
 - **Run sample job dispatch script:**
+
   ```bash
   python examples/dpdisp_run.py
   ```

@@ -292,7 +292,7 @@ class Client:
             s = s[0].lower() + s[1:]
         return regex.sub(lambda m: m.group(0)[-1].upper(), s)
 
-    def get_job_detail(self, job_id: str) -> Optional[Dict[str, Any]]:  # noqa: ANN401
+    def get_job_detail(self, job_id: Union[str, int]) -> Optional[Dict[str, Any]]:  # noqa: ANN401
         try:
             ret = self.get(
                 f"brm/v1/job/{job_id}",
@@ -306,7 +306,7 @@ class Client:
 
         return ret
 
-    def get_log(self, job_id: str) -> str:
+    def get_log(self, job_id: Union[str, int]) -> str:
         url, size = self._get_job_log(job_id)
         if not url:
             return ""
@@ -320,7 +320,7 @@ class Client:
             dlog.error(f"Error decoding job log: {e}", stack_info=ENABLE_STACK)
             return ""
 
-    def _get_job_log(self, job_id: str) -> Tuple[Optional[str], int]:
+    def _get_job_log(self, job_id: Union[str, int]) -> Tuple[Optional[str], int]:
         ret = self.get(
             f"/brm/v1/job/{job_id}/log",
             params={
@@ -351,11 +351,11 @@ class Client:
             page += 1
         return result
 
-    def get_job_result_url(self, job_id: str) -> Optional[str]:
+    def get_job_result_url(self, job_id: Union[str, int]) -> Optional[str]:
         try:
             if not job_id:
                 return None
-            if "job_group_id" in job_id:
+            if isinstance(job_id, str) and "job_group_id" in job_id:
                 ids = job_id.split(":job_group_id:")
                 job_id, _ = int(ids[0]), int(ids[1])
             ret = self.get(f"/brm/v1/job/{job_id}", {})
@@ -367,11 +367,11 @@ class Client:
             dlog.error(e, stack_info=ENABLE_STACK)
             return None
 
-    def kill(self, job_id: str) -> Optional[Dict[str, Any]]:  # noqa: ANN401
+    def kill(self, job_id: Union[str, int]) -> Optional[Dict[str, Any]]:  # noqa: ANN401
         try:
             if not job_id:
                 return None
-            if "job_group_id" in job_id:
+            if isinstance(job_id, str) and "job_group_id" in job_id:
                 ids = job_id.split(":job_group_id:")
                 job_id, _ = int(ids[0]), int(ids[1])
             ret = self.post(f"/brm/v1/job/kill/{job_id}", {})

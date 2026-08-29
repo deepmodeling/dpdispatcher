@@ -146,19 +146,19 @@ class LazyLocalContext(BaseContext):
         # return os.path.isfile(file_to_be_checked)
         return os.path.isfile(os.path.join(self.remote_root, fname))
 
-    def call(self, cmd: str) -> sp.Popen:  # type: ignore[type-arg]
+    def call(self, cmd: str) -> sp.Popen:
         cwd = os.getcwd()
         proc = sp.Popen(
             cmd, cwd=self.local_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
         return proc
 
-    def check_finish(self, proc: sp.Popen) -> bool:  # type: ignore[type-arg]
+    def check_finish(self, proc: sp.Popen) -> bool:
         return proc.poll() is not None
 
     def get_return(
         self, proc: sp.Popen
-    ) -> Tuple[Optional[int], Optional[SPRetObj], Optional[SPRetObj]]:  # type: ignore[type-arg]
+    ) -> Tuple[Optional[int], Optional[SPRetObj], Optional[SPRetObj]]:
         ret = proc.poll()
         if ret is None:
             return None, None, None

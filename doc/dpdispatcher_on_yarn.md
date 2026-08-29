@@ -2,7 +2,7 @@
 
 ## Background
 
-Currently, DPGen(or other DP softwares) supports for HPC systems like Slurm, PBS, LSF and cloud machines. In order to run DPGen jobs on ByteDance internal platform, we need to extend it to support yarn resources. Hadoop Ecosystem is a very commonly used platform to process the big data, and in the process of developing the new interface, we found it can be implemented by only using hadoop opensource components. So for the convenience of the masses, we decided to contribute the codes to opensource community.
+Currently, DPGen(or other DP software) supports for HPC systems like Slurm, PBS, LSF and cloud machines. In order to run DPGen jobs on ByteDance internal platform, we need to extend it to support yarn resources. Hadoop Ecosystem is a very commonly used platform to process the big data, and in the process of developing the new interface, we found it can be implemented by only using hadoop opensource components. So for the convenience of the masses, we decided to contribute the codes to opensource community.
 
 ## Design
 
@@ -95,7 +95,7 @@ class DistributedShell(Machine):
         pass
 
     def gen_script_command(self, job):
-    """ Generate the shell script to be executed in DistibutedShell container
+    """ Generate the shell script to be executed in DistributedShell container
 
     Parameters
     ----------
@@ -115,7 +115,7 @@ The following is an example of generated shell script. It will be executed in a 
 ```
 #!/bin/bash
 
-## set envionment variables
+## set environment variables
 source /opt/intel/oneapi/setvars.sh
 
 ## download the tar file from hdfs which contains forward files

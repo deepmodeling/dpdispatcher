@@ -72,7 +72,7 @@ class Fugaku(Machine):
         return job_id
 
     def check_status(self, job: "Job") -> JobStatus:
-        job_id = job.job_id
+        job_id = str(job.job_id)
         if job_id == "":
             return JobStatus.unsubmitted
         ret, stdin, stdout, stderr = self.context.block_call("pjstat " + job_id)

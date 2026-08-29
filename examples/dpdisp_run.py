@@ -18,7 +18,9 @@
 # group_size = 0
 # [[tool.dpdispatcher.task_list]]
 # # no need to contain the script filename
-# command = "python"
+# # `uv run` supports dependencies declared in the PEP-723 format
+# # See: https://docs.astral.sh/uv/guides/scripts/
+# command = "uv run"
 # # can be a glob pattern
 # task_work_path = "./"
 # forward_files = []

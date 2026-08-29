@@ -5,7 +5,7 @@ from socket import gaierror
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
-from dargs.dargs import ArgumentValueError
+from dargs.dargs import ArgumentKeyError, ArgumentValueError
 
 from .context import (  # noqa: F401
     LSF,
@@ -119,7 +119,7 @@ class TestMachineDispatch(unittest.TestCase):
     def test_key_err(self) -> None:
         # pass
         machine_dict = {}
-        with self.assertRaises(KeyError):
+        with self.assertRaises(ArgumentKeyError):
             Machine.load_from_dict(machine_dict=machine_dict)
 
     def test_context_err(self) -> None:

@@ -10,6 +10,7 @@ from typing import Sequence, Tuple
 from dargs import Argument
 
 from dpdispatcher.arginfo import machine_dargs, resources_dargs, task_dargs
+from dpdispatcher.entrypoints.submit import submission_args
 
 # directory of examples
 p_examples = Path(__file__).parent.parent / "examples"
@@ -17,6 +18,7 @@ p_examples = Path(__file__).parent.parent / "examples"
 machine_args = machine_dargs()
 resources_args = resources_dargs(detail_kwargs=False)
 task_args = task_dargs()
+submission_args_obj = submission_args()
 
 # input_files : tuple[tuple[Argument, Path]]
 #   tuple of example list
@@ -30,6 +32,7 @@ input_files: Sequence[Tuple[Argument, Path]] = (
     (resources_args, p_examples / "resources" / "tiger.json"),
     (task_args, p_examples / "task" / "deepmd-kit.json"),
     (task_args, p_examples / "task" / "g16.json"),
+    (submission_args_obj, p_examples / "submit_example.json"),
 )
 
 

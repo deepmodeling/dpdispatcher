@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import shlex
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from dargs import Argument
 
@@ -23,11 +25,11 @@ class PBS(Machine):
     # def __init__(self, **kwargs):
     #     super().__init__(**kwargs)
 
-    def gen_script(self, job: "Job") -> str:
+    def gen_script(self, job: Job) -> str:
         pbs_script = super().gen_script(job)
         return pbs_script
 
-    def gen_script_header(self, job: "Job") -> str:
+    def gen_script_header(self, job: Job) -> str:
         resources = job.resources
         pbs_script_header_dict = {}
         pbs_script_header_dict["select_node_line"] = (
@@ -52,7 +54,7 @@ class PBS(Machine):
             )
         return pbs_script_header
 
-    def do_submit(self, job: "Job") -> str:
+    def do_submit(self, job: Job) -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -75,8 +77,8 @@ class PBS(Machine):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def check_status(self, job: "Job") -> JobStatus:
-        job_id = job.job_id
+    def check_status(self, job: Job) -> JobStatus:
+        job_id = str(job.job_id)
         if job_id == "":
             return JobStatus.unsubmitted
         command = "qstat -x " + job_id
@@ -108,11 +110,11 @@ class PBS(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job: "Job") -> bool:
+    def check_finish_tag(self, job: Job) -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
-    def kill(self, job: "Job") -> None:
+    def kill(self, job: Job) -> None:
         """Kill the job.
 
         Parameters
@@ -120,13 +122,13 @@ class PBS(Machine):
         job : Job
             job
         """
-        job_id = job.job_id
+        job_id = str(job.job_id)
         ret, stdin, stdout, stderr = self.context.block_call("qdel " + str(job_id))
 
 
 class Torque(PBS):
-    def check_status(self, job: "Job") -> JobStatus:
-        job_id = job.job_id
+    def check_status(self, job: Job) -> JobStatus:
+        job_id = str(job.job_id)
         if job_id == "":
             return JobStatus.unsubmitted
         command = "qstat -l " + job_id
@@ -158,7 +160,7 @@ class Torque(PBS):
         else:
             return JobStatus.unknown
 
-    def gen_script_header(self, job: "Job") -> str:
+    def gen_script_header(self, job: Job) -> str:
         # ref: https://support.adaptivecomputing.com/wp-content/uploads/2021/02/torque/torque.htm#topics/torque/2-jobs/requestingRes.htm
         resources = job.resources
         pbs_script_header_dict = {}
@@ -197,7 +199,7 @@ class SGE(PBS):
     def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(**kwargs)
 
-    def gen_script_header(self, job: "Job") -> str:
+    def gen_script_header(self, job: Job) -> str:
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
         # resources.number_node is not used in SGE
         resources = job.resources
@@ -225,7 +227,7 @@ class SGE(PBS):
             )
         return sge_script_header
 
-    def do_submit(self, job: "Job") -> str:
+    def do_submit(self, job: Job) -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -242,9 +244,9 @@ class SGE(PBS):
         self.context.write_file(job_id_name, job_id)
         return job_id
 
-    def check_status(self, job: "Job") -> JobStatus:
+    def check_status(self, job: Job) -> JobStatus:
         ### https://softpanorama.org/HPC/Grid_engine/Queues/queue_states.shtml
-        job_id = job.job_id
+        job_id = str(job.job_id)
         status_line = None
         if job_id == "":
             return JobStatus.unsubmitted
@@ -286,12 +288,12 @@ class SGE(PBS):
             else:
                 return JobStatus.unknown
 
-    def check_finish_tag(self, job: "Job") -> bool:
+    def check_finish_tag(self, job: Job) -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
     @classmethod
-    def resources_subfields(cls) -> List[Argument]:
+    def resources_subfields(cls) -> list[Argument]:
         """Generate the resources subfields.
 
             pe_name : str
@@ -302,8 +304,8 @@ class SGE(PBS):
         list[Argument]
             resources subfields
         """
-        doc_pe_name = "The parallel environment name of SGE system."
-        doc_job_name = "The name of SGE's job."
+        doc_pe_name = "Parallel environment name used by SGE, for example `mpi`. This controls the `#$ -pe ...` header line in SGE mode."
+        doc_job_name = "Job name shown by SGE for this submission."
 
         return [
             Argument(
@@ -327,6 +329,6 @@ class SGE(PBS):
                     ),
                 ],
                 optional=False,
-                doc="Extra arguments.",
+                doc="SGE-specific extra arguments.",
             )
         ]

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import shlex
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from dargs import Argument
 
@@ -28,11 +30,11 @@ lsf_script_header_template = """\
 class LSF(Machine):
     """LSF batch."""
 
-    def gen_script(self, job: "Job") -> str:
+    def gen_script(self, job: Job) -> str:
         lsf_script = super().gen_script(job)
         return lsf_script
 
-    def gen_script_header(self, job: "Job") -> str:
+    def gen_script_header(self, job: Job) -> str:
         resources = job.resources
         script_header_dict = {
             "lsf_nodes_line": f"#BSUB -n {resources.number_node * resources.cpu_per_node}",
@@ -79,7 +81,7 @@ class LSF(Machine):
         return lsf_script_header
 
     @retry()
-    def do_submit(self, job: "Job") -> str:
+    def do_submit(self, job: Job) -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -105,16 +107,16 @@ class LSF(Machine):
         return job_id
 
     # TODO: derive abstract methods
-    def sub_script_cmd(self, res: "Resources") -> str:
+    def sub_script_cmd(self, res: Resources) -> str:
         return ""
 
-    def sub_script_head(self, res: "Resources") -> str:
+    def sub_script_head(self, res: Resources) -> str:
         return ""
 
     @retry()
-    def check_status(self, job: "Job") -> JobStatus:
+    def check_status(self, job: Job) -> JobStatus:
         try:
-            job_id = job.job_id
+            job_id = str(job.job_id)
         except AttributeError:
             return JobStatus.terminated
         if job_id == "":
@@ -152,12 +154,12 @@ class LSF(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job: "Job") -> bool:
+    def check_finish_tag(self, job: Job) -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
     @classmethod
-    def resources_subfields(cls) -> List[Argument]:
+    def resources_subfields(cls) -> list[Argument]:
         """Generate the resources subfields.
 
         Returns
@@ -165,16 +167,10 @@ class LSF(Machine):
         list[Argument]
             resources subfields
         """
-        doc_custom_gpu_line = "Custom GPU configuration, starting with #BSUB"
-        doc_gpu_usage = "Choosing if GPU is used in the calculation step. "
-        doc_gpu_new_syntax = (
-            "For LFS >= 10.1.0.3, new option -gpu for #BSUB could be used. "
-            "If False, and old syntax would be used."
-        )
-        doc_gpu_exclusive = (
-            "Only take effect when new syntax enabled. "
-            "Control whether submit tasks in exclusive way for GPU."
-        )
+        doc_custom_gpu_line = "Custom GPU header line starting with #BSUB. When set, it overrides the GPU-related LSF header generated from the other GPU kwargs."
+        doc_gpu_usage = "Whether DPDispatcher should emit an LSF GPU request line at all. If False, no GPU request header is added."
+        doc_gpu_new_syntax = "Whether to use the newer `#BSUB -gpu` syntax instead of the older resource string syntax. This is typically used on newer LSF versions."
+        doc_gpu_exclusive = "Only meaningful when gpu_new_syntax is enabled. Controls whether the submitted job requests GPUs in exclusive mode."
         return [
             Argument(
                 "kwargs",
@@ -210,11 +206,11 @@ class LSF(Machine):
                     ),
                 ],
                 optional=False,
-                doc="Extra arguments.",
+                doc="LSF-specific extra arguments.",
             )
         ]
 
-    def kill(self, job: "Job") -> None:
+    def kill(self, job: Job) -> None:
         """Kill the job.
 
         Parameters

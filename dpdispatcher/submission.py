@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -201,9 +201,15 @@ class Submission:
         for job in self.belonging_jobs:
             job.machine = machine
         if machine is not None:
-            self.machine.context.bind_submission(self)
+            machine.context.bind_submission(self)
             self.local_root = machine.context.temp_local_root
         return self
+
+    def _require_machine(self) -> "Machine":
+        """Return the bound machine or fail with an actionable lifecycle error."""
+        if self.machine is None:
+            raise RuntimeError("Submission must be bound to a machine before execution")
+        return self.machine
 
     def run_submission(
         self,
@@ -212,7 +218,7 @@ class Submission:
         exit_on_submit: bool = False,
         clean: bool = True,
         check_interval: int = 30,
-    ) -> None:
+    ) -> Dict[str, Any]:  # noqa: ANN401
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -222,58 +228,107 @@ class Submission:
         If exit_on_submit is True, submission will exit.
         """
         assert self.resources is not None
+        machine = self._require_machine()
         if not self.belonging_jobs:
             self.generate_jobs()
-        self.try_recover_from_json()
-        self.update_submission_state()
-        if self.check_all_finished():
-            dlog.info("check_all_finished: True")
-        else:
-            dlog.info("check_all_finished: False")
-            self.upload_jobs()
-            if dry_run is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            self.handle_unexpected_submission_state()
-            self.submission_to_json()
-            time.sleep(1)
+        try:
+            self.try_recover_from_json()
             self.update_submission_state()
-            self.check_all_finished()
-            self.handle_unexpected_submission_state()
-
-        ratio_unfinished = self.resources.strategy["ratio_unfinished"]
-        while not self.check_all_finished():
-            if exit_on_submit is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_tasks()
-                break
-
-            try:
-                time.sleep(check_interval)
-            except (Exception, KeyboardInterrupt, SystemExit) as e:
-                self.submission_to_json()
-                record_path = record.write(self)
-                dlog.exception(e)
-                dlog.info(f"submission exit: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                dlog.info(f"Submission information is saved in {str(record_path)}.")
-                dlog.debug(self.serialize())
-                raise e
+            if self.check_all_finished():
+                dlog.info("check_all_finished: True")
             else:
-                self.update_submission_state()
+                dlog.info("check_all_finished: False")
+                self.upload_jobs()
+                if dry_run is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {machine.context.remote_root}")
+                    return self.serialize()
                 self.handle_unexpected_submission_state()
-            finally:
+                self.submission_to_json()
+                time.sleep(1)
+                self.update_submission_state()
+                self.check_all_finished()
+                self.handle_unexpected_submission_state()
+
+            ratio_unfinished = self.resources.strategy["ratio_unfinished"]
+            while not self.check_all_finished():
+                if exit_on_submit is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {machine.context.remote_root}")
+                    return self.serialize()
+                if ratio_unfinished > 0.0 and self.check_ratio_unfinished(
+                    ratio_unfinished
+                ):
+                    self.remove_unfinished_tasks()
+                    break
+
+                try:
+                    time.sleep(check_interval)
+                except (Exception, KeyboardInterrupt, SystemExit) as e:
+                    self.submission_to_json()
+                    record_path = record.write(self)
+                    dlog.exception(e)
+                    dlog.info(f"submission exit: {self.submission_hash}")
+                    dlog.info(f"at {machine.context.remote_root}")
+                    dlog.info(f"Submission information is saved in {str(record_path)}.")
+                    dlog.debug(self.serialize())
+                    raise e
+                else:
+                    self.update_submission_state()
+                    self.handle_unexpected_submission_state()
+            self.handle_unexpected_submission_state()
+            self.try_download_result()
+        finally:
+            # Cover recovery, initial submission, polling, and final download
+            # failures so exhausted retries always preserve diagnostics.
+            try:
+                self.try_download_error_info()
+            except Exception:
                 pass
-        self.handle_unexpected_submission_state()
-        self.try_download_result()
         self.submission_to_json()
         if clean:
             self.clean_jobs()
         return self.serialize()
+
+    def try_download_error_info(self) -> None:
+        """Download error diagnostic files for failed/terminated jobs.
+
+        For each job that did not finish successfully, attempts to download
+        the ``{job_hash}_last_err_file`` from the remote root to the local root.
+        This preserves error diagnostics even when ``clean=True`` deletes the
+        remote workdir afterward.
+
+        The error file contains the last 1000 bytes of stderr from the most
+        recently failed task in the job, written by the generated bash script.
+        """
+        if self.machine is None:
+            return
+        for job in self.belonging_jobs:
+            if job.job_state in (JobStatus.terminated, JobStatus.unknown):
+                err_file_name = job.job_hash + "_last_err_file"
+                try:
+                    err_content = self.machine.get_job_error(job)
+                    if err_content is not None:
+                        # Write to local root for post-mortem access
+                        local_err_path = os.path.join(
+                            self.machine.context.local_root, err_file_name
+                        )
+                        os.makedirs(os.path.dirname(local_err_path), exist_ok=True)
+                        with open(local_err_path, "w") as f:
+                            f.write(err_content)
+                        dlog.info(
+                            f"Downloaded error info for job {job.job_hash} to "
+                            f"{local_err_path}"
+                        )
+                        # Also log the error content for immediate visibility
+                        dlog.warning(
+                            f"Job {job.job_hash} failed. Last error output:\n"
+                            f"{err_content}"
+                        )
+                except Exception as e:
+                    dlog.debug(
+                        f"Could not download error file for job {job.job_hash}: {e}"
+                    )
 
     def try_download_result(self) -> None:
         start_time = time.time()
@@ -359,6 +414,7 @@ class Submission:
         If the job state is terminated (killed unexpectly), resubmit the job.
         If the job state is unknown, raise an error.
         """
+        machine = self._require_machine()
         try:
             for job in self.belonging_jobs:
                 job.handle_unexpected_job_state()
@@ -367,7 +423,7 @@ class Submission:
             record_path = record.write(self)
             raise RuntimeError(
                 f"Meet errors will handle unexpected submission state.\n"
-                f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
+                f"Debug information: remote_root=={machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
                 f"Please check error messages above and in remote_root. "
                 f"The submission information is saved in {str(record_path)}.\n"
@@ -388,6 +444,7 @@ class Submission:
             whether the ratio of unfinished tasks in the submission is larger than ratio_unfinished
         """
         assert self.resources is not None
+        machine = self._require_machine()
         if self.resources.group_size == 1:
             # if group size is 1, calculate job state is enough and faster
             status_list = [job.job_state for job in self.belonging_jobs]
@@ -395,17 +452,18 @@ class Submission:
             # get task state is more accurate
             status_list = []
             for task in self.belonging_tasks:
-                task.get_task_state(self.machine.context)
+                task.get_task_state(machine.context)
                 status_list.append(task.task_state)
         finished_num = status_list.count(JobStatus.finished)
         return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
     def remove_unfinished_tasks(self) -> None:
+        machine = self._require_machine()
         dlog.info("Remove unfinished tasks")
         # kill all jobs and mark them as finished
         for job in self.belonging_jobs:
             if job.job_state != JobStatus.finished:
-                self.machine.kill(job)
+                machine.kill(job)
                 job.job_state = JobStatus.finished
         # remove all unfinished tasks
         finished_tasks = []
@@ -498,16 +556,16 @@ class Submission:
         self.submission_hash = self.get_hash()
 
     def upload_jobs(self) -> None:
-        self.machine.context.upload(self)
+        self._require_machine().context.upload(self)
 
     def download_jobs(self) -> None:
-        self.machine.context.download(self)
+        self._require_machine().context.download(self)
         # for job in self.belonging_jobs:
         #     job.tag_finished()
         # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")
 
     def clean_jobs(self) -> None:
-        self.machine.context.clean()
+        self._require_machine().context.clean()
         assert self.submission_hash is not None
         record.remove(self.submission_hash)
 
@@ -515,7 +573,9 @@ class Submission:
         # self.update_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = f"{self.submission_hash}.json"
-        self.machine.context.write_file(submission_file_name, write_str=write_str)
+        self._require_machine().context.write_file(
+            submission_file_name, write_str=write_str
+        )
 
     @classmethod
     def submission_from_json(
@@ -527,14 +587,13 @@ class Submission:
         return submission
 
     def try_recover_from_json(self) -> None:
+        machine = self._require_machine()
         submission_file_name = f"{self.submission_hash}.json"
-        if_recover = self.machine.context.check_file_exists(submission_file_name)
+        if_recover = machine.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
         if if_recover:
-            submission_dict_str = self.machine.context.read_file(
-                fname=submission_file_name
-            )
+            submission_dict_str = machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
             submission = Submission.deserialize(submission_dict=submission_dict)
             submission.bind_machine(machine=self.machine)
@@ -547,7 +606,7 @@ class Submission:
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
                     f"submission.submission_hash:{submission.submission_hash}; "
-                    f"machine.context.remote_root:{self.machine.context.remote_root}; "
+                    f"machine.context.remote_root:{machine.context.remote_root}; "
                     f"submission.work_base:{submission.work_base};"
                 )
             else:
@@ -612,24 +671,56 @@ class Task:
         return sha1(json.dumps(self.serialize()).encode("utf-8")).hexdigest()
 
     @classmethod
-    def load_from_json(cls, json_file: str) -> "Task":
+    def load_from_json(cls, json_file: str, allow_ref: bool = False) -> "Task":
+        """Load a Task from a JSON file.
+
+        Parameters
+        ----------
+        json_file : str
+            Path to task JSON file.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         with open(json_file) as f:
             task_dict = json.load(f)
-        return cls.load_from_dict(task_dict)
+        return cls.load_from_dict(task_dict, allow_ref=allow_ref)
 
     @classmethod
-    def load_from_yaml(cls, yaml_file: str) -> "Task":
+    def load_from_yaml(cls, yaml_file: str, allow_ref: bool = False) -> "Task":
+        """Load a Task from a YAML file.
+
+        Parameters
+        ----------
+        yaml_file : str
+            Path to task YAML file.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         with open(yaml_file) as f:
             task_dict = yaml.safe_load(f)
-        task = cls.load_from_dict(task_dict=task_dict)
+        task = cls.load_from_dict(task_dict=task_dict, allow_ref=allow_ref)
         return task
 
     @classmethod
-    def load_from_dict(cls, task_dict: dict) -> "Task":
+    def load_from_dict(cls, task_dict: dict, allow_ref: bool = False) -> "Task":
+        """Load a Task from a dict.
+
+        Parameters
+        ----------
+        task_dict : dict
+            Task configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         # check dict
         base = cls.arginfo()
-        task_dict = base.normalize_value(task_dict, trim_pattern="_*")
-        base.check_value(task_dict, strict=False)
+        task_dict = base.normalize_value(
+            task_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(task_dict, strict=False, allow_ref=allow_ref)
 
         task = cls.deserialize(task_dict=task_dict)
         return task
@@ -665,15 +756,34 @@ class Task:
     @staticmethod
     def arginfo() -> Argument:
         doc_command = (
-            "A command to be executed of this task. The expected return code is 0."
+            "Shell command executed for this task. A zero exit code is treated as success. "
+            "If the real application may fail before useful artifacts are synchronized, consider "
+            "wrapping it and saving diagnostics to files that are listed in backward_files."
         )
-        doc_task_work_path = "The dir where the command to be executed."
+        doc_task_work_path = (
+            "Working directory of this task, specified as a relative path inside submission.work_base. "
+            "Absolute paths are not supported and may break staging or remote execution. For the smallest "
+            "local example, use '.'. If you use a subdirectory such as 'task1/', the command runs inside "
+            "that subdirectory."
+        )
         doc_forward_files = (
-            "The files to be uploaded in task_work_path before the task exectued."
+            "Files to upload for this task before execution. Paths are resolved relative to this "
+            "task's task_work_path. Put per-task inputs here; files shared by all tasks belong in "
+            "submission.forward_common_files."
         )
-        doc_backward_files = "The files to be download to local_root in task_work_path after the task finished"
-        doc_outlog = "The out log file name. redirect from stdout"
-        doc_errlog = "The err log file name. redirect from stderr"
+        doc_backward_files = (
+            "Files to download for this task after execution. Paths are collected from this task's "
+            "task_work_path on the execution side and synchronized back to the same relative task "
+            "directory under the local staging root (typically machine.local_root/work_base)."
+        )
+        doc_outlog = (
+            "Filename used to redirect stdout inside task_work_path while the task runs. If this file is "
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
+        )
+        doc_errlog = (
+            "Filename used to redirect stderr inside task_work_path while the task runs. If this file is "
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
+        )
 
         task_args = [
             Argument("command", str, optional=False, doc=doc_command),
@@ -758,8 +868,11 @@ class Job:
         # self.job_work_base = job_work_base
         self.resources = resources
         self.machine = machine
-        self.job_state = None  # JobStatus.unsubmitted
-        self.job_id = ""
+        self.job_state: Optional[JobStatus] = None  # JobStatus.unsubmitted
+        self.job_id: Union[str, int] = ""
+        # Cloud backends attach these identifiers while staging and submitting.
+        self.upload_path = ""
+        self.jgid: Optional[Union[str, int]] = None
         self.fail_count = 0
         self.job_uuid = uuid.uuid4()
 
@@ -921,7 +1034,7 @@ class Job:
             # job_content_dict['job_uuid'] = self.job_uuid
         return {job_hash: job_content_dict}
 
-    def register_job_id(self, job_id: str) -> None:
+    def register_job_id(self, job_id: Union[str, int]) -> None:
         self.job_id = job_id
 
     def submit_job(self) -> None:
@@ -943,9 +1056,8 @@ class Job:
     def get_last_error_message(self) -> Optional[str]:
         """Get last error message when the job is terminated."""
         assert self.machine is not None
-        last_err_file = self.job_hash + "_last_err_file"
-        if self.machine.context.check_file_exists(last_err_file):
-            last_error_message = self.machine.context.read_file(last_err_file)
+        last_error_message = self.machine.get_job_error(self)
+        if last_error_message is not None:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message
@@ -1117,47 +1229,79 @@ class Resources:
         return resources
 
     @classmethod
-    def load_from_dict(cls, resources_dict: Dict[str, Any]) -> "Resources":  # noqa: ANN401
+    def load_from_dict(
+        cls, resources_dict: Dict[str, Any], allow_ref: bool = False
+    ) -> "Resources":  # noqa: ANN401
+        """Load Resources from a dict.
+
+        Parameters
+        ----------
+        resources_dict : dict
+            Resources configuration dict.
+        allow_ref : bool, default=False
+            Whether to allow loading external JSON/YAML snippets via ``$ref``.
+            Disabled by default for security.
+        """
         # check dict
         base = cls.arginfo(detail_kwargs="batch_type" in resources_dict)
-        resources_dict = base.normalize_value(resources_dict, trim_pattern="_*")
-        base.check_value(resources_dict, strict=False)
+        resources_dict = base.normalize_value(
+            resources_dict, trim_pattern="_*", allow_ref=allow_ref
+        )
+        base.check_value(resources_dict, strict=False, allow_ref=allow_ref)
 
         return cls.deserialize(resources_dict=resources_dict)
 
     @staticmethod
     def arginfo(detail_kwargs: bool = True) -> Argument:
-        doc_number_node = "The number of nodes required for each `job`."
-        doc_cpu_per_node = "CPU numbers of each node assigned to each job."
-        doc_gpu_per_node = "GPU numbers of each node assigned to each job."
-        doc_queue_name = "The queue name of batch job scheduler system."
-        doc_group_size = "The number of `tasks` in a `job`. 0 means infinity."
-        doc_custom_flags = "The extra lines pass to job submitting script header"
-        doc_para_deg = "Decide how many tasks will be run in parallel."
-        doc_source_list = "The env file to be sourced before the command execution."
-        doc_module_purge = (
-            "Remove all modules on HPC system before module load (module_list)"
+        doc_number_node = "Number of nodes requested for each scheduler job generated by DPDispatcher."
+        doc_cpu_per_node = (
+            "Number of CPUs requested on each node for each scheduler job."
         )
-        doc_module_unload_list = (
-            "The modules to be unloaded on HPC system before submitting jobs"
+        doc_gpu_per_node = (
+            "Number of GPUs requested on each node for each scheduler job."
         )
-        doc_module_list = (
-            "The modules to be loaded on HPC system before submitting jobs"
+        doc_queue_name = (
+            "Queue or partition name used by the selected batch system. For local Shell runs this is "
+            "usually an empty string; for Slurm it typically maps to a partition."
         )
-        doc_envs = "The environment variables to be exported on before submitting jobs"
-        doc_prepend_script = "Optional script run before jobs submitted."
-        doc_append_script = "Optional script run after jobs submitted."
-        doc_wait_time = "The waitting time in second after a single `task` submitted"
+        doc_group_size = (
+            "How many tasks are packed into one scheduler job. For example, 20 tasks with group_size=5 "
+            "are typically split into 4 jobs. Use 1 for the simplest one-task workflow. 0 means no "
+            "explicit upper limit in the grouping logic."
+        )
+        doc_custom_flags = (
+            "Extra scheduler-header lines inserted into the generated submission script, typically for "
+            "backend-specific options that are not covered by the standard fields."
+        )
+        doc_para_deg = (
+            "How many tasks inside one generated job are run in parallel. This is different from group_size: "
+            "group_size controls how many tasks are bundled into a job, while para_deg controls concurrency "
+            "within that job. Keep para_deg=1 for the safest default."
+        )
+        doc_source_list = (
+            "Shell scripts or environment files sourced before task commands run. Useful on HPC systems for "
+            "activating software stacks explicitly instead of relying on login-shell defaults."
+        )
+        doc_module_purge = "Whether to run 'module purge' before applying module_unload_list and module_list. Mainly useful on HPC systems."
+        doc_module_unload_list = "Modules to unload before loading the requested modules. Mainly relevant on HPC systems with environment modules."
+        doc_module_list = "Modules to load before executing tasks. Mainly relevant on HPC systems with environment modules."
+        doc_envs = "Environment variables exported before executing tasks."
+        doc_prepend_script = "Optional shell lines inserted before task commands in the generated job script."
+        doc_append_script = "Optional shell lines inserted after task commands in the generated job script."
+        doc_wait_time = (
+            "Delay in seconds inserted after a job is submitted or resubmitted. Usually keep 0 unless the "
+            "scheduler/site asks you to throttle submission pace."
+        )
         doc_if_cuda_multi_devices = (
-            "If there are multiple nvidia GPUS on the node, and we want to assign the tasks to different GPUS."
-            "If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task."
-            "Usually, this option will be used with Task.task_need_resources variable simultaneously."
+            "If a node has multiple NVIDIA GPUs, assign different tasks inside the same job to different GPUs "
+            "by setting CUDA_VISIBLE_DEVICES automatically. Usually used together with para_deg > 1 and task-level "
+            "resource awareness."
         )
-        doc_ratio_unfinished = "The ratio of `tasks` that can be unfinished."
-        doc_customized_script_header_template_file = (
-            "The customized template file to generate job submitting script header, "
-            "which overrides the default file."
+        doc_ratio_unfinished = (
+            "Maximum fraction of tasks allowed to remain unfinished when evaluating job completion. Use 0.0 for the "
+            "strict default that requires every task to finish."
         )
+        doc_customized_script_header_template_file = "Custom template file for the scheduler-header portion of generated submission scripts. Overrides the default template."
 
         strategy_args = [
             Argument(
@@ -1181,7 +1325,7 @@ class Resources:
                 doc=doc_customized_script_header_template_file,
             ),
         ]
-        doc_strategy = "strategies we use to generation job submitting scripts."
+        doc_strategy = "Strategy options that affect how DPDispatcher generates and evaluates submission scripts."
         strategy_format = Argument(
             "strategy", dict, strategy_args, optional=True, doc=doc_strategy
         )

@@ -19,7 +19,7 @@ from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 
 if TYPE_CHECKING:
-    from dpdispatcher.contexts.context import Context
+    from dpdispatcher.base_context import BaseContext
     from dpdispatcher.submission import Job as SubmissionJob
     from dpdispatcher.submission import Submission
 
@@ -35,7 +35,7 @@ def unzip_file(zip_file: str, out_dir: str = "./") -> None:
 
 
 class OpenAPI(Machine):
-    def __init__(self, context: "Context", **kwargs: Any) -> None:  # noqa: ANN401
+    def __init__(self, context: "BaseContext", **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(context=context, **kwargs)
         if not found_bohriumsdk:
             raise ModuleNotFoundError(
@@ -113,6 +113,7 @@ class OpenAPI(Machine):
             result_file_list.extend(
                 [os.path.join(task.task_work_path, b_f) for b_f in task.backward_files]
             )
+        result_file_list.append(job.job_hash + "_last_err_file")
         result_file_list = list(set(result_file_list))
         return result_file_list
 
@@ -169,7 +170,9 @@ class OpenAPI(Machine):
         group_id = None
         if hasattr(job, "jgid"):
             group_id = job.jgid
-        check_return = self._get_job_detail(job_id, group_id)
+        numeric_job_id = int(job_id)
+        numeric_group_id = int(group_id) if group_id is not None else None
+        check_return = self._get_job_detail(numeric_job_id, numeric_group_id)
         try:
             dp_job_status = check_return["status"]
         except IndexError as e:
@@ -177,7 +180,7 @@ class OpenAPI(Machine):
                 f"cannot find job information in bohrium for job {job.job_id}. check_return:{check_return}; retry one more time after 60 seconds"
             )
             time.sleep(60)
-            retry_return = self._get_job_detail(job_id, group_id)
+            retry_return = self._get_job_detail(numeric_job_id, numeric_group_id)
             try:
                 dp_job_status = retry_return["status"]
             except IndexError as e:
@@ -202,7 +205,7 @@ class OpenAPI(Machine):
 
     def _download_job(self, job: "SubmissionJob") -> None:
         data = self.job.detail(job.job_id)
-        job_url = data["resultUrl"]
+        job_url = data.get("resultUrl")
         if not job_url:
             return
         job_hash = job.job_hash
@@ -222,6 +225,24 @@ class OpenAPI(Machine):
             )
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
+
+    def get_job_error(self, job: "SubmissionJob") -> Optional[str]:
+        """Retrieve diagnostics from the cloud result or job log."""
+        try:
+            self._download_job(job)
+        except Exception as e:
+            dlog.debug(f"Could not download result archive for job {job.job_hash}: {e}")
+        error_path = os.path.join(
+            self.context.local_root, job.job_hash + "_last_err_file"
+        )
+        if os.path.isfile(error_path):
+            with open(error_path) as fp:
+                return fp.read()
+        try:
+            return self.job.log(job.job_id)
+        except Exception as e:
+            dlog.debug(f"Could not retrieve cloud log for job {job.job_hash}: {e}")
+            return None
 
     def check_finish_tag(self, job: "SubmissionJob") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"

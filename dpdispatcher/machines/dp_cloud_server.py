@@ -13,7 +13,7 @@ from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.utils import customized_script_header_template
 
 if TYPE_CHECKING:
-    from dpdispatcher.contexts.context import Context
+    from dpdispatcher.base_context import BaseContext
     from dpdispatcher.submission import Job, Submission
 
 shell_script_header_template = """
@@ -24,7 +24,7 @@ shell_script_header_template = """
 class Bohrium(Machine):
     alias = ("Lebesgue", "DpCloudServer")
 
-    def __init__(self, context: "Context", **kwargs: Any) -> None:  # noqa: ANN401
+    def __init__(self, context: "BaseContext", **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(context=context, **kwargs)
         self.context = context
         self.input_data = context.remote_profile["input_data"].copy()
@@ -108,6 +108,7 @@ class Bohrium(Machine):
             result_file_list.extend(
                 [os.path.join(task.task_work_path, b_f) for b_f in task.backward_files]
             )
+        result_file_list.append(job.job_hash + "_last_err_file")
         result_file_list = list(set(result_file_list))
         return result_file_list
 
@@ -141,6 +142,11 @@ class Bohrium(Machine):
         input_data["command"] = f"bash {job.script_file_name}"
         if not input_data.get("backward_files"):
             input_data["backward_files"] = self._gen_backward_files_list(job)
+        else:
+            input_data["backward_files"] = list(input_data["backward_files"])
+            error_file = job.job_hash + "_last_err_file"
+            if error_file not in input_data["backward_files"]:
+                input_data["backward_files"].append(error_file)
         input_data["logFiles"] = os.path.join(
             job.job_task_list[0].task_work_path, job.job_task_list[0].outlog
         )
@@ -162,7 +168,9 @@ class Bohrium(Machine):
         job.job_state = JobStatus.waiting
         return job_id
 
-    def _get_job_detail(self, job_id: int, group_id: Optional[int]) -> Dict[str, Any]:
+    def _get_job_detail(
+        self, job_id: Union[str, int], group_id: Optional[int]
+    ) -> Dict[str, Any]:
         check_return = self.api.get_job_detail(job_id)
         assert check_return is not None, (
             f"Failed to retrieve tasks information. To resubmit this job, please "
@@ -244,6 +252,27 @@ class Bohrium(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
+    def get_job_error(self, job: "Job") -> Optional[str]:
+        """Retrieve diagnostics from the cloud result or job log."""
+        try:
+            self._download_job(job)
+        except Exception as e:
+            dlog.debug(f"Could not download result archive for job {job.job_hash}: {e}")
+        error_path = os.path.join(
+            self.context.local_root, job.job_hash + "_last_err_file"
+        )
+        if os.path.isfile(error_path):
+            with open(error_path) as fp:
+                return fp.read()
+        job_id = job.job_id
+        if isinstance(job_id, str) and ":job_group_id:" in job_id:
+            job_id = int(job_id.split(":job_group_id:", 1)[0])
+        try:
+            return self.api.get_log(job_id)
+        except Exception as e:
+            dlog.debug(f"Could not retrieve cloud log for job {job.job_hash}: {e}")
+            return None
+
     def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         dlog.info("check if job finished: ", job.job_id, job_tag_finished)
@@ -300,7 +329,8 @@ class Bohrium(Machine):
         check_return = self._get_job_detail(job_id, self.group_id)
         return check_return.get("exitCode", -999)
 
-    def _parse_job_id(self, str_job_id: str) -> int:
+    def _parse_job_id(self, str_job_id: Union[str, int]) -> int:
+        str_job_id = str(str_job_id)
         job_id = 0
         if "job_group_id" in str_job_id:
             ids = str_job_id.split(":job_group_id:")

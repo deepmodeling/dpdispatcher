@@ -21,7 +21,7 @@ classifiers = [
 ]
 dependencies = [
     'paramiko',
-    'dargs>=0.4.1',
+    'dargs>=0.5.0',
     'requests',
     'tqdm>=4.9.0',
     'typing_extensions; python_version < "3.7"',
@@ -60,7 +60,7 @@ docs = [
     'sphinx-book-theme',
     'numpydoc',
     'deepmodeling-sphinx>=0.3.0',
-    'dargs>=0.3.1',
+    'dargs>=0.5.0',
     'sphinx-argparse<0.5.0',
 ]
 cloudserver = ["oss2", "tqdm", "bohrium-sdk"]
@@ -125,3 +125,7 @@ convention = "numpy"
 
 [tool.ruff]
 line-length = 88
+# Keep lint-driven annotation rewrites compatible with the package's minimum
+# supported runtime. PEP 585 annotations are safe only in modules that enable
+# postponed evaluation explicitly.
+target-version = "py37"

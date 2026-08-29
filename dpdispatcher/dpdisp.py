@@ -5,6 +5,7 @@ from typing import List, Optional
 from dpdispatcher.entrypoints.gui import start_dpgui
 from dpdispatcher.entrypoints.run import run
 from dpdispatcher.entrypoints.submission import handle_submission
+from dpdispatcher.entrypoints.submit import submit
 
 
 def main_parser() -> argparse.ArgumentParser:
@@ -94,6 +95,38 @@ def main_parser() -> argparse.ArgumentParser:
         type=str,
         help="Python script to run. PEP 723 metadata should be contained in this file.",
     )
+    parser_run.add_argument(
+        "--allow-ref",
+        action="store_true",
+        help="Allow loading external JSON/YAML snippets through `$ref`. Disabled by default for security.",
+    )
+    ##########################################
+    # submit
+    parser_submit = subparsers.add_parser(
+        "submit",
+        help="Submit a submission from a JSON file.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser_submit.add_argument(
+        "filename",
+        type=str,
+        help="JSON file containing submission configuration.",
+    )
+    parser_submit.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only upload files without submitting.",
+    )
+    parser_submit.add_argument(
+        "--exit-on-submit",
+        action="store_true",
+        help="Exit after submitting without waiting for completion.",
+    )
+    parser_submit.add_argument(
+        "--allow-ref",
+        action="store_true",
+        help="Allow loading external JSON/YAML snippets through `$ref`. Disabled by default for security.",
+    )
     return parser
 
 
@@ -131,7 +164,14 @@ def main() -> None:
             bind_all=args.bind_all,
         )
     elif args.command == "run":
-        run(filename=args.filename)
+        run(filename=args.filename, allow_ref=args.allow_ref)
+    elif args.command == "submit":
+        submit(
+            filename=args.filename,
+            dry_run=args.dry_run,
+            exit_on_submit=args.exit_on_submit,
+            allow_ref=args.allow_ref,
+        )
     elif args.command is None:
         pass
     else:

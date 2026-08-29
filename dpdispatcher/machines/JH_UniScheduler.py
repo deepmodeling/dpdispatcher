@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import shlex
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from dargs import Argument
 
@@ -28,11 +30,11 @@ JH_UniScheduler_script_header_template = """\
 class JH_UniScheduler(Machine):
     """JH_UniScheduler batch."""
 
-    def gen_script(self, job: "Job") -> str:
+    def gen_script(self, job: Job) -> str:
         JH_UniScheduler_script = super().gen_script(job)
         return JH_UniScheduler_script
 
-    def gen_script_header(self, job: "Job") -> str:
+    def gen_script_header(self, job: Job) -> str:
         resources = job.resources
         script_header_dict = {
             "JH_UniScheduler_nodes_line": f"#JSUB -n {resources.number_node * resources.cpu_per_node}",
@@ -62,7 +64,7 @@ class JH_UniScheduler(Machine):
         return JH_UniScheduler_script_header
 
     @retry()
-    def do_submit(self, job: "Job") -> str:
+    def do_submit(self, job: Job) -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -88,9 +90,9 @@ class JH_UniScheduler(Machine):
         return job_id
 
     @retry()
-    def check_status(self, job: "Job") -> JobStatus:
+    def check_status(self, job: Job) -> JobStatus:
         try:
-            job_id = job.job_id
+            job_id = str(job.job_id)
         except AttributeError:
             return JobStatus.terminated
         if job_id == "":
@@ -127,12 +129,12 @@ class JH_UniScheduler(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job: "Job") -> bool:
+    def check_finish_tag(self, job: Job) -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
     @classmethod
-    def resources_subfields(cls) -> List[Argument]:
+    def resources_subfields(cls) -> list[Argument]:
         """Generate the resources subfields.
 
         Returns
@@ -140,7 +142,7 @@ class JH_UniScheduler(Machine):
         list[Argument]
             resources subfields
         """
-        doc_custom_gpu_line = "Custom GPU configuration, starting with #JSUB"
+        doc_custom_gpu_line = "Custom GPU header line starting with #JSUB. When set, it overrides the default UniScheduler GPU line generated from gpu_per_node."
 
         return [
             Argument(
@@ -156,11 +158,11 @@ class JH_UniScheduler(Machine):
                     ),
                 ],
                 optional=False,
-                doc="Extra arguments.",
+                doc="JH_UniScheduler-specific extra arguments.",
             )
         ]
 
-    def kill(self, job: "Job") -> None:
+    def kill(self, job: Job) -> None:
         """Kill the job.
 
         Parameters

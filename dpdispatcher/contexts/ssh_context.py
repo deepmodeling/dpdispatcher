@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 import fnmatch
 import os
 import pathlib
@@ -12,7 +14,7 @@ import uuid
 from functools import lru_cache
 from glob import glob
 from stat import S_ISDIR, S_ISREG
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any
 
 import paramiko
 import paramiko.ssh_exception
@@ -39,16 +41,16 @@ class SSHSession:
         self,
         hostname: str,
         username: str,
-        password: Optional[str] = None,
+        password: str | None = None,
         port: int = 22,
-        key_filename: Optional[str] = None,
-        passphrase: Optional[str] = None,
+        key_filename: str | None = None,
+        passphrase: str | None = None,
         timeout: int = 10,
-        totp_secret: Optional[str] = None,
+        totp_secret: str | None = None,
         tar_compress: bool = True,
         look_for_keys: bool = True,
-        execute_command: Optional[str] = None,
-        proxy_command: Optional[str] = None,
+        execute_command: str | None = None,
+        proxy_command: str | None = None,
     ) -> None:
         self.hostname = hostname
         self.username = username
@@ -102,7 +104,7 @@ class SSHSession:
             count += 1
             time.sleep(sleep_time)
 
-    def _check_alive(self) -> Optional[bool]:
+    def _check_alive(self) -> bool | None:
         if self.ssh is None:
             return False
         try:
@@ -293,6 +295,7 @@ class SSHSession:
         return resp
 
     def get_ssh_client(self) -> paramiko.SSHClient:
+        assert self.ssh is not None
         return self.ssh
 
     # def get_session_root(self):
@@ -329,32 +332,25 @@ class SSHSession:
         return self._sftp
 
     @staticmethod
-    def arginfo() -> list[Argument]:
-        doc_hostname = "hostname or ip of ssh connection."
-        doc_username = "username of target linux system"
+    def arginfo() -> Argument:
+        doc_hostname = "Hostname or IP address of the SSH target machine."
+        doc_username = "Username used to log in to the target system."
         doc_password = (
             "(deprecated) password of linux system. Please use "
             "`SSH keys <https://www.ssh.com/academy/ssh/key>`_ instead to improve security."
         )
-        doc_port = "ssh connection port."
+        doc_port = "SSH port of the target machine. Usually 22."
         doc_key_filename = (
-            "key filename used by ssh connection. If left None, find key in ~/.ssh or "
-            "use password for login"
+            "Path to the private key file used for SSH authentication. If left None, DPDispatcher can "
+            "try discoverable keys in ~/.ssh or fall back to password-based login if configured."
         )
-        doc_passphrase = "passphrase of key used by ssh connection"
-        doc_timeout = "timeout of ssh connection"
-        doc_totp_secret = (
-            "Time-based one time password secret. It should be a base32-encoded string"
-            " extracted from the 2D code."
-        )
-        doc_tar_compress = "The archive will be compressed in upload and download if it is True. If not, compression will be skipped."
-        doc_look_for_keys = (
-            "enable searching for discoverable private key files in ~/.ssh/"
-        )
-        doc_execute_command = "execute command after ssh connection is established."
-        doc_proxy_command = (
-            "ProxyCommand to use for SSH connection through intermediate servers."
-        )
+        doc_passphrase = "Passphrase for the SSH private key, if the key is encrypted."
+        doc_timeout = "Timeout in seconds for establishing the SSH connection."
+        doc_totp_secret = "Time-based one-time-password secret used for keyboard-interactive 2FA. It should be a base32-encoded string."
+        doc_tar_compress = "Whether upload/download tar archives are compressed. Keeping this True usually reduces transfer size at the cost of extra CPU time."
+        doc_look_for_keys = "Whether to search for discoverable private key files in ~/.ssh when key_filename is not provided."
+        doc_execute_command = "Optional command executed immediately after the SSH connection is established."
+        doc_proxy_command = "Optional SSH ProxyCommand used to reach the target through an intermediate host or tunnel."
         ssh_remote_profile_args = [
             Argument("hostname", str, optional=False, doc=doc_hostname),
             Argument("username", str, optional=False, doc=doc_username),
@@ -416,7 +412,7 @@ class SSHSession:
         )
         return ssh_remote_profile_format
 
-    def put(self, from_f: str, to_f: str) -> Optional[paramiko.SFTPAttributes]:
+    def put(self, from_f: str, to_f: str) -> paramiko.SFTPAttributes | None:
         if self.rsync_available:
             # For rsync, we need to use %h:%p placeholders for target host/port
             proxy_cmd_rsync = None
@@ -434,7 +430,7 @@ class SSHSession:
             )
         return self.sftp.put(from_f, to_f)
 
-    def get(self, from_f: str, to_f: str) -> Optional[paramiko.SFTPAttributes]:
+    def get(self, from_f: str, to_f: str) -> paramiko.SFTPAttributes | None:
         if self.rsync_available:
             # For rsync, we need to use %h:%p placeholders for target host/port
             proxy_cmd_rsync = None
@@ -476,6 +472,7 @@ class SSHContext(BaseContext):
         remote_root: str,
         remote_profile: dict[str, Any],  # noqa: ANN401
         clean_asynchronously: bool = False,
+        create_remote_root: bool = False,
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -488,10 +485,11 @@ class SSHContext(BaseContext):
         )
         self.temp_remote_root = remote_root
         self.remote_profile = remote_profile
-        self.remote_root = None
+        self.remote_root = ""
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
+        self.create_remote_root = create_remote_root
         # self.job_uuid = job_uuid
         # if job_uuid:
         #    self.job_uuid=job_uuid
@@ -500,13 +498,10 @@ class SSHContext(BaseContext):
         self.ssh_session = SSHSession(**remote_profile)
         # self.temp_remote_root = os.path.join(self.ssh_session.get_session_root())
         self.ssh_session.ensure_alive()
-        try:
-            self.sftp.mkdir(self.temp_remote_root)
-        except OSError:
-            pass
+        self._mkdir(self.temp_remote_root, recursive=self.create_remote_root)
 
     @classmethod
-    def load_from_dict(cls, context_dict: dict[str, Any]) -> "SSHContext":  # noqa: ANN401
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> SSHContext:  # noqa: ANN401
         # instance = cls()
         # input = dict(
         #     hostname = jdata['hostname'],
@@ -523,12 +518,14 @@ class SSHContext(BaseContext):
         remote_root = context_dict["remote_root"]
         remote_profile = context_dict["remote_profile"]
         clean_asynchronously = context_dict.get("clean_asynchronously", False)
+        create_remote_root = context_dict.get("create_remote_root", False)
 
         ssh_context = cls(
             local_root=local_root,
             remote_root=remote_root,
             remote_profile=remote_profile,
             clean_asynchronously=clean_asynchronously,
+            create_remote_root=create_remote_root,
         )
         # local_root = jdata['local_root']
         # ssh_session = SSHSession(**input)
@@ -553,17 +550,55 @@ class SSHContext(BaseContext):
     def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission: "Submission") -> None:
+    def _mkdir(self, remote_dir: str, recursive: bool = False) -> None:
+        if not remote_dir:
+            return
+
+        sftp = self.sftp
+        if not recursive:
+            try:
+                sftp.mkdir(remote_dir)
+            except OSError as mkdir_error:
+                # SFTP does not expose an atomic mkdir-if-absent operation.
+                # Ignore the failure only when the requested path is already
+                # a directory; permission and path-type errors must surface.
+                try:
+                    existing = sftp.stat(remote_dir)
+                except OSError:
+                    raise mkdir_error
+                existing_mode = existing.st_mode
+                if existing_mode is None or not S_ISDIR(existing_mode):
+                    raise mkdir_error
+            return
+
+        path = pathlib.PurePosixPath(remote_dir)
+        current = path.root if path.is_absolute() else ""
+        parts = path.parts[1:] if path.is_absolute() else path.parts
+        for part in parts:
+            current = pathlib.PurePosixPath(current, part).as_posix()
+            try:
+                sftp.mkdir(current)
+            except OSError as mkdir_error:
+                try:
+                    existing = sftp.stat(current)
+                except OSError:
+                    raise mkdir_error
+                existing_mode = existing.st_mode
+                if existing_mode is None or not S_ISDIR(existing_mode):
+                    raise mkdir_error
+
+    def bind_submission(self, submission: Submission) -> None:
         assert self.ssh_session is not None
         assert self.ssh_session.ssh is not None
         self.submission = submission
+        assert submission.submission_hash is not None
         self.local_root = pathlib.PurePath(
             os.path.join(self.temp_local_root, submission.work_base)
         ).as_posix()
         old_remote_root = self.remote_root
         # self.remote_root = os.path.join(self.temp_remote_root, self.submission.submission_hash, self.submission.work_base )
         self.remote_root = pathlib.PurePath(
-            os.path.join(self.temp_remote_root, self.submission.submission_hash)
+            os.path.join(self.temp_remote_root, submission.submission_hash)
         ).as_posix()
         # move the working directory if remote_root changes
         if (
@@ -584,11 +619,7 @@ class SSHContext(BaseContext):
             # if the new directory exists and the old directory does not contain files, then move the old directory
             self._rmtree(old_remote_root)
 
-        sftp = self.ssh_session.ssh.open_sftp()
-        try:
-            sftp.mkdir(self.remote_root)
-        except OSError:
-            pass
+        self._mkdir(self.remote_root, recursive=self.create_remote_root)
 
         # self.job_uuid = submission.submission_hash
         # dlog.debug("debug:SSHContext.bind_submission"
@@ -639,7 +670,7 @@ class SSHContext(BaseContext):
     def upload(
         self,
         # job_dirs,
-        submission: "Submission",
+        submission: Submission,
         # local_up_files,
         dereference: bool = True,
     ) -> None:
@@ -713,7 +744,7 @@ class SSHContext(BaseContext):
             file_list,
             dereference=dereference,
             directories=directory_list,
-            tar_compress=self.remote_profile.get("tar_compress", None),
+            tar_compress=bool(self.remote_profile.get("tar_compress", True)),
         )
 
     def list_remote_dir(
@@ -736,7 +767,7 @@ class SSHContext(BaseContext):
 
     def download(
         self,
-        submission: "Submission",
+        submission: Submission,
         # job_dirs,
         # remote_down_files,
         check_exists: bool = False,
@@ -811,10 +842,10 @@ class SSHContext(BaseContext):
         if len(file_list) > 0:
             self._get_files(
                 file_list,
-                tar_compress=self.remote_profile.get("tar_compress", None),
+                tar_compress=bool(self.remote_profile.get("tar_compress", True)),
             )
 
-    def block_call(self, cmd: str) -> int:
+    def block_call(self, cmd: str) -> tuple[int, Any, Any, Any]:  # noqa: ANN401
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         stdin, stdout, stderr = self.ssh_session.exec_command(
@@ -876,7 +907,7 @@ class SSHContext(BaseContext):
     def check_finish(self, proc: dict[str, Any]) -> bool:  # noqa: ANN401
         return proc["stdout"].channel.exit_status_ready()
 
-    def get_return(self, cmd_pipes: dict[str, Any]) -> tuple[Optional[int], Any, Any]:  # noqa: ANN401
+    def get_return(self, cmd_pipes: dict[str, Any]) -> tuple[int | None, Any, Any]:  # noqa: ANN401
         if not self.check_finish(cmd_pipes):
             return None, None, None
         else:
@@ -903,9 +934,10 @@ class SSHContext(BaseContext):
         self,
         files: list[str],
         dereference: bool = True,
-        directories: Optional[list[str]] = None,
+        directories: list[str] | None = None,
         tar_compress: bool = True,
     ) -> None:
+        assert self.submission.submission_hash is not None
         """Upload files to server.
 
         Parameters
@@ -975,6 +1007,7 @@ class SSHContext(BaseContext):
         self.sftp.remove(to_f)
 
     def _get_files(self, files: list[str], tar_compress: bool = True) -> None:
+        assert self.submission.submission_hash is not None
         assert self.remote_root is not None
         # avoid compressing duplicated files
         files = list(set(files))
@@ -1029,7 +1062,7 @@ class SSHContext(BaseContext):
         self.sftp.remove(from_f)
 
     @classmethod
-    def machine_subfields(cls) -> List[Argument]:
+    def machine_subfields(cls) -> list[Argument]:
         """Generate the machine subfields.
 
         Returns
@@ -1037,10 +1070,22 @@ class SSHContext(BaseContext):
         list[Argument]
             machine subfields
         """
-        doc_remote_profile = (
-            "The information used to maintain the connection with remote machine."
+        doc_create_remote_root = (
+            "Whether DPDispatcher should recursively create the configured SSH remote_root "
+            "when parent directories do not already exist. Keep this disabled by default "
+            "to avoid silently creating directories for a mistyped path."
         )
+        doc_remote_profile = "SSH connection settings for the remote machine, including authentication, timeouts, and optional proxy/jump-host behavior."
         remote_profile_format = SSHSession.arginfo()
         remote_profile_format.name = "remote_profile"
         remote_profile_format.doc = doc_remote_profile
-        return [remote_profile_format]
+        return [
+            Argument(
+                "create_remote_root",
+                bool,
+                optional=True,
+                default=False,
+                doc=doc_create_remote_root,
+            ),
+            remote_profile_format,
+        ]

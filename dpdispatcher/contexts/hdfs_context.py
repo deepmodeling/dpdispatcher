@@ -45,6 +45,7 @@ class HDFSContext(BaseContext):
 
     def bind_submission(self, submission: "Submission") -> None:
         self.submission = submission
+        assert submission.submission_hash is not None
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(
             self.temp_remote_root, submission.submission_hash
@@ -53,6 +54,7 @@ class HDFSContext(BaseContext):
         HDFS.mkdir(self.remote_root)
 
     def _put_files(self, files: List[str], dereference: bool = True) -> None:
+        assert self.submission.submission_hash is not None
         of = self.submission.submission_hash + "_upload.tgz"
         # local tar
         if os.path.isfile(os.path.join(self.local_root, of)):
@@ -238,7 +240,7 @@ class HDFSContext(BaseContext):
         -------
         status: boolean
         """
-        return HDFS.exists(os.path.join(self.remote_root, fname))
+        return bool(HDFS.exists(os.path.join(self.remote_root, fname)))
 
     def clean(self) -> None:
         HDFS.remove(self.remote_root)
@@ -250,7 +252,7 @@ class HDFSContext(BaseContext):
         HDFS.copy_from_local(local_file, os.path.join(self.remote_root, fname))
         return local_file
 
-    def read_file(self, fname: str) -> str:
+    def read_file(self, fname: str) -> bytes:
         return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
 
     def block_call(self, cmd: str) -> NoReturn:

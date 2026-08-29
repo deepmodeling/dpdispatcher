@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from dpdispatcher.submission import Submission
@@ -13,7 +15,7 @@ class Record:
         self.record_directory = Path.home() / ".dpdispatcher" / "submission"
         self.record_directory.mkdir(parents=True, exist_ok=True)
 
-    def get_submissions(self) -> List[str]:
+    def get_submissions(self) -> list[str]:
         """Get all stored submission hashes.
 
         Returns
@@ -27,7 +29,7 @@ class Record:
             if (f.is_file() and f.suffix == ".json")
         ]
 
-    def write(self, submission: "Submission") -> Path:
+    def write(self, submission: Submission) -> Path:
         """Write submission data to file.
 
         Parameters
