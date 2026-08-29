@@ -168,12 +168,19 @@ class OpenAPIContext(BaseContext):
         token = data.get("token", "")
 
         object_key = os.path.join(data["storePath"], zip_filename)
-        job.upload_path = object_key
         job.job_id = data["jobId"]
         job.jgid = data.get("jobGroupId", "")
-        self.storage.upload_From_file_multi_part(
+
+        # job/create may return a job-scoped storeHost. Uploads must target that
+        # endpoint; the global Tiefblue host cannot route into the job store.
+        store_host = str(data.get("storeHost") or "").rstrip("/")
+        storage = Tiefblue(base_url=store_host) if store_host else self.storage
+        storage.upload_From_file_multi_part(
             object_key=object_key, file_path=upload_zip, token=token
         )
+
+        # job/add resolves this key inside the job-scoped sandbox store.
+        job.upload_path = object_key
 
         # self._backup(self.local_root, upload_zip)
 

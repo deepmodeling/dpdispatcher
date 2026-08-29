@@ -139,6 +139,7 @@ def submit(
     dry_run: bool = False,
     exit_on_submit: bool = False,
     allow_ref: bool = False,
+    clean: bool = True,
 ) -> None:
     """Submit a submission from a JSON file.
 
@@ -153,6 +154,12 @@ def submit(
     allow_ref : bool, default=False
         Whether to allow loading external JSON/YAML snippets via ``$ref``.
         Disabled by default for security.
+    clean : bool, default=True
+        Whether to remove the remote submission directory after downloading results.
+        Disable this when the complete remote work directory must remain available
+        for inspection.
     """
     submission = load_submission_from_json(filename, allow_ref=allow_ref)
-    submission.run_submission(dry_run=dry_run, exit_on_submit=exit_on_submit)
+    submission.run_submission(
+        dry_run=dry_run, exit_on_submit=exit_on_submit, clean=clean
+    )
