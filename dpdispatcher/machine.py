@@ -2,7 +2,7 @@ import json
 import pathlib
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 import yaml
 from dargs import Argument, Variant
@@ -105,6 +105,13 @@ class Machine(metaclass=ABCMeta):
     def bind_context(self, context):
         self.context = context
 
+    def get_job_error(self, job):
+        """Return the saved error diagnostic for a job, if available."""
+        error_file = job.job_hash + "_last_err_file"
+        if self.context.check_file_exists(error_file):
+            return self.context.read_file(error_file)
+        return None
+
     # def __init__ (self,
     #             context):
     #     self.context = context
@@ -172,12 +179,17 @@ class Machine(metaclass=ABCMeta):
         machine = machine_class(context=context, retry_count=retry_count)
         return machine
 
-    def serialize(self, if_empty_remote_profile=False):
+    def serialize(self, if_empty_remote_profile: bool = False) -> Dict[str, Any]:
         machine_dict = {}
         machine_dict["batch_type"] = self.__class__.__name__
         machine_dict["context_type"] = self.context.__class__.__name__
         machine_dict["local_root"] = self.context.init_local_root
         machine_dict["remote_root"] = self.context.init_remote_root
+        machine_dict["clean_asynchronously"] = getattr(
+            self.context, "clean_asynchronously", False
+        )
+        if hasattr(self.context, "create_remote_root"):
+            machine_dict["create_remote_root"] = self.context.create_remote_root
         if not if_empty_remote_profile:
             machine_dict["remote_profile"] = self.context.remote_profile
         else:

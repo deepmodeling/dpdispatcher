@@ -214,56 +214,104 @@ class Submission:
         assert self.resources is not None
         if not self.belonging_jobs:
             self.generate_jobs()
-        self.try_recover_from_json()
-        self.update_submission_state()
-        if self.check_all_finished():
-            dlog.info("check_all_finished: True")
-        else:
-            dlog.info("check_all_finished: False")
-            self.upload_jobs()
-            if dry_run is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            self.handle_unexpected_submission_state()
-            self.submission_to_json()
-            time.sleep(1)
+        try:
+            self.try_recover_from_json()
             self.update_submission_state()
-            self.check_all_finished()
-            self.handle_unexpected_submission_state()
-
-        ratio_unfinished = self.resources.strategy["ratio_unfinished"]
-        while not self.check_all_finished():
-            if exit_on_submit is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_tasks()
-                break
-
-            try:
-                time.sleep(check_interval)
-            except (Exception, KeyboardInterrupt, SystemExit) as e:
-                self.submission_to_json()
-                record_path = record.write(self)
-                dlog.exception(e)
-                dlog.info(f"submission exit: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                dlog.info(f"Submission information is saved in {str(record_path)}.")
-                dlog.debug(self.serialize())
-                raise e
+            if self.check_all_finished():
+                dlog.info("check_all_finished: True")
             else:
-                self.update_submission_state()
+                dlog.info("check_all_finished: False")
+                self.upload_jobs()
+                if dry_run is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    return self.serialize()
                 self.handle_unexpected_submission_state()
-            finally:
+                self.submission_to_json()
+                time.sleep(1)
+                self.update_submission_state()
+                self.check_all_finished()
+                self.handle_unexpected_submission_state()
+
+            ratio_unfinished = self.resources.strategy["ratio_unfinished"]
+            while not self.check_all_finished():
+                if exit_on_submit is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    return self.serialize()
+                if ratio_unfinished > 0.0 and self.check_ratio_unfinished(
+                    ratio_unfinished
+                ):
+                    self.remove_unfinished_tasks()
+                    break
+
+                try:
+                    time.sleep(check_interval)
+                except (Exception, KeyboardInterrupt, SystemExit) as e:
+                    self.submission_to_json()
+                    record_path = record.write(self)
+                    dlog.exception(e)
+                    dlog.info(f"submission exit: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    dlog.info(f"Submission information is saved in {str(record_path)}.")
+                    dlog.debug(self.serialize())
+                    raise e
+                else:
+                    self.update_submission_state()
+                    self.handle_unexpected_submission_state()
+            self.handle_unexpected_submission_state()
+            self.try_download_result()
+        finally:
+            # Cover recovery, initial submission, polling, and final download
+            # failures so exhausted retries always preserve diagnostics.
+            try:
+                self.try_download_error_info()
+            except Exception:
                 pass
-        self.handle_unexpected_submission_state()
-        self.try_download_result()
         self.submission_to_json()
         if clean:
             self.clean_jobs()
         return self.serialize()
+
+    def try_download_error_info(self) -> None:
+        """Download error diagnostic files for failed/terminated jobs.
+
+        For each job that did not finish successfully, attempts to download
+        the ``{job_hash}_last_err_file`` from the remote root to the local root.
+        This preserves error diagnostics even when ``clean=True`` deletes the
+        remote workdir afterward.
+
+        The error file contains the last 1000 bytes of stderr from the most
+        recently failed task in the job, written by the generated bash script.
+        """
+        if self.machine is None:
+            return
+        for job in self.belonging_jobs:
+            if job.job_state in (JobStatus.terminated, JobStatus.unknown):
+                err_file_name = job.job_hash + "_last_err_file"
+                try:
+                    err_content = self.machine.get_job_error(job)
+                    if err_content is not None:
+                        # Write to local root for post-mortem access
+                        local_err_path = os.path.join(
+                            self.machine.context.local_root, err_file_name
+                        )
+                        os.makedirs(os.path.dirname(local_err_path), exist_ok=True)
+                        with open(local_err_path, "w") as f:
+                            f.write(err_content)
+                        dlog.info(
+                            f"Downloaded error info for job {job.job_hash} to "
+                            f"{local_err_path}"
+                        )
+                        # Also log the error content for immediate visibility
+                        dlog.warning(
+                            f"Job {job.job_hash} failed. Last error output:\n"
+                            f"{err_content}"
+                        )
+                except Exception as e:
+                    dlog.debug(
+                        f"Could not download error file for job {job.job_hash}: {e}"
+                    )
 
     def try_download_result(self):
         start_time = time.time()
@@ -982,9 +1030,8 @@ class Job:
     def get_last_error_message(self) -> Optional[str]:
         """Get last error message when the job is terminated."""
         assert self.machine is not None
-        last_err_file = self.job_hash + "_last_err_file"
-        if self.machine.context.check_file_exists(last_err_file):
-            last_error_message = self.machine.context.read_file(last_err_file)
+        last_error_message = self.machine.get_job_error(self)
+        if last_error_message is not None:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message

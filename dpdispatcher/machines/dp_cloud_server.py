@@ -103,6 +103,7 @@ class Bohrium(Machine):
             result_file_list.extend(
                 [os.path.join(task.task_work_path, b_f) for b_f in task.backward_files]
             )
+        result_file_list.append(job.job_hash + "_last_err_file")
         result_file_list = list(set(result_file_list))
         return result_file_list
 
@@ -136,6 +137,11 @@ class Bohrium(Machine):
         input_data["command"] = f"bash {job.script_file_name}"
         if not input_data.get("backward_files"):
             input_data["backward_files"] = self._gen_backward_files_list(job)
+        else:
+            input_data["backward_files"] = list(input_data["backward_files"])
+            error_file = job.job_hash + "_last_err_file"
+            if error_file not in input_data["backward_files"]:
+                input_data["backward_files"].append(error_file)
         input_data["logFiles"] = os.path.join(
             job.job_task_list[0].task_work_path, job.job_task_list[0].outlog
         )
@@ -238,6 +244,27 @@ class Bohrium(Machine):
             )
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
+
+    def get_job_error(self, job):
+        """Retrieve diagnostics from the cloud result or job log."""
+        try:
+            self._download_job(job)
+        except Exception as e:
+            dlog.debug(f"Could not download result archive for job {job.job_hash}: {e}")
+        error_path = os.path.join(
+            self.context.local_root, job.job_hash + "_last_err_file"
+        )
+        if os.path.isfile(error_path):
+            with open(error_path) as fp:
+                return fp.read()
+        job_id = job.job_id
+        if isinstance(job_id, str) and ":job_group_id:" in job_id:
+            job_id = int(job_id.split(":job_group_id:", 1)[0])
+        try:
+            return self.api.get_log(job_id)
+        except Exception as e:
+            dlog.debug(f"Could not retrieve cloud log for job {job.job_hash}: {e}")
+            return None
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"
