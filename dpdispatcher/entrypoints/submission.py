@@ -1,9 +1,18 @@
 from pathlib import Path
+from typing import TYPE_CHECKING, List
 
 from dpdispatcher.dlog import dlog
 from dpdispatcher.submission import Submission
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.record import record
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Task
+
+
+def _configured_log_files(task: "Task") -> List[str]:
+    """Return only task log filenames that are explicitly configured."""
+    return [log_file for log_file in (task.outlog, task.errlog) if log_file is not None]
 
 
 def handle_submission(
@@ -76,7 +85,7 @@ def handle_submission(
 
     if download_terminated_log:
         for task in terminated_tasks:
-            task.backward_files = [task.outlog, task.errlog]
+            task.backward_files = _configured_log_files(task)
         submission.belonging_tasks += terminated_tasks
     if download_finished_task:
         submission.belonging_tasks += finished_tasks
@@ -87,17 +96,18 @@ def handle_submission(
         terminated_log_files = []
         for task in terminated_tasks:
             assert submission.local_root is not None
-            terminated_log_files.append(
-                Path(submission.local_root) / task.task_work_path / task.outlog
-            )
-            terminated_log_files.append(
-                Path(submission.local_root) / task.task_work_path / task.errlog
-            )
+            for log_file in _configured_log_files(task):
+                terminated_log_files.append(
+                    Path(submission.local_root) / task.task_work_path / log_file
+                )
 
-        dlog.info(
-            "Terminated logs are downloaded into:\n  "
-            + "\n  ".join([str(f) for f in terminated_log_files])
-        )
+        if terminated_log_files:
+            dlog.info(
+                "Terminated logs are downloaded into:\n  "
+                + "\n  ".join([str(f) for f in terminated_log_files])
+            )
+        else:
+            dlog.info("No terminated task log files are configured for download.")
 
     if clean:
         submission.clean_jobs()
