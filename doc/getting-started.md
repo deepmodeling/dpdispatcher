@@ -3,12 +3,21 @@
 DPDispatcher provides the following classes:
 
 - {class}`Task <dpdispatcher.submission.Task>` class, which represents a command to be run on batch job system, as well as the essential files need by the command.
+
 - {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a collection of jobs defined by the HPC system.
   And there may be common files to be uploaded by them.
   DPDispatcher will create and submit these jobs when a `submission` instance execute {meth}`run_submission <dpdispatcher.submission.Submission.run_submission>` method.
   This method will poke until the jobs finish and return.
+
 - {class}`Job <dpdispatcher.submission.Job>` class, a class used by {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a job on the HPC system.
   {class}`Submission <dpdispatcher.submission.Submission>` will generate `job`s' submitting scripts used by HPC systems automatically with the {class}`Task <dpdispatcher.submission.Task>` and {class}`Resources <dpdispatcher.submission.Resources>`
+
+  Generated submission and run scripts are internal, dot-prefixed files named
+  `.JOB_HASH.sub` and `.JOB_HASH.sub.run`. They remain in the submission work
+  directory for scheduler and recovery compatibility, but normal directory
+  listings hide them. Do not rename or remove them while a submission is active
+  or may need to be recovered.
+
 - {class}`Resources <dpdispatcher.submission.Resources>` class, which represents the computing resources for each job within a `submission`.
 
 You can use DPDispatcher in a Python script to submit five tasks:
