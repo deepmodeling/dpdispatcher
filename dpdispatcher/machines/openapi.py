@@ -4,6 +4,7 @@ import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from zipfile import ZipFile
 
+from dpdispatcher.utils.archive import safe_extract_zip
 from dpdispatcher.utils.utils import customized_script_header_template
 
 try:
@@ -29,9 +30,9 @@ shell_script_header_template = """
 
 
 def unzip_file(zip_file: str, out_dir: str = "./") -> None:
-    obj = ZipFile(zip_file, "r")
-    for item in obj.namelist():
-        obj.extract(item, out_dir)
+    """Extract an OpenAPI result zip without allowing unsafe members."""
+    with ZipFile(zip_file, "r") as obj:
+        safe_extract_zip(obj, out_dir)
 
 
 class OpenAPI(Machine):
@@ -131,13 +132,15 @@ class OpenAPI(Machine):
             "project_id": project_id,
             "scass_type": self.remote_profile.get("machine_type", ""),
             "cmd": f"bash {job.script_file_name}",
-            "log_files": os.path.join(
-                job.job_task_list[0].task_work_path, job.job_task_list[0].outlog
-            ),
             "out_files": self._gen_backward_files_list(job),
             "platform": self.remote_profile.get("platform", "ali"),
             "image_name": self.remote_profile.get("image_address", ""),
         }
+        first_outlog = job.job_task_list[0].outlog
+        if first_outlog is not None:
+            openapi_params["log_files"] = os.path.join(
+                job.job_task_list[0].task_work_path, first_outlog
+            )
         if "real_user_id" in self.remote_profile:
             openapi_params["real_user_id"] = self.remote_profile["real_user_id"]
         if "session_id" in self.remote_profile:

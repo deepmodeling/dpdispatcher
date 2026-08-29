@@ -3,6 +3,7 @@ import hashlib
 import os
 import shutil
 import sys
+import tempfile
 import unittest
 import uuid
 from unittest.mock import MagicMock
@@ -104,6 +105,47 @@ class TestLocalContext(unittest.TestCase):
             f1 = os.path.join(self.tmp_local_root, "0_md/", file)
             f2 = os.path.join(self.tmp_remote_root, submission_hash, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
+
+    def test_copy_replaces_existing_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            local_path = os.path.join(temp_dir, "local")
+            remote_path = os.path.join(temp_dir, "remote")
+            os.makedirs(local_path)
+            os.makedirs(remote_path)
+            with open(os.path.join(local_path, "new.txt"), "w") as fp:
+                fp.write("new")
+            with open(os.path.join(remote_path, "old.txt"), "w") as fp:
+                fp.write("old")
+
+            context = LocalContext(
+                local_root=temp_dir,
+                remote_root=temp_dir,
+                remote_profile={"symlink": False},
+            )
+            context._copy_from_local_to_remote(local_path, remote_path)
+
+            self.assertFalse(os.path.exists(os.path.join(remote_path, "old.txt")))
+            with open(os.path.join(remote_path, "new.txt")) as fp:
+                self.assertEqual(fp.read(), "new")
+
+    def test_copy_replaces_broken_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            local_path = os.path.join(temp_dir, "local.txt")
+            remote_path = os.path.join(temp_dir, "remote.txt")
+            with open(local_path, "w") as fp:
+                fp.write("new")
+            os.symlink("missing.txt", remote_path)
+
+            context = LocalContext(
+                local_root=temp_dir,
+                remote_root=temp_dir,
+                remote_profile={"symlink": False},
+            )
+            context._copy_from_local_to_remote(local_path, remote_path)
+
+            self.assertFalse(os.path.islink(remote_path))
+            with open(remote_path) as fp:
+                self.assertEqual(fp.read(), "new")
 
     # TODO: support other platforms
     @unittest.skipIf(sys.platform != "linux", "not linux")

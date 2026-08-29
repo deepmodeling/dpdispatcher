@@ -98,7 +98,11 @@ class Submission:
 
     @classmethod
     def deserialize(
-        cls, submission_dict: Dict[str, Any], machine: Optional["Machine"] = None
+        cls,
+        submission_dict: Dict[str, Any],
+        machine: Optional["Machine"] = None,
+        *,
+        bind_context: bool = True,
     ) -> "Submission":  # noqa: ANN401
         """Convert the submission_dict to a Submission class object.
 
@@ -108,6 +112,9 @@ class Submission:
             path-like, the base directory of the local tasks
         machine : Machine
             Machine class Object to execute the jobs
+        bind_context : bool, default=True
+            Whether to bind the machine context to the deserialized submission.
+            Disable this when the machine is shared with an active submission.
 
         Returns
         -------
@@ -128,7 +135,7 @@ class Submission:
         ]
         submission.submission_hash = submission.get_hash()
         if machine is not None:
-            submission.bind_machine(machine=machine)
+            submission.bind_machine(machine=machine, bind_context=bind_context)
         else:
             machine = Machine.deserialize(machine_dict=submission_dict["machine"])
             submission.bind_machine(machine)
@@ -188,20 +195,28 @@ class Submission:
             json.dumps(self.serialize(if_static=True)).encode("utf-8")
         ).hexdigest()
 
-    def bind_machine(self, machine: Optional["Machine"]) -> "Submission":
+    def bind_machine(
+        self,
+        machine: Optional["Machine"],
+        *,
+        bind_context: bool = True,
+    ) -> "Submission":
         """Bind this submission to a machine. update the machine's context remote_root and local_root.
 
         Parameters
         ----------
         machine : Machine
             the machine to bind with
+        bind_context : bool, default=True
+            Whether to update the machine context's active submission and roots.
         """
         self.submission_hash = self.get_hash()
         self.machine = machine
         for job in self.belonging_jobs:
             job.machine = machine
         if machine is not None:
-            machine.context.bind_submission(self)
+            if bind_context:
+                machine.context.bind_submission(self)
             self.local_root = machine.context.temp_local_root
         return self
 
@@ -216,7 +231,7 @@ class Submission:
         *,
         dry_run: bool = False,
         exit_on_submit: bool = False,
-        clean: bool = True,
+        clean: Union[bool, str] = True,
         check_interval: int = 30,
     ) -> Dict[str, Any]:  # noqa: ANN401
         """Main method to execute the submission.
@@ -226,11 +241,32 @@ class Submission:
         Forth, wait until the tasks in the submission finished and download the result file to local directory.
         If dry_run is True, submission will be uploaded but not be executed and exit.
         If exit_on_submit is True, submission will exit.
+
+        Parameters
+        ----------
+        dry_run : bool
+            If True, only upload without execution.
+        exit_on_submit : bool
+            If True, exit after submission without waiting.
+        clean : bool or str
+            Controls whether to clean remote working directory after completion.
+
+            - True or "always": always clean (default, backward compatible)
+            - False or "never": never clean
+            - "on_success": only clean when all jobs finished successfully;
+              preserve remote workdir on failure for debugging.
+        check_interval : int
+            Seconds between status polling iterations.
         """
         assert self.resources is not None
         machine = self._require_machine()
+        # Fail-fast: reject invalid clean strategies before recovery/upload/submission.
+        self._should_clean(clean, all_genuinely_finished=False)
         if not self.belonging_jobs:
             self.generate_jobs()
+        # This remains false when ratio-based early termination rewrites killed
+        # jobs as finished, so on_success never mistakes that state for success.
+        all_jobs_genuinely_finished = False
         try:
             self.try_recover_from_json()
             self.update_submission_state()
@@ -276,8 +312,14 @@ class Submission:
                 else:
                     self.update_submission_state()
                     self.handle_unexpected_submission_state()
+            else:
+                # The loop condition became false without ratio-based early exit.
+                all_jobs_genuinely_finished = True
             self.handle_unexpected_submission_state()
-            self.try_download_result()
+            results_downloaded = self.try_download_result()
+            all_jobs_genuinely_finished = (
+                all_jobs_genuinely_finished and results_downloaded
+            )
         finally:
             # Cover recovery, initial submission, polling, and final download
             # failures so exhausted retries always preserve diagnostics.
@@ -286,9 +328,56 @@ class Submission:
             except Exception:
                 pass
         self.submission_to_json()
-        if clean:
+
+        # Determine whether to clean remote workdir
+        should_clean = self._should_clean(clean, all_jobs_genuinely_finished)
+        if should_clean:
             self.clean_jobs()
+        elif clean == "on_success":
+            dlog.info(
+                "clean='on_success': some jobs did not finish successfully, "
+                "preserving remote workdir for debugging at: "
+                f"{machine.context.remote_root}"
+            )
         return self.serialize()
+
+    def _should_clean(
+        self, clean: Union[bool, str], all_genuinely_finished: bool = True
+    ) -> bool:
+        """Determine whether remote workdir should be cleaned.
+
+        Parameters
+        ----------
+        clean : Union[bool, str]
+            - True or "always": always clean
+            - False or "never": never clean
+            - "on_success": clean only when all jobs genuinely finished
+              (not killed by ratio_unfinished early-exit)
+        all_genuinely_finished : bool
+            Whether all jobs completed successfully without intervention.
+            When ratio_unfinished triggers remove_unfinished_tasks(), this
+            is False even though job states have been mutated to "finished".
+
+        Returns
+        -------
+        bool
+            Whether to perform clean.
+
+        Raises
+        ------
+        ValueError
+            If clean is not a recognized strategy.
+        """
+        if clean is True or clean == "always":
+            return True
+        if clean is False or clean == "never":
+            return False
+        if clean == "on_success":
+            return all_genuinely_finished
+        raise ValueError(
+            f"Unknown clean strategy '{clean}'. "
+            f"Valid options: True, False, 'always', 'never', 'on_success'."
+        )
 
     def try_download_error_info(self) -> None:
         """Download error diagnostic files for failed/terminated jobs.
@@ -330,7 +419,16 @@ class Submission:
                         f"Could not download error file for job {job.job_hash}: {e}"
                     )
 
-    def try_download_result(self) -> None:
+    def try_download_result(self) -> bool:
+        """Download result files, retrying transient failures for up to 24 hours.
+
+        Returns
+        -------
+        bool
+            Whether all result files were downloaded successfully. A false
+            result prevents ``clean='on_success'`` from deleting the only
+            remaining remote copy after retry exhaustion.
+        """
         start_time = time.time()
         retry_interval = 60  # retry every 1 minute
         success = False
@@ -354,6 +452,7 @@ class Submission:
                 else:  # > 24 h
                     dlog.info("Maximum retries time reached. Exiting.")
                     break
+        return success
 
     async def async_run_submission(self, **kwargs: Any) -> None:  # noqa: ANN401
         """Async interface of run_submission.
@@ -384,9 +483,10 @@ class Submission:
         May raise Error if pass `clean=True` explicitly when submit to pbs or slurm.
         """
         kwargs = {**{"clean": False}, **kwargs}
-        if kwargs["clean"]:
+        if self._should_clean(kwargs["clean"]):
             dlog.warning(
-                "Using async submission with `clean=True`, job may fail in queue system"
+                "Using async submission with a clean strategy that can delete "
+                "the remote workdir. Jobs may fail in queue systems."
             )
         loop = asyncio.get_event_loop()
         wrapped_submission = functools.partial(self.run_submission, **kwargs)
@@ -595,8 +695,16 @@ class Submission:
         if if_recover:
             submission_dict_str = machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
-            submission = Submission.deserialize(submission_dict=submission_dict)
-            submission.bind_machine(machine=self.machine)
+            # Reuse the authenticated machine that read the recovery file. Creating a
+            # second SSHContext here can fail for one-time authentication methods such
+            # as TOTP, and the reconstructed machine would be discarded immediately.
+            # The machine/session can be reused safely, but the shared context must
+            # remain bound to the active submission until recovery data is validated.
+            submission = Submission.deserialize(
+                submission_dict=submission_dict,
+                machine=self.machine,
+                bind_context=False,
+            )
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
                 self.belonging_tasks = [
@@ -629,10 +737,10 @@ class Task:
         the files to be transmitted to remote machine before the command execute.
     backward_files : list of Path
         the files to be transmitted from remote machine after the comand finished.
-    outlog : Str
+    outlog : Str or None
         the filename to which command redirect stdout
-    errlog : Str
-        the filename to which command redirect stderr
+    errlog : Str or None
+        the filename to which command redirects stderr, or None to inherit stderr
     """
 
     def __init__(
@@ -641,8 +749,8 @@ class Task:
         task_work_path: str,
         forward_files: Optional[Sequence[str]] = None,
         backward_files: Optional[Sequence[str]] = None,
-        outlog: str = "log",
-        errlog: str = "err",
+        outlog: Optional[str] = "log",
+        errlog: Optional[str] = "err",
     ) -> None:
         self.command = command
         self.task_work_path = task_work_path
@@ -779,11 +887,13 @@ class Task:
         )
         doc_outlog = (
             "Filename used to redirect stdout inside task_work_path while the task runs. If this file is "
-            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side. "
+            "Set this to null to inherit stdout without creating a task output log."
         )
         doc_errlog = (
             "Filename used to redirect stderr inside task_work_path while the task runs. If this file is "
-            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side."
+            "downloaded or synchronized back, it typically appears under the same relative task directory on the local side. "
+            "Set this to null to inherit stderr without creating a task error log; automatic last-error excerpts are then disabled."
         )
 
         task_args = [

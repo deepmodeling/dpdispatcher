@@ -147,9 +147,11 @@ class Bohrium(Machine):
             error_file = job.job_hash + "_last_err_file"
             if error_file not in input_data["backward_files"]:
                 input_data["backward_files"].append(error_file)
-        input_data["logFiles"] = os.path.join(
-            job.job_task_list[0].task_work_path, job.job_task_list[0].outlog
-        )
+        first_outlog = job.job_task_list[0].outlog
+        if first_outlog is not None:
+            input_data["logFiles"] = os.path.join(
+                job.job_task_list[0].task_work_path, first_outlog
+            )
         program_id = self.context.remote_profile.get("program_id")
         program_id = self.context.remote_profile.get("project_id", program_id)
         if program_id is None:
