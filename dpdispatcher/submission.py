@@ -606,7 +606,7 @@ class Task:
         the files to be transmitted to remote machine before the command execute.
     backward_files : list of Path
         the files to be transmitted from remote machine after the comand finished.
-    outlog : Str
+    outlog : Str or None
         the filename to which command redirect stdout
     errlog : Str or None
         the filename to which command redirects stderr, or None to inherit stderr
