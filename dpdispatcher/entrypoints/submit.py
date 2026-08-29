@@ -78,6 +78,18 @@ def submission_args() -> Argument:
                 default=[],
                 doc="Files shared by all tasks and downloaded back to work_base after execution.",
             ),
+            Argument(
+                "previous_submission_hash",
+                dtype=[str, type(None)],
+                optional=True,
+                default=None,
+                doc=(
+                    "Explicit prior submission hash whose completed-task tags may be "
+                    "reused after resource-only changes. DPDispatcher rejects recovery "
+                    "if machine, work paths, task definitions, grouping, or staged file "
+                    "declarations differ."
+                ),
+            ),
             machine_args,
             resources_args,
             task_args,
@@ -125,6 +137,7 @@ def load_submission_from_json(json_path: str, allow_ref: bool = False) -> Submis
         work_base=submission_dict["work_base"],
         forward_common_files=submission_dict["forward_common_files"],
         backward_common_files=submission_dict["backward_common_files"],
+        previous_submission_hash=submission_dict["previous_submission_hash"],
         machine=Machine.load_from_dict(submission_dict["machine"], allow_ref=allow_ref),
         resources=Resources.load_from_dict(
             submission_dict["resources"], allow_ref=allow_ref

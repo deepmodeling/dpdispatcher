@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import random
+import re
 import time
 import uuid
 from collections.abc import Sequence
@@ -58,6 +59,7 @@ class Submission:
         backward_common_files: list[str] = [],
         *,
         task_list: list["Task"] = [],
+        previous_submission_hash: str | None = None,
     ) -> None:
         self.local_root = None
         self.work_base = work_base
@@ -76,6 +78,11 @@ class Submission:
         )
 
         self.submission_hash = None
+        if previous_submission_hash is not None and not re.fullmatch(
+            r"[0-9a-f]{40}", previous_submission_hash
+        ):
+            raise ValueError("previous_submission_hash must be a 40-character SHA-1")
+        self.previous_submission_hash = previous_submission_hash
         # warning: can not remote .copy() or there will be bugs
         # self.belonging_tasks = task_list
         self.belonging_tasks = task_list.copy()
@@ -129,6 +136,7 @@ class Submission:
             ),
             forward_common_files=submission_dict["forward_common_files"],
             backward_common_files=submission_dict["backward_common_files"],
+            previous_submission_hash=submission_dict.get("previous_submission_hash"),
         )
         submission.belonging_jobs = [
             Job.deserialize(job_dict=job_dict)
@@ -175,6 +183,8 @@ class Submission:
         submission_dict["belonging_jobs"] = [
             job.serialize(if_static=if_static) for job in self.belonging_jobs
         ]
+        if not if_static:
+            submission_dict["previous_submission_hash"] = self.previous_submission_hash
         return submission_dict
 
     def register_task(self, task: "Task") -> None:
@@ -217,7 +227,16 @@ class Submission:
             job.machine = machine
         if machine is not None:
             if bind_context:
-                machine.context.bind_submission(self)
+                # The previous hash is an explicit remote-state locator, not part of
+                # the new submission's identity. Bind the context to that directory
+                # while preserving the current hash used for new jobs and records.
+                current_hash = self.submission_hash
+                if self.previous_submission_hash is not None:
+                    self.submission_hash = self.previous_submission_hash
+                try:
+                    machine.context.bind_submission(self)
+                finally:
+                    self.submission_hash = current_hash
             self.local_root = machine.context.temp_local_root
         return self
 
@@ -692,13 +711,17 @@ class Submission:
 
     def try_recover_from_json(self) -> None:
         machine = self._require_machine()
-        submission_file_name = f"{self.submission_hash}.json"
+        recovery_hash = self.previous_submission_hash or self.submission_hash
+        submission_file_name = f"{recovery_hash}.json"
         if_recover = machine.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
         if if_recover:
             submission_dict_str = machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
+            if self.previous_submission_hash is not None:
+                self._recover_finished_tasks_from_previous(submission_dict)
+                return
             # Reuse the authenticated machine that read the recovery file. Creating a
             # second SSHContext here can fail for one-time authentication methods such
             # as TOTP, and the reconstructed machine would be discarded immediately.
@@ -725,6 +748,78 @@ class Submission:
                 print(self.serialize())
                 print(submission.serialize())
                 raise RuntimeError("Recover failed.")
+
+    def _recover_finished_tasks_from_previous(self, previous: dict[str, Any]) -> None:
+        """Reuse task completion tags after an explicitly selected resource change.
+
+        The previous scheduler jobs themselves cannot be reused because their scripts,
+        resource requests, and hashes may differ. Instead, this validates every
+        non-resource part of the submission and marks only tasks with an existing
+        completion tag as finished. New jobs are then submitted only for groups that
+        still contain unfinished tasks.
+        """
+        machine = self._require_machine()
+        expected_machine = machine.serialize()
+        compatibility_checks = {
+            "work_base": (previous.get("work_base"), self.work_base),
+            "absolute work_base": (
+                previous.get("_abs_work_base"),
+                self._abs_work_base,
+            ),
+            "machine": (previous.get("machine"), expected_machine),
+            "forward_common_files": (
+                previous.get("forward_common_files"),
+                self.forward_common_files,
+            ),
+            "backward_common_files": (
+                previous.get("backward_common_files"),
+                self.backward_common_files,
+            ),
+            "task grouping": (
+                [
+                    job_data[next(iter(job_data))]["job_task_list"]
+                    for job_data in previous.get("belonging_jobs", [])
+                ],
+                [
+                    [task.serialize() for task in job.job_task_list]
+                    for job in self.belonging_jobs
+                ],
+            ),
+        }
+        mismatches = [
+            name for name, (old, new) in compatibility_checks.items() if old != new
+        ]
+        if mismatches:
+            raise RuntimeError(
+                "Cannot resume previous submission because these non-resource "
+                f"fields changed: {', '.join(mismatches)}"
+            )
+
+        finished_count = 0
+        for job in self.belonging_jobs:
+            for task in job.job_task_list:
+                if task.has_finished_tag(machine.context):
+                    task.task_state = JobStatus.finished
+                    finished_count += 1
+                else:
+                    task.task_state = JobStatus.unsubmitted
+            job.job_state = (
+                JobStatus.finished
+                if all(
+                    task.task_state == JobStatus.finished for task in job.job_task_list
+                )
+                else JobStatus.unsubmitted
+            )
+            job.job_id = ""
+            job.fail_count = 0
+
+        dlog.info(
+            "Recovered %d completed tasks from previous submission %s; "
+            "new resource configuration uses submission %s",
+            finished_count,
+            self.previous_submission_hash,
+            self.submission_hash,
+        )
 
 
 class Task:
@@ -948,13 +1043,16 @@ class Task:
             # unsubmitted task do not need to check tag
             return
         # check tag
+        if self.has_finished_tag(context):
+            self.task_state = JobStatus.finished
+
+    def has_finished_tag(self, context: "BaseContext") -> bool:
+        """Return whether the remote completion tag for this task exists."""
         task_tag_finished = (
             pathlib.PurePath(self.task_work_path)
             / (self.task_hash + "_task_tag_finished")
         ).as_posix()
-        result = context.check_file_exists(task_tag_finished)
-        if result:
-            self.task_state = JobStatus.finished
+        return context.check_file_exists(task_tag_finished)
 
 
 class Job:
