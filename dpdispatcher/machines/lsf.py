@@ -1,3 +1,5 @@
+"""Implement IBM Spectrum LSF scheduler submission."""
+
 from __future__ import annotations
 
 import shlex

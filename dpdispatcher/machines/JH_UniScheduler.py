@@ -1,3 +1,5 @@
+"""Implement job submission through JH UniScheduler commands."""
+
 from __future__ import annotations
 
 import shlex

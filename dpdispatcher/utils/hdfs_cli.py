@@ -1,5 +1,7 @@
 # /usr/bin/python
 
+"""Wrap the Hadoop CLI operations used by the HDFS context."""
+
 import os
 import shlex
 from collections.abc import Sequence
@@ -31,26 +33,11 @@ def _validate_operand(value: str, name: str) -> str:
 
 
 class HDFS:
-    """Provide basic HDFS filesystem operations through the Hadoop CLI.
-
-    Path and URI operands are passed literally without shell expansion.  Callers
-    that need local ``~`` expansion must resolve it before invoking these helpers.
-    """
+    """Fundamental class for HDFS basic manipulation."""
 
     @staticmethod
     def exists(uri: str) -> bool:
-        """Return whether an HDFS URI exists.
-
-        Parameters
-        ----------
-        uri : str
-            HDFS URI to inspect.
-
-        Raises
-        ------
-        RuntimeError
-            If Hadoop returns an unexpected status or cannot be executed.
-        """
+        """Return whether an HDFS URI exists."""
         uri = _validate_operand(uri, "uri")
         command = ["hadoop", "fs", "-test", "-e", uri]
         command_text = _command_text(command)
@@ -109,7 +96,7 @@ class HDFS:
 
     @staticmethod
     def copy_from_local(local_path: str, to_uri: str) -> tuple[bool, bytes]:
-        """Copy one readable local path to HDFS, replacing an existing file."""
+        """Copy a readable local path to an HDFS URI."""
         local_path = _validate_operand(local_path, "local_path")
         to_uri = _validate_operand(to_uri, "to_uri")
         if not os.path.exists(local_path) or not os.access(local_path, os.R_OK):
@@ -133,7 +120,7 @@ class HDFS:
     def copy_to_local(
         from_uri: str | list[str] | tuple[str, ...], local_path: str
     ) -> bool:
-        """Copy one or more HDFS URIs to a local path."""
+        """Copy one or more HDFS paths into a local directory."""
         if isinstance(from_uri, str):
             remote_arguments = [_validate_operand(from_uri, "from_uri")]
         elif isinstance(from_uri, (list, tuple)):
@@ -167,7 +154,7 @@ class HDFS:
 
     @staticmethod
     def read_hdfs_file(uri: str) -> bytes:
-        """Read an HDFS file through ``hadoop fs -text``."""
+        """Return the decoded output of ``hadoop fs -text`` for an HDFS URI."""
         uri = _validate_operand(uri, "uri")
         command = ["hadoop", "fs", "-text", uri]
         command_text = _command_text(command)
@@ -186,7 +173,7 @@ class HDFS:
 
     @staticmethod
     def move(from_uri: str, to_uri: str) -> bool:
-        """Move an HDFS URI to another HDFS URI."""
+        """Move an HDFS path to a new URI."""
         from_uri = _validate_operand(from_uri, "from_uri")
         to_uri = _validate_operand(to_uri, "to_uri")
         command = ["hadoop", "fs", "-mv", from_uri, to_uri]

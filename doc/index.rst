@@ -6,9 +6,12 @@
 DPDispatcher's documentation
 ======================================
 
-DPDispatcher is a Python package used to generate HPC (High Performance Computing) scheduler systems (Slurm/PBS/LSF/JH_SCheduler/dpcloudserver) jobs input scripts and submit these scripts to HPC systems and poke until they finish.
+DPDispatcher generates job scripts for HPC schedulers such as Slurm, PBS, LSF,
+JH UniScheduler, and cloud backends. It submits those jobs, monitors them until
+completion, and transfers declared input and result files.
 
-DPDispatcher will monitor (poke) until these jobs finish and download the results files (if these jobs is running on remote systems connected by SSH).
+The same Python API works with local shell execution, SSH-connected clusters,
+distributed filesystems, and supported cloud services.
 
 Please cite the following paper if you use this project in your work:
 
@@ -26,8 +29,10 @@ Please cite the following paper if you use this project in your work:
 
    install
    getting-started
+   python-api
    context
    batch
+   dpdispatcher_on_yarn
    machine
    resources
    task

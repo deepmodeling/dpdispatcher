@@ -1,3 +1,5 @@
+"""Implement the legacy Bohrium cloud-service batch backend."""
+
 import os
 import shutil
 import time
@@ -22,6 +24,8 @@ shell_script_header_template = """
 
 
 class Bohrium(Machine):
+    """Submit jobs through the legacy Bohrium API and object storage."""
+
     alias = ("Lebesgue", "DpCloudServer")
 
     def __init__(self, context: "BaseContext", **kwargs: Any) -> None:  # noqa: ANN401
