@@ -291,22 +291,102 @@ def _replace_regular_file(
             os.remove(temporary_path)
 
 
+def _member_directory_parts(
+    members: List[_ValidatedMember],
+) -> Set[Tuple[str, ...]]:
+    """Return every explicit and implicit output directory, including root."""
+    directories: Set[Tuple[str, ...]] = {()}
+    for member in members:
+        directory_depth = len(member.parts)
+        if not member.is_directory:
+            directory_depth -= 1
+        for depth in range(1, directory_depth + 1):
+            directories.add(member.parts[:depth])
+    return directories
+
+
+def _set_directory_modes(
+    root: str, directory_modes: Dict[Tuple[str, ...], int]
+) -> None:
+    """Set directory modes child-first without following replacement links."""
+    for parts in sorted(
+        directory_modes, key=lambda item: (len(item), item), reverse=True
+    ):
+        directory = os.path.join(root, *parts)
+        directory_stat = os.lstat(directory)
+        if _is_unsafe_link(directory, directory_stat):
+            raise UnsafeArchiveError(
+                f"Archive output path contains a symlink: {directory!r}"
+            )
+        if not stat.S_ISDIR(directory_stat.st_mode):
+            raise UnsafeArchiveError(
+                f"Archive output parent is not a directory: {directory!r}"
+            )
+
+        mode = directory_modes[parts]
+        if stat.S_IMODE(directory_stat.st_mode) != mode:
+            os.chmod(directory, mode)
+
+
+def _make_directories_writable(
+    root: str, members: List[_ValidatedMember]
+) -> Dict[Tuple[str, ...], int]:
+    """Temporarily make existing output directories writable by their owner.
+
+    A previous extraction may have applied a read-only archived mode.  Paths
+    are visited parent-first so even a non-searchable directory can be safely
+    inspected and opened during a repeated extraction.
+    """
+    original_modes: Dict[Tuple[str, ...], int] = {}
+    try:
+        for parts in sorted(
+            _member_directory_parts(members), key=lambda item: (len(item), item)
+        ):
+            directory = os.path.join(root, *parts)
+            if not os.path.lexists(directory):
+                continue
+            directory_stat = os.lstat(directory)
+            if _is_unsafe_link(directory, directory_stat):
+                raise UnsafeArchiveError(
+                    f"Archive output path contains a symlink: {directory!r}"
+                )
+            if not stat.S_ISDIR(directory_stat.st_mode):
+                raise UnsafeArchiveError(
+                    f"Archive output parent is not a directory: {directory!r}"
+                )
+
+            mode = stat.S_IMODE(directory_stat.st_mode)
+            original_modes[parts] = mode
+            writable_mode = mode | stat.S_IWUSR | stat.S_IXUSR
+            if writable_mode != mode:
+                os.chmod(directory, writable_mode)
+    except BaseException:
+        _set_directory_modes(root, original_modes)
+        raise
+    return original_modes
+
+
 def _create_directories(root: str, members: List[_ValidatedMember]) -> None:
     """Create explicit and implicit member directories in parent-first order."""
-    directories = {member.parts[:-1] for member in members if not member.is_directory}
-    directories.update(member.parts for member in members if member.is_directory)
-    for directory_parts in sorted(directories, key=lambda item: (len(item), item)):
+    for directory_parts in sorted(
+        _member_directory_parts(members), key=lambda item: (len(item), item)
+    ):
         _ensure_directory(root, directory_parts)
 
 
-def _apply_directory_modes(root: str, members: List[_ValidatedMember]) -> None:
-    """Apply child modes before restrictive permissions on their parents."""
-    directories: List[_ValidatedMember] = [
-        member for member in members if member.is_directory and member.parts
-    ]
-    for member in sorted(directories, key=lambda item: len(item.parts), reverse=True):
-        directory = _ensure_directory(root, member.parts)
-        os.chmod(directory, (member.mode & 0o777) or 0o755)
+def _finalize_directory_modes(
+    root: str,
+    members: List[_ValidatedMember],
+    original_modes: Dict[Tuple[str, ...], int],
+    extraction_succeeded: bool,
+) -> None:
+    """Restore original modes, applying archived directory modes on success."""
+    final_modes = dict(original_modes)
+    if extraction_succeeded:
+        for member in members:
+            if member.is_directory and member.parts:
+                final_modes[member.parts] = (member.mode & 0o777) or 0o755
+    _set_directory_modes(root, final_modes)
 
 
 def safe_extract_tar(archive: tarfile.TarFile, destination: str) -> None:
@@ -344,19 +424,24 @@ def safe_extract_tar(archive: tarfile.TarFile, destination: str) -> None:
 
     members = _validate_manifest(candidates)
     root = _prepare_root(destination)
-    _validate_existing_paths(root, members)
-    _create_directories(root, members)
-    for member in members:
-        if member.is_directory:
-            continue
-        source = archive.extractfile(member.source)
-        if source is None:
-            raise UnsafeArchiveError(
-                f"Tar regular file has no readable data: {member.source.name!r}"
-            )
-        with source:
-            _replace_regular_file(root, member.parts, source, member.mode)
-    _apply_directory_modes(root, members)
+    original_modes = _make_directories_writable(root, members)
+    extraction_succeeded = False
+    try:
+        _validate_existing_paths(root, members)
+        _create_directories(root, members)
+        for member in members:
+            if member.is_directory:
+                continue
+            source = archive.extractfile(member.source)
+            if source is None:
+                raise UnsafeArchiveError(
+                    f"Tar regular file has no readable data: {member.source.name!r}"
+                )
+            with source:
+                _replace_regular_file(root, member.parts, source, member.mode)
+        extraction_succeeded = True
+    finally:
+        _finalize_directory_modes(root, members, original_modes, extraction_succeeded)
 
 
 def safe_extract_zip(archive: zipfile.ZipFile, destination: str) -> None:
@@ -392,11 +477,16 @@ def safe_extract_zip(archive: zipfile.ZipFile, destination: str) -> None:
 
     members = _validate_manifest(candidates)
     root = _prepare_root(destination)
-    _validate_existing_paths(root, members)
-    _create_directories(root, members)
-    for member in members:
-        if member.is_directory:
-            continue
-        with archive.open(member.source, "r") as source:
-            _replace_regular_file(root, member.parts, source, member.mode)
-    _apply_directory_modes(root, members)
+    original_modes = _make_directories_writable(root, members)
+    extraction_succeeded = False
+    try:
+        _validate_existing_paths(root, members)
+        _create_directories(root, members)
+        for member in members:
+            if member.is_directory:
+                continue
+            with archive.open(member.source, "r") as source:
+                _replace_regular_file(root, member.parts, source, member.mode)
+        extraction_succeeded = True
+    finally:
+        _finalize_directory_modes(root, members, original_modes, extraction_succeeded)

@@ -46,6 +46,46 @@ class SafeTarExtractionTest(unittest.TestCase):
             with open(os.path.join(output_dir, "task", "result.txt"), "rb") as fp:
                 self.assertEqual(fp.read(), b"result")
 
+    def test_reextracts_into_read_only_archive_directory(self) -> None:
+        """Repeated tar extraction temporarily relaxes archived directory modes."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = os.path.join(temp_dir, "read-only.tar")
+            output_dir = os.path.join(temp_dir, "output")
+            parent_dir = os.path.join(output_dir, "parent")
+            implicit_dir = os.path.join(parent_dir, "implicit")
+            with tarfile.open(archive_path, "w") as archive:
+                directory = tarfile.TarInfo("parent")
+                directory.type = tarfile.DIRTYPE
+                directory.mode = 0o555
+                archive.addfile(directory)
+                self._add_file(archive, "parent/implicit/result.txt", b"result")
+
+            try:
+                for extraction_index in range(2):
+                    with tarfile.open(archive_path, "r") as archive:
+                        safe_extract_tar(archive, output_dir)
+                    if extraction_index == 0:
+                        # Implicit directories have no archived mode, so a
+                        # caller-provided restriction must also be preserved.
+                        os.chmod(implicit_dir, 0o400)
+                    self.assertEqual(stat.S_IMODE(os.stat(parent_dir).st_mode), 0o555)
+                    self.assertEqual(stat.S_IMODE(os.stat(implicit_dir).st_mode), 0o400)
+
+                with patch(
+                    "dpdispatcher.utils.archive.shutil.copyfileobj",
+                    side_effect=OSError("copy failed"),
+                ):
+                    with tarfile.open(archive_path, "r") as archive:
+                        with self.assertRaisesRegex(OSError, "copy failed"):
+                            safe_extract_tar(archive, output_dir)
+                self.assertEqual(stat.S_IMODE(os.stat(parent_dir).st_mode), 0o555)
+                self.assertEqual(stat.S_IMODE(os.stat(implicit_dir).st_mode), 0o400)
+            finally:
+                if os.path.isdir(implicit_dir):
+                    os.chmod(implicit_dir, 0o755)
+                if os.path.isdir(parent_dir):
+                    os.chmod(parent_dir, 0o755)
+
     def test_applies_directory_modes_deepest_first(self) -> None:
         """Restrictive parent modes are finalized after their children."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -326,6 +366,37 @@ class SafeZipExtractionTest(unittest.TestCase):
 
             with open(os.path.join(output_dir, "task", "result.txt"), "rb") as fp:
                 self.assertEqual(fp.read(), b"result")
+
+    def test_reextracts_into_read_only_archive_directory(self) -> None:
+        """Repeated zip extraction temporarily relaxes archived directory modes."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = os.path.join(temp_dir, "read-only.zip")
+            output_dir = os.path.join(temp_dir, "output")
+            parent_dir = os.path.join(output_dir, "parent")
+            with zipfile.ZipFile(archive_path, "w") as archive:
+                directory = zipfile.ZipInfo("parent/")
+                directory.create_system = 3
+                directory.external_attr = (stat.S_IFDIR | 0o555) << 16
+                archive.writestr(directory, b"")
+                archive.writestr("parent/result.txt", b"result")
+
+            try:
+                for _ in range(2):
+                    with zipfile.ZipFile(archive_path, "r") as archive:
+                        safe_extract_zip(archive, output_dir)
+                    self.assertEqual(stat.S_IMODE(os.stat(parent_dir).st_mode), 0o555)
+
+                with patch(
+                    "dpdispatcher.utils.archive.shutil.copyfileobj",
+                    side_effect=OSError("copy failed"),
+                ):
+                    with zipfile.ZipFile(archive_path, "r") as archive:
+                        with self.assertRaisesRegex(OSError, "copy failed"):
+                            safe_extract_zip(archive, output_dir)
+                self.assertEqual(stat.S_IMODE(os.stat(parent_dir).st_mode), 0o555)
+            finally:
+                if os.path.isdir(parent_dir):
+                    os.chmod(parent_dir, 0o755)
 
     def test_rejects_traversal_and_absolute_paths_before_extracting(self) -> None:
         """Zip members cannot escape using POSIX or Windows path syntax."""
