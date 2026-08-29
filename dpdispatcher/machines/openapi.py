@@ -1,7 +1,7 @@
 import os
 import shutil
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 from zipfile import ZipFile
 
 from dpdispatcher.utils.archive import safe_extract_zip
@@ -107,7 +107,7 @@ class OpenAPI(Machine):
         )
         return script_file_name
 
-    def _gen_backward_files_list(self, job: "SubmissionJob") -> List[str]:
+    def _gen_backward_files_list(self, job: "SubmissionJob") -> list[str]:
         result_file_list = []
         # result_file_list.extend(job.backward_common_files)
         for task in job.job_task_list:
@@ -153,7 +153,7 @@ class OpenAPI(Machine):
         job.job_state = JobStatus.waiting
         return job.job_id
 
-    def _get_job_detail(self, job_id: int, group_id: Optional[int]) -> Dict[str, Any]:
+    def _get_job_detail(self, job_id: int, group_id: int | None) -> dict[str, Any]:
         check_return = self.job.detail(job_id)
         assert check_return is not None, (
             f"Failed to retrieve tasks information. To resubmit this job, please "
@@ -229,7 +229,7 @@ class OpenAPI(Machine):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def get_job_error(self, job: "SubmissionJob") -> Optional[str]:
+    def get_job_error(self, job: "SubmissionJob") -> str | None:
         """Retrieve diagnostics from the cloud result or job log."""
         try:
             self._download_job(job)
@@ -260,7 +260,7 @@ class OpenAPI(Machine):
 
     @staticmethod
     def map_dp_job_state(
-        status: Union[int, JobStatus],
+        status: int | JobStatus,
         exit_code: int,
         ignore_exit_code: bool = True,
     ) -> JobStatus:

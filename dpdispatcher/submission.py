@@ -8,8 +8,9 @@ import pathlib
 import random
 import time
 import uuid
+from collections.abc import Sequence
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -53,10 +54,10 @@ class Submission:
         work_base: str,
         machine: Optional["Machine"] = None,
         resources: Optional["Resources"] = None,
-        forward_common_files: List[str] = [],
-        backward_common_files: List[str] = [],
+        forward_common_files: list[str] = [],
+        backward_common_files: list[str] = [],
         *,
-        task_list: List["Task"] = [],
+        task_list: list["Task"] = [],
     ) -> None:
         self.local_root = None
         self.work_base = work_base
@@ -99,7 +100,7 @@ class Submission:
     @classmethod
     def deserialize(
         cls,
-        submission_dict: Dict[str, Any],
+        submission_dict: dict[str, Any],
         machine: Optional["Machine"] = None,
         *,
         bind_context: bool = True,
@@ -141,7 +142,7 @@ class Submission:
             submission.bind_machine(machine)
         return submission
 
-    def serialize(self, if_static: bool = False) -> Dict[str, Any]:  # noqa: ANN401
+    def serialize(self, if_static: bool = False) -> dict[str, Any]:  # noqa: ANN401
         """Convert the Submission class instance to a dictionary.
 
         Parameters
@@ -183,7 +184,7 @@ class Submission:
             )
         self.belonging_tasks.append(task)
 
-    def register_task_list(self, task_list: List["Task"]) -> None:
+    def register_task_list(self, task_list: list["Task"]) -> None:
         if self.belonging_jobs:
             raise RuntimeError(
                 f"Not allowed to register tasks after generating jobs. submission hash error {self}"
@@ -231,9 +232,9 @@ class Submission:
         *,
         dry_run: bool = False,
         exit_on_submit: bool = False,
-        clean: Union[bool, str] = True,
+        clean: bool | str = True,
         check_interval: int = 30,
-    ) -> Dict[str, Any]:  # noqa: ANN401
+    ) -> dict[str, Any]:  # noqa: ANN401
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -246,8 +247,10 @@ class Submission:
         ----------
         dry_run : bool
             If True, only upload without execution.
+
         exit_on_submit : bool
             If True, exit after submission without waiting.
+
         clean : bool or str
             Controls whether to clean remote working directory after completion.
 
@@ -255,6 +258,7 @@ class Submission:
             - False or "never": never clean
             - "on_success": only clean when all jobs finished successfully;
               preserve remote workdir on failure for debugging.
+
         check_interval : int
             Seconds between status polling iterations.
         """
@@ -342,7 +346,7 @@ class Submission:
         return self.serialize()
 
     def _should_clean(
-        self, clean: Union[bool, str], all_genuinely_finished: bool = True
+        self, clean: bool | str, all_genuinely_finished: bool = True
     ) -> bool:
         """Determine whether remote workdir should be cleaned.
 
@@ -747,10 +751,10 @@ class Task:
         self,
         command: str,
         task_work_path: str,
-        forward_files: Optional[Sequence[str]] = None,
-        backward_files: Optional[Sequence[str]] = None,
-        outlog: Optional[str] = "log",
-        errlog: Optional[str] = "err",
+        forward_files: Sequence[str] | None = None,
+        backward_files: Sequence[str] | None = None,
+        outlog: str | None = "log",
+        errlog: str | None = "err",
     ) -> None:
         self.command = command
         self.task_work_path = task_work_path
@@ -835,7 +839,7 @@ class Task:
         return task
 
     @classmethod
-    def deserialize(cls, task_dict: Dict[str, Any]) -> "Task":  # noqa: ANN401
+    def deserialize(cls, task_dict: dict[str, Any]) -> "Task":  # noqa: ANN401
         """Convert the task_dict to a Task class object.
 
         Parameters
@@ -851,7 +855,7 @@ class Task:
         task = cls(**task_dict)
         return task
 
-    def serialize(self) -> Dict[str, Any]:  # noqa: ANN401
+    def serialize(self) -> dict[str, Any]:  # noqa: ANN401
         task_dict = {}
         task_dict["command"] = self.command
         task_dict["task_work_path"] = self.task_work_path
@@ -901,14 +905,14 @@ class Task:
             Argument("task_work_path", str, optional=False, doc=doc_task_work_path),
             Argument(
                 "forward_files",
-                List[str],
+                list[str],
                 optional=True,
                 doc=doc_forward_files,
                 default=[],
             ),
             Argument(
                 "backward_files",
-                List[str],
+                list[str],
                 optional=True,
                 doc=doc_backward_files,
                 default=[],
@@ -970,7 +974,7 @@ class Job:
 
     def __init__(
         self,
-        job_task_list: List["Task"],
+        job_task_list: list["Task"],
         *,
         resources: "Resources",
         machine: Optional["Machine"] = None,
@@ -979,11 +983,11 @@ class Job:
         # self.job_work_base = job_work_base
         self.resources = resources
         self.machine = machine
-        self.job_state: Optional[JobStatus] = None  # JobStatus.unsubmitted
-        self.job_id: Union[str, int] = ""
+        self.job_state: JobStatus | None = None  # JobStatus.unsubmitted
+        self.job_id: str | int = ""
         # Cloud backends attach these identifiers while staging and submitting.
         self.upload_path = ""
-        self.jgid: Optional[Union[str, int]] = None
+        self.jgid: str | int | None = None
         self.fail_count = 0
         self.job_uuid = uuid.uuid4()
 
@@ -1005,7 +1009,7 @@ class Job:
 
     @classmethod
     def deserialize(
-        cls, job_dict: Dict[str, Any], machine: Optional["Machine"] = None
+        cls, job_dict: dict[str, Any], machine: Optional["Machine"] = None
     ) -> "Job":  # noqa: ANN401
         """Convert the  job_dict to a Submission class object.
 
@@ -1125,7 +1129,7 @@ class Job:
     def get_hash(self) -> str:
         return str(list(self.serialize(if_static=True).keys())[0])
 
-    def serialize(self, if_static: bool = False) -> Dict[str, Any]:  # noqa: ANN401
+    def serialize(self, if_static: bool = False) -> dict[str, Any]:  # noqa: ANN401
         """Convert the Task class instance to a dictionary.
 
         Parameters
@@ -1153,7 +1157,7 @@ class Job:
             # job_content_dict['job_uuid'] = self.job_uuid
         return {job_hash: job_content_dict}
 
-    def register_job_id(self, job_id: Union[str, int]) -> None:
+    def register_job_id(self, job_id: str | int) -> None:
         self.job_id = job_id
 
     def submit_job(self) -> None:
@@ -1172,7 +1176,7 @@ class Job:
             self.job_hash + "_job.json", write_str=write_str
         )
 
-    def get_last_error_message(self) -> Optional[str]:
+    def get_last_error_message(self) -> str | None:
         """Get last error message when the job is terminated."""
         assert self.machine is not None
         last_error_message = self.machine.get_job_error(self)
@@ -1203,9 +1207,9 @@ class Job:
         # context.upload() expects .belonging_tasks and .forward_common_files.
 
         class _RetryPayload:
-            belonging_tasks: List["Task"]
-            belonging_jobs: List["Job"]
-            forward_common_files: List[str]
+            belonging_tasks: list["Task"]
+            belonging_jobs: list["Job"]
+            forward_common_files: list[str]
             preserve_existing_forward_common_files: bool
 
         payload = _RetryPayload()
@@ -1263,16 +1267,16 @@ class Resources:
         queue_name: str,
         group_size: int,
         *,
-        custom_flags: Optional[Sequence[str]] = None,
-        strategy: Optional[Dict[str, Any]] = None,
+        custom_flags: Sequence[str] | None = None,
+        strategy: dict[str, Any] | None = None,
         para_deg: int = 1,
-        module_unload_list: Optional[Sequence[str]] = None,
+        module_unload_list: Sequence[str] | None = None,
         module_purge: bool = False,
-        module_list: Optional[Sequence[str]] = None,
-        source_list: Optional[Sequence[str]] = None,
-        envs: Optional[Dict[str, Any]] = None,
-        prepend_script: Optional[Sequence[str]] = None,
-        append_script: Optional[Sequence[str]] = None,
+        module_list: Sequence[str] | None = None,
+        source_list: Sequence[str] | None = None,
+        envs: dict[str, Any] | None = None,
+        prepend_script: Sequence[str] | None = None,
+        append_script: Sequence[str] | None = None,
         wait_time: int = 0,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -1325,7 +1329,7 @@ class Resources:
     def __eq__(self, other: object) -> bool:
         return json.dumps(self.serialize()) == json.dumps(other.serialize())  # type: ignore[attr-defined]
 
-    def serialize(self) -> Dict[str, Any]:  # noqa: ANN401
+    def serialize(self) -> dict[str, Any]:  # noqa: ANN401
         resources_dict = {}
         resources_dict["number_node"] = self.number_node
         resources_dict["cpu_per_node"] = self.cpu_per_node
@@ -1348,7 +1352,7 @@ class Resources:
         return resources_dict
 
     @classmethod
-    def deserialize(cls, resources_dict: Dict[str, Any]) -> "Resources":  # noqa: ANN401
+    def deserialize(cls, resources_dict: dict[str, Any]) -> "Resources":  # noqa: ANN401
         resources = cls(
             number_node=resources_dict.get("number_node", 1),
             cpu_per_node=resources_dict.get("cpu_per_node", 1),
@@ -1389,7 +1393,7 @@ class Resources:
 
     @classmethod
     def load_from_dict(
-        cls, resources_dict: Dict[str, Any], allow_ref: bool = False
+        cls, resources_dict: dict[str, Any], allow_ref: bool = False
     ) -> "Resources":  # noqa: ANN401
         """Load Resources from a dict.
 
@@ -1507,37 +1511,37 @@ class Resources:
             ),
             Argument("queue_name", str, optional=True, doc=doc_queue_name, default=""),
             Argument("group_size", int, optional=False, doc=doc_group_size),
-            Argument("custom_flags", List[str], optional=True, doc=doc_custom_flags),
+            Argument("custom_flags", list[str], optional=True, doc=doc_custom_flags),
             # Argument("strategy", dict, optional=True, doc=doc_strategy,default=default_strategy),
             strategy_format,
             Argument("para_deg", int, optional=True, doc=doc_para_deg, default=1),
             Argument(
-                "source_list", List[str], optional=True, doc=doc_source_list, default=[]
+                "source_list", list[str], optional=True, doc=doc_source_list, default=[]
             ),
             Argument(
                 "module_purge", bool, optional=True, doc=doc_module_purge, default=False
             ),
             Argument(
                 "module_unload_list",
-                List[str],
+                list[str],
                 optional=True,
                 doc=doc_module_unload_list,
                 default=[],
             ),
             Argument(
-                "module_list", List[str], optional=True, doc=doc_module_list, default=[]
+                "module_list", list[str], optional=True, doc=doc_module_list, default=[]
             ),
             Argument("envs", dict, optional=True, doc=doc_envs, default={}),
             Argument(
                 "prepend_script",
-                List[str],
+                list[str],
                 optional=True,
                 doc=doc_prepend_script,
                 default=[],
             ),
             Argument(
                 "append_script",
-                List[str],
+                list[str],
                 optional=True,
                 doc=doc_append_script,
                 default=[],

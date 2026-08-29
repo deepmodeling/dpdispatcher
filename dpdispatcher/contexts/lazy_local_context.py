@@ -1,6 +1,6 @@
 import os
 import subprocess as sp
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from dpdispatcher.base_context import BaseContext
 
@@ -15,7 +15,7 @@ class SPRetObj:
     def read(self) -> bytes:
         return self.data
 
-    def readlines(self) -> List[str]:
+    def readlines(self) -> list[str]:
         lines = self.data.decode("utf-8").splitlines()
         ret = []
         for aa in lines:
@@ -43,8 +43,8 @@ class LazyLocalContext(BaseContext):
     def __init__(
         self,
         local_root: str,
-        remote_root: Optional[str] = None,
-        remote_profile: Dict[str, Any] = {},  # noqa: ANN401
+        remote_root: str | None = None,
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -62,7 +62,7 @@ class LazyLocalContext(BaseContext):
         #    self.job_uuid = str(uuid.uuid4())
 
     @classmethod
-    def load_from_dict(cls, context_dict: Dict[str, Any]) -> "LazyLocalContext":  # noqa: ANN401
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> "LazyLocalContext":  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict.get("remote_root", None)
         remote_profile = context_dict.get("remote_profile", {})
@@ -116,7 +116,7 @@ class LazyLocalContext(BaseContext):
     #                else:
     #                    raise RuntimeError('do not find download file ' + fname)
 
-    def block_call(self, cmd: str) -> Tuple[int, None, SPRetObj, SPRetObj]:
+    def block_call(self, cmd: str) -> tuple[int, None, SPRetObj, SPRetObj]:
         proc = sp.Popen(
             cmd, cwd=self.local_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
@@ -158,7 +158,7 @@ class LazyLocalContext(BaseContext):
 
     def get_return(
         self, proc: sp.Popen
-    ) -> Tuple[Optional[int], Optional[SPRetObj], Optional[SPRetObj]]:
+    ) -> tuple[int | None, SPRetObj | None, SPRetObj | None]:
         ret = proc.poll()
         if ret is None:
             return None, None, None

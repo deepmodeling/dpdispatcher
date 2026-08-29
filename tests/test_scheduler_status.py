@@ -1,7 +1,6 @@
 import io
 import unittest
 from types import SimpleNamespace
-from typing import Type
 from unittest.mock import Mock
 
 from dpdispatcher.machine import Machine
@@ -14,7 +13,7 @@ class TestSchedulerStatusParsing(unittest.TestCase):
     """Exercise scheduler responses that contain no usable job data row."""
 
     def _check_header_only_status(
-        self, machine_class: Type[Machine], finish_tag: bool
+        self, machine_class: type[Machine], finish_tag: bool
     ) -> None:
         machine = machine_class.__new__(machine_class)
         machine.context = SimpleNamespace(

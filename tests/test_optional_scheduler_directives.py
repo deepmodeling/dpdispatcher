@@ -1,6 +1,6 @@
 import unittest
 from types import SimpleNamespace
-from typing import Any, Dict, Optional
+from typing import Any
 
 from dpdispatcher.machines.fugaku import Fugaku
 from dpdispatcher.machines.JH_UniScheduler import JH_UniScheduler
@@ -12,7 +12,7 @@ from dpdispatcher.submission import Resources
 class TestOptionalSchedulerDirectives(unittest.TestCase):
     """Ensure optional resources do not produce empty scheduler directives."""
 
-    def _job(self, *, kwargs: Optional[Dict[str, Any]] = None) -> SimpleNamespace:
+    def _job(self, *, kwargs: dict[str, Any] | None = None) -> SimpleNamespace:
         resources = Resources(
             number_node=1,
             cpu_per_node=4,

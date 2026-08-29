@@ -2,7 +2,7 @@ import os
 import re
 import time
 import urllib.parse
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
@@ -28,10 +28,10 @@ class RequestInfoException(Exception):
 class Client:
     def __init__(
         self,
-        email: Optional[str] = None,
-        password: Optional[str] = None,
+        email: str | None = None,
+        password: str | None = None,
         debug: bool = False,
-        ticket: Optional[str] = None,
+        ticket: str | None = None,
         base_url: str = API_HOST,
     ) -> None:
         self.debug = debug
@@ -43,7 +43,7 @@ class Client:
         self.config["password"] = password
         self.base_url = base_url
         # Each cloud job has an independent log stream and byte position.
-        self.last_log_offsets: Dict[str, int] = {}
+        self.last_log_offsets: dict[str, int] = {}
         self.ticket = ticket
 
     def _effective_ticket(self) -> str:
@@ -53,11 +53,11 @@ class Client:
     def post(
         self,
         url: str,
-        data: Optional[Dict[str, Any]] = None,  # noqa: ANN401
-        header: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        data: dict[str, Any] | None = None,  # noqa: ANN401
+        header: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,  # noqa: ANN401
         retry: int = 5,
-    ) -> Dict[str, Any]:  # noqa: ANN401
+    ) -> dict[str, Any]:  # noqa: ANN401
         return self._req(
             "POST", url, data=data, header=header, params=params, retry=retry
         )
@@ -65,21 +65,21 @@ class Client:
     def get(
         self,
         url: str,
-        header: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        header: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,  # noqa: ANN401
         retry: int = 5,
-    ) -> Dict[str, Any]:  # noqa: ANN401
+    ) -> dict[str, Any]:  # noqa: ANN401
         return self._req("GET", url, header=header, params=params, retry=retry)
 
     def _req(
         self,
         method: str,
         url: str,
-        data: Optional[Dict[str, Any]] = None,  # noqa: ANN401
-        header: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, Any]] = None,  # noqa: ANN401
+        data: dict[str, Any] | None = None,  # noqa: ANN401
+        header: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,  # noqa: ANN401
         retry: int = 5,
-    ) -> Dict[str, Any]:  # noqa: ANN401
+    ) -> dict[str, Any]:  # noqa: ANN401
         short_url = url
         url = urllib.parse.urljoin(self.base_url, url)
         if header is None:
@@ -185,7 +185,7 @@ class Client:
         bucket.get_object_to_file(oss_file, save_file)
         return save_file
 
-    def download_from_url(self, url: str, save_file: Union[str, os.PathLike]) -> None:
+    def download_from_url(self, url: str, save_file: str | os.PathLike) -> None:
         """Download a URL and fail explicitly after retry exhaustion.
 
         Parameters
@@ -269,10 +269,10 @@ class Client:
         self,
         job_type: str,
         oss_path: str,
-        input_data: Dict[str, Any],  # noqa: ANN401
-        program_id: Optional[int] = None,
-        group_id: Optional[int] = None,
-    ) -> Tuple[int, Optional[int]]:
+        input_data: dict[str, Any],  # noqa: ANN401
+        program_id: int | None = None,
+        group_id: int | None = None,
+    ) -> tuple[int, int | None]:
         post_data = {
             "job_type": job_type,
             "oss_path": oss_path,
@@ -309,7 +309,7 @@ class Client:
         # code reference from https://pypi.org/project/pyhumps/
         regex = re.compile(r"(?<=[^\-_\s])[\-_\s]+[^\-_\s]")
 
-        def _is_none(_in: Any) -> Union[str, Any]:  # noqa: ANN401
+        def _is_none(_in: Any) -> str | Any:  # noqa: ANN401
             return "" if _in is None else _in
 
         s = str(_is_none(str_or_iter))
@@ -320,7 +320,7 @@ class Client:
             s = s[0].lower() + s[1:]
         return regex.sub(lambda m: m.group(0)[-1].upper(), s)
 
-    def get_job_detail(self, job_id: Union[str, int]) -> Optional[Dict[str, Any]]:  # noqa: ANN401
+    def get_job_detail(self, job_id: str | int) -> dict[str, Any] | None:  # noqa: ANN401
         try:
             ret = self.get(
                 f"brm/v1/job/{job_id}",
@@ -334,7 +334,7 @@ class Client:
 
         return ret
 
-    def get_log(self, job_id: Union[str, int]) -> str:
+    def get_log(self, job_id: str | int) -> str:
         url, size = self._get_job_log(job_id)
         if not url:
             return ""
@@ -367,7 +367,7 @@ class Client:
             dlog.error(f"Error decoding job log: {e}", stack_info=ENABLE_STACK)
             return ""
 
-    def _get_job_log(self, job_id: Union[str, int]) -> Tuple[Optional[str], int]:
+    def _get_job_log(self, job_id: str | int) -> tuple[str | None, int]:
         ret = self.get(
             f"/brm/v1/job/{job_id}/log",
             params={
@@ -379,7 +379,7 @@ class Client:
             return d[0]["url"], d[0]["size"]
         return None, 0
 
-    def get_tasks_list(self, group_id: int, per_page: int = 30) -> List[Dict[str, Any]]:  # noqa: ANN401
+    def get_tasks_list(self, group_id: int, per_page: int = 30) -> list[dict[str, Any]]:  # noqa: ANN401
         result = []
         page = 0
         while True:
@@ -398,7 +398,7 @@ class Client:
             page += 1
         return result
 
-    def get_job_result_url(self, job_id: Union[str, int]) -> Optional[str]:
+    def get_job_result_url(self, job_id: str | int) -> str | None:
         try:
             if not job_id:
                 return None
@@ -414,7 +414,7 @@ class Client:
             dlog.error(e, stack_info=ENABLE_STACK)
             return None
 
-    def kill(self, job_id: Union[str, int]) -> Optional[Dict[str, Any]]:  # noqa: ANN401
+    def kill(self, job_id: str | int) -> dict[str, Any] | None:  # noqa: ANN401
         try:
             if not job_id:
                 return None

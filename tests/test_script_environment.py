@@ -1,7 +1,7 @@
 import shlex
 import unittest
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import Mock
 
 from dpdispatcher.machines.distributed_shell import DistributedShell
@@ -9,11 +9,11 @@ from dpdispatcher.machines.lsf import LSF
 
 
 def _resources(
-    source_list: Optional[List[str]] = None,
-    envs: Optional[Dict[Any, Any]] = None,
-    prepend_script: Optional[List[str]] = None,
-    module_list: Optional[List[str]] = None,
-    module_unload_list: Optional[List[str]] = None,
+    source_list: list[str] | None = None,
+    envs: dict[Any, Any] | None = None,
+    prepend_script: list[str] | None = None,
+    module_list: list[str] | None = None,
+    module_unload_list: list[str] | None = None,
 ) -> SimpleNamespace:
     """Build the resource attributes used by environment script generation."""
     return SimpleNamespace(
@@ -32,9 +32,9 @@ def _resources(
 
 
 def _job(
-    source_list: Optional[List[str]] = None,
-    envs: Optional[Dict[Any, Any]] = None,
-    prepend_script: Optional[List[str]] = None,
+    source_list: list[str] | None = None,
+    envs: dict[Any, Any] | None = None,
+    prepend_script: list[str] | None = None,
 ) -> SimpleNamespace:
     """Build a minimal job accepted by both script environment generators."""
     return SimpleNamespace(

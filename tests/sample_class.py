@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Any, Dict, List
+from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -37,7 +37,7 @@ class SampleClass:
         return resources
 
     @classmethod
-    def get_sample_resources_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
+    def get_sample_resources_dict(cls) -> dict[str, Any]:  # noqa: ANN401
         resources_dict = {
             "number_node": 1,
             "cpu_per_node": 4,
@@ -72,7 +72,7 @@ class SampleClass:
         return task
 
     @classmethod
-    def get_sample_task_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
+    def get_sample_task_dict(cls) -> dict[str, Any]:  # noqa: ANN401
         task_dict = {
             "command": "lmp -i input.lammps",
             "task_work_path": "bct-1/",
@@ -84,7 +84,7 @@ class SampleClass:
         return task_dict
 
     @classmethod
-    def get_sample_task_list(cls, backward_wildcard: bool = False) -> List[Task]:
+    def get_sample_task_list(cls, backward_wildcard: bool = False) -> list[Task]:
         task1 = Task(
             command="lmp -i input.lammps",
             task_work_path="bct-1/",
@@ -146,7 +146,7 @@ class SampleClass:
         return submission
 
     @classmethod
-    def get_sample_submission_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
+    def get_sample_submission_dict(cls) -> dict[str, Any]:  # noqa: ANN401
         submission = cls.get_sample_submission()
         submission_dict = submission.serialize()
         return submission_dict
@@ -158,7 +158,7 @@ class SampleClass:
         return job
 
     @classmethod
-    def get_sample_job_dict(cls) -> Dict[str, Any]:  # noqa: ANN401
+    def get_sample_job_dict(cls) -> dict[str, Any]:  # noqa: ANN401
         job = cls.get_sample_job()
         job_dict = job.serialize()
         return job_dict

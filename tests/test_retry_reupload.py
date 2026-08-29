@@ -13,7 +13,7 @@ import shutil
 import sys
 import tempfile
 import unittest
-from typing import Any, List, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -27,8 +27,8 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
 
     def _make_job(
         self,
-        task_list: Optional[List[MagicMock]] = None,
-        forward_common_files: Optional[List[str]] = None,
+        task_list: list[MagicMock] | None = None,
+        forward_common_files: list[str] | None = None,
     ) -> Job:
         """Create a Job with mocked machine/context."""
         job = Job.__new__(Job)

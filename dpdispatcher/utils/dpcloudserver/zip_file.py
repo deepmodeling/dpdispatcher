@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import Iterable, Optional
+from collections.abc import Iterable
 from zipfile import ZipFile
 
 from dpdispatcher.utils.archive import safe_extract_zip
@@ -13,7 +13,7 @@ from dpdispatcher.utils.archive import safe_extract_zip
 def zip_file_list(
     root_path: str,
     zip_filename: str,
-    file_list: Optional[Iterable[str]] = None,
+    file_list: Iterable[str] | None = None,
 ) -> str:
     """Archive files matched relative to ``root_path`` into ``zip_filename``."""
     out_zip_file = os.path.join(root_path, zip_filename)

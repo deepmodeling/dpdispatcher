@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-from typing import List, Optional
 
 from dpdispatcher.entrypoints.gui import start_dpgui
 from dpdispatcher.entrypoints.run import run
@@ -139,7 +138,7 @@ def main_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
+def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     """Dpdispatcher commandline options argument parsing.
 
     Parameters

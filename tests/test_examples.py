@@ -4,8 +4,8 @@ could pass the argument checking.
 
 import json
 import unittest
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence, Tuple
 
 from dargs import Argument
 
@@ -22,7 +22,7 @@ submission_args_obj = submission_args()
 
 # input_files : tuple[tuple[Argument, Path]]
 #   tuple of example list
-input_files: Sequence[Tuple[Argument, Path]] = (
+input_files: Sequence[tuple[Argument, Path]] = (
     (machine_args, p_examples / "machine" / "expanse.json"),
     (machine_args, p_examples / "machine" / "lazy_local.json"),
     (machine_args, p_examples / "machine" / "mandu.json"),

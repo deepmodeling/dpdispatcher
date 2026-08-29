@@ -5,7 +5,8 @@ import pathlib
 import re
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from dargs import Argument, Variant

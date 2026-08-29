@@ -117,6 +117,3 @@ convention = "numpy"
 
 [tool.ruff]
 line-length = 88
-# Keep lint-driven rewrites conservative so changing the supported Python range
-# does not also require a broad, unrelated syntax migration.
-target-version = "py37"

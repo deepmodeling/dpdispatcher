@@ -2,7 +2,7 @@
 
 import os
 import shlex
-from typing import List, Sequence, Tuple, Union
+from collections.abc import Sequence
 
 from dpdispatcher.utils.utils import run_cmd_with_all_output
 
@@ -12,7 +12,7 @@ def _command_text(command: Sequence[str]) -> str:
     return " ".join(shlex.quote(argument) for argument in command)
 
 
-def _run_hadoop(command: List[str]) -> Tuple[int, bytes, bytes]:
+def _run_hadoop(command: list[str]) -> tuple[int, bytes, bytes]:
     """Run one Hadoop command without allowing shell interpretation."""
     return run_cmd_with_all_output(command, shell=False)
 
@@ -108,7 +108,7 @@ class HDFS:
             ) from error
 
     @staticmethod
-    def copy_from_local(local_path: str, to_uri: str) -> Tuple[bool, bytes]:
+    def copy_from_local(local_path: str, to_uri: str) -> tuple[bool, bytes]:
         """Copy one readable local path to HDFS, replacing an existing file."""
         local_path = _validate_operand(local_path, "local_path")
         to_uri = _validate_operand(to_uri, "to_uri")
@@ -131,7 +131,7 @@ class HDFS:
 
     @staticmethod
     def copy_to_local(
-        from_uri: Union[str, List[str], Tuple[str, ...]], local_path: str
+        from_uri: str | list[str] | tuple[str, ...], local_path: str
     ) -> bool:
         """Copy one or more HDFS URIs to a local path."""
         if isinstance(from_uri, str):

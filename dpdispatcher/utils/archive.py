@@ -9,7 +9,8 @@ import tarfile
 import tempfile
 import unicodedata
 import zipfile
-from typing import IO, Any, Dict, Iterable, List, NamedTuple, Set, Tuple
+from collections.abc import Iterable
+from typing import IO, Any, NamedTuple
 
 
 class UnsafeArchiveError(ValueError):
@@ -20,7 +21,7 @@ class _ValidatedMember(NamedTuple):
     """Archive member metadata that has passed manifest validation."""
 
     source: Any
-    parts: Tuple[str, ...]
+    parts: tuple[str, ...]
     is_directory: bool
     mode: int
 
@@ -62,7 +63,7 @@ def _is_unsafe_link(path: str, path_stat: os.stat_result) -> bool:
     return stat.S_ISLNK(path_stat.st_mode) or _is_windows_reparse_point(path)
 
 
-def _canonical_member_parts(member_name: str, is_directory: bool) -> Tuple[str, ...]:
+def _canonical_member_parts(member_name: str, is_directory: bool) -> tuple[str, ...]:
     """Return a portable relative path for an archive member.
 
     Result archives can be produced and consumed on different operating
@@ -83,7 +84,7 @@ def _canonical_member_parts(member_name: str, is_directory: bool) -> Tuple[str, 
             f"Archive member uses an absolute path: {member_name!r}"
         )
 
-    parts: List[str] = []
+    parts: list[str] = []
     for part in portable_name.split("/"):
         if part in ("", "."):
             continue
@@ -111,12 +112,12 @@ def _canonical_member_parts(member_name: str, is_directory: bool) -> Tuple[str, 
 
 
 def _validate_manifest(
-    candidates: Iterable[Tuple[Any, str, bool, int]],
-) -> List[_ValidatedMember]:
+    candidates: Iterable[tuple[Any, str, bool, int]],
+) -> list[_ValidatedMember]:
     """Validate all members before extraction writes any output."""
-    validated: List[_ValidatedMember] = []
-    path_types: Dict[str, bool] = {}
-    parent_paths: Set[str] = set()
+    validated: list[_ValidatedMember] = []
+    path_types: dict[str, bool] = {}
+    parent_paths: set[str] = set()
 
     for source, name, is_directory, mode in candidates:
         parts = _canonical_member_parts(name, is_directory)
@@ -129,7 +130,7 @@ def _validate_manifest(
                 f"Archive contains duplicate output path: {canonical_path!r}"
             )
 
-        member_parent_paths: List[str] = []
+        member_parent_paths: list[str] = []
         for index in range(1, len(parts)):
             parent_key = unicodedata.normalize(
                 "NFC", "/".join(parts[:index])
@@ -197,7 +198,7 @@ def _prepare_root(destination: str) -> str:
     return os.path.realpath(destination_path)
 
 
-def _ensure_directory(root: str, parts: Tuple[str, ...]) -> str:
+def _ensure_directory(root: str, parts: tuple[str, ...]) -> str:
     """Create a directory path without following existing symlink components."""
     current = root
     for part in parts:
@@ -219,7 +220,7 @@ def _ensure_directory(root: str, parts: Tuple[str, ...]) -> str:
     return current
 
 
-def _validate_existing_paths(root: str, members: List[_ValidatedMember]) -> None:
+def _validate_existing_paths(root: str, members: list[_ValidatedMember]) -> None:
     """Reject unsafe existing components before extracting the first file."""
     for member in members:
         current = root
@@ -248,7 +249,7 @@ def _validate_existing_paths(root: str, members: List[_ValidatedMember]) -> None
 
 def _replace_regular_file(
     root: str,
-    parts: Tuple[str, ...],
+    parts: tuple[str, ...],
     source: IO[bytes],
     mode: int,
 ) -> None:
@@ -292,10 +293,10 @@ def _replace_regular_file(
 
 
 def _member_directory_parts(
-    members: List[_ValidatedMember],
-) -> Set[Tuple[str, ...]]:
+    members: list[_ValidatedMember],
+) -> set[tuple[str, ...]]:
     """Return every explicit and implicit output directory, including root."""
-    directories: Set[Tuple[str, ...]] = {()}
+    directories: set[tuple[str, ...]] = {()}
     for member in members:
         directory_depth = len(member.parts)
         if not member.is_directory:
@@ -306,7 +307,7 @@ def _member_directory_parts(
 
 
 def _set_directory_modes(
-    root: str, directory_modes: Dict[Tuple[str, ...], int]
+    root: str, directory_modes: dict[tuple[str, ...], int]
 ) -> None:
     """Set directory modes child-first without following replacement links."""
     for parts in sorted(
@@ -329,15 +330,15 @@ def _set_directory_modes(
 
 
 def _make_directories_writable(
-    root: str, members: List[_ValidatedMember]
-) -> Dict[Tuple[str, ...], int]:
+    root: str, members: list[_ValidatedMember]
+) -> dict[tuple[str, ...], int]:
     """Temporarily make existing output directories writable by their owner.
 
     A previous extraction may have applied a read-only archived mode.  Paths
     are visited parent-first so even a non-searchable directory can be safely
     inspected and opened during a repeated extraction.
     """
-    original_modes: Dict[Tuple[str, ...], int] = {}
+    original_modes: dict[tuple[str, ...], int] = {}
     try:
         for parts in sorted(
             _member_directory_parts(members), key=lambda item: (len(item), item)
@@ -366,7 +367,7 @@ def _make_directories_writable(
     return original_modes
 
 
-def _create_directories(root: str, members: List[_ValidatedMember]) -> None:
+def _create_directories(root: str, members: list[_ValidatedMember]) -> None:
     """Create explicit and implicit member directories in parent-first order."""
     for directory_parts in sorted(
         _member_directory_parts(members), key=lambda item: (len(item), item)
@@ -376,8 +377,8 @@ def _create_directories(root: str, members: List[_ValidatedMember]) -> None:
 
 def _finalize_directory_modes(
     root: str,
-    members: List[_ValidatedMember],
-    original_modes: Dict[Tuple[str, ...], int],
+    members: list[_ValidatedMember],
+    original_modes: dict[tuple[str, ...], int],
     extraction_succeeded: bool,
 ) -> None:
     """Restore original modes, applying archived directory modes on success."""

@@ -12,7 +12,7 @@ import socket
 import tarfile
 import time
 import uuid
-from functools import lru_cache
+from functools import cache
 from glob import glob
 from stat import S_ISDIR, S_ISREG
 from typing import TYPE_CHECKING, Any
@@ -313,11 +313,7 @@ class SSHSession:
         assert self.ssh is not None
         try:
             return self.ssh.exec_command(cmd)
-        except (
-            paramiko.ssh_exception.SSHException,
-            socket.timeout,
-            EOFError,
-        ) as e:
+        except (TimeoutError, paramiko.ssh_exception.SSHException, EOFError) as e:
             # SSH session not active
             # retry for up to 3 times
             # ensure alive
@@ -451,7 +447,7 @@ class SSHSession:
         return self.sftp.get(from_f, to_f)
 
     @property
-    @lru_cache(maxsize=None)
+    @cache
     def rsync_available(self) -> bool:
         return (
             shutil.which("rsync") is not None
