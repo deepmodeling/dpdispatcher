@@ -112,6 +112,26 @@ class TestSubmission(unittest.TestCase):
         deserialize.assert_not_called()
         self.assertIs(self.submission.machine.context, context)
 
+    def test_try_recover_from_json_mismatch_restores_context(self):
+        context = self.submission.machine.context
+        original_local_root = context.local_root
+        original_remote_root = context.remote_root
+        mismatched_submission = self.submission.serialize()
+        mismatched_submission["work_base"] = "different_work_base"
+        context.check_file_exists = MagicMock(return_value=True)
+        context.read_file = MagicMock(return_value=json.dumps(mismatched_submission))
+
+        with patch.object(
+            context, "bind_submission", wraps=context.bind_submission
+        ) as bind_submission:
+            with self.assertRaisesRegex(RuntimeError, "Recover failed"):
+                self.submission.try_recover_from_json()
+
+        bind_submission.assert_not_called()
+        self.assertIs(context.submission, self.submission)
+        self.assertEqual(context.local_root, original_local_root)
+        self.assertEqual(context.remote_root, original_remote_root)
+
     def test_repr(self):
         submission_repr = repr(self.submission)
         j = json.dumps(self.submission.serialize(), indent=4)

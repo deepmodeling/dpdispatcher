@@ -94,7 +94,7 @@ class Submission:
         return self.serialize()[key]
 
     @classmethod
-    def deserialize(cls, submission_dict, machine=None):
+    def deserialize(cls, submission_dict, machine=None, *, bind_context: bool = True):
         """Convert the submission_dict to a Submission class object.
 
         Parameters
@@ -103,6 +103,9 @@ class Submission:
             path-like, the base directory of the local tasks
         machine : Machine
             Machine class Object to execute the jobs
+        bind_context : bool, default=True
+            Whether to bind the machine context to the deserialized submission.
+            Disable this when the machine is shared with an active submission.
 
         Returns
         -------
@@ -123,7 +126,7 @@ class Submission:
         ]
         submission.submission_hash = submission.get_hash()
         if machine is not None:
-            submission.bind_machine(machine=machine)
+            submission.bind_machine(machine=machine, bind_context=bind_context)
         else:
             machine = Machine.deserialize(machine_dict=submission_dict["machine"])
             submission.bind_machine(machine)
@@ -183,19 +186,21 @@ class Submission:
             json.dumps(self.serialize(if_static=True)).encode("utf-8")
         ).hexdigest()
 
-    def bind_machine(self, machine):
+    def bind_machine(self, machine, *, bind_context: bool = True):
         """Bind this submission to a machine. update the machine's context remote_root and local_root.
 
         Parameters
         ----------
         machine : Machine
             the machine to bind with
+        bind_context : bool, default=True
+            Whether to update the machine context's active submission and roots.
         """
         self.submission_hash = self.get_hash()
         self.machine = machine
         for job in self.belonging_jobs:
             job.machine = machine
-        if machine is not None:
+        if machine is not None and bind_context:
             self.machine.context.bind_submission(self)
             self.local_root = machine.context.temp_local_root
         return self
@@ -527,8 +532,12 @@ class Submission:
             # Reuse the authenticated machine that read the recovery file. Creating a
             # second SSHContext here can fail for one-time authentication methods such
             # as TOTP, and the reconstructed machine would be discarded immediately.
+            # The machine/session can be reused safely, but the shared context must
+            # remain bound to the active submission until recovery data is validated.
             submission = Submission.deserialize(
-                submission_dict=submission_dict, machine=self.machine
+                submission_dict=submission_dict,
+                machine=self.machine,
+                bind_context=False,
             )
             if self == submission:
                 self.belonging_jobs = submission.belonging_jobs
