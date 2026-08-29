@@ -6,23 +6,83 @@ name: Test Bohrium
       - 'copilot/**'
       - 'dependabot/**'
       - 'pre-commit-ci-update-config'
-  pull_request_target:
-    types:
-      - "labeled"
+  # Secret-backed pull request tests must be started by a maintainer after
+  # reviewing an exact commit. This keeps untrusted workflow changes out of
+  # the privileged pull_request_target context.
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Pull request number containing the reviewed commit
+        required: true
+        type: string
+      reviewed_sha:
+        description: Full 40-character head SHA reviewed by the maintainer
+        required: true
+        type: string
 
-permissions:
-  contents: read
-  id-token: write
+permissions: {}
 
 jobs:
+  verify_reviewed_commit:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'deepmodeling' && github.event_name == 'workflow_dispatch'
+    permissions:
+      pull-requests: read
+    outputs:
+      head_repository: ${{ steps.verify.outputs.head_repository }}
+      reviewed_sha: ${{ steps.verify.outputs.reviewed_sha }}
+    steps:
+    - name: Verify the reviewed pull request commit
+      id: verify
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PULL_REQUEST: ${{ inputs.pull_request }}
+        REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+      run: |
+        if [[ ! "$PULL_REQUEST" =~ ^[1-9][0-9]*$ ]]; then
+          echo "pull_request must be a positive integer" >&2
+          exit 1
+        fi
+        if [[ ! "$REVIEWED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "reviewed_sha must be a full lowercase commit SHA" >&2
+          exit 1
+        fi
+
+        IFS=$'\t' read -r head_repository current_sha < <(
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PULL_REQUEST}" \
+            --jq '[.head.repo.full_name, .head.sha] | @tsv'
+        )
+        if [[ -z "$head_repository" ]]; then
+          echo "Pull request head repository is unavailable" >&2
+          exit 1
+        fi
+        if [[ "$current_sha" != "$REVIEWED_SHA" ]]; then
+          echo "Pull request head changed: reviewed $REVIEWED_SHA, current $current_sha" >&2
+          exit 1
+        fi
+
+        echo "head_repository=$head_repository" >> "$GITHUB_OUTPUT"
+        echo "reviewed_sha=$REVIEWED_SHA" >> "$GITHUB_OUTPUT"
+
   test:
+    needs: verify_reviewed_commit
+    if: >-
+      always() &&
+      github.repository_owner == 'deepmodeling' &&
+      (github.event_name == 'push' || needs.verify_reviewed_commit.result == 'success')
     runs-on: ubuntu-latest
     environment: bohrium
-    if: github.repository_owner == 'deepmodeling' && (github.event.label.name == 'Test Bohrium' || github.event_name == 'push')
+    permissions:
+      contents: read
+      id-token: write
     steps:
     - uses: actions/checkout@v7
       with:
-        ref: "${{ github.event.pull_request.merge_commit_sha }}"
+        # Pin manual runs to the reviewed commit so a later force-push cannot
+        # change the code that receives access to the Bohrium environment.
+        repository: ${{ github.event_name == 'workflow_dispatch' && needs.verify_reviewed_commit.outputs.head_repository || github.repository }}
+        ref: ${{ github.event_name == 'workflow_dispatch' && needs.verify_reviewed_commit.outputs.reviewed_sha || github.sha }}
+        persist-credentials: false
     - name: Set up Python 3.12
       uses: actions/setup-python@v7
       with:
@@ -41,15 +101,3 @@ jobs:
     - uses: codecov/codecov-action@v7
       with:
         use_oidc: true
-  remove_label:
-    permissions:
-      contents: read
-      pull-requests: write
-    # so one can re-trigger the workflow without manually removing the label
-    runs-on: ubuntu-latest
-    if: github.repository_owner == 'deepmodeling' && github.event.label.name == 'Test Bohrium'
-    steps:
-    - uses: actions-ecosystem/action-remove-labels@v1
-      with:
-        labels: Test Bohrium
-        number: ${{ github.event.pull_request.number }}
