@@ -355,6 +355,15 @@ class Submission:
         failed_jobs = self.failed_jobs()
         if not failed_jobs:
             return
+        # ``clean_jobs`` removes the local record along with the remote workdir.
+        # Re-create it before raising so callers can still inspect diagnostics
+        # and use ``dpdisp submission`` to download logs or retry the submission.
+        # Failure persistence is best effort: never hide the original job error
+        # if a custom/incomplete submission object cannot be serialized.
+        try:
+            record.write(self)
+        except Exception:
+            dlog.exception("Unable to persist failed submission record")
         details = "\n\n".join(
             job.failure_reason
             or f"job {job.job_hash} {job.job_id} failed without diagnostics"
