@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess as sp
+import tempfile
 from glob import glob
 from subprocess import TimeoutExpired
 from typing import List
@@ -111,6 +112,65 @@ class LocalContext(BaseContext):
         else:
             raise ValueError(f"Unknown file type: {local_path}")
 
+    def _copy_missing_from_local_to_remote(
+        self, local_path: str, remote_path: str
+    ) -> None:
+        """Copy missing paths without replacing an existing remote entry."""
+        if os.path.lexists(remote_path):
+            if (
+                os.path.isdir(local_path)
+                and os.path.isdir(remote_path)
+                and not os.path.islink(remote_path)
+            ):
+                for name in os.listdir(local_path):
+                    self._copy_missing_from_local_to_remote(
+                        os.path.join(local_path, name),
+                        os.path.join(remote_path, name),
+                    )
+            return
+        if not os.path.exists(local_path):
+            raise FileNotFoundError(
+                f"cannot find uploaded file {os.path.join(local_path)}"
+            )
+
+        _check_file_path(remote_path)
+        if self.symlink:
+            try:
+                os.symlink(local_path, remote_path)
+            except FileExistsError:
+                pass
+            return
+
+        remote_dir = os.path.dirname(remote_path) or "."
+        if os.path.isfile(local_path):
+            descriptor, staged_path = tempfile.mkstemp(
+                prefix=".dpdispatcher-", dir=remote_dir
+            )
+            os.close(descriptor)
+            try:
+                shutil.copyfile(local_path, staged_path)
+                try:
+                    os.link(staged_path, remote_path)
+                except FileExistsError:
+                    pass
+            finally:
+                if os.path.exists(staged_path):
+                    os.remove(staged_path)
+        elif os.path.isdir(local_path):
+            stage_root = tempfile.mkdtemp(prefix=".dpdispatcher-", dir=remote_dir)
+            staged_path = os.path.join(stage_root, "payload")
+            try:
+                shutil.copytree(local_path, staged_path)
+                try:
+                    os.rename(staged_path, remote_path)
+                except OSError:
+                    if not os.path.lexists(remote_path):
+                        raise
+            finally:
+                shutil.rmtree(stage_root, ignore_errors=True)
+        else:
+            raise ValueError(f"Unknown file type: {local_path}")
+
     def upload(self, submission):
         os.makedirs(self.remote_root, exist_ok=True)
         for ii in submission.belonging_tasks:
@@ -151,9 +211,12 @@ class LocalContext(BaseContext):
             file_list.extend(rel_file_list)
 
         for jj in file_list:
-            self._copy_from_local_to_remote(
-                os.path.join(local_job, jj), os.path.join(remote_job, jj)
-            )
+            local_path = os.path.join(local_job, jj)
+            remote_path = os.path.join(remote_job, jj)
+            if getattr(submission, "preserve_existing_forward_common_files", False):
+                self._copy_missing_from_local_to_remote(local_path, remote_path)
+            else:
+                self._copy_from_local_to_remote(local_path, remote_path)
 
     def download(
         self, submission, check_exists=False, mark_failure=True, back_error=False
