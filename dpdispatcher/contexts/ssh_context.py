@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import errno
 import fnmatch
 import os
 import pathlib
@@ -542,6 +543,56 @@ class SSHContext(BaseContext):
     def get_job_root(self):
         return self.remote_root
 
+    @staticmethod
+    def _is_missing_remote_path(error: OSError) -> bool:
+        """Return whether an SFTP error reports a missing remote path."""
+        return isinstance(error, FileNotFoundError) or error.errno == errno.ENOENT
+
+    def _recover_remote_root(self, old_remote_root: str) -> None:
+        """Move recoverable state from a previous submission hash.
+
+        An empty directory can be left behind when a submission is rebound before
+        any files are uploaded. It is only a placeholder, so remove it instead of
+        moving it to the new hash. Non-empty directories contain recovery state
+        and are renamed only when the destination does not already exist.
+        """
+        assert self.remote_root is not None
+        sftp = self.sftp
+
+        try:
+            old_entries = sftp.listdir(old_remote_root)
+        except OSError as error:
+            if self._is_missing_remote_path(error):
+                return
+            raise
+
+        if not old_entries:
+            try:
+                sftp.rmdir(old_remote_root)
+            except OSError as error:
+                # Another recovery may remove the same placeholder after listdir.
+                # Other failures, including a newly non-empty directory, must surface.
+                if not self._is_missing_remote_path(error):
+                    raise
+            return
+
+        try:
+            sftp.stat(self.remote_root)
+        except OSError as error:
+            if not self._is_missing_remote_path(error):
+                raise
+        else:
+            # Never overwrite a destination that may contain newer recovery data.
+            return
+
+        try:
+            # Unlike a shell `mv`, SFTP rename exposes a missing-source errno. This
+            # makes rebinding idempotent when another process wins the same race.
+            sftp.rename(old_remote_root, self.remote_root)
+        except OSError as error:
+            if not self._is_missing_remote_path(error):
+                raise
+
     def _mkdir(self, remote_dir, recursive=False):
         if not remote_dir:
             return
@@ -591,24 +642,8 @@ class SSHContext(BaseContext):
         self.remote_root = pathlib.PurePath(
             os.path.join(self.temp_remote_root, self.submission.submission_hash)
         ).as_posix()
-        # move the working directory if remote_root changes
-        if (
-            old_remote_root is not None
-            and old_remote_root != self.remote_root
-            and self.check_file_exists(old_remote_root)
-            and not self.check_file_exists(self.remote_root)
-        ):
-            self.block_checkcall(
-                f"mv {shlex.quote(old_remote_root)} {shlex.quote(self.remote_root)}"
-            )
-        elif (
-            old_remote_root is not None
-            and old_remote_root != self.remote_root
-            and self.check_file_exists(old_remote_root)
-            and not len(self.ssh_session.sftp.listdir(old_remote_root))
-        ):
-            # if the new directory exists and the old directory does not contain files, then move the old directory
-            self._rmtree(old_remote_root)
+        if old_remote_root is not None and old_remote_root != self.remote_root:
+            self._recover_remote_root(old_remote_root)
 
         self._mkdir(self.remote_root, recursive=self.create_remote_root)
 
