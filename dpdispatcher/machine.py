@@ -3,7 +3,7 @@ import pathlib
 import re
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import Any, List, Mapping, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 import yaml
 from dargs import Argument, Variant
@@ -150,6 +150,35 @@ def _format_source_command(source: str) -> str:
     return "source " + " ".join(shlex.quote(argument) for argument in arguments)
 
 
+def _format_module_command(action: str, module_spec: str) -> str:
+    """Return a safe module load or unload command for static module names.
+
+    Module entries may contain multiple shell words for compatibility with
+    existing configurations. Active shell syntax is rejected, while each
+    parsed word is quoted before it is inserted into the generated script.
+    """
+    if not isinstance(module_spec, str):
+        raise TypeError("module list entries must be strings")
+    if module_spec.strip() == "":
+        return ""
+    if "\x00" in module_spec:
+        raise ValueError("module list entries must be NUL-free")
+    if _has_active_source_syntax(module_spec):
+        raise ValueError(
+            "module list entries must contain only static module names; "
+            "put shell operators or expansions in prepend_script"
+        )
+    try:
+        modules = shlex.split(module_spec, posix=True)
+    except ValueError as error:
+        raise ValueError(
+            f"Invalid module list entry {module_spec!r}: {error}"
+        ) from error
+    if not modules:
+        raise ValueError("module list entries must contain at least one module name")
+    return f"module {action} " + " ".join(shlex.quote(module) for module in modules)
+
+
 def _format_export_lines(envs: Mapping[str, Any]) -> str:
     """Render validated environment values as deterministic export lines.
 
@@ -226,6 +255,13 @@ class Machine(metaclass=ABCMeta):
     def bind_context(self, context):
         self.context = context
 
+    def get_job_error(self, job):
+        """Return the saved error diagnostic for a job, if available."""
+        error_file = job.job_hash + "_last_err_file"
+        if self.context.check_file_exists(error_file):
+            return self.context.read_file(error_file)
+        return None
+
     # def __init__ (self,
     #             context):
     #     self.context = context
@@ -293,12 +329,17 @@ class Machine(metaclass=ABCMeta):
         machine = machine_class(context=context, retry_count=retry_count)
         return machine
 
-    def serialize(self, if_empty_remote_profile=False):
+    def serialize(self, if_empty_remote_profile: bool = False) -> Dict[str, Any]:
         machine_dict = {}
         machine_dict["batch_type"] = self.__class__.__name__
         machine_dict["context_type"] = self.context.__class__.__name__
         machine_dict["local_root"] = self.context.init_local_root
         machine_dict["remote_root"] = self.context.init_remote_root
+        machine_dict["clean_asynchronously"] = getattr(
+            self.context, "clean_asynchronously", False
+        )
+        if hasattr(self.context, "create_remote_root"):
+            machine_dict["create_remote_root"] = self.context.create_remote_root
         if not if_empty_remote_profile:
             machine_dict["remote_profile"] = self.context.remote_profile
         else:
@@ -400,12 +441,16 @@ class Machine(metaclass=ABCMeta):
             module_unload_part += "module purge\n"
         module_unload_list = job.resources.module_unload_list
         for ii in module_unload_list:
-            module_unload_part += f"module unload {ii}\n"
+            module_command = _format_module_command("unload", ii)
+            if module_command:
+                module_unload_part += module_command + "\n"
 
         module_load_part = ""
         module_list = job.resources.module_list
         for ii in module_list:
-            module_load_part += f"module load {ii}\n"
+            module_command = _format_module_command("load", ii)
+            if module_command:
+                module_load_part += module_command + "\n"
 
         source_list = job.resources.source_list
         for ii in source_list:

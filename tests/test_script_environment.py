@@ -12,6 +12,8 @@ def _resources(
     source_list: Optional[List[str]] = None,
     envs: Optional[Dict[Any, Any]] = None,
     prepend_script: Optional[List[str]] = None,
+    module_list: Optional[List[str]] = None,
+    module_unload_list: Optional[List[str]] = None,
 ) -> SimpleNamespace:
     """Build the resource attributes used by environment script generation."""
     return SimpleNamespace(
@@ -21,8 +23,8 @@ def _resources(
         queue_name="gpu queue; not-a-command",
         group_size=3,
         module_purge=False,
-        module_unload_list=[],
-        module_list=[],
+        module_unload_list=([] if module_unload_list is None else module_unload_list),
+        module_list=[] if module_list is None else module_list,
         source_list=[] if source_list is None else source_list,
         envs={} if envs is None else envs,
         prepend_script=[] if prepend_script is None else prepend_script,
@@ -152,6 +154,32 @@ class TestMachineScriptEnvironment(unittest.TestCase):
             with self.subTest(unsafe_entry=unsafe_entry):
                 with self.assertRaisesRegex(ValueError, "prepend_script"):
                     self.machine.gen_script_env(_job(source_list=[unsafe_entry]))
+
+    def test_quotes_module_names_and_rejects_active_shell_syntax(self) -> None:
+        """Module names remain static operands instead of executable shell code."""
+        resources = _resources(
+            module_list=["gcc/12 openmpi/4", "'/module with spaces/1.0'"],
+            module_unload_list=["legacy/1.0"],
+        )
+        job = SimpleNamespace(job_hash="job-hash", resources=resources)
+
+        script = self.machine.gen_script_env(job)
+
+        self.assertIn("module load gcc/12 openmpi/4\n", script)
+        self.assertIn("module load '/module with spaces/1.0'\n", script)
+        self.assertIn("module unload legacy/1.0\n", script)
+
+        unsafe_entries = (
+            "safe; touch /tmp/pwned",
+            "$(touch /tmp/pwned)",
+            "safe && touch /tmp/pwned",
+        )
+        for unsafe_entry in unsafe_entries:
+            with self.subTest(unsafe_entry=unsafe_entry):
+                resources = _resources(module_list=[unsafe_entry])
+                job = SimpleNamespace(job_hash="job-hash", resources=resources)
+                with self.assertRaisesRegex(ValueError, "prepend_script"):
+                    self.machine.gen_script_env(job)
 
     def test_literal_envs_and_trusted_prepend_script_are_distinct(self) -> None:
         """Only prepend_script retains explicitly requested shell expansion."""
