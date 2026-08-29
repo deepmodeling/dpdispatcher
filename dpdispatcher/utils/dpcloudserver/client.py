@@ -2,6 +2,7 @@ import os
 import re
 import time
 import urllib.parse
+from typing import Union
 from urllib.parse import urljoin
 
 import requests
@@ -153,30 +154,55 @@ class Client:
         bucket.get_object_to_file(oss_file, save_file)
         return save_file
 
-    def download_from_url(self, url, save_file):
-        ret = None
+    def download_from_url(self, url: str, save_file: Union[str, os.PathLike]) -> None:
+        """Download a URL and fail explicitly after retry exhaustion.
+
+        Parameters
+        ----------
+        url : str
+            Remote URL to download.
+        save_file : str or os.PathLike
+            Local path where the response body is written.
+
+        Raises
+        ------
+        RequestInfoException
+            If no HTTP request succeeds after three attempts. The exception
+            includes the URL and the final transport or HTTP response details.
+        """
+        last_failure = "no response received"
         for retry_count in range(3):
             try:
-                ret = requests.get(
+                response = requests.get(
                     url, headers={"Authorization": "jwt " + self.token}, stream=True
                 )
             except Exception as e:
                 dlog.error(f"request error {e}", stack_info=ENABLE_STACK)
+                last_failure = f"{type(e).__name__}: {e}"
                 continue
-            if ret.ok:
-                break
-            else:
-                dlog.error(
-                    f"request error status_code:{ret.status_code} reason: {ret.reason} body: \n{ret.text}"
-                )
-                time.sleep(retry_count)
-                ret = None
-        if ret is not None:
-            ret.raise_for_status()
-            with open(save_file, "wb") as f:
-                for chunk in ret.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            ret.close()
+            if response.ok:
+                try:
+                    with open(save_file, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                finally:
+                    response.close()
+                return
+
+            # Bound the response excerpt so an error page cannot flood logs or
+            # exception messages while retaining enough context to diagnose it.
+            body = response.text[:500]
+            last_failure = (
+                f"status_code={response.status_code} reason={response.reason!r} "
+                f"body={body!r}"
+            )
+            dlog.error(f"request error {last_failure}")
+            response.close()
+            time.sleep(retry_count)
+
+        raise RequestInfoException(
+            f"Failed to download {url!r} after 3 attempts: {last_failure}"
+        )
 
     def upload(self, oss_task_zip, zip_task_file, endpoint, bucket_name):
         dlog.debug(

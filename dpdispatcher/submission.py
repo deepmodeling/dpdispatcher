@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -236,61 +236,66 @@ class Submission:
         self._should_clean(clean, all_genuinely_finished=False)
         if not self.belonging_jobs:
             self.generate_jobs()
-        self.try_recover_from_json()
-        self.update_submission_state()
-        if self.check_all_finished():
-            dlog.info("check_all_finished: True")
-        else:
-            dlog.info("check_all_finished: False")
-            self.upload_jobs()
-            if dry_run is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            self.handle_unexpected_submission_state()
-            self.submission_to_json()
-            time.sleep(1)
-            self.update_submission_state()
-            self.check_all_finished()
-            self.handle_unexpected_submission_state()
-
-        ratio_unfinished = self.resources.strategy["ratio_unfinished"]
-        # Track whether all jobs genuinely succeeded (before any state mutation).
-        # remove_unfinished_tasks() rewrites killed jobs' state to "finished",
-        # which would fool _should_clean("on_success"). We capture the real
-        # outcome here: True only if the loop exits normally (all finished).
+        # This remains false when ratio-based early termination rewrites killed
+        # jobs as finished, so on_success never mistakes that state for success.
         all_jobs_genuinely_finished = False
-        while not self.check_all_finished():
-            if exit_on_submit is True:
-                dlog.info(f"submission succeeded: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                return self.serialize()
-            if ratio_unfinished > 0.0 and self.check_ratio_unfinished(ratio_unfinished):
-                self.remove_unfinished_tasks()
-                break
-
-            try:
-                time.sleep(check_interval)
-            except (Exception, KeyboardInterrupt, SystemExit) as e:
-                self.submission_to_json()
-                record_path = record.write(self)
-                dlog.exception(e)
-                dlog.info(f"submission exit: {self.submission_hash}")
-                dlog.info(f"at {self.machine.context.remote_root}")
-                dlog.info(f"Submission information is saved in {str(record_path)}.")
-                dlog.debug(self.serialize())
-                raise e
+        try:
+            self.try_recover_from_json()
+            self.update_submission_state()
+            if self.check_all_finished():
+                dlog.info("check_all_finished: True")
             else:
-                self.update_submission_state()
+                dlog.info("check_all_finished: False")
+                self.upload_jobs()
+                if dry_run is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    return self.serialize()
                 self.handle_unexpected_submission_state()
-            finally:
+                self.submission_to_json()
+                time.sleep(1)
+                self.update_submission_state()
+                self.check_all_finished()
+                self.handle_unexpected_submission_state()
+
+            ratio_unfinished = self.resources.strategy["ratio_unfinished"]
+            while not self.check_all_finished():
+                if exit_on_submit is True:
+                    dlog.info(f"submission succeeded: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    return self.serialize()
+                if ratio_unfinished > 0.0 and self.check_ratio_unfinished(
+                    ratio_unfinished
+                ):
+                    self.remove_unfinished_tasks()
+                    break
+
+                try:
+                    time.sleep(check_interval)
+                except (Exception, KeyboardInterrupt, SystemExit) as e:
+                    self.submission_to_json()
+                    record_path = record.write(self)
+                    dlog.exception(e)
+                    dlog.info(f"submission exit: {self.submission_hash}")
+                    dlog.info(f"at {self.machine.context.remote_root}")
+                    dlog.info(f"Submission information is saved in {str(record_path)}.")
+                    dlog.debug(self.serialize())
+                    raise e
+                else:
+                    self.update_submission_state()
+                    self.handle_unexpected_submission_state()
+            else:
+                # The loop condition became false without ratio-based early exit.
+                all_jobs_genuinely_finished = True
+            self.handle_unexpected_submission_state()
+            self.try_download_result()
+        finally:
+            # Cover recovery, initial submission, polling, and final download
+            # failures so exhausted retries always preserve diagnostics.
+            try:
+                self.try_download_error_info()
+            except Exception:
                 pass
-        else:
-            # Loop exited normally (check_all_finished() was True from the start
-            # or became True without hitting the ratio_unfinished early-exit).
-            all_jobs_genuinely_finished = True
-        self.handle_unexpected_submission_state()
-        self.try_download_result()
         self.submission_to_json()
 
         # Determine whether to clean remote workdir
@@ -342,6 +347,46 @@ class Submission:
             f"Unknown clean strategy '{clean}'. "
             f"Valid options: True, False, 'always', 'never', 'on_success'."
         )
+
+    def try_download_error_info(self) -> None:
+        """Download error diagnostic files for failed/terminated jobs.
+
+        For each job that did not finish successfully, attempts to download
+        the ``{job_hash}_last_err_file`` from the remote root to the local root.
+        This preserves error diagnostics even when ``clean=True`` deletes the
+        remote workdir afterward.
+
+        The error file contains the last 1000 bytes of stderr from the most
+        recently failed task in the job, written by the generated bash script.
+        """
+        if self.machine is None:
+            return
+        for job in self.belonging_jobs:
+            if job.job_state in (JobStatus.terminated, JobStatus.unknown):
+                err_file_name = job.job_hash + "_last_err_file"
+                try:
+                    err_content = self.machine.get_job_error(job)
+                    if err_content is not None:
+                        # Write to local root for post-mortem access
+                        local_err_path = os.path.join(
+                            self.machine.context.local_root, err_file_name
+                        )
+                        os.makedirs(os.path.dirname(local_err_path), exist_ok=True)
+                        with open(local_err_path, "w") as f:
+                            f.write(err_content)
+                        dlog.info(
+                            f"Downloaded error info for job {job.job_hash} to "
+                            f"{local_err_path}"
+                        )
+                        # Also log the error content for immediate visibility
+                        dlog.warning(
+                            f"Job {job.job_hash} failed. Last error output:\n"
+                            f"{err_content}"
+                        )
+                except Exception as e:
+                    dlog.debug(
+                        f"Could not download error file for job {job.job_hash}: {e}"
+                    )
 
     def try_download_result(self):
         start_time = time.time()
@@ -647,15 +692,16 @@ class Task:
         self,
         command,
         task_work_path,
-        forward_files=[],
-        backward_files=[],
+        forward_files: Optional[Sequence[str]] = None,
+        backward_files: Optional[Sequence[str]] = None,
         outlog="log",
         errlog="err",
     ):
         self.command = command
         self.task_work_path = task_work_path
-        self.forward_files = forward_files
-        self.backward_files = backward_files
+        # Detach task state from caller-owned lists and constructor defaults.
+        self.forward_files = list(forward_files) if forward_files is not None else []
+        self.backward_files = list(backward_files) if backward_files is not None else []
         self.outlog = outlog
         self.errlog = errlog
 
@@ -981,6 +1027,12 @@ class Job:
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
                 raise RuntimeError(err_msg)
+            # Re-upload forward files before retry to handle cases where remote
+            # workdir was cleaned or files were removed between attempts.
+            # A failed restoration must stop the retry: submitting without the
+            # required inputs only hides the actionable staging error and causes
+            # another predictable job failure.
+            self._ensure_forward_files_on_retry()
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
@@ -1059,12 +1111,45 @@ class Job:
     def get_last_error_message(self) -> Optional[str]:
         """Get last error message when the job is terminated."""
         assert self.machine is not None
-        last_err_file = self.job_hash + "_last_err_file"
-        if self.machine.context.check_file_exists(last_err_file):
-            last_error_message = self.machine.context.read_file(last_err_file)
+        last_error_message = self.machine.get_job_error(self)
+        if last_error_message is not None:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message
+
+    def _ensure_forward_files_on_retry(self) -> None:
+        """Re-upload forward files before retry by delegating to context.upload().
+
+        When a job is retried after termination, forward files may have been
+        removed from the remote workdir. This method re-uploads them using the
+        same upload mechanism as the initial submission, which correctly handles
+        all context types (Local, SSH, HDFS, etc.), glob patterns, binary files,
+        and directory creation.
+
+        Uses context.submission (set during bind_machine) to access both per-task
+        forward_files and forward_common_files.
+        """
+        if self.machine is None:
+            return
+        context = self.machine.context
+        submission = getattr(context, "submission", None)
+        if submission is None:
+            return
+        # Build a lightweight object with only this job's tasks for upload.
+        # context.upload() expects .belonging_tasks and .forward_common_files.
+
+        class _RetryPayload:
+            belonging_tasks: List["Task"]
+            belonging_jobs: List["Job"]
+            forward_common_files: List[str]
+            preserve_existing_forward_common_files: bool
+
+        payload = _RetryPayload()
+        payload.belonging_tasks = self.job_task_list
+        payload.belonging_jobs = [self]
+        payload.forward_common_files = submission.forward_common_files
+        payload.preserve_existing_forward_common_files = True
+        context.upload(payload)
 
 
 class Resources:
@@ -1112,16 +1197,16 @@ class Resources:
         queue_name,
         group_size,
         *,
-        custom_flags=[],
-        strategy=default_strategy,
+        custom_flags: Optional[Sequence[str]] = None,
+        strategy: Optional[Dict[str, Any]] = None,
         para_deg=1,
-        module_unload_list=[],
+        module_unload_list: Optional[Sequence[str]] = None,
         module_purge=False,
-        module_list=[],
-        source_list=[],
-        envs={},
-        prepend_script=[],
-        append_script=[],
+        module_list: Optional[Sequence[str]] = None,
+        source_list: Optional[Sequence[str]] = None,
+        envs: Optional[Dict[str, Any]] = None,
+        prepend_script: Optional[Sequence[str]] = None,
+        append_script: Optional[Sequence[str]] = None,
         wait_time=0,
         **kwargs,
     ):
@@ -1132,20 +1217,24 @@ class Resources:
         self.group_size = group_size
 
         # self.extra_specification = extra_specification
-        self.custom_flags = custom_flags
-        self.strategy = strategy
+        # Resource configuration is JSON-like, so deep copies also isolate
+        # nested environment and backend options from later caller mutation.
+        self.custom_flags = list(custom_flags) if custom_flags is not None else []
+        self.strategy = copy.deepcopy(strategy) if strategy is not None else {}
         self.para_deg = para_deg
         self.module_purge = module_purge
-        self.module_unload_list = module_unload_list
-        self.module_list = module_list
-        self.source_list = source_list
-        self.envs = envs
-        self.prepend_script = prepend_script
-        self.append_script = append_script
+        self.module_unload_list = (
+            list(module_unload_list) if module_unload_list is not None else []
+        )
+        self.module_list = list(module_list) if module_list is not None else []
+        self.source_list = list(source_list) if source_list is not None else []
+        self.envs = copy.deepcopy(envs) if envs is not None else {}
+        self.prepend_script = list(prepend_script) if prepend_script is not None else []
+        self.append_script = list(append_script) if append_script is not None else []
         self.wait_time = wait_time
         # self.if_cuda_multi_devices = if_cuda_multi_devices
 
-        self.kwargs = kwargs.get("kwargs", kwargs)
+        self.kwargs = copy.deepcopy(kwargs.get("kwargs", kwargs))
 
         self.gpu_in_use = 0
         self.task_in_para = 0
@@ -1200,16 +1289,16 @@ class Resources:
             gpu_per_node=resources_dict.get("gpu_per_node", 0),
             queue_name=resources_dict.get("queue_name", ""),
             group_size=resources_dict["group_size"],
-            custom_flags=resources_dict.get("custom_flags", []),
-            strategy=resources_dict.get("strategy", default_strategy),
+            custom_flags=resources_dict.get("custom_flags"),
+            strategy=resources_dict.get("strategy"),
             para_deg=resources_dict.get("para_deg", 1),
             module_purge=resources_dict.get("module_purge", False),
-            module_unload_list=resources_dict.get("module_unload_list", []),
-            module_list=resources_dict.get("module_list", []),
-            source_list=resources_dict.get("source_list", []),
-            envs=resources_dict.get("envs", {}),
-            prepend_script=resources_dict.get("prepend_script", []),
-            append_script=resources_dict.get("append_script", []),
+            module_unload_list=resources_dict.get("module_unload_list"),
+            module_list=resources_dict.get("module_list"),
+            source_list=resources_dict.get("source_list"),
+            envs=resources_dict.get("envs"),
+            prepend_script=resources_dict.get("prepend_script"),
+            append_script=resources_dict.get("append_script"),
             wait_time=resources_dict.get("wait_time", 0),
             **resources_dict.get("kwargs", {}),
         )
@@ -1281,14 +1370,22 @@ class Resources:
             "within that job. Keep para_deg=1 for the safest default."
         )
         doc_source_list = (
-            "Shell scripts or environment files sourced before task commands run. Useful on HPC systems for "
-            "activating software stacks explicitly instead of relying on login-shell defaults."
+            "Static shell script names and optional arguments sourced before task commands run. Each entry is "
+            "parsed into shell words and safely quoted; quote a path containing spaces inside the entry. Use "
+            "prepend_script instead when shell operators or variable/command expansion is intentional. Empty "
+            "entries are ignored for compatibility."
         )
         doc_module_purge = "Whether to run 'module purge' before applying module_unload_list and module_list. Mainly useful on HPC systems."
         doc_module_unload_list = "Modules to unload before loading the requested modules. Mainly relevant on HPC systems with environment modules."
         doc_module_list = "Modules to load before executing tasks. Mainly relevant on HPC systems with environment modules."
-        doc_envs = "Environment variables exported before executing tasks."
-        doc_prepend_script = "Optional shell lines inserted before task commands in the generated job script."
+        doc_envs = (
+            "Environment variables exported before executing tasks. Names must be valid POSIX identifiers and "
+            "values are shell-quoted. A list value emits one export per item in order; an empty list emits none."
+        )
+        doc_prepend_script = (
+            "Optional trusted shell lines inserted before task commands in the generated job script. Use this "
+            "for intentional variable expansion, command substitution, or source commands that need shell syntax."
+        )
         doc_append_script = "Optional shell lines inserted after task commands in the generated job script."
         doc_wait_time = (
             "Delay in seconds inserted after a job is submitted or resubmitted. Usually keep 0 unless the "
