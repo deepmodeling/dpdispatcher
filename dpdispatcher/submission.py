@@ -526,12 +526,14 @@ class Submission:
             self.submission_to_json()
             record_path = record.write(self)
             raise RuntimeError(
-                f"Meet errors will handle unexpected submission state.\n"
+                "Failed while handling an unexpected submission state.\n"
+                f"Underlying job error: {e}\n"
                 f"Debug information: remote_root=={machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
                 f"Please check error messages above and in remote_root. "
                 f"The submission information is saved in {str(record_path)}.\n"
-                f"For furthur actions, run the following command with proper flags: dpdisp submission {self.submission_hash}"
+                "For further actions, run the following command with proper flags: "
+                f"dpdisp submission {self.submission_hash}"
             ) from e
 
     def check_ratio_unfinished(self, ratio_unfinished: float) -> bool:
