@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import yaml
 from dargs import Argument, Variant
@@ -56,6 +57,158 @@ if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then touch {job_tag_finished}; else exit 1
 
 {append_script_part}
 """
+
+_POSIX_ENVIRONMENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_UNQUOTED_SOURCE_SYNTAX = (
+    "$",
+    "`",
+    ";",
+    "&",
+    "|",
+    "<",
+    ">",
+    "(",
+    ")",
+    "*",
+    "?",
+    "[",
+    "]",
+    "{",
+    "}",
+    "~",
+    "#",
+)
+_DOUBLE_QUOTED_SOURCE_EXPANSIONS = ("$", "`")
+
+
+def _has_active_source_syntax(source: str) -> bool:
+    """Return whether a source entry contains active POSIX shell syntax.
+
+    Static filenames may legitimately contain glob, comment, or operator
+    characters when those characters are quoted or escaped.  Dollar and
+    backtick expansion remain active inside double quotes, while single quotes
+    make every character literal.
+    """
+    quote = None
+    escaped = False
+    for character in source:
+        # Keep generated source commands on one logical shell line even when a
+        # newline appears inside quotes or after a backslash.
+        if character in ("\n", "\r"):
+            return True
+        if quote == "'":
+            if character == "'":
+                quote = None
+            continue
+        if escaped:
+            escaped = False
+            continue
+        if character == "\\":
+            escaped = True
+            continue
+        if character == "'" and quote is None:
+            quote = "'"
+            continue
+        if character == '"':
+            quote = None if quote == '"' else '"'
+            continue
+        if quote == '"':
+            if character in _DOUBLE_QUOTED_SOURCE_EXPANSIONS:
+                return True
+        elif character in _UNQUOTED_SOURCE_SYNTAX:
+            return True
+    return False
+
+
+def _format_source_command(source: str) -> str:
+    """Return a safely quoted ``source`` command for one static entry.
+
+    ``source_list`` historically accepts both a script name and optional
+    arguments, such as ``"activate deepmd"``.  Parse those static shell words
+    and quote each word independently to preserve that behavior.  Shell
+    operators and expansions are rejected with an actionable error instead of
+    being silently converted to literals; intentional shell code belongs in
+    ``prepend_script``.
+    """
+    if not isinstance(source, str):
+        raise TypeError("source_list entries must be strings")
+    if source.strip() == "":
+        # Historical Fugaku examples use an empty entry as a no-op placeholder.
+        return ""
+    if "\x00" in source:
+        raise ValueError("source_list entries must be NUL-free")
+    if _has_active_source_syntax(source):
+        raise ValueError(
+            "source_list entries must contain only static shell words; "
+            "put shell operators or expansions in prepend_script"
+        )
+    try:
+        arguments = shlex.split(source, posix=True)
+    except ValueError as error:
+        raise ValueError(f"Invalid source_list entry {source!r}: {error}") from error
+    if not arguments:
+        raise ValueError("source_list entries must contain at least one shell word")
+    if arguments[0].startswith("-"):
+        raise ValueError(
+            "A source script name must not begin with '-'; use prepend_script "
+            "for an intentional source option"
+        )
+    return "source " + " ".join(shlex.quote(argument) for argument in arguments)
+
+
+def _format_module_command(action: str, module_spec: str) -> str:
+    """Return a safe module load or unload command for static module names.
+
+    Module entries may contain multiple shell words for compatibility with
+    existing configurations. Active shell syntax is rejected, while each
+    parsed word is quoted before it is inserted into the generated script.
+    """
+    if not isinstance(module_spec, str):
+        raise TypeError("module list entries must be strings")
+    if module_spec.strip() == "":
+        return ""
+    if "\x00" in module_spec:
+        raise ValueError("module list entries must be NUL-free")
+    if _has_active_source_syntax(module_spec):
+        raise ValueError(
+            "module list entries must contain only static module names; "
+            "put shell operators or expansions in prepend_script"
+        )
+    try:
+        modules = shlex.split(module_spec, posix=True)
+    except ValueError as error:
+        raise ValueError(
+            f"Invalid module list entry {module_spec!r}: {error}"
+        ) from error
+    if not modules:
+        raise ValueError("module list entries must contain at least one module name")
+    return f"module {action} " + " ".join(shlex.quote(module) for module in modules)
+
+
+def _format_export_lines(envs: Mapping[str, Any]) -> str:
+    """Render validated environment values as deterministic export lines.
+
+    Scalar values produce one export.  List values preserve their configured
+    order and produce one export per element, matching DPDispatcher's existing
+    behavior while making the final value deterministic and shell-safe.  An
+    empty list emits no export and therefore leaves an inherited value intact.
+    """
+    lines: list[str] = []
+    for name, value in envs.items():
+        if not isinstance(name, str):
+            raise TypeError("Environment variable names must be strings")
+        if _POSIX_ENVIRONMENT_NAME.fullmatch(name) is None:
+            raise ValueError(f"Invalid POSIX environment variable name: {name!r}")
+
+        values: Sequence[Any] = value if isinstance(value, list) else [value]
+        for item in values:
+            item_text = str(item)
+            if "\x00" in item_text:
+                raise ValueError(
+                    f"Environment variable {name!r} contains a NUL character"
+                )
+            lines.append(f"export {name}={shlex.quote(item_text)}\n")
+    return "".join(lines)
 
 
 class Machine(metaclass=ABCMeta):
@@ -304,16 +457,22 @@ class Machine(metaclass=ABCMeta):
             module_unload_part += "module purge\n"
         module_unload_list = job.resources.module_unload_list
         for ii in module_unload_list:
-            module_unload_part += f"module unload {ii}\n"
+            module_command = _format_module_command("unload", ii)
+            if module_command:
+                module_unload_part += module_command + "\n"
 
         module_load_part = ""
         module_list = job.resources.module_list
         for ii in module_list:
-            module_load_part += f"module load {ii}\n"
+            module_command = _format_module_command("load", ii)
+            if module_command:
+                module_load_part += module_command + "\n"
 
         source_list = job.resources.source_list
         for ii in source_list:
-            source_files_part += f"source {ii}\n"
+            source_command = _format_source_command(ii)
+            if source_command:
+                source_files_part += source_command + "\n"
 
         export_envs_part = ""
         envs = job.resources.envs
@@ -326,12 +485,7 @@ class Machine(metaclass=ABCMeta):
             "DPDISPATCHER_GROUP_SIZE": job.resources.group_size,
             **envs,
         }
-        for k, v in envs.items():
-            if isinstance(v, list):
-                for each_value in v:
-                    export_envs_part += f"export {k}={each_value}\n"
-            else:
-                export_envs_part += f"export {k}={v}\n"
+        export_envs_part = _format_export_lines(envs)
 
         prepend_script = job.resources.prepend_script
         prepend_script_part = "\n".join(prepend_script)

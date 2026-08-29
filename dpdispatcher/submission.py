@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union, cast
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -979,6 +979,12 @@ class Job:
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
                 raise RuntimeError(err_msg)
+            # Re-upload forward files before retry to handle cases where remote
+            # workdir was cleaned or files were removed between attempts.
+            # A failed restoration must stop the retry: submitting without the
+            # required inputs only hides the actionable staging error and causes
+            # another predictable job failure.
+            self._ensure_forward_files_on_retry()
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
@@ -1062,6 +1068,42 @@ class Job:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message
+
+    def _ensure_forward_files_on_retry(self) -> None:
+        """Re-upload forward files before retry by delegating to context.upload().
+
+        When a job is retried after termination, forward files may have been
+        removed from the remote workdir. This method re-uploads them using the
+        same upload mechanism as the initial submission, which correctly handles
+        all context types (Local, SSH, HDFS, etc.), glob patterns, binary files,
+        and directory creation.
+
+        Uses context.submission (set during bind_machine) to access both per-task
+        forward_files and forward_common_files.
+        """
+        if self.machine is None:
+            return
+        context = self.machine.context
+        submission = getattr(context, "submission", None)
+        if submission is None:
+            return
+        # Build a lightweight object with only this job's tasks for upload.
+        # context.upload() expects .belonging_tasks and .forward_common_files.
+
+        class _RetryPayload:
+            belonging_tasks: List["Task"]
+            belonging_jobs: List["Job"]
+            forward_common_files: List[str]
+            preserve_existing_forward_common_files: bool
+
+        payload = _RetryPayload()
+        payload.belonging_tasks = self.job_task_list
+        payload.belonging_jobs = [self]
+        payload.forward_common_files = submission.forward_common_files
+        payload.preserve_existing_forward_common_files = True
+        # Upload contexts intentionally consume this structural subset of a
+        # Submission; the cast records that duck-typed boundary for the checker.
+        context.upload(cast(Submission, payload))
 
 
 class Resources:
@@ -1284,14 +1326,22 @@ class Resources:
             "within that job. Keep para_deg=1 for the safest default."
         )
         doc_source_list = (
-            "Shell scripts or environment files sourced before task commands run. Useful on HPC systems for "
-            "activating software stacks explicitly instead of relying on login-shell defaults."
+            "Static shell script names and optional arguments sourced before task commands run. Each entry is "
+            "parsed into shell words and safely quoted; quote a path containing spaces inside the entry. Use "
+            "prepend_script instead when shell operators or variable/command expansion is intentional. Empty "
+            "entries are ignored for compatibility."
         )
         doc_module_purge = "Whether to run 'module purge' before applying module_unload_list and module_list. Mainly useful on HPC systems."
         doc_module_unload_list = "Modules to unload before loading the requested modules. Mainly relevant on HPC systems with environment modules."
         doc_module_list = "Modules to load before executing tasks. Mainly relevant on HPC systems with environment modules."
-        doc_envs = "Environment variables exported before executing tasks."
-        doc_prepend_script = "Optional shell lines inserted before task commands in the generated job script."
+        doc_envs = (
+            "Environment variables exported before executing tasks. Names must be valid POSIX identifiers and "
+            "values are shell-quoted. A list value emits one export per item in order; an empty list emits none."
+        )
+        doc_prepend_script = (
+            "Optional trusted shell lines inserted before task commands in the generated job script. Use this "
+            "for intentional variable expansion, command substitution, or source commands that need shell syntax."
+        )
         doc_append_script = "Optional shell lines inserted after task commands in the generated job script."
         doc_wait_time = (
             "Delay in seconds inserted after a job is submitted or resubmitted. Usually keep 0 unless the "
