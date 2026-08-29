@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="title desc">
+  <title id="title">DPDispatcher icon</title>
+  <desc id="desc">A stylized letter D routing queued tasks through a central dispatcher to three compute nodes.</desc>
+  <defs>
+    <linearGradient id="dispatcher-gradient" x1="48" y1="48" x2="272" y2="272" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00E5FF"/>
+      <stop offset="0.52" stop-color="#1677FF"/>
+      <stop offset="1" stop-color="#7257FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- The enclosing D identifies the project while the network shows its
+       core job: routing queued work to multiple compute backends. -->
+  <path
+    d="M58 48h72c84 0 132 45 132 112S214 272 130 272H58Z"
+    fill="none"
+    stroke="url(#dispatcher-gradient)"
+    stroke-linejoin="round"
+    stroke-width="20"
+    opacity="0.60"
+  />
+
+  <g fill="none" stroke="url(#dispatcher-gradient)" stroke-linecap="round" stroke-linejoin="round" stroke-width="10">
+    <path d="M91 104h18c18 0 24 20 39 42"/>
+    <path d="M91 160h57"/>
+    <path d="M91 216h18c18 0 24-20 39-42"/>
+    <path d="M172 146c16-23 27-42 50-42h7"/>
+    <path d="M172 160h57"/>
+    <path d="M172 174c16 23 27 42 50 42h7"/>
+  </g>
+
+  <g fill="url(#dispatcher-gradient)">
+    <rect x="76" y="89" width="30" height="30" rx="8"/>
+    <rect x="76" y="145" width="30" height="30" rx="8"/>
+    <rect x="76" y="201" width="30" height="30" rx="8"/>
+    <circle cx="160" cy="160" r="28"/>
+    <circle cx="238" cy="104" r="15"/>
+    <circle cx="238" cy="160" r="15"/>
+    <circle cx="238" cy="216" r="15"/>
+  </g>
+
+  <circle cx="160" cy="160" r="8" fill="#FFFFFF"/>
+</svg>
