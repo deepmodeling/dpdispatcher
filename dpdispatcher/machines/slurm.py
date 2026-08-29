@@ -19,8 +19,6 @@ from dpdispatcher.utils.utils import (
 if TYPE_CHECKING:
     from dpdispatcher.submission import Job
 
-# from dpdispatcher.submission import Resources
-
 slurm_script_header_template = """\
 #!/bin/bash -l
 {slurm_nodes_line}
@@ -239,8 +237,18 @@ class Slurm(Machine):
 class SlurmJobArray(Slurm):
     """Slurm with job array enabled for multiple tasks in a job."""
 
-    def gen_script_header(self, job: Job) -> str:
+    @staticmethod
+    def _get_slurm_job_size(job: Job) -> int:
+        """Return a validated number of tasks per Slurm array element."""
         slurm_job_size = job.resources.kwargs.get("slurm_job_size", 1)
+        if type(slurm_job_size) is not int or slurm_job_size < 1:
+            raise ValueError(
+                "slurm_job_size must be an integer greater than or equal to 1"
+            )
+        return slurm_job_size
+
+    def gen_script_header(self, job: Job) -> str:
+        slurm_job_size = self._get_slurm_job_size(job)
         if job.fail_count > 0:
             # resubmit jobs, check if some of tasks have been finished
             job_array = set()
@@ -260,7 +268,7 @@ class SlurmJobArray(Slurm):
 
     def gen_script_command(self, job: Job) -> str:
         resources = job.resources
-        slurm_job_size = resources.kwargs.get("slurm_job_size", 1)
+        slurm_job_size = self._get_slurm_job_size(job)
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
         script_command = "case $SLURM_ARRAY_TASK_ID in\n"
         for ii, task in enumerate(job.job_task_list):
@@ -403,7 +411,7 @@ class SlurmJobArray(Slurm):
         list[Argument]
             resources subfields
         """
-        doc_slurm_job_size = "For SlurmJobArray, how many DPDispatcher tasks are grouped into one array element / Slurm job script branch."
+        doc_slurm_job_size = "For SlurmJobArray, how many DPDispatcher tasks are grouped into one array element / Slurm job script branch. Must be an integer greater than or equal to 1."
         arg = super().resources_subfields()[0]
         arg.extend_subfields(
             [
@@ -412,6 +420,8 @@ class SlurmJobArray(Slurm):
                     int,
                     optional=True,
                     default=1,
+                    extra_check=lambda value: value >= 1,
+                    extra_check_errmsg="slurm_job_size must be greater than or equal to 1",
                     doc=doc_slurm_job_size,
                 ),
             ]

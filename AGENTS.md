@@ -8,7 +8,7 @@ Always reference these instructions first and fallback to search or bash command
 
 ### Bootstrap, Build, and Test
 
-- **Environment setup:** The Python environment, `uv`, `pre-commit`, and `pyright` are automatically set up by the Copilot environment. Simply activate the virtual environment:
+- **Environment setup:** The Python environment, `uv`, `pre-commit`, and `ty` are automatically set up by the Copilot environment. Simply activate the virtual environment:
 
   ```bash
   source .venv/bin/activate
@@ -36,7 +36,7 @@ Always reference these instructions first and fallback to search or bash command
 - **Run type checking:**
 
   ```bash
-  pyright
+  uvx --from ty==0.0.17 --with .[cloudserver,gui] --with tomli ty check
   ```
 
   - **TIMING: Type checking takes ~2-3 seconds.**
@@ -70,7 +70,7 @@ Always reference these instructions first and fallback to search or bash command
 
 - **ALWAYS run the test suite after making code changes.** Tests execute quickly (~25 seconds) and should never be cancelled.
 - **ALWAYS run linting before committing:** `pre-commit run --all-files`
-- **ALWAYS run type checking:** `pyright` to catch type-related issues.
+- **ALWAYS run type checking:** `uvx --from ty==0.0.17 --with .[cloudserver,gui] --with tomli ty check` to catch type-related issues.
 - **Test CLI functionality:** Run `dpdisp --help` and test with example scripts to ensure the CLI works correctly.
 - **Build documentation:** Run `make html` in the `doc/` directory to verify documentation builds without errors.
 
@@ -81,7 +81,7 @@ Always reference these instructions first and fallback to search or bash command
 - **Python versions:** Supports Python 3.7+ (check `pyproject.toml` for current support matrix).
 - **Testing:** Uses `unittest` framework with coverage reporting.
 - **Linting:** Uses `pre-commit` with `ruff` for linting and formatting, plus other quality checks.
-- **Type checking:** Uses `pyright` for static type analysis (configured in `pyproject.toml`).
+- **Type checking:** Uses `ty` for static type analysis (configured in `pyproject.toml`).
 - **Documentation:** Uses Sphinx with MyST parser for markdown support.
 
 ## Key Components
@@ -167,7 +167,7 @@ dpdisp run examples/dpdisp_run.py
 ## Troubleshooting
 
 - **Virtual environment issues:** The virtual environment is pre-created; simply activate with `source .venv/bin/activate`
-- **Development tools:** `pre-commit` and `pyright` are pre-installed and ready to use
+- **Development tools:** `pre-commit` and `ty` are pre-installed and ready to use
 - **Test failures:** Most tests run locally; some require specific HPC environments and will be skipped
 - **Documentation build warnings:** Some warnings about external inventory URLs are expected in sandboxed environments
 - **Pre-commit network issues:** If pre-commit fails with network timeouts, run `ruff check` and `ruff format` directly

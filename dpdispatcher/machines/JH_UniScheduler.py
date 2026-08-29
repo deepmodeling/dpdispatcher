@@ -39,13 +39,17 @@ class JH_UniScheduler(Machine):
         script_header_dict = {
             "JH_UniScheduler_nodes_line": f"#JSUB -n {resources.number_node * resources.cpu_per_node}",
             "JH_UniScheduler_ptile_line": f"#JSUB -R 'span[ptile={resources.cpu_per_node}]'",
-            "JH_UniScheduler_partition_line": f"#JSUB -q {resources.queue_name}",
+            "JH_UniScheduler_partition_line": (
+                f"#JSUB -q {resources.queue_name}" if resources.queue_name else ""
+            ),
         }
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
-        if not custom_gpu_line:
+        if not custom_gpu_line and resources.gpu_per_node > 0:
             script_header_dict["JH_UniScheduler_number_gpu_line"] = (
                 f"#JSUB -gpgpu {resources.gpu_per_node}"
             )
+        elif not custom_gpu_line:
+            script_header_dict["JH_UniScheduler_number_gpu_line"] = ""
         else:
             script_header_dict["JH_UniScheduler_number_gpu_line"] = custom_gpu_line
         if (
@@ -109,12 +113,20 @@ class JH_UniScheduler(Machine):
             raise RetrySignal(
                 f"Get error code {ret} in checking status with job: {job.job_hash} . message: {err_str}"
             )
-        status_out = stdout.read().decode("utf-8").split("\n")
+        # UniScheduler can return a header-only response for a job that has
+        # already left the active queue.  Blank lines are not job records, so
+        # fall back to the finish tag instead of indexing into an empty row.
+        status_out = [
+            line for line in stdout.read().decode("utf-8").splitlines() if line.strip()
+        ]
         if len(status_out) < 2:
+            return (
+                JobStatus.finished if self.check_finish_tag(job) else JobStatus.unknown
+            )
+        status_fields = status_out[1].split()
+        if len(status_fields) < 3:
             return JobStatus.unknown
-        else:
-            status_line = status_out[1]
-            status_word = status_line.split()[2]
+        status_word = status_fields[2]
 
         if status_word in ["PEND"]:
             return JobStatus.waiting

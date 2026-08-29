@@ -6,7 +6,7 @@ import shlex
 import struct
 import subprocess
 import time
-from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence, Tuple, Type, Union
 
 from dpdispatcher.dlog import dlog
 
@@ -75,7 +75,14 @@ def generate_totp(secret: str, period: int = 30, token_length: int = 6) -> str:
     return hotp(secret, int(time.time() / period), token_length, digest)
 
 
-def run_cmd_with_all_output(cmd: str, shell: bool = True) -> Tuple[int, bytes, bytes]:
+def run_cmd_with_all_output(
+    cmd: Union[str, Sequence[str]], shell: bool = True
+) -> Tuple[int, bytes, bytes]:
+    """Run a command and return its status, standard output, and standard error.
+
+    When shell execution is disabled, callers may pass an argument sequence so
+    values remain literal operands and are never reinterpreted by a shell.
+    """
     with subprocess.Popen(
         cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     ) as proc:

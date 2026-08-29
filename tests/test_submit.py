@@ -5,9 +5,13 @@ import subprocess as sp
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
+
+from dpdispatcher.dpdisp import parse_args
+from dpdispatcher.entrypoints.submit import submit
 
 
 class TestSubmitCommand(unittest.TestCase):
@@ -56,8 +60,29 @@ class TestSubmitCommand(unittest.TestCase):
 
     def test_submit_help(self) -> None:
         """Test dpdisp submit --help."""
-        output = sp.check_output(["dpdisp", "submit", "-h"])  # noqa: S603, S607
+        output = sp.check_output(  # noqa: S603
+            [sys.executable, "-m", "dpdispatcher.dpdisp", "submit", "-h"],
+            cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+        )
         self.assertIn(b"--allow-ref", output)
+        self.assertIn(b"--no-clean", output)
+
+    def test_submit_clean_flags(self) -> None:
+        """Test that remote cleanup remains default but can be disabled."""
+        self.assertTrue(parse_args(["submit", self.json_file]).clean)
+        self.assertFalse(parse_args(["submit", "--no-clean", self.json_file]).clean)
+
+    @patch("dpdispatcher.entrypoints.submit.load_submission_from_json")
+    def test_submit_forwards_no_clean(self, load_submission: MagicMock) -> None:
+        """Test that the entry point forwards the cleanup choice."""
+        submission = MagicMock()
+        load_submission.return_value = submission
+
+        submit(filename=self.json_file, clean=False)
+
+        submission.run_submission.assert_called_once_with(
+            dry_run=False, exit_on_submit=False, clean=False
+        )
 
     def test_submit_allow_ref_flag(self) -> None:
         """Test dpdisp submit --allow-ref."""

@@ -132,18 +132,26 @@ def create_submission(
     for task in metadata["task_list"]:
         task = task.copy()
         task["command"] += f" $REMOTE_ROOT/script_{script_hash}.py"
-        task_work_path = os.path.join(
+        local_work_base = os.path.join(
             metadata["machine"]["local_root"],
             metadata["work_base"],
+        )
+        task_work_path = os.path.join(
+            local_work_base,
             task["task_work_path"],
         )
+        matched_paths = glob(task_work_path)
         if os.path.isdir(task_work_path):
             tasks.append(Task.load_from_dict(task, allow_ref=allow_ref))
-        elif glob(task_work_path):
-            for file in glob(task_work_path):
+        elif matched_paths:
+            for file in matched_paths:
+                # Globbing needs the local root to discover matches, but tasks are
+                # interpreted relative to work_base in every execution context.
+                relative_task_path = os.path.relpath(file, start=local_work_base)
                 tasks.append(
                     Task.load_from_dict(
-                        {**task, "task_work_path": file}, allow_ref=allow_ref
+                        {**task, "task_work_path": relative_task_path},
+                        allow_ref=allow_ref,
                     )
                 )
         # TODO: Add tests for scenarios where the task work path is a glob pattern

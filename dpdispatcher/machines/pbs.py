@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import posixpath
 import shlex
 from typing import TYPE_CHECKING, Any
 
@@ -39,7 +40,9 @@ class PBS(Machine):
             pbs_script_header_dict["select_node_line"] += (
                 f":ngpus={resources.gpu_per_node}"
             )
-        pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
+        pbs_script_header_dict["queue_name_line"] = (
+            f"#PBS -q {resources.queue_name}" if resources.queue_name else ""
+        )
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None
@@ -171,7 +174,9 @@ class Torque(PBS):
             pbs_script_header_dict["select_node_line"] += (
                 f":gpus={resources.gpu_per_node}"
             )
-        pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
+        pbs_script_header_dict["queue_name_line"] = (
+            f"#PBS -q {resources.queue_name}" if resources.queue_name else ""
+        )
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None
@@ -236,8 +241,24 @@ class SGE(PBS):
         script_run_file_name = f"{job.script_file_name}.run"
         self.context.write_file(fname=script_run_file_name, write_str=script_run_str)
         script_file_dir = self.context.remote_root
+        # Explicit ``./`` prefixes keep relative paths beginning with a dash
+        # from being interpreted as options by ``cd`` or ``qsub``.
+        script_file_dir_argument = (
+            script_file_dir
+            if posixpath.isabs(script_file_dir)
+            else f"./{script_file_dir}"
+        )
+        script_argument = (
+            script_file_name
+            if posixpath.isabs(script_file_name)
+            else f"./{script_file_name}"
+        )
         stdin, stdout, stderr = self.context.block_checkcall(
-            "cd {} && {} {}".format(script_file_dir, "qsub", script_file_name)
+            "cd {} && {} {}".format(
+                shlex.quote(script_file_dir_argument),
+                "qsub",
+                shlex.quote(script_argument),
+            )
         )
         subret = stdout.readlines()
         job_id = subret[0].split()[2]
