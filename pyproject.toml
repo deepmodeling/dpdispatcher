@@ -9,11 +9,11 @@ description = "Generate HPC scheduler systems jobs input scripts, submit these s
 authors = [{ name = "DeepModeling" }]
 license = { file = "LICENSE" }
 classifiers = [
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
@@ -24,11 +24,10 @@ dependencies = [
     'dargs>=0.5.0',
     'requests',
     'tqdm>=4.9.0',
-    'typing_extensions; python_version < "3.7"',
     'pyyaml',
     'tomli >= 1.1.0; python_version < "3.11"',
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 readme = "README.md"
 keywords = [
     "dispatcher",
@@ -118,7 +117,6 @@ convention = "numpy"
 
 [tool.ruff]
 line-length = 88
-# Keep lint-driven annotation rewrites compatible with the package's minimum
-# supported runtime. PEP 585 annotations are safe only in modules that enable
-# postponed evaluation explicitly.
+# Keep lint-driven rewrites conservative so changing the supported Python range
+# does not also require a broad, unrelated syntax migration.
 target-version = "py37"

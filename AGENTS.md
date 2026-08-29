@@ -78,7 +78,7 @@ Always reference these instructions first and fallback to search or bash command
 
 - **Dependencies:** The project uses `uv` as the package manager for fast dependency resolution.
 - **Build system:** Uses `setuptools` with `pyproject.toml` configuration.
-- **Python versions:** Supports Python 3.7+ (check `pyproject.toml` for current support matrix).
+- **Python versions:** Supports Python 3.10+ (check `pyproject.toml` for current support matrix).
 - **Testing:** Uses `unittest` framework with coverage reporting.
 - **Linting:** Uses `pre-commit` with `ruff` for linting and formatting, plus other quality checks.
 - **Type checking:** Uses `ty` for static type analysis (configured in `pyproject.toml`).
