@@ -34,14 +34,16 @@ class LSF(Machine):
         script_header_dict = {
             "lsf_nodes_line": f"#BSUB -n {resources.number_node * resources.cpu_per_node}",
             "lsf_ptile_line": f"#BSUB -R 'span[ptile={resources.cpu_per_node}]'",
-            "lsf_partition_line": f"#BSUB -q {resources.queue_name}",
+            "lsf_partition_line": (
+                f"#BSUB -q {resources.queue_name}" if resources.queue_name else ""
+            ),
         }
         gpu_usage_flag = resources.kwargs.get("gpu_usage", False)
         gpu_new_syntax_flag = resources.kwargs.get("gpu_new_syntax", False)
         gpu_exclusive_flag = resources.kwargs.get("gpu_exclusive", True)
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
         if not custom_gpu_line:
-            if gpu_usage_flag is True:
+            if gpu_usage_flag is True and resources.gpu_per_node > 0:
                 if gpu_new_syntax_flag is True:
                     if gpu_exclusive_flag is True:
                         script_header_dict["lsf_number_gpu_line"] = (

@@ -34,7 +34,9 @@ class PBS(Machine):
             pbs_script_header_dict["select_node_line"] += (
                 f":ngpus={resources.gpu_per_node}"
             )
-        pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
+        pbs_script_header_dict["queue_name_line"] = (
+            f"#PBS -q {resources.queue_name}" if resources.queue_name else ""
+        )
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None
@@ -166,7 +168,9 @@ class Torque(PBS):
             pbs_script_header_dict["select_node_line"] += (
                 f":gpus={resources.gpu_per_node}"
             )
-        pbs_script_header_dict["queue_name_line"] = f"#PBS -q {resources.queue_name}"
+        pbs_script_header_dict["queue_name_line"] = (
+            f"#PBS -q {resources.queue_name}" if resources.queue_name else ""
+        )
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None
