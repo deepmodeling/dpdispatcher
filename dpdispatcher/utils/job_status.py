@@ -8,6 +8,7 @@ class JobStatus(IntEnum):
     terminated = 4
     finished = 5
     completing = 6
+    failed = 7
     unknown = 100
 
 

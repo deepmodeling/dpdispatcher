@@ -64,6 +64,12 @@ def handle_submission(
     if reset_fail_count:
         for job in submission.belonging_jobs:
             job.fail_count = 0
+            if job.job_state == JobStatus.failed:
+                job.job_state = JobStatus.terminated
+                job.failure_reason = None
+                for task in job.job_task_list:
+                    if task.task_state == JobStatus.failed:
+                        task.task_state = JobStatus.terminated
         # save to remote and local
         submission.submission_to_json()
         record.write(submission)
@@ -78,7 +84,7 @@ def handle_submission(
     finished_tasks = []
     for task in submission.belonging_tasks:
         task.get_task_state(machine.context)
-        if task.task_state == JobStatus.terminated:
+        if task.task_state in (JobStatus.terminated, JobStatus.failed):
             terminated_tasks.append(task)
         elif task.task_state == JobStatus.finished:
             finished_tasks.append(task)
