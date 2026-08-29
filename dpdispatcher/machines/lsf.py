@@ -34,14 +34,16 @@ class LSF(Machine):
         script_header_dict = {
             "lsf_nodes_line": f"#BSUB -n {resources.number_node * resources.cpu_per_node}",
             "lsf_ptile_line": f"#BSUB -R 'span[ptile={resources.cpu_per_node}]'",
-            "lsf_partition_line": f"#BSUB -q {resources.queue_name}",
+            "lsf_partition_line": (
+                f"#BSUB -q {resources.queue_name}" if resources.queue_name else ""
+            ),
         }
         gpu_usage_flag = resources.kwargs.get("gpu_usage", False)
         gpu_new_syntax_flag = resources.kwargs.get("gpu_new_syntax", False)
         gpu_exclusive_flag = resources.kwargs.get("gpu_exclusive", True)
         custom_gpu_line = resources.kwargs.get("custom_gpu_line", None)
         if not custom_gpu_line:
-            if gpu_usage_flag is True:
+            if gpu_usage_flag is True and resources.gpu_per_node > 0:
                 if gpu_new_syntax_flag is True:
                     if gpu_exclusive_flag is True:
                         script_header_dict["lsf_number_gpu_line"] = (
@@ -128,12 +130,20 @@ class LSF(Machine):
             raise RetrySignal(
                 f"Get error code {ret} in checking status with job: {job.job_hash} . message: {err_str}"
             )
-        status_out = stdout.read().decode("utf-8").split("\n")
+        # Some LSF installations return only the header after a job disappears
+        # from the active queue.  Ignore blank trailing lines and consult the
+        # finish tag before treating the missing data row as unknown.
+        status_out = [
+            line for line in stdout.read().decode("utf-8").splitlines() if line.strip()
+        ]
         if len(status_out) < 2:
+            return (
+                JobStatus.finished if self.check_finish_tag(job) else JobStatus.unknown
+            )
+        status_fields = status_out[1].split()
+        if len(status_fields) < 3:
             return JobStatus.unknown
-        else:
-            status_line = status_out[1]
-            status_word = status_line.split()[2]
+        status_word = status_fields[2]
 
         # ref: https://www.ibm.com/support/knowledgecenter/en/SSETD4_9.1.2/lsf_command_ref/bjobs.1.html
         if status_word in ["PEND", "WAIT", "PSUSP"]:

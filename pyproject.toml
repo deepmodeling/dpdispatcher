@@ -74,13 +74,6 @@ include = ["dpdispatcher*"]
 [tool.setuptools_scm]
 write_to = "dpdispatcher/_version.py"
 
-[tool.pyright]
-include = ['dpdispatcher']
-exclude = [
-    'dpdispatcher/dpcloudserver/temp_test.py',
-    'dpdispatcher/_version.py',
-]
-
 [tool.ty.src]
 include = ['dpdispatcher']
 exclude = [

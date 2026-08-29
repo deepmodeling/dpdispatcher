@@ -149,10 +149,12 @@ class HDFSContext(BaseContext):
         for task in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, task.task_work_path)
             remote_job = os.path.join(gz_dir, task.task_work_path)
-            flist = task.backward_files
+            # Work on a copy so generated error artifacts do not become part
+            # of the submission's persistent backward-file configuration.
+            flist = list(task.backward_files)
             if back_error:
                 errors = glob(os.path.join(remote_job, "error*"))
-                flist.extend(errors)
+                flist.extend(os.path.relpath(error, remote_job) for error in errors)
             for jj in flist:
                 rfile = os.path.join(remote_job, jj)
                 lfile = os.path.join(local_job, jj)
@@ -186,10 +188,10 @@ class HDFSContext(BaseContext):
 
         local_job = self.local_root
         remote_job = gz_dir
-        flist = submission.backward_common_files
+        flist = list(submission.backward_common_files)
         if back_error:
             errors = glob(os.path.join(remote_job, "error*"))
-            flist.extend(errors)
+            flist.extend(os.path.relpath(error, remote_job) for error in errors)
         for jj in flist:
             rfile = os.path.join(remote_job, jj)
             lfile = os.path.join(local_job, jj)

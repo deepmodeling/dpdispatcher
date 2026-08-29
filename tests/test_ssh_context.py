@@ -33,6 +33,7 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
         self.context.temp_local_root = "/local"
         self.context.temp_remote_root = "/remote"
         self.context.remote_root = self.old_remote_root
+        self.context.create_remote_root = False
         self.context.ssh_session = MagicMock()
         self.sftp = self.context.ssh_session.sftp
         self.context.ssh_session.ssh.open_sftp.return_value = self.sftp

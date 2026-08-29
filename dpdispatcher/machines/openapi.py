@@ -107,6 +107,7 @@ class OpenAPI(Machine):
             result_file_list.extend(
                 [os.path.join(task.task_work_path, b_f) for b_f in task.backward_files]
             )
+        result_file_list.append(job.job_hash + "_last_err_file")
         result_file_list = list(set(result_file_list))
         return result_file_list
 
@@ -196,7 +197,7 @@ class OpenAPI(Machine):
 
     def _download_job(self, job):
         data = self.job.detail(job.job_id)
-        job_url = data["resultUrl"]
+        job_url = data.get("resultUrl")
         if not job_url:
             return
         job_hash = job.job_hash
@@ -216,6 +217,24 @@ class OpenAPI(Machine):
             )
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
+
+    def get_job_error(self, job):
+        """Retrieve diagnostics from the cloud result or job log."""
+        try:
+            self._download_job(job)
+        except Exception as e:
+            dlog.debug(f"Could not download result archive for job {job.job_hash}: {e}")
+        error_path = os.path.join(
+            self.context.local_root, job.job_hash + "_last_err_file"
+        )
+        if os.path.isfile(error_path):
+            with open(error_path) as fp:
+                return fp.read()
+        try:
+            return self.job.log(job.job_id)
+        except Exception as e:
+            dlog.debug(f"Could not retrieve cloud log for job {job.job_hash}: {e}")
+            return None
 
     def check_finish_tag(self, job):
         job_tag_finished = job.job_hash + "_job_tag_finished"

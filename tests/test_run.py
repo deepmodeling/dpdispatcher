@@ -68,6 +68,16 @@ class TestRun(unittest.TestCase):
 
             submission = create_submission(metadata, script_hash="abc", allow_ref=True)
             self.assertEqual(len(submission.belonging_tasks), 2)
+            self.assertEqual(
+                {task.task_work_path for task in submission.belonging_tasks},
+                {"a", "b"},
+            )
+            self.assertTrue(
+                all(
+                    not os.path.isabs(task.task_work_path)
+                    for task in submission.belonging_tasks
+                )
+            )
             self.assertTrue(
                 all(
                     task.command.endswith(" $REMOTE_ROOT/script_abc.py")

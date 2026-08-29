@@ -3,8 +3,11 @@ import os
 import shutil
 import sys
 import tarfile
+import tempfile
 import unittest
 from glob import glob
+from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -16,6 +19,67 @@ from .context import (
     setUpModule,  # noqa: F401
 )
 from .sample_class import SampleClass
+
+
+class TestHDFSContextDownload(unittest.TestCase):
+    """Test download bookkeeping without requiring a Hadoop installation."""
+
+    def test_back_error_uses_relative_copies_without_mutating_submission(self) -> None:
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+
+            task = SimpleNamespace(
+                task_work_path="task",
+                backward_files=["result.out"],
+            )
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[task],
+                backward_common_files=["common.out"],
+            )
+            os.mkdir(os.path.join(local_root, "task"))
+
+            def create_download_archive(_remote: str, destination: str) -> None:
+                archive_path = os.path.join(
+                    destination, "submission-hash_1_download.tar.gz"
+                )
+                source_root = os.path.join(local_root, "archive-source")
+                os.makedirs(os.path.join(source_root, "task"))
+                archive_files = {
+                    "task/result.out": "task result",
+                    "task/error-task.log": "task error",
+                    "common.out": "common result",
+                    "error-common.log": "common error",
+                }
+                for relative_path, content in archive_files.items():
+                    source = os.path.join(source_root, relative_path)
+                    os.makedirs(os.path.dirname(source), exist_ok=True)
+                    with open(source, "w") as stream:
+                        stream.write(content)
+                with tarfile.open(archive_path, "w:gz") as archive:
+                    for relative_path in archive_files:
+                        archive.add(
+                            os.path.join(source_root, relative_path),
+                            arcname=relative_path,
+                        )
+
+            with patch.object(
+                HDFS, "copy_to_local", side_effect=create_download_archive
+            ):
+                context.download(submission, back_error=True)
+
+            self.assertEqual(task.backward_files, ["result.out"])
+            self.assertEqual(submission.backward_common_files, ["common.out"])
+            self.assertTrue(os.path.isfile(os.path.join(local_root, "task/result.out")))
+            self.assertTrue(
+                os.path.isfile(os.path.join(local_root, "task/error-task.log"))
+            )
+            self.assertTrue(os.path.isfile(os.path.join(local_root, "common.out")))
+            self.assertTrue(
+                os.path.isfile(os.path.join(local_root, "error-common.log"))
+            )
 
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")
