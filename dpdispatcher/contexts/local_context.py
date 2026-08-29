@@ -88,7 +88,7 @@ class LocalContext(BaseContext):
             self.temp_remote_root, submission.submission_hash
         )
 
-    def _copy_from_local_to_remote(self, local_path, remote_path):
+    def _copy_from_local_to_remote(self, local_path: str, remote_path: str) -> None:
         if not os.path.exists(local_path):
             raise FileNotFoundError(
                 f"cannot find uploaded file {os.path.join(local_path)}"
