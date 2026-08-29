@@ -31,6 +31,8 @@ To use SSH, one needs to provide necessary parameters in {dargs:argument}`remote
 
 By default, DPDispatcher creates only the final {dargs:argument}`remote_root <machine/remote_root>` component and requires its parent directory to already exist. To recursively create missing parent directories, set {dargs:argument}`create_remote_root <machine[SSHContext]/create_remote_root>` to `true`.
 
+Large backward-file archives can be transferred in smaller pieces by setting {dargs:argument}`archive_chunk_size <machine[SSHContext]/remote_profile/archive_chunk_size>` to a positive byte count. For example, `104857600` limits each temporary transfer to 100 MiB. The remote host must provide the `split` command. The default value `0` keeps the single-archive transfer behavior.
+
 It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/OpenSSH/Keys) and transfer the public key to the remote server in advance, which is more secure than password authentication.
 
 Note that `SSH` context is [non-login](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html), so `bash_profile` files will not be executed outside the submission script.

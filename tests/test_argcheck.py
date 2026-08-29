@@ -84,6 +84,7 @@ class TestJob(unittest.TestCase):
                 "timeout": 10,
                 "totp_secret": None,
                 "tar_compress": True,
+                "archive_chunk_size": 0,
                 "look_for_keys": True,
                 "execute_command": None,
                 "proxy_command": None,

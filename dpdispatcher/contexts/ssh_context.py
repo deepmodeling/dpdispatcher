@@ -6,6 +6,7 @@ import errno
 import fnmatch
 import os
 import pathlib
+import posixpath
 import shlex
 import shutil
 import socket
@@ -50,6 +51,7 @@ class SSHSession:
         timeout: int = 10,
         totp_secret: str | None = None,
         tar_compress: bool = True,
+        archive_chunk_size: int = 0,
         look_for_keys: bool = True,
         execute_command: str | None = None,
         proxy_command: str | None = None,
@@ -64,6 +66,9 @@ class SSHSession:
         self.totp_secret = totp_secret
         self.ssh = None
         self.tar_compress = tar_compress
+        if archive_chunk_size < 0:
+            raise ValueError("archive_chunk_size must be greater than or equal to 0")
+        self.archive_chunk_size = archive_chunk_size
         self.look_for_keys = look_for_keys
         self.execute_command = execute_command
         self.proxy_command = proxy_command
@@ -346,6 +351,11 @@ class SSHSession:
         doc_timeout = "Timeout in seconds for establishing the SSH connection."
         doc_totp_secret = "Time-based one-time-password secret used for keyboard-interactive 2FA. It should be a base32-encoded string."
         doc_tar_compress = "Whether upload/download tar archives are compressed. Keeping this True usually reduces transfer size at the cost of extra CPU time."
+        doc_archive_chunk_size = (
+            "Maximum size in bytes of each temporary archive part when downloading "
+            "backward files. The default 0 transfers one archive as before. A positive "
+            "value requires the remote `split` command and bounds each individual transfer."
+        )
         doc_look_for_keys = "Whether to search for discoverable private key files in ~/.ssh when key_filename is not provided."
         doc_execute_command = "Optional command executed immediately after the SSH connection is established."
         doc_proxy_command = "Optional SSH ProxyCommand used to reach the target through an intermediate host or tunnel."
@@ -382,6 +392,13 @@ class SSHSession:
                 optional=True,
                 default=True,
                 doc=doc_tar_compress,
+            ),
+            Argument(
+                "archive_chunk_size",
+                int,
+                optional=True,
+                default=0,
+                doc=doc_archive_chunk_size,
             ),
             Argument(
                 "look_for_keys",
@@ -1085,13 +1102,90 @@ class SSHContext(BaseContext):
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         if os.path.isfile(to_f):
             os.remove(to_f)
-        self.ssh_session.get(from_f, to_f)
+        self._get_archive(from_f, to_f)
         # extract
         with tarfile.open(to_f, mode=tarfile_mode) as tar:
             safe_extract_tar(tar, self.local_root)
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
+
+    def _get_archive(self, remote_archive: str, local_archive: str) -> None:
+        """Download one remote archive, optionally through bounded-size parts.
+
+        Splitting is opt-in because it depends on the remote ``split`` utility.
+        Each part is removed after it is appended locally, so temporary local
+        storage is bounded by the archive plus one configured-size part.
+
+        Parameters
+        ----------
+        remote_archive : str
+            Absolute path of the archive on the remote host.
+        local_archive : str
+            Absolute path where the reconstructed archive is written locally.
+        """
+        chunk_size = self.ssh_session.archive_chunk_size
+        if chunk_size == 0:
+            self.ssh_session.get(remote_archive, local_archive)
+            return
+        if chunk_size < 0:
+            raise ValueError("archive_chunk_size must be greater than or equal to 0")
+
+        expected_size = self.sftp.stat(remote_archive).st_size
+        chunk_prefix = f"{remote_archive}.part-{uuid.uuid4().hex}-"
+        split_command = (
+            f"split -b {chunk_size} -a 6 "
+            f"{shlex.quote(remote_archive)} {shlex.quote(chunk_prefix)}"
+        )
+        self.block_checkcall(split_command)
+
+        remote_directory = posixpath.dirname(chunk_prefix)
+        chunk_basename_prefix = posixpath.basename(chunk_prefix)
+        remote_chunks = [
+            posixpath.join(remote_directory, filename)
+            for filename in sorted(self.sftp.listdir(remote_directory))
+            if filename.startswith(chunk_basename_prefix)
+        ]
+        if not remote_chunks:
+            raise RuntimeError(
+                "The remote split command produced no archive parts; "
+                "check that `split` is available on the SSH host."
+            )
+
+        local_chunk = ""
+        try:
+            with open(local_archive, "wb") as assembled_archive:
+                for index, remote_chunk in enumerate(remote_chunks):
+                    local_chunk = f"{local_archive}.part-{index:06d}"
+                    self.ssh_session.get(remote_chunk, local_chunk)
+                    with open(local_chunk, "rb") as chunk_file:
+                        shutil.copyfileobj(chunk_file, assembled_archive)
+                    os.remove(local_chunk)
+                    local_chunk = ""
+
+            actual_size = os.path.getsize(local_archive)
+            if actual_size != expected_size:
+                raise OSError(
+                    "Reconstructed archive size does not match the remote archive: "
+                    f"expected {expected_size} bytes, got {actual_size} bytes"
+                )
+        finally:
+            if local_chunk and os.path.exists(local_chunk):
+                try:
+                    os.remove(local_chunk)
+                except OSError as error:
+                    dlog.debug(
+                        f"Could not remove temporary local archive part "
+                        f"{local_chunk}: {error}"
+                    )
+            for remote_chunk in remote_chunks:
+                try:
+                    self.sftp.remove(remote_chunk)
+                except Exception as error:
+                    dlog.debug(
+                        f"Could not remove temporary remote archive part "
+                        f"{remote_chunk}: {error}"
+                    )
 
     @classmethod
     def machine_subfields(cls) -> list[Argument]:
