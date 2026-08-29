@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import random
+import re
 import time
 import uuid
 from collections.abc import Sequence
@@ -745,6 +746,8 @@ class Task:
         the filename to which command redirect stdout
     errlog : Str or None
         the filename to which command redirects stderr, or None to inherit stderr
+    task_name : Str or None
+        Scheduler-visible name when this task is submitted as a one-task job.
     """
 
     def __init__(
@@ -755,6 +758,7 @@ class Task:
         backward_files: Sequence[str] | None = None,
         outlog: str | None = "log",
         errlog: str | None = "err",
+        task_name: str | None = None,
     ) -> None:
         self.command = command
         self.task_work_path = task_work_path
@@ -763,6 +767,7 @@ class Task:
         self.backward_files = list(backward_files) if backward_files is not None else []
         self.outlog = outlog
         self.errlog = errlog
+        self.task_name = task_name
 
         # self.task_need_resources = task_need_resources
 
@@ -863,6 +868,8 @@ class Task:
         task_dict["backward_files"] = self.backward_files
         task_dict["outlog"] = self.outlog
         task_dict["errlog"] = self.errlog
+        if self.task_name is not None:
+            task_dict["task_name"] = self.task_name
         # task_dict['task_need_resources'] = self.task_need_resources
         return task_dict
 
@@ -899,6 +906,13 @@ class Task:
             "downloaded or synchronized back, it typically appears under the same relative task directory on the local side. "
             "Set this to null to inherit stderr without creating a task error log; automatic last-error excerpts are then disabled."
         )
+        doc_task_name = (
+            "Optional scheduler-visible name. DPDispatcher uses it only when the "
+            "generated scheduler job contains exactly this one task. Grouped jobs "
+            "retain the existing hash-based scheduler fallback because one task name "
+            "cannot unambiguously represent several tasks. Names are normalized and "
+            "truncated to each scheduler's portable limit."
+        )
 
         task_args = [
             Argument("command", str, optional=False, doc=doc_command),
@@ -930,6 +944,13 @@ class Task:
                 optional=True,
                 doc=doc_errlog,
                 default="err",
+            ),
+            Argument(
+                "task_name",
+                [type(None), str],
+                optional=True,
+                doc=doc_task_name,
+                default=None,
             ),
         ]
         task_format = Argument("task", dict, task_args)
@@ -1128,6 +1149,37 @@ class Job:
 
     def get_hash(self) -> str:
         return str(list(self.serialize(if_static=True).keys())[0])
+
+    def get_scheduler_name(
+        self, max_length: int, *, require_alpha_prefix: bool = False
+    ) -> str | None:
+        """Return a portable task-derived name for a one-task scheduler job.
+
+        A grouped job deliberately returns ``None`` so each backend keeps its
+        established hash-based/default name instead of presenting one task as if it
+        represented the whole group. User-provided names are reduced to a conservative
+        ASCII subset accepted by Slurm, PBS, LSF, and SGE. Truncation retains a hash
+        suffix so long names that share a prefix remain distinguishable.
+        """
+        if len(self.job_task_list) != 1:
+            return None
+        raw_name = self.job_task_list[0].task_name
+        if raw_name is None:
+            return None
+
+        normalized = re.sub(r"[^A-Za-z0-9_.-]+", "-", raw_name).strip("._-")
+        if not normalized:
+            normalized = f"dp-{self.job_hash[:8]}"
+        if require_alpha_prefix and not normalized[0].isalpha():
+            normalized = f"j-{normalized}"
+        if len(normalized) <= max_length:
+            return normalized
+
+        suffix = f"-{sha1(raw_name.encode('utf-8')).hexdigest()[:8]}"
+        prefix = normalized[: max_length - len(suffix)].rstrip("._-")
+        if require_alpha_prefix and (not prefix or not prefix[0].isalpha()):
+            prefix = "j"
+        return f"{prefix}{suffix}"
 
     def serialize(self, if_static: bool = False) -> dict[str, Any]:  # noqa: ANN401
         """Convert the Task class instance to a dictionary.

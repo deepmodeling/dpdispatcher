@@ -62,6 +62,8 @@ class Slurm(Machine):
             )
         else:
             script_header_dict["slurm_partition_line"] = ""
+        name_getter = getattr(job, "get_scheduler_name", None)
+        job_name = name_getter(128) if callable(name_getter) else None
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None
@@ -74,6 +76,8 @@ class Slurm(Machine):
             slurm_script_header = slurm_script_header_template.format(
                 **script_header_dict
             )
+            if job_name:
+                slurm_script_header += f"\n#SBATCH --job-name {job_name}"
         return slurm_script_header
 
     @retry()
