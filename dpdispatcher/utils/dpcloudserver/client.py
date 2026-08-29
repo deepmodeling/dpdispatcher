@@ -1,3 +1,5 @@
+"""Provide a legacy HTTP client for Bohrium job and storage operations."""
+
 import os
 import re
 import time
@@ -22,10 +24,12 @@ ENABLE_STACK = True if API_LOGGER_STACK_INFO else False
 
 
 class RequestInfoException(Exception):
-    pass
+    """Report a failed legacy Bohrium API request."""
 
 
 class Client:
+    """Call legacy Bohrium APIs for authentication, jobs, logs, and files."""
+
     def __init__(
         self,
         email: str | None = None,

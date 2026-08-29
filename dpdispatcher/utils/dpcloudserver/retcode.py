@@ -1,6 +1,11 @@
+"""Define return codes used by the legacy Bohrium API."""
+
+
 # 2开头的错误代码第二位代表错误等级
 # 0. 严重错误; 1. 普通错误; 2. 规则错误; 3. 一般信息; 4. 未知错误
 class RETCODE:
+    """Group string constants returned by the legacy Bohrium API."""
+
     OK = "0000"  # 正常
     DBERR = "2000"  # 数据库异常
     THIRDERR = "2001"  # 第三方异常

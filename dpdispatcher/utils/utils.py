@@ -1,3 +1,5 @@
+"""Provide hashing, authentication, retry, transfer, and script helpers."""
+
 import base64
 import hashlib
 import hmac
@@ -40,6 +42,7 @@ def get_sha256(filename: str) -> str:
 
 
 def hotp(key: str, period: int, token_length: int = 6, digest: str = "sha1") -> str:
+    """Generate an HMAC-based one-time password for a counter value."""
     key_ = base64.b32decode(key.upper() + "=" * ((8 - len(key)) % 8))
     period_ = struct.pack(">Q", period)
     mac = hmac.new(key_, period_, digest).digest()
@@ -79,11 +82,7 @@ def generate_totp(secret: str, period: int = 30, token_length: int = 6) -> str:
 def run_cmd_with_all_output(
     cmd: str | Sequence[str], shell: bool = True
 ) -> tuple[int, bytes, bytes]:
-    """Run a command and return its status, standard output, and standard error.
-
-    When shell execution is disabled, callers may pass an argument sequence so
-    values remain literal operands and are never reinterpreted by a shell.
-    """
+    """Run a command and return its exit code, standard output, and error."""
     with subprocess.Popen(
         cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     ) as proc:
@@ -225,6 +224,7 @@ def retry(
 def customized_script_header_template(
     filename: os.PathLike, resources: "Resources"
 ) -> str:
+    """Render a user-provided scheduler header with resource values."""
     with open(filename) as f:
         template = f.read()
     return template.format(**resources.serialize())

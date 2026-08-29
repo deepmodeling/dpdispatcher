@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Provide SSH command execution and rsync/SFTP file staging."""
+
 from __future__ import annotations
 
 import errno
@@ -39,6 +41,8 @@ if TYPE_CHECKING:
 
 
 class SSHSession:
+    """Manage a resilient Paramiko SSH connection and file-transfer helpers."""
+
     def __init__(
         self,
         hostname: str,
@@ -309,7 +313,7 @@ class SSHSession:
 
     @retry(sleep=1)
     def exec_command(self, cmd: str) -> tuple[Any, Any, Any]:  # noqa: ANN401
-        """Calling self.ssh.exec_command but has an exception check."""
+        """Call ``SSHClient.exec_command`` with connection checks and retries."""
         assert self.ssh is not None
         try:
             return self.ssh.exec_command(cmd)
@@ -464,6 +468,8 @@ class SSHSession:
 
 
 class SSHContext(BaseContext):
+    """Run submissions on a remote host reached through an SSH session."""
+
     def __init__(
         self,
         local_root: str,
@@ -969,6 +975,23 @@ class SSHContext(BaseContext):
         directories: list[str] | None = None,
         tar_compress: bool = True,
     ) -> None:
+        """Upload files to server.
+
+        Parameters
+        ----------
+        files : list
+            uploaded files
+        dereference : bool, default: True
+            If dereference is False, add symbolic and hard links to the archive.
+            If it is True, add the content of the target files to the archive.
+            This has no effect on systems that do not support symbolic links.
+        directories : list, default: None
+            uploaded directories non-recursively. Use `files` for uploading
+            recursively
+        tar_compress : bool, default: True
+            If tar_compress is True, compress the archive using gzip
+            It it is False, then it is uncompressed
+        """
         assert self.submission.submission_hash is not None
         """Upload files to server.
 
