@@ -203,11 +203,11 @@ class Submission:
     def run_submission(
         self,
         *,
-        dry_run=False,
-        exit_on_submit=False,
+        dry_run: bool = False,
+        exit_on_submit: bool = False,
         clean: Union[bool, str] = True,
-        check_interval=30,
-    ):
+        check_interval: int = 30,
+    ) -> Dict[str, Any]:
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -224,6 +224,7 @@ class Submission:
             If True, exit after submission without waiting.
         clean : bool or str
             Controls whether to clean remote working directory after completion.
+
             - True or "always": always clean (default, backward compatible)
             - False or "never": never clean
             - "on_success": only clean when all jobs finished successfully;
@@ -288,7 +289,10 @@ class Submission:
                 # The loop condition became false without ratio-based early exit.
                 all_jobs_genuinely_finished = True
             self.handle_unexpected_submission_state()
-            self.try_download_result()
+            results_downloaded = self.try_download_result()
+            all_jobs_genuinely_finished = (
+                all_jobs_genuinely_finished and results_downloaded
+            )
         finally:
             # Cover recovery, initial submission, polling, and final download
             # failures so exhausted retries always preserve diagnostics.
@@ -388,7 +392,16 @@ class Submission:
                         f"Could not download error file for job {job.job_hash}: {e}"
                     )
 
-    def try_download_result(self):
+    def try_download_result(self) -> bool:
+        """Download result files, retrying transient failures for up to 24 hours.
+
+        Returns
+        -------
+        bool
+            Whether all result files were downloaded successfully. A false
+            result prevents ``clean='on_success'`` from deleting the only
+            remaining remote copy after retry exhaustion.
+        """
         start_time = time.time()
         retry_interval = 60  # retry every 1 minute
         success = False
@@ -412,6 +425,7 @@ class Submission:
                 else:  # > 24 h
                     dlog.info("Maximum retries time reached. Exiting.")
                     break
+        return success
 
     async def async_run_submission(self, **kwargs):
         """Async interface of run_submission.
@@ -690,13 +704,13 @@ class Task:
 
     def __init__(
         self,
-        command,
-        task_work_path,
+        command: str,
+        task_work_path: str,
         forward_files: Optional[Sequence[str]] = None,
         backward_files: Optional[Sequence[str]] = None,
-        outlog="log",
-        errlog="err",
-    ):
+        outlog: Optional[str] = "log",
+        errlog: Optional[str] = "err",
+    ) -> None:
         self.command = command
         self.task_work_path = task_work_path
         # Detach task state from caller-owned lists and constructor defaults.
@@ -1191,25 +1205,25 @@ class Resources:
 
     def __init__(
         self,
-        number_node,
-        cpu_per_node,
-        gpu_per_node,
-        queue_name,
-        group_size,
+        number_node: int,
+        cpu_per_node: int,
+        gpu_per_node: int,
+        queue_name: str,
+        group_size: int,
         *,
         custom_flags: Optional[Sequence[str]] = None,
         strategy: Optional[Dict[str, Any]] = None,
-        para_deg=1,
+        para_deg: int = 1,
         module_unload_list: Optional[Sequence[str]] = None,
-        module_purge=False,
+        module_purge: bool = False,
         module_list: Optional[Sequence[str]] = None,
         source_list: Optional[Sequence[str]] = None,
         envs: Optional[Dict[str, Any]] = None,
         prepend_script: Optional[Sequence[str]] = None,
         append_script: Optional[Sequence[str]] = None,
-        wait_time=0,
-        **kwargs,
-    ):
+        wait_time: int = 0,
+        **kwargs: Any,
+    ) -> None:
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
         self.gpu_per_node = gpu_per_node

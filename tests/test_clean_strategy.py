@@ -3,7 +3,7 @@
 import os
 import sys
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -83,8 +83,6 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
 
     def test_invalid_strategy_raises_before_upload(self):
         """Passing an invalid clean strategy raises ValueError without calling upload_jobs."""
-        from unittest.mock import patch
-
         sub = Submission.__new__(Submission)
         sub.belonging_jobs = []
         sub.belonging_tasks = []
@@ -99,6 +97,55 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
                 sub.run_submission(clean="on_sucess", check_interval=0)
             self.assertIn("Unknown clean strategy", str(ctx.exception))
             mock_upload.assert_not_called()
+
+
+class TestDownloadResult(unittest.TestCase):
+    """Result-download status must distinguish success from retry exhaustion."""
+
+    def test_successful_download_returns_true(self):
+        sub = Submission.__new__(Submission)
+        sub.download_jobs = MagicMock()
+
+        self.assertTrue(sub.try_download_result())
+        sub.download_jobs.assert_called_once_with()
+
+    def test_retry_exhaustion_returns_false(self):
+        sub = Submission.__new__(Submission)
+        sub.download_jobs = MagicMock(side_effect=OSError("temporary failure"))
+
+        with patch("dpdispatcher.submission.time.time", side_effect=[0, 86400]), patch(
+            "dpdispatcher.submission.time.sleep"
+        ) as mock_sleep:
+            self.assertFalse(sub.try_download_result())
+
+        sub.download_jobs.assert_called_once_with()
+        mock_sleep.assert_not_called()
+
+    def test_retry_exhaustion_prevents_on_success_cleanup(self):
+        sub = Submission.__new__(Submission)
+        sub.belonging_jobs = [MagicMock(job_state=JobStatus.finished)]
+        sub.belonging_tasks = []
+        sub.submission_hash = "test_hash"
+        sub.machine = MagicMock()
+        sub.machine.context.remote_root = "/tmp/fake_remote"
+        sub.resources = MagicMock()
+        sub.resources.strategy = {"ratio_unfinished": 0.0}
+        sub.resources.wait_time = 0
+
+        sub.try_recover_from_json = MagicMock()
+        sub.update_submission_state = MagicMock()
+        sub.check_all_finished = MagicMock(return_value=True)
+        sub.handle_unexpected_submission_state = MagicMock()
+        sub.try_download_result = MagicMock(return_value=False)
+        sub.try_download_error_info = MagicMock()
+        sub.submission_to_json = MagicMock()
+        sub.clean_jobs = MagicMock()
+        sub.serialize = MagicMock(return_value={})
+
+        sub.run_submission(clean="on_success", check_interval=0)
+
+        sub.try_download_result.assert_called_once_with()
+        sub.clean_jobs.assert_not_called()
 
 
 class TestCleanWithRatioUnfinished(unittest.TestCase):
