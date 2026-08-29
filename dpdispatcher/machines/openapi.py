@@ -3,6 +3,7 @@ import shutil
 import time
 from zipfile import ZipFile
 
+from dpdispatcher.utils.archive import safe_extract_zip
 from dpdispatcher.utils.utils import customized_script_header_template
 
 try:
@@ -22,10 +23,10 @@ shell_script_header_template = """
 """
 
 
-def unzip_file(zip_file, out_dir="./"):
-    obj = ZipFile(zip_file, "r")
-    for item in obj.namelist():
-        obj.extract(item, out_dir)
+def unzip_file(zip_file: str, out_dir: str = "./") -> None:
+    """Extract an OpenAPI result zip without allowing unsafe members."""
+    with ZipFile(zip_file, "r") as obj:
+        safe_extract_zip(obj, out_dir)
 
 
 class OpenAPI(Machine):

@@ -18,6 +18,7 @@ else:
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.utils.archive import safe_extract_zip
 from dpdispatcher.utils.job_status import JobStatus
 
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
@@ -25,10 +26,10 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 )
 
 
-def unzip_file(zip_file, out_dir="./"):
-    obj = ZipFile(zip_file, "r")
-    for item in obj.namelist():
-        obj.extract(item, out_dir)
+def unzip_file(zip_file: str, out_dir: str = "./") -> None:
+    """Extract an OpenAPI result zip without allowing unsafe members."""
+    with ZipFile(zip_file, "r") as obj:
+        safe_extract_zip(obj, out_dir)
 
 
 def zip_file_list(root_path, zip_filename, file_list=[]):

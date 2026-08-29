@@ -5,6 +5,7 @@ from glob import glob
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.utils.archive import safe_extract_tar
 from dpdispatcher.utils.hdfs_cli import HDFS
 
 
@@ -144,7 +145,7 @@ class HDFSContext(BaseContext):
         tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar.gz"))
         for tgz in tgz_file_list:
             with tarfile.open(tgz, "r:gz") as tar:
-                tar.extractall(path=gz_dir)
+                safe_extract_tar(tar, gz_dir)
 
         for task in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, task.task_work_path)
