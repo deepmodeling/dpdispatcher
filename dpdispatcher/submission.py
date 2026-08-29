@@ -951,6 +951,12 @@ class Job:
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
                 raise RuntimeError(err_msg)
+            # Re-upload forward files before retry to handle cases where remote
+            # workdir was cleaned or files were removed between attempts.
+            # A failed restoration must stop the retry: submitting without the
+            # required inputs only hides the actionable staging error and causes
+            # another predictable job failure.
+            self._ensure_forward_files_on_retry()
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(
@@ -1034,6 +1040,40 @@ class Job:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message
+
+    def _ensure_forward_files_on_retry(self) -> None:
+        """Re-upload forward files before retry by delegating to context.upload().
+
+        When a job is retried after termination, forward files may have been
+        removed from the remote workdir. This method re-uploads them using the
+        same upload mechanism as the initial submission, which correctly handles
+        all context types (Local, SSH, HDFS, etc.), glob patterns, binary files,
+        and directory creation.
+
+        Uses context.submission (set during bind_machine) to access both per-task
+        forward_files and forward_common_files.
+        """
+        if self.machine is None:
+            return
+        context = self.machine.context
+        submission = getattr(context, "submission", None)
+        if submission is None:
+            return
+        # Build a lightweight object with only this job's tasks for upload.
+        # context.upload() expects .belonging_tasks and .forward_common_files.
+
+        class _RetryPayload:
+            belonging_tasks: List["Task"]
+            belonging_jobs: List["Job"]
+            forward_common_files: List[str]
+            preserve_existing_forward_common_files: bool
+
+        payload = _RetryPayload()
+        payload.belonging_tasks = self.job_task_list
+        payload.belonging_jobs = [self]
+        payload.forward_common_files = submission.forward_common_files
+        payload.preserve_existing_forward_common_files = True
+        context.upload(payload)
 
 
 class Resources:
