@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
+from typing import List, Optional
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -16,8 +17,11 @@ class TestDownloadErrorInfo(unittest.TestCase):
     """Unit tests for Submission.try_download_error_info()."""
 
     def _make_submission(
-        self, job_states, err_file_exists=True, err_content="LAMMPS error: lost atoms"
-    ):
+        self,
+        job_states: List[JobStatus],
+        err_file_exists: bool = True,
+        err_content: str = "LAMMPS error: lost atoms",
+    ) -> Submission:
         """Create a Submission with mocked machine/context and jobs."""
         submission = Submission.__new__(Submission)
         submission.belonging_jobs = []
@@ -27,7 +31,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
         self._tmpdir = tempfile.mkdtemp()
         submission.machine.context.local_root = self._tmpdir
 
-        def mock_get_job_error(job):
+        def mock_get_job_error(job: object) -> Optional[str]:
             return err_content if err_file_exists else None
 
         submission.machine.get_job_error = MagicMock(side_effect=mock_get_job_error)
@@ -40,13 +44,13 @@ class TestDownloadErrorInfo(unittest.TestCase):
 
         return submission
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         import shutil
 
         if hasattr(self, "_tmpdir") and os.path.exists(self._tmpdir):
             shutil.rmtree(self._tmpdir)
 
-    def test_downloads_error_for_terminated_job(self):
+    def test_downloads_error_for_terminated_job(self) -> None:
         """Terminated job → error file should be downloaded to local root."""
         sub = self._make_submission(
             [JobStatus.terminated],
@@ -60,7 +64,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
             content = f.read()
         self.assertIn("Lost atoms", content)
 
-    def test_no_download_for_finished_job(self):
+    def test_no_download_for_finished_job(self) -> None:
         """Finished job → no error file downloaded."""
         sub = self._make_submission([JobStatus.finished])
         sub.try_download_error_info()
@@ -68,7 +72,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
         local_err_path = os.path.join(self._tmpdir, "hash_0000_last_err_file")
         self.assertFalse(os.path.exists(local_err_path))
 
-    def test_no_error_file_on_remote(self):
+    def test_no_error_file_on_remote(self) -> None:
         """Terminated job but no error file on remote → graceful no-op."""
         sub = self._make_submission(
             [JobStatus.terminated],
@@ -80,7 +84,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
         local_err_path = os.path.join(self._tmpdir, "hash_0000_last_err_file")
         self.assertFalse(os.path.exists(local_err_path))
 
-    def test_multiple_jobs_mixed_states(self):
+    def test_multiple_jobs_mixed_states(self) -> None:
         """Mixed finished/terminated → only download for failed ones."""
         sub = self._make_submission(
             [JobStatus.finished, JobStatus.terminated, JobStatus.finished],
@@ -99,7 +103,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
             os.path.exists(os.path.join(self._tmpdir, "hash_0002_last_err_file"))
         )
 
-    def test_context_exception_does_not_crash(self):
+    def test_context_exception_does_not_crash(self) -> None:
         """If context raises during error download, it's caught gracefully."""
         sub = self._make_submission([JobStatus.terminated])
         sub.machine.get_job_error = MagicMock(side_effect=OSError("network error"))
@@ -107,7 +111,7 @@ class TestDownloadErrorInfo(unittest.TestCase):
         # Should not raise
         sub.try_download_error_info()
 
-    def test_no_machine_is_noop(self):
+    def test_no_machine_is_noop(self) -> None:
         """If machine is None, try_download_error_info is a no-op."""
         submission = Submission.__new__(Submission)
         submission.machine = None
@@ -124,16 +128,18 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
     call try_download_error_info() before propagating the exception.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._tmpdir = tempfile.mkdtemp()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         import shutil
 
         if os.path.exists(self._tmpdir):
             shutil.rmtree(self._tmpdir)
 
-    def _make_submission_for_run(self, err_content="FATAL: out of memory"):
+    def _make_submission_for_run(
+        self, err_content: str = "FATAL: out of memory"
+    ) -> Submission:
         """Build a Submission wired to simulate exhausted retries in run_submission."""
         sub = Submission.__new__(Submission)
 
@@ -163,7 +169,9 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
         return sub
 
     @patch("dpdispatcher.submission.record")
-    def test_error_file_downloaded_when_retries_exhausted(self, mock_record):
+    def test_error_file_downloaded_when_retries_exhausted(
+        self, mock_record: MagicMock
+    ) -> None:
         """run_submission raises RuntimeError but error file is still written."""
         mock_record.write.return_value = "/tmp/fake_record.json"
 
@@ -183,7 +191,7 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
         # handle_unexpected_submission_state() after the loop then raises.
         call_count = {"n": 0}
 
-        def fake_check_all_finished():
+        def fake_check_all_finished() -> bool:
             call_count["n"] += 1
             # 1st call (initial check): True → skip else branch
             if call_count["n"] == 1:
@@ -214,7 +222,9 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
         self.assertIn("SEGFAULT in lammps", content)
 
     @patch("dpdispatcher.submission.record")
-    def test_error_file_downloaded_when_retries_exhausted_in_loop(self, mock_record):
+    def test_error_file_downloaded_when_retries_exhausted_in_loop(
+        self, mock_record: MagicMock
+    ) -> None:
         """Error in handle_unexpected inside the while-loop still downloads error file."""
         mock_record.write.return_value = "/tmp/fake_record.json"
 
@@ -230,7 +240,7 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
 
         call_count = {"n": 0}
 
-        def fake_check_all_finished():
+        def fake_check_all_finished() -> bool:
             call_count["n"] += 1
             # 1st: initial check → True (skip else branch)
             if call_count["n"] == 1:
@@ -258,7 +268,7 @@ class TestDownloadErrorInfoOnExhaustedRetries(unittest.TestCase):
         with open(local_err_path) as f:
             self.assertIn("MPI_ABORT called", f.read())
 
-    def test_recovered_terminated_job_downloads_error_before_reraise(self):
+    def test_recovered_terminated_job_downloads_error_before_reraise(self) -> None:
         """The first failure-handling call is inside the diagnostic guard."""
         sub = self._make_submission_for_run(err_content="recovered job stderr")
 

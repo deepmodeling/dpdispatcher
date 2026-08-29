@@ -1,25 +1,30 @@
+from __future__ import annotations
+
 import os
 import shutil
 import subprocess as sp
 import tempfile
 from glob import glob
 from subprocess import TimeoutExpired
-from typing import List
+from typing import TYPE_CHECKING, Any
 
 from dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
 
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
+
 
 class SPRetObj:
-    def __init__(self, ret):
+    def __init__(self, ret: bytes) -> None:
         self.data = ret
 
-    def read(self):
+    def read(self) -> bytes:
         return self.data
 
-    def readlines(self):
+    def readlines(self) -> list[str]:
         lines = self.data.decode("utf-8").splitlines()
         ret = []
         for aa in lines:
@@ -27,7 +32,7 @@ class SPRetObj:
         return ret
 
 
-def _check_file_path(fname):
+def _check_file_path(fname: str) -> None:
     dirname = os.path.dirname(fname)
     if dirname != "":
         os.makedirs(dirname, exist_ok=True)
@@ -52,12 +57,12 @@ class LocalContext(BaseContext):
 
     def __init__(
         self,
-        local_root,
-        remote_root,
-        remote_profile={},
-        *args,
-        **kwargs,
-    ):
+        local_root: str,
+        remote_root: str,
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         assert isinstance(local_root, str)
         self.init_local_root = local_root
         self.init_remote_root = remote_root
@@ -67,7 +72,7 @@ class LocalContext(BaseContext):
         self.symlink = remote_profile.get("symlink", True)
 
     @classmethod
-    def load_from_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> LocalContext:  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict["remote_root"]
         remote_profile = context_dict.get("remote_profile", {})
@@ -78,11 +83,12 @@ class LocalContext(BaseContext):
         )
         return instance
 
-    def get_job_root(self):
+    def get_job_root(self) -> str:
         return self.remote_root
 
-    def bind_submission(self, submission):
+    def bind_submission(self, submission: Submission) -> None:
         self.submission = submission
+        assert submission.submission_hash is not None
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = os.path.join(
             self.temp_remote_root, submission.submission_hash
@@ -171,7 +177,7 @@ class LocalContext(BaseContext):
         else:
             raise ValueError(f"Unknown file type: {local_path}")
 
-    def upload(self, submission):
+    def upload(self, submission: Submission) -> None:
         os.makedirs(self.remote_root, exist_ok=True)
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
@@ -219,8 +225,12 @@ class LocalContext(BaseContext):
                 self._copy_from_local_to_remote(local_path, remote_path)
 
     def download(
-        self, submission, check_exists=False, mark_failure=True, back_error=False
-    ):
+        self,
+        submission: Submission,
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> None:
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
             remote_job = os.path.join(self.remote_root, ii.task_work_path)
@@ -369,7 +379,7 @@ class LocalContext(BaseContext):
                 # no nothing in the case of linked files
                 pass
 
-    def block_call(self, cmd):
+    def block_call(self, cmd: str) -> tuple[int, None, SPRetObj, SPRetObj]:
         proc = sp.Popen(
             cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
@@ -379,32 +389,34 @@ class LocalContext(BaseContext):
         code = proc.returncode
         return code, None, stdout, stderr
 
-    def clean(self):
+    def clean(self) -> None:
         shutil.rmtree(self.remote_root, ignore_errors=True)
 
-    def write_file(self, fname, write_str):
+    def write_file(self, fname: str, write_str: str) -> None:
         os.makedirs(self.remote_root, exist_ok=True)
         with open(os.path.join(self.remote_root, fname), "w") as fp:
             fp.write(write_str)
 
-    def read_file(self, fname):
+    def read_file(self, fname: str) -> str:
         with open(os.path.join(self.remote_root, fname)) as fp:
             ret = fp.read()
         return ret
 
-    def check_file_exists(self, fname):
+    def check_file_exists(self, fname: str) -> bool:
         return os.path.isfile(os.path.join(self.remote_root, fname))
 
-    def call(self, cmd):
+    def call(self, cmd: str) -> sp.Popen:
         proc = sp.Popen(
             cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
         )
         return proc
 
-    def check_finish(self, proc):
+    def check_finish(self, proc: sp.Popen) -> bool:
         return proc.poll() is not None
 
-    def get_return(self, proc):
+    def get_return(
+        self, proc: sp.Popen
+    ) -> tuple[int | None, SPRetObj | None, SPRetObj | None]:
         ret = proc.poll()
         if ret is None:
             return None, None, None
@@ -419,7 +431,7 @@ class LocalContext(BaseContext):
         return ret, stdout, stderr
 
     @classmethod
-    def machine_subfields(cls) -> List[Argument]:
+    def machine_subfields(cls) -> list[Argument]:
         """Generate the machine subfields.
 
         Returns

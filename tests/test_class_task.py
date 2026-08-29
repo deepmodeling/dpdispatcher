@@ -16,32 +16,32 @@ from .sample_class import SampleClass
 
 
 class TestTask(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.task = SampleClass.get_sample_task()
         self.task_dict = SampleClass.get_sample_task_dict()
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         self.assertEqual(self.task.serialize(), self.task_dict)
 
-    def test_deserialize(self):
+    def test_deserialize(self) -> None:
         task = Task.deserialize(task_dict=self.task_dict)
         self.assertTrue(task, self.task)
 
-    def test_serialize_deserialize(self):
+    def test_serialize_deserialize(self) -> None:
         self.assertEqual(Task.deserialize(task_dict=self.task.serialize()), self.task)
 
-    def test_task_json(self):
+    def test_task_json(self) -> None:
         with open("jsons/task.json") as f:
             task_json_dict = json.load(f)
         self.assertTrue(task_json_dict, self.task_dict)
         self.assertTrue(task_json_dict, self.task.serialize())
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         task_repr = repr(self.task)
         print("debug:", task_repr, self.task_dict)
         self.assertEqual(task_repr, str(self.task_dict))
 
-    def test_default_file_lists_are_independent(self):
+    def test_default_file_lists_are_independent(self) -> None:
         first = Task(command="true", task_work_path=".")
         second = Task(command="true", task_work_path=".")
 
@@ -51,7 +51,7 @@ class TestTask(unittest.TestCase):
         self.assertEqual(second.forward_files, [])
         self.assertEqual(second.backward_files, [])
 
-    def test_input_file_lists_are_copied(self):
+    def test_input_file_lists_are_copied(self) -> None:
         forward_files = ["input.txt"]
         backward_files = ["output.txt"]
         task = Task(

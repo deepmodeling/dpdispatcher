@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # %%
+from __future__ import annotations
+
 import os
 import shutil
 import uuid
-from typing import List
+from typing import TYPE_CHECKING, Any, NoReturn
 
 import tqdm
 from dargs.dargs import Argument
@@ -19,6 +21,9 @@ from dpdispatcher.utils.dpcloudserver.config import (
     ALI_STS_ENDPOINT,
 )
 
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job, Submission
+
 # from zip_file import zip_files
 
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
@@ -31,12 +36,12 @@ class BohriumContext(BaseContext):
 
     def __init__(
         self,
-        local_root,
-        remote_root=None,
-        remote_profile={},
-        *args,
-        **kwargs,
-    ):
+        local_root: str,
+        remote_root: str | None = None,
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
@@ -67,7 +72,7 @@ class BohriumContext(BaseContext):
         self.api = Client(account, password)
 
     @classmethod
-    def load_from_dict(cls, context_dict):
+    def load_from_dict(cls, context_dict: dict[str, Any]) -> BohriumContext:  # noqa: ANN401
         local_root = context_dict["local_root"]
         remote_root = context_dict.get("remote_root", None)
         remote_profile = context_dict.get("remote_profile", {})
@@ -79,20 +84,21 @@ class BohriumContext(BaseContext):
         )
         return dp_cloud_server_context
 
-    def bind_submission(self, submission):
+    def bind_submission(self, submission: Submission) -> None:
         self.submission = submission
         self.local_root = os.path.join(self.temp_local_root, submission.work_base)
         self.remote_root = "."
 
         self.submission_hash = submission.submission_hash
 
+        assert submission.machine is not None
         self.machine = submission.machine
 
         # def zip_files(self, submission):
         #     file_uuid = uuid.uuid1().hex
         # oss_task_dir = os.path.join()
 
-    def _gen_oss_path(self, job, zip_filename):
+    def _gen_oss_path(self, job: Job, zip_filename: str) -> str:
         if hasattr(job, "upload_path") and job.upload_path:
             return job.upload_path
         else:
@@ -105,7 +111,7 @@ class BohriumContext(BaseContext):
             setattr(job, "upload_path", path)
             return path
 
-    def upload_job(self, job, common_files=None):
+    def upload_job(self, job: Job, common_files: list[str] | None = None) -> None:
         MAX_RETRY = 3
         if common_files is None:
             common_files = []
@@ -133,7 +139,7 @@ class BohriumContext(BaseContext):
         retry_count = 0
         self._backup(self.local_root, upload_zip)
 
-    def upload(self, submission):
+    def upload(self, submission: Submission) -> None:
         # oss_task_dir = os.path.join('%s/%s/%s.zip' % ('indicate', file_uuid, file_uuid))
         # zip_filename = submission.submission_hash + '.zip'
         # oss_task_zip = 'indicate/' + submission.submission_hash + '/' + zip_filename
@@ -162,8 +168,12 @@ class BohriumContext(BaseContext):
         # api.upload(self.oss_task_dir, zip_task_file)
 
     def download(
-        self, submission, check_exists=False, mark_failure=True, back_error=False
-    ):
+        self,
+        submission: Submission,
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> bool:
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}
@@ -172,7 +182,7 @@ class BohriumContext(BaseContext):
             ids = job.job_id.split(":job_group_id:")
             jid = int(ids[0])
             job_hashs[jid] = job.job_hash
-            jobinfo = self.api.get_job_detail(jid)
+            jobinfo = self.api.get_job_detail(str(jid))
             job_result.append(jobinfo)
         # if group_id is not None:
         #     job_result = self.api.get_tasks_list(group_id)
@@ -210,7 +220,9 @@ class BohriumContext(BaseContext):
         )
         return True
 
-    def _check_if_job_has_already_downloaded(self, target, local_root):
+    def _check_if_job_has_already_downloaded(
+        self, target: str, local_root: str
+    ) -> bool:
         backup_file_location = os.path.join(
             local_root, "backup", os.path.split(target)[1]
         )
@@ -219,7 +231,7 @@ class BohriumContext(BaseContext):
         else:
             return False
 
-    def _backup(self, local_root, target):
+    def _backup(self, local_root: str, target: str) -> None:
         try:
             # move to backup directory
             os.makedirs(os.path.join(local_root, "backup"), exist_ok=True)
@@ -229,45 +241,45 @@ class BohriumContext(BaseContext):
         except (OSError, shutil.Error) as e:
             dlog.exception("unable to backup file, " + str(e))
 
-    def _clean_backup(self, local_root, keep_backup=True):
+    def _clean_backup(self, local_root: str, keep_backup: bool = True) -> None:
         if not keep_backup:
             dir_to_be_removed = os.path.join(local_root, "backup")
             if os.path.exists(dir_to_be_removed):
                 shutil.rmtree(dir_to_be_removed)
 
-    def write_file(self, fname, write_str):
+    def write_file(self, fname: str, write_str: str) -> bool:
         result = self.write_home_file(fname, write_str)
         return result
 
-    def write_local_file(self, fname, write_str):
+    def write_local_file(self, fname: str, write_str: str) -> str:
         local_filename = os.path.join(self.local_root, fname)
         with open(local_filename, "w") as f:
             f.write(write_str)
         return local_filename
 
-    def read_file(self, fname):
+    def read_file(self, fname: str) -> str:
         result = self.read_home_file(fname)
         return result
 
-    def write_home_file(self, fname, write_str):
+    def write_home_file(self, fname: str, write_str: str) -> bool:
         # os.makedirs(self.remote_root, exist_ok = True)
         with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname), "w") as fp:
             fp.write(write_str)
         return True
 
-    def read_home_file(self, fname):
+    def read_home_file(self, fname: str) -> str:
         with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname)) as fp:
             ret = fp.read()
         return ret
 
-    def check_file_exists(self, fname):
+    def check_file_exists(self, fname: str) -> bool:
         result = self.check_home_file_exits(fname)
         return result
 
-    def check_home_file_exits(self, fname):
+    def check_home_file_exits(self, fname: str) -> bool:
         return os.path.isfile(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname))
 
-    def clean(self):
+    def clean(self) -> bool:
         submission_file_name = f"{self.submission.submission_hash}.json"
         submission_json = os.path.join(DP_CLOUD_SERVER_HOME_DIR, submission_file_name)
         os.remove(submission_json)
@@ -281,7 +293,7 @@ class BohriumContext(BaseContext):
     #         return retcode, cmd_pipes['stdout'], cmd_pipes['stderr']
 
     @classmethod
-    def machine_subfields(cls) -> List[Argument]:
+    def machine_subfields(cls) -> list[Argument]:
         """Generate the machine subfields.
 
         Returns
@@ -353,7 +365,7 @@ class BohriumContext(BaseContext):
             )
         ]
 
-    def block_call(self, cmd):
+    def block_call(self, cmd: str) -> NoReturn:
         raise RuntimeError(
             "Unsupported method. You may use an unsupported combination of the machine and the context."
         )

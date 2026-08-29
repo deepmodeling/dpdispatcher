@@ -21,7 +21,7 @@ from .context import (
 # from .context import dpd
 
 
-def _identical_files(fname0, fname1):
+def _identical_files(fname0: str, fname1: str) -> bool:
     with open(fname0) as fp:
         code0 = hashlib.sha1(fp.read().encode("utf-8")).hexdigest()
     with open(fname1) as fp:
@@ -30,7 +30,7 @@ def _identical_files(fname0, fname1):
 
 
 class TestIdFile(unittest.TestCase):
-    def test_id(self):
+    def test_id(self) -> None:
         with open("f0", "w") as fp:
             fp.write("foo")
         with open("f1", "w") as fp:
@@ -39,7 +39,7 @@ class TestIdFile(unittest.TestCase):
         os.remove("f0")
         os.remove("f1")
 
-    def test_diff(self):
+    def test_diff(self) -> None:
         with open("f0", "w") as fp:
             fp.write("foo")
         with open("f1", "w") as fp:
@@ -50,7 +50,7 @@ class TestIdFile(unittest.TestCase):
 
 
 class TestLocalContext(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_local_root = "test_context_dir/"
         self.tmp_remote_root = "tmp_local_context_remote_root/"
         self.local_context = LocalContext(
@@ -58,10 +58,10 @@ class TestLocalContext(unittest.TestCase):
         )
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         shutil.rmtree("tmp_local_context_remote_root/")
 
-    def test_upload_non_exist(self):
+    def test_upload_non_exist(self) -> None:
         submission_hash = "mock_hash_1"
         task1 = MagicMock(task_work_path="bct-1/", forward_files=["foo.py"])
         submission = MagicMock(
@@ -73,7 +73,7 @@ class TestLocalContext(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.local_context.upload(submission)
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         submission_hash = "mock_hash_2"
         task1 = MagicMock(
             task_work_path="bct-1/",
@@ -149,7 +149,7 @@ class TestLocalContext(unittest.TestCase):
 
     # TODO: support other platforms
     @unittest.skipIf(sys.platform != "linux", "not linux")
-    def test_block_call(self):
+    def test_block_call(self) -> None:
         submission_hash = "mock_hash_3"
         task1 = MagicMock(
             task_work_path="bct-1/", forward_files=["input.lammps", "conf.lmp"]
@@ -176,7 +176,7 @@ class TestLocalContext(unittest.TestCase):
         self.assertTrue("No such file or directory\n" in err_msg)
 
     @unittest.skipIf(sys.platform == "win32", "sleep is not supported on Windows")
-    def test_call(self):
+    def test_call(self) -> None:
         submission_hash = "mock_hash_4"
         submission = MagicMock(
             work_base="0_md/", belonging_tasks=[], submission_hash=submission_hash
@@ -203,7 +203,7 @@ class TestLocalContext(unittest.TestCase):
         # self.assertEqual(o, None)
         # self.assertEqual(e, None)
 
-    def test_file(self):
+    def test_file(self) -> None:
         submission_hash = "mock_hash_5"
         submission = MagicMock(
             work_base="0_md/", belonging_tasks=[], submission_hash=submission_hash
@@ -222,7 +222,7 @@ class TestLocalContext(unittest.TestCase):
 class TestLocalContextDownload(unittest.TestCase):
     # @classmethod
     # def setUpClass(cls):
-    def setUp(self):
+    def setUp(self) -> None:
         shutil.copytree(src="test_context_dir/", dst="tmp_local_context_download_dir/")
         os.makedirs("tmp_local_context_backfill_dir/0_md/bct-1/")
         os.makedirs("tmp_local_context_backfill_dir/0_md/bct-2/")
@@ -233,11 +233,11 @@ class TestLocalContextDownload(unittest.TestCase):
             local_root=self.tmp_local_root, remote_root=self.tmp_remote_root
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree("tmp_local_context_download_dir/")
         shutil.rmtree("tmp_local_context_backfill_dir/")
 
-    def test_download_trival(self):
+    def test_download_trival(self) -> None:
         # submission_hash = 'mock_hash_2'
         task1 = MagicMock(
             task_work_path="bct-1/", backward_files=["input.lammps", "conf.lmp"]
@@ -269,7 +269,7 @@ class TestLocalContextDownload(unittest.TestCase):
             self.assertTrue(os.path.isfile(f1))
             self.assertFalse(os.path.islink(f1))
 
-    def test_download_check_exists(self):
+    def test_download_check_exists(self) -> None:
         task1 = MagicMock(task_work_path="bct-1/", backward_files=["foo.py"])
         submission = MagicMock(
             work_base="0_md/",
@@ -281,7 +281,7 @@ class TestLocalContextDownload(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.local_context.download(submission, check_exists=False)
 
-    def test_download_mark_failure_tag(self):
+    def test_download_mark_failure_tag(self) -> None:
         task1 = MagicMock(task_work_path="bct-1/", backward_files=["foo.py"])
         submission = MagicMock(
             work_base="0_md/",
@@ -298,7 +298,7 @@ class TestLocalContextDownload(unittest.TestCase):
         )
         self.assertTrue(os.path.isfile(tag_file))
 
-    def test_download_replace_old_files(self):
+    def test_download_replace_old_files(self) -> None:
         task1 = MagicMock(task_work_path="bct-1/", backward_files=["input.lammps"])
         submission = MagicMock(
             work_base="0_md/",
@@ -318,7 +318,7 @@ class TestLocalContextDownload(unittest.TestCase):
         md5_new = get_file_md5(target_file)
         self.assertNotEqual(md5_old, md5_new)
 
-    def test_download_symlink(self):
+    def test_download_symlink(self) -> None:
         task1 = MagicMock(
             task_work_path="bct-1/", backward_files=["input.lammps.symlink"]
         )

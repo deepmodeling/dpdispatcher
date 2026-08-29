@@ -90,6 +90,7 @@ select = [
     "D",  # pydocstyle
     "UP", # pyupgrade
     "I",  # isort
+    "ANN",  # flake8-annotations
 ]
 ignore = [
     "E501", # line too long
@@ -117,3 +118,7 @@ convention = "numpy"
 
 [tool.ruff]
 line-length = 88
+# Keep lint-driven annotation rewrites compatible with the package's minimum
+# supported runtime. PEP 585 annotations are safe only in modules that enable
+# postponed evaluation explicitly.
+target-version = "py37"

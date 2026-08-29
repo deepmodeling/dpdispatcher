@@ -20,7 +20,7 @@ from dpdispatcher.submission import Job
 class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
     """Unit tests for _copy_from_local_to_remote with directory targets."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmpdir = tempfile.mkdtemp()
         self.local_root = os.path.join(self.tmpdir, "local")
         self.remote_root = os.path.join(self.tmpdir, "remote")
@@ -32,10 +32,10 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         self.ctx.remote_root = self.remote_root
         self.ctx.symlink = False
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmpdir)
 
-    def test_replace_existing_directory(self):
+    def test_replace_existing_directory(self) -> None:
         """Existing remote directory is replaced without IsADirectoryError."""
         # Create local directory with files
         local_dir = os.path.join(self.local_root, "inputs")
@@ -64,7 +64,7 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         with open(os.path.join(remote_dir, "config.json")) as f:
             self.assertEqual(f.read(), '{"key": "value"}')
 
-    def test_replace_existing_file(self):
+    def test_replace_existing_file(self) -> None:
         """Existing remote file is still replaced correctly."""
         local_file = os.path.join(self.local_root, "script.sh")
         with open(local_file, "w") as f:
@@ -79,7 +79,7 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         with open(remote_file) as f:
             self.assertEqual(f.read(), "#!/bin/bash\necho new")
 
-    def test_copy_new_directory(self):
+    def test_copy_new_directory(self) -> None:
         """Copying a directory when remote doesn't exist works normally."""
         local_dir = os.path.join(self.local_root, "newdir")
         os.makedirs(local_dir)
@@ -94,7 +94,7 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         with open(os.path.join(remote_dir, "file.txt")) as f:
             self.assertEqual(f.read(), "content")
 
-    def test_nested_directory_replaced(self):
+    def test_nested_directory_replaced(self) -> None:
         """Nested directory structure is fully replaced."""
         local_dir = os.path.join(self.local_root, "inputs")
         os.makedirs(os.path.join(local_dir, "subdir"))
@@ -118,7 +118,7 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         with open(os.path.join(remote_dir, "subdir", "nested.txt")) as f:
             self.assertEqual(f.read(), "nested")
 
-    def test_replace_live_directory_symlink(self):
+    def test_replace_live_directory_symlink(self) -> None:
         """The default symlink mode replaces an existing directory symlink."""
         self.ctx.symlink = True
         local_dir = os.path.join(self.local_root, "inputs")
@@ -137,7 +137,7 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
         self.assertEqual(os.path.realpath(remote_dir), os.path.realpath(local_dir))
         self.assertTrue(os.path.exists(os.path.join(remote_dir, "new.txt")))
 
-    def test_replace_broken_symlink(self):
+    def test_replace_broken_symlink(self) -> None:
         """A broken destination symlink is removed before retry upload."""
         self.ctx.symlink = True
         local_file = os.path.join(self.local_root, "input.txt")
@@ -160,17 +160,17 @@ class TestCopyFromLocalToRemoteDirectory(unittest.TestCase):
 class TestRetryUploadForwardDirectory(unittest.TestCase):
     """Integration test: retry upload with a forwarded directory via context.upload()."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmpdir = tempfile.mkdtemp()
         self.local_root = os.path.join(self.tmpdir, "local")
         self.remote_root = os.path.join(self.tmpdir, "remote")
         os.makedirs(self.local_root)
         os.makedirs(self.remote_root)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmpdir)
 
-    def test_retry_reupload_forward_directory_partial_remote(self):
+    def test_retry_reupload_forward_directory_partial_remote(self) -> None:
         """Retry upload successfully re-uploads a forward directory with partial remote state.
 
         Regression test: previously os.remove() raised IsADirectoryError when the
@@ -219,7 +219,7 @@ class TestRetryUploadForwardDirectory(unittest.TestCase):
         with open(os.path.join(remote_inputs, "conf.lmp")) as f:
             self.assertEqual(f.read(), "# LAMMPS configuration\n")
 
-    def test_retry_reupload_forward_directory_no_existing_remote(self):
+    def test_retry_reupload_forward_directory_no_existing_remote(self) -> None:
         """Retry upload works when remote directory doesn't exist yet."""
         ctx = LocalContext.__new__(LocalContext)
         ctx.local_root = self.local_root

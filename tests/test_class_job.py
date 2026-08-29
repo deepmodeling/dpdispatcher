@@ -15,23 +15,23 @@ from .sample_class import SampleClass
 
 
 class TestJob(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.job = SampleClass.get_sample_job()
 
         self.submission2 = Submission.submission_from_json("jsons/submission.json")
         self.job2 = self.submission2.belonging_jobs[0]
 
-    def test_eq(self):
+    def test_eq(self) -> None:
         self.assertTrue(self.job == self.job2)
 
-    def test_get_hash(self):
+    def test_get_hash(self) -> None:
         self.assertEqual(self.job.get_hash(), self.job2.get_hash())
         # self.assertEqual(self.submission, self.submission2)
 
-    def test_serialize_deserialize(self):
+    def test_serialize_deserialize(self) -> None:
         self.assertEqual(self.job, Job.deserialize(job_dict=self.job.serialize()))
 
-    def test_static_serialize(self):
+    def test_static_serialize(self) -> None:
         self.assertNotIn(
             "job_state", list(self.job.serialize(if_static=True).values())[0]
         )
@@ -40,19 +40,19 @@ class TestJob(unittest.TestCase):
             "fail_count", list(self.job.serialize(if_static=True).values())[0]
         )
 
-    def test_get_job_state(self):
+    def test_get_job_state(self) -> None:
         pass
 
-    def test_handle_unexpected_job_state(self):
+    def test_handle_unexpected_job_state(self) -> None:
         pass
 
-    def test_register_job_id(self):
+    def test_register_job_id(self) -> None:
         pass
 
-    def test_submit_job(self):
+    def test_submit_job(self) -> None:
         pass
 
-    def test_job_to_json(self):
+    def test_job_to_json(self) -> None:
         pass
 
 

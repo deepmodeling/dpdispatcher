@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 """DP-GUI entrypoint."""
 
+from typing import Any
 
-def start_dpgui(*, port: int, bind_all: bool, **kwargs):
+
+def start_dpgui(*, port: int, bind_all: bool, **kwargs: Any) -> None:  # noqa: ANN401
     """Host DP-GUI server.
 
     Parameters

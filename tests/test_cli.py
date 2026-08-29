@@ -3,7 +3,7 @@ import unittest
 
 
 class TestCLI(unittest.TestCase):
-    def test_cli(self):
+    def test_cli(self) -> None:
         sp.check_output(["dpdisp", "-h"])
         for subcommand in (
             "submission",

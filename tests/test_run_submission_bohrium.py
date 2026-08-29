@@ -3,6 +3,7 @@ import sys
 import textwrap
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -21,8 +22,11 @@ class TestOpenAPIContextUpload(unittest.TestCase):
     @patch("dpdispatcher.contexts.openapi_context.Job")
     @patch("dpdispatcher.contexts.openapi_context.Bohrium")
     def test_upload_job_uses_store_host_when_create_returns_it(
-        self, mock_bohrium, mock_job_cls, mock_tiefblue_cls
-    ):
+        self,
+        mock_bohrium: MagicMock,
+        mock_job_cls: MagicMock,
+        mock_tiefblue_cls: MagicMock,
+    ) -> None:
         mock_job_api = MagicMock()
         mock_job_api.create.return_value = {
             "jobId": 123,
@@ -37,7 +41,7 @@ class TestOpenAPIContextUpload(unittest.TestCase):
         upload_storage = MagicMock()
         storage_instances = []
 
-        def make_storage(*args, **kwargs):
+        def make_storage(*args: Any, **kwargs: Any) -> MagicMock:  # noqa: ANN401
             storage_instances.append(kwargs)
             if kwargs:
                 return upload_storage
@@ -80,8 +84,11 @@ class TestOpenAPIContextUpload(unittest.TestCase):
     @patch("dpdispatcher.contexts.openapi_context.Job")
     @patch("dpdispatcher.contexts.openapi_context.Bohrium")
     def test_upload_job_keeps_default_storage_without_store_host(
-        self, mock_bohrium, mock_job_cls, mock_tiefblue_cls
-    ):
+        self,
+        mock_bohrium: MagicMock,
+        mock_job_cls: MagicMock,
+        mock_tiefblue_cls: MagicMock,
+    ) -> None:
         mock_job_api = MagicMock()
         mock_job_api.create.return_value = {
             "jobId": 123,
@@ -127,7 +134,7 @@ class TestOpenAPIContextUpload(unittest.TestCase):
     "outside the Bohrium testing environment",
 )
 class TestBohriumRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.machine_dict.update(
             batch_type="Bohrium",
@@ -150,7 +157,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
         )
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> Any:  # noqa: ANN401
         return super().test_async_run_submission()
 
 
@@ -159,7 +166,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
     "outside the Bohrium testing environment",
 )
 class TestOpenAPIRun(RunSubmission, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         bohrium_config = textwrap.dedent(
             """\
@@ -181,5 +188,5 @@ class TestOpenAPIRun(RunSubmission, unittest.TestCase):
         )
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
-    def test_async_run_submission(self):
+    def test_async_run_submission(self) -> Any:  # noqa: ANN401
         return super().test_async_run_submission()

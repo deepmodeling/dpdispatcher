@@ -22,7 +22,7 @@ def handle_submission(
     download_finished_task: bool = False,
     clean: bool = False,
     reset_fail_count: bool = False,
-):
+) -> None:
     """Handle terminated submission.
 
     Parameters
@@ -59,7 +59,8 @@ def handle_submission(
     ]
     # TODO: for unclear reason, the submission_hash may be changed
     submission.submission_hash = submission_hash
-    submission.machine.context.bind_submission(submission)
+    machine = submission._require_machine()
+    machine.context.bind_submission(submission)
     if reset_fail_count:
         for job in submission.belonging_jobs:
             job.fail_count = 0
@@ -76,7 +77,7 @@ def handle_submission(
     terminated_tasks = []
     finished_tasks = []
     for task in submission.belonging_tasks:
-        task.get_task_state(submission.machine.context)
+        task.get_task_state(machine.context)
         if task.task_state == JobStatus.terminated:
             terminated_tasks.append(task)
         elif task.task_state == JobStatus.finished:

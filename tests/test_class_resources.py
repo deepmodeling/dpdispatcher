@@ -15,41 +15,41 @@ from .sample_class import SampleClass
 
 
 class TestResources(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
         self.resources = SampleClass.get_sample_resources()
         self.resources_dict = SampleClass.get_sample_resources_dict()
 
-    def test_eq(self):
+    def test_eq(self) -> None:
         self.assertEqual(self.resources, SampleClass.get_sample_resources())
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         self.assertEqual(self.resources.serialize(), self.resources_dict)
 
-    def test_deserialize(self):
+    def test_deserialize(self) -> None:
         resources = Resources.deserialize(resources_dict=self.resources_dict)
         self.assertEqual(self.resources, resources)
 
-    def test_serialize_deserialize(self):
+    def test_serialize_deserialize(self) -> None:
         self.assertEqual(
             self.resources,
             Resources.deserialize(resources_dict=self.resources.serialize()),
         )
 
-    def test_resources_json(self):
+    def test_resources_json(self) -> None:
         with open("jsons/resources.json") as f:
             resources_json_dict = json.load(f)
         self.assertTrue(resources_json_dict, self.resources_dict)
         self.assertTrue(resources_json_dict, self.resources.serialize())
 
-    def test_arginfo(self):
+    def test_arginfo(self) -> None:
         self.resources.arginfo()
 
-    def test_load_from_json(self):
+    def test_load_from_json(self) -> None:
         resources = Resources.load_from_json("jsons/resources.json")
         self.assertTrue(resources, self.resources)
 
-    def test_default_collections_are_independent(self):
+    def test_default_collections_are_independent(self) -> None:
         first = Resources(1, 1, 0, "", 1)
         second = Resources(1, 1, 0, "", 1)
 
@@ -75,7 +75,7 @@ class TestResources(unittest.TestCase):
         self.assertEqual(second.strategy["ratio_unfinished"], 0.0)
         self.assertEqual(second.envs, {})
 
-    def test_input_collections_are_copied(self):
+    def test_input_collections_are_copied(self) -> None:
         custom_flags = ["# custom"]
         strategy = {"ratio_unfinished": 0.25}
         module_list = ["python"]

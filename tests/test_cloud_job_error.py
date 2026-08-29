@@ -12,7 +12,7 @@ from dpdispatcher.machines.openapi import OpenAPI
 class TestCloudJobError(unittest.TestCase):
     """Cloud machines retrieve diagnostics through the job interface."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmpdir = tempfile.TemporaryDirectory()
         self.job = MagicMock(
             job_hash="cloud-job",
@@ -20,10 +20,10 @@ class TestCloudJobError(unittest.TestCase):
             job_task_list=[],
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.tmpdir.cleanup()
 
-    def test_backward_lists_include_diagnostic(self):
+    def test_backward_lists_include_diagnostic(self) -> None:
         expected = "cloud-job_last_err_file"
         for machine_class in (OpenAPI, Bohrium):
             with self.subTest(machine=machine_class.__name__):
@@ -33,7 +33,7 @@ class TestCloudJobError(unittest.TestCase):
                     machine._gen_backward_files_list(self.job),
                 )
 
-    def test_bohrium_custom_backward_list_keeps_diagnostic(self):
+    def test_bohrium_custom_backward_list_keeps_diagnostic(self) -> None:
         machine = Bohrium.__new__(Bohrium)
         machine.context = MagicMock()
         machine.context.remote_profile = {"program_id": 1}
@@ -58,7 +58,7 @@ class TestCloudJobError(unittest.TestCase):
             input_data["backward_files"], ["custom.log", "cloud-job_last_err_file"]
         )
 
-    def test_reads_diagnostic_from_result_archive(self):
+    def test_reads_diagnostic_from_result_archive(self) -> None:
         error_path = os.path.join(self.tmpdir.name, "cloud-job_last_err_file")
         for machine_class in (OpenAPI, Bohrium):
             with self.subTest(machine=machine_class.__name__):
@@ -67,7 +67,7 @@ class TestCloudJobError(unittest.TestCase):
                 machine = machine_class.__new__(machine_class)
                 machine.context = MagicMock(local_root=self.tmpdir.name)
 
-                def download(_job):
+                def download(_job: object) -> None:
                     with open(error_path, "w") as fp:
                         fp.write("remote stderr")
 
@@ -79,7 +79,7 @@ class TestCloudJobError(unittest.TestCase):
                     "remote stderr",
                 )
 
-    def test_falls_back_to_cloud_job_log(self):
+    def test_falls_back_to_cloud_job_log(self) -> None:
         for machine_class in (OpenAPI, Bohrium):
             with self.subTest(machine=machine_class.__name__):
                 machine = machine_class.__new__(machine_class)

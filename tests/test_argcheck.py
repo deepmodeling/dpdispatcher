@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+from typing import Dict
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
@@ -9,7 +10,7 @@ from .context import Machine, Resources, Task, setUpModule  # noqa: F401
 
 
 class TestJob(unittest.TestCase):
-    def test_machine_argcheck(self):
+    def test_machine_argcheck(self) -> None:
         norm_dict = Machine.load_from_dict(
             {
                 "batch_type": "slurm",
@@ -31,21 +32,21 @@ class TestJob(unittest.TestCase):
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
-    def test_ssh_machine_argcheck(self):
+    def test_ssh_machine_argcheck(self) -> None:
         from .context import SSHContext
 
         original_init = SSHContext.__init__
 
         def fake_init(
-            self,
-            local_root,
-            remote_root,
-            remote_profile,
-            clean_asynchronously=False,
-            create_remote_root=False,
-            *args,
-            **kwargs,
-        ):
+            self: SSHContext,
+            local_root: str,
+            remote_root: str,
+            remote_profile: Dict[str, object],
+            clean_asynchronously: bool = False,
+            create_remote_root: bool = False,
+            *args: object,
+            **kwargs: object,
+        ) -> None:
             self.init_local_root = local_root
             self.init_remote_root = remote_root
             self.remote_profile = remote_profile
@@ -94,7 +95,7 @@ class TestJob(unittest.TestCase):
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
-    def test_resources_argcheck(self):
+    def test_resources_argcheck(self) -> None:
         norm_dict = Resources.load_from_dict(
             {
                 "number_node": 1,
@@ -133,7 +134,7 @@ class TestJob(unittest.TestCase):
         }
         self.assertDictEqual(norm_dict, expected_dict)
 
-    def test_task_argcheck(self):
+    def test_task_argcheck(self) -> None:
         norm_dict = Task.load_from_dict(
             {
                 "command": "ls",

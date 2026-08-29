@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import (
     Machine,
@@ -9,6 +11,9 @@ from dpdispatcher.utils.utils import (
     customized_script_header_template,
     run_cmd_with_all_output,
 )
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job
 
 shell_script_header_template = """
 #!/bin/bash -l
@@ -50,7 +55,7 @@ fi
 
 
 class DistributedShell(Machine):
-    def gen_script_env(self, job):
+    def gen_script_env(self, job: "Job") -> str:
         source_files_part = ""
 
         module_unload_part = ""
@@ -91,7 +96,7 @@ class DistributedShell(Machine):
         )
         return script_env
 
-    def gen_script_end(self, job):
+    def gen_script_end(self, job: "Job") -> str:
         all_task_dirs = ""
         for task in job.job_task_list:
             all_task_dirs += f"{task.task_work_path} "
@@ -112,7 +117,7 @@ class DistributedShell(Machine):
         )
         return script_end
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
         if (
             resources["strategy"].get("customized_script_header_template_file")
@@ -126,7 +131,7 @@ class DistributedShell(Machine):
             shell_script_header = shell_script_header_template
         return shell_script_header
 
-    def do_submit(self, job):
+    def do_submit(self, job: "Job") -> int:
         """Submit th job to yarn using distributed shell.
 
         Parameters
@@ -186,7 +191,7 @@ class DistributedShell(Machine):
         self.context.write_file(job_id_name, str(job_id))
         return job_id
 
-    def check_status(self, job):
+    def check_status(self, job: "Job") -> JobStatus:
         job_id = job.job_id
         if job_id == "":
             return JobStatus.unsubmitted
@@ -210,6 +215,6 @@ class DistributedShell(Machine):
         else:
             return JobStatus.terminated
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: "Job") -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)

@@ -11,12 +11,12 @@ from dpdispatcher.utils.dpcloudserver.config import HTTP_TIME_OUT
 
 
 class TestClientTicket(unittest.TestCase):
-    def _successful_response(self):
+    def _successful_response(self) -> MagicMock:
         response = MagicMock(ok=True)
         response.json.return_value = {"code": "0000", "data": {}}
         return response
 
-    def test_explicit_ticket_skips_login_when_environment_is_empty(self):
+    def test_explicit_ticket_skips_login_when_environment_is_empty(self) -> None:
         client = Client(ticket="explicit-ticket", base_url="https://example.test")
 
         with patch.dict(os.environ, {"BOHR_TICKET": ""}):
@@ -35,7 +35,7 @@ class TestClientTicket(unittest.TestCase):
             "explicit-ticket",
         )
 
-    def test_environment_ticket_skips_login_without_explicit_ticket(self):
+    def test_environment_ticket_skips_login_without_explicit_ticket(self) -> None:
         client = Client(base_url="https://example.test")
 
         with patch.dict(os.environ, {"BOHR_TICKET": "environment-ticket"}):
@@ -54,7 +54,7 @@ class TestClientTicket(unittest.TestCase):
             "environment-ticket",
         )
 
-    def test_environment_ticket_temporarily_overrides_explicit_ticket(self):
+    def test_environment_ticket_temporarily_overrides_explicit_ticket(self) -> None:
         client = Client(ticket="explicit-ticket", base_url="https://example.test")
 
         with patch(
@@ -76,7 +76,7 @@ class TestClientTicket(unittest.TestCase):
         )
         self.assertEqual(client.ticket, "explicit-ticket")
 
-    def test_missing_ticket_uses_password_login(self):
+    def test_missing_ticket_uses_password_login(self) -> None:
         client = Client(
             email="user@example.test",
             password="secret",
@@ -105,7 +105,7 @@ class TestClientTicket(unittest.TestCase):
 
 
 class TestClientLogOffsets(unittest.TestCase):
-    def test_log_offsets_are_independent_for_each_job(self):
+    def test_log_offsets_are_independent_for_each_job(self) -> None:
         client = Client()
         client._get_job_log = MagicMock(
             side_effect=[
@@ -148,7 +148,7 @@ class TestClientLogOffsets(unittest.TestCase):
             ],
         )
 
-    def test_completed_job_does_not_suppress_another_job(self):
+    def test_completed_job_does_not_suppress_another_job(self) -> None:
         client = Client()
         client._get_job_log = MagicMock(
             side_effect=[
@@ -184,7 +184,7 @@ class TestClientLogOffsets(unittest.TestCase):
             ],
         )
 
-    def test_failed_response_does_not_advance_offset(self):
+    def test_failed_response_does_not_advance_offset(self) -> None:
         """An HTTP error body is neither returned nor counted as log data."""
         client = Client()
         client._get_job_log = MagicMock(
@@ -220,7 +220,7 @@ class TestClientLogOffsets(unittest.TestCase):
             ],
         )
 
-    def test_request_exception_does_not_advance_offset(self):
+    def test_request_exception_does_not_advance_offset(self) -> None:
         """A timed-out download is retried from the same byte position."""
         client = Client()
         client._get_job_log = MagicMock(

@@ -3,6 +3,7 @@
 import os
 import sys
 import unittest
+from typing import Sequence
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -14,7 +15,7 @@ from dpdispatcher.utils.job_status import JobStatus
 class TestShouldClean(unittest.TestCase):
     """Unit tests for Submission._should_clean() logic."""
 
-    def _make_submission_with_jobs(self, job_states):
+    def _make_submission_with_jobs(self, job_states: Sequence[JobStatus]) -> Submission:
         """Create a Submission with mocked jobs in given states."""
         submission = Submission.__new__(Submission)
         submission.belonging_jobs = []
@@ -24,34 +25,34 @@ class TestShouldClean(unittest.TestCase):
             submission.belonging_jobs.append(job)
         return submission
 
-    def test_clean_true_always_cleans(self):
+    def test_clean_true_always_cleans(self) -> None:
         """clean=True (legacy) should always return True regardless of job states."""
         sub = self._make_submission_with_jobs(
             [JobStatus.finished, JobStatus.terminated]
         )
         self.assertTrue(sub._should_clean(True, all_genuinely_finished=False))
 
-    def test_clean_false_never_cleans(self):
+    def test_clean_false_never_cleans(self) -> None:
         """clean=False (legacy) should always return False."""
         sub = self._make_submission_with_jobs([JobStatus.finished])
         self.assertFalse(sub._should_clean(False, all_genuinely_finished=True))
 
-    def test_clean_always_string(self):
+    def test_clean_always_string(self) -> None:
         """clean='always' behaves same as True."""
         sub = self._make_submission_with_jobs([JobStatus.terminated])
         self.assertTrue(sub._should_clean("always", all_genuinely_finished=False))
 
-    def test_clean_never_string(self):
+    def test_clean_never_string(self) -> None:
         """clean='never' behaves same as False."""
         sub = self._make_submission_with_jobs([JobStatus.finished])
         self.assertFalse(sub._should_clean("never", all_genuinely_finished=True))
 
-    def test_on_success_genuinely_finished(self):
+    def test_on_success_genuinely_finished(self) -> None:
         """clean='on_success' with all_genuinely_finished=True → should clean."""
         sub = self._make_submission_with_jobs([JobStatus.finished, JobStatus.finished])
         self.assertTrue(sub._should_clean("on_success", all_genuinely_finished=True))
 
-    def test_on_success_not_genuinely_finished(self):
+    def test_on_success_not_genuinely_finished(self) -> None:
         """clean='on_success' with all_genuinely_finished=False → should NOT clean.
 
         This covers the ratio_unfinished path where remove_unfinished_tasks()
@@ -63,13 +64,13 @@ class TestShouldClean(unittest.TestCase):
         # we explicitly know not all jobs genuinely completed.
         self.assertFalse(sub._should_clean("on_success", all_genuinely_finished=False))
 
-    def test_on_success_default_genuinely_finished(self):
+    def test_on_success_default_genuinely_finished(self) -> None:
         """Default all_genuinely_finished=True for backward compat (normal exit path)."""
         sub = self._make_submission_with_jobs([JobStatus.finished])
         # When called without the second arg, defaults to True
         self.assertTrue(sub._should_clean("on_success"))
 
-    def test_unknown_strategy_raises(self):
+    def test_unknown_strategy_raises(self) -> None:
         """Unknown clean value should raise ValueError (fail loudly, not silently clean)."""
         sub = self._make_submission_with_jobs([JobStatus.finished])
         with self.assertRaises(ValueError) as ctx:
@@ -81,7 +82,7 @@ class TestShouldClean(unittest.TestCase):
 class TestInvalidStrategyFailsFast(unittest.TestCase):
     """Invalid clean strategy must raise ValueError BEFORE upload_jobs() is called."""
 
-    def test_invalid_strategy_raises_before_upload(self):
+    def test_invalid_strategy_raises_before_upload(self) -> None:
         """Passing an invalid clean strategy raises ValueError without calling upload_jobs."""
         sub = Submission.__new__(Submission)
         sub.belonging_jobs = []
@@ -102,14 +103,14 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
 class TestDownloadResult(unittest.TestCase):
     """Result-download status must distinguish success from retry exhaustion."""
 
-    def test_successful_download_returns_true(self):
+    def test_successful_download_returns_true(self) -> None:
         sub = Submission.__new__(Submission)
         sub.download_jobs = MagicMock()
 
         self.assertTrue(sub.try_download_result())
         sub.download_jobs.assert_called_once_with()
 
-    def test_retry_exhaustion_returns_false(self):
+    def test_retry_exhaustion_returns_false(self) -> None:
         sub = Submission.__new__(Submission)
         sub.download_jobs = MagicMock(side_effect=OSError("temporary failure"))
 
@@ -124,7 +125,7 @@ class TestDownloadResult(unittest.TestCase):
         sub.download_jobs.assert_called_once_with()
         mock_sleep.assert_not_called()
 
-    def test_retry_exhaustion_prevents_on_success_cleanup(self):
+    def test_retry_exhaustion_prevents_on_success_cleanup(self) -> None:
         sub = Submission.__new__(Submission)
         sub.belonging_jobs = [MagicMock(job_state=JobStatus.finished)]
         sub.belonging_tasks = []
@@ -160,7 +161,7 @@ class TestCleanWithRatioUnfinished(unittest.TestCase):
     successful) and preserve the remote workdir.
     """
 
-    def test_ratio_unfinished_prevents_clean_on_success(self):
+    def test_ratio_unfinished_prevents_clean_on_success(self) -> None:
         """ratio_unfinished early-exit → clean='on_success' must NOT clean."""
         sub = Submission.__new__(Submission)
         sub.belonging_jobs = []
@@ -217,7 +218,7 @@ class TestCleanWithRatioUnfinished(unittest.TestCase):
         #   Inside loop: ratio_unfinished triggers break
         call_count = [0]
 
-        def mock_check_all_finished():
+        def mock_check_all_finished() -> bool:
             call_count[0] += 1
             # Calls 1-3: not all finished (jobs 2,3 still running)
             if call_count[0] <= 3:

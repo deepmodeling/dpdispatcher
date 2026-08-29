@@ -25,11 +25,11 @@ from .sample_class import SampleClass
 
 
 class TestHiddenJobScripts(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.job = SampleClass.get_sample_job()
         self.expected_script_name = f".{self.job.job_hash}.sub"
 
-    def test_scheduler_scripts_source_hidden_run_file(self):
+    def test_scheduler_scripts_source_hidden_run_file(self) -> None:
         """All scheduler variants should use the hidden name without path changes."""
         context = LazyLocalContext(local_root=".")
         context.remote_root = "/tmp/dpdispatcher"
@@ -58,7 +58,7 @@ class TestHiddenJobScripts(unittest.TestCase):
                     f"source $REMOTE_ROOT/{self.expected_script_name}.run", script
                 )
 
-    def test_lazy_local_resubmission_and_recovery_use_hidden_paths(self):
+    def test_lazy_local_resubmission_and_recovery_use_hidden_paths(self) -> None:
         """Recovered jobs regenerate hidden scripts while retaining their hash."""
         with tempfile.TemporaryDirectory() as local_root:
             context = LazyLocalContext(local_root=local_root)
@@ -92,7 +92,7 @@ class TestHiddenJobScripts(unittest.TestCase):
             self.assertTrue(os.path.isfile(script_path))
             self.assertTrue(os.path.isfile(run_path))
 
-    def test_cloud_archives_include_explicit_hidden_scripts(self):
+    def test_cloud_archives_include_explicit_hidden_scripts(self) -> None:
         """Cloud contexts list scripts explicitly, so dot prefixes remain uploadable."""
         with tempfile.TemporaryDirectory() as local_root:
             script_names = (

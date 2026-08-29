@@ -13,7 +13,7 @@ from .context import run
 
 
 class TestRun(unittest.TestCase):
-    def test_run(self):
+    def test_run(self) -> None:
         this_dir = Path(__file__).parent
         cwd = os.getcwd()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -26,7 +26,7 @@ class TestRun(unittest.TestCase):
             finally:
                 os.chdir(cwd)
 
-    def test_create_submission_glob_propagates_allow_ref(self):
+    def test_create_submission_glob_propagates_allow_ref(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             work_base = "work"
             task_dir = Path(temp_dir) / work_base

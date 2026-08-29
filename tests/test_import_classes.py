@@ -11,25 +11,25 @@ from .context import (
 
 
 class TestImportClasses(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
-    def test_import_class_Machine(self):
+    def test_import_class_Machine(self) -> None:
         from dpdispatcher import Machine
 
         self.assertEqual(dpdispatcher.machine.Machine, Machine)
 
-    def test_import_class_Resources(self):
+    def test_import_class_Resources(self) -> None:
         from dpdispatcher import Resources
 
         self.assertEqual(dpdispatcher.submission.Resources, Resources)
 
-    def test_import_class_Submission(self):
+    def test_import_class_Submission(self) -> None:
         from dpdispatcher import Submission
 
         self.assertEqual(dpdispatcher.submission.Submission, Submission)
 
-    def test_import_class_Task(self):
+    def test_import_class_Task(self) -> None:
         from dpdispatcher import Task
 
         self.assertEqual(dpdispatcher.submission.Task, Task)

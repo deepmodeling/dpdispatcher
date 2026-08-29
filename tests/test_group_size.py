@@ -36,7 +36,7 @@ with open(cwd / "jsons" / "task.json") as f:
 
 
 class TestGroupSize(TestCase):
-    def test_works_as_expected(self):
+    def test_works_as_expected(self) -> None:
         for group_size, ntasks in group_ntasks_pairs:
             with self.subTest(group_size):
                 machine = Machine.load_from_dict(j_machine)

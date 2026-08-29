@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from hashlib import sha1
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union, cast
 
 import yaml
 from dargs.dargs import Argument, Variant
@@ -18,6 +18,9 @@ from dpdispatcher.dlog import dlog
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.record import record
+
+if TYPE_CHECKING:
+    from dpdispatcher.base_context import BaseContext
 
 # %%
 default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
@@ -47,14 +50,14 @@ class Submission:
 
     def __init__(
         self,
-        work_base,
-        machine=None,
-        resources=None,
-        forward_common_files=[],
-        backward_common_files=[],
+        work_base: str,
+        machine: Optional["Machine"] = None,
+        resources: Optional["Resources"] = None,
+        forward_common_files: List[str] = [],
+        backward_common_files: List[str] = [],
         *,
-        task_list=[],
-    ):
+        task_list: List["Task"] = [],
+    ) -> None:
         self.local_root = None
         self.work_base = work_base
         self._abs_work_base = os.path.abspath(work_base)
@@ -79,22 +82,28 @@ class Submission:
 
         self.bind_machine(machine)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return json.dumps(self.serialize(), indent=4)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """When check whether the two submission are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
         """
         return json.dumps(self.serialize(if_static=True)) == json.dumps(
-            other.serialize(if_static=True)
+            other.serialize(if_static=True)  # type: ignore[attr-defined]
         )
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:  # noqa: ANN401
         return self.serialize()[key]
 
     @classmethod
-    def deserialize(cls, submission_dict, machine=None, *, bind_context: bool = True):
+    def deserialize(
+        cls,
+        submission_dict: Dict[str, Any],
+        machine: Optional["Machine"] = None,
+        *,
+        bind_context: bool = True,
+    ) -> "Submission":  # noqa: ANN401
         """Convert the submission_dict to a Submission class object.
 
         Parameters
@@ -132,7 +141,7 @@ class Submission:
             submission.bind_machine(machine)
         return submission
 
-    def serialize(self, if_static=False):
+    def serialize(self, if_static: bool = False) -> Dict[str, Any]:  # noqa: ANN401
         """Convert the Submission class instance to a dictionary.
 
         Parameters
@@ -167,26 +176,31 @@ class Submission:
         ]
         return submission_dict
 
-    def register_task(self, task):
+    def register_task(self, task: "Task") -> None:
         if self.belonging_jobs:
             raise RuntimeError(
                 f"Not allowed to register tasks after generating jobs. submission hash error {self}"
             )
         self.belonging_tasks.append(task)
 
-    def register_task_list(self, task_list):
+    def register_task_list(self, task_list: List["Task"]) -> None:
         if self.belonging_jobs:
             raise RuntimeError(
                 f"Not allowed to register tasks after generating jobs. submission hash error {self}"
             )
         self.belonging_tasks.extend(task_list)
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         return sha1(
             json.dumps(self.serialize(if_static=True)).encode("utf-8")
         ).hexdigest()
 
-    def bind_machine(self, machine, *, bind_context: bool = True):
+    def bind_machine(
+        self,
+        machine: Optional["Machine"],
+        *,
+        bind_context: bool = True,
+    ) -> "Submission":
         """Bind this submission to a machine. update the machine's context remote_root and local_root.
 
         Parameters
@@ -200,10 +214,17 @@ class Submission:
         self.machine = machine
         for job in self.belonging_jobs:
             job.machine = machine
-        if machine is not None and bind_context:
-            self.machine.context.bind_submission(self)
+        if machine is not None:
+            if bind_context:
+                machine.context.bind_submission(self)
             self.local_root = machine.context.temp_local_root
         return self
+
+    def _require_machine(self) -> "Machine":
+        """Return the bound machine or fail with an actionable lifecycle error."""
+        if self.machine is None:
+            raise RuntimeError("Submission must be bound to a machine before execution")
+        return self.machine
 
     def run_submission(
         self,
@@ -212,7 +233,7 @@ class Submission:
         exit_on_submit: bool = False,
         clean: Union[bool, str] = True,
         check_interval: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:  # noqa: ANN401
         """Main method to execute the submission.
         First, check whether old Submission exists on the remote machine, and try to recover from it.
         Second, upload the local files to the remote machine where the tasks to be executed.
@@ -238,6 +259,7 @@ class Submission:
             Seconds between status polling iterations.
         """
         assert self.resources is not None
+        machine = self._require_machine()
         # Fail-fast: reject invalid clean strategies before recovery/upload/submission.
         self._should_clean(clean, all_genuinely_finished=False)
         if not self.belonging_jobs:
@@ -255,7 +277,7 @@ class Submission:
                 self.upload_jobs()
                 if dry_run is True:
                     dlog.info(f"submission succeeded: {self.submission_hash}")
-                    dlog.info(f"at {self.machine.context.remote_root}")
+                    dlog.info(f"at {machine.context.remote_root}")
                     return self.serialize()
                 self.handle_unexpected_submission_state()
                 self.submission_to_json()
@@ -268,7 +290,7 @@ class Submission:
             while not self.check_all_finished():
                 if exit_on_submit is True:
                     dlog.info(f"submission succeeded: {self.submission_hash}")
-                    dlog.info(f"at {self.machine.context.remote_root}")
+                    dlog.info(f"at {machine.context.remote_root}")
                     return self.serialize()
                 if ratio_unfinished > 0.0 and self.check_ratio_unfinished(
                     ratio_unfinished
@@ -283,7 +305,7 @@ class Submission:
                     record_path = record.write(self)
                     dlog.exception(e)
                     dlog.info(f"submission exit: {self.submission_hash}")
-                    dlog.info(f"at {self.machine.context.remote_root}")
+                    dlog.info(f"at {machine.context.remote_root}")
                     dlog.info(f"Submission information is saved in {str(record_path)}.")
                     dlog.debug(self.serialize())
                     raise e
@@ -315,7 +337,7 @@ class Submission:
             dlog.info(
                 "clean='on_success': some jobs did not finish successfully, "
                 "preserving remote workdir for debugging at: "
-                f"{self.machine.context.remote_root}"
+                f"{machine.context.remote_root}"
             )
         return self.serialize()
 
@@ -432,7 +454,7 @@ class Submission:
                     break
         return success
 
-    async def async_run_submission(self, **kwargs):
+    async def async_run_submission(self, **kwargs: Any) -> None:  # noqa: ANN401
         """Async interface of run_submission.
 
         Examples
@@ -470,7 +492,7 @@ class Submission:
         wrapped_submission = functools.partial(self.run_submission, **kwargs)
         return await loop.run_in_executor(None, wrapped_submission)
 
-    def update_submission_state(self):
+    def update_submission_state(self) -> None:
         """Check whether all the jobs in the submission.
 
         Notes
@@ -486,12 +508,13 @@ class Submission:
                 f"update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}"
             )
 
-    def handle_unexpected_submission_state(self):
+    def handle_unexpected_submission_state(self) -> None:
         """Handle unexpected job state of the submission.
         If the job state is unsubmitted, submit the job.
         If the job state is terminated (killed unexpectly), resubmit the job.
         If the job state is unknown, raise an error.
         """
+        machine = self._require_machine()
         try:
             for job in self.belonging_jobs:
                 job.handle_unexpected_job_state()
@@ -500,7 +523,7 @@ class Submission:
             record_path = record.write(self)
             raise RuntimeError(
                 f"Meet errors will handle unexpected submission state.\n"
-                f"Debug information: remote_root=={self.machine.context.remote_root}.\n"
+                f"Debug information: remote_root=={machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
                 f"Please check error messages above and in remote_root. "
                 f"The submission information is saved in {str(record_path)}.\n"
@@ -521,6 +544,7 @@ class Submission:
             whether the ratio of unfinished tasks in the submission is larger than ratio_unfinished
         """
         assert self.resources is not None
+        machine = self._require_machine()
         if self.resources.group_size == 1:
             # if group size is 1, calculate job state is enough and faster
             status_list = [job.job_state for job in self.belonging_jobs]
@@ -528,17 +552,18 @@ class Submission:
             # get task state is more accurate
             status_list = []
             for task in self.belonging_tasks:
-                task.get_task_state(self.machine.context)
+                task.get_task_state(machine.context)
                 status_list.append(task.task_state)
         finished_num = status_list.count(JobStatus.finished)
         return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
-    def remove_unfinished_tasks(self):
+    def remove_unfinished_tasks(self) -> None:
+        machine = self._require_machine()
         dlog.info("Remove unfinished tasks")
         # kill all jobs and mark them as finished
         for job in self.belonging_jobs:
             if job.job_state != JobStatus.finished:
-                self.machine.kill(job)
+                machine.kill(job)
                 job.job_state = JobStatus.finished
         # remove all unfinished tasks
         finished_tasks = []
@@ -556,7 +581,7 @@ class Submission:
                 if task.task_state == JobStatus.finished
             ]
 
-    def check_all_finished(self):
+    def check_all_finished(self) -> bool:
         """Check whether all the jobs in the submission.
 
         Notes
@@ -587,7 +612,7 @@ class Submission:
         else:
             return True
 
-    def generate_jobs(self):
+    def generate_jobs(self) -> None:
         """After tasks register to the self.belonging_tasks,
         This method generate the jobs and add these jobs to self.belonging_jobs.
         The jobs are generated by the tasks randomly, and there are self.resources.group_size tasks in a task.
@@ -630,42 +655,45 @@ class Submission:
 
         self.submission_hash = self.get_hash()
 
-    def upload_jobs(self):
-        self.machine.context.upload(self)
+    def upload_jobs(self) -> None:
+        self._require_machine().context.upload(self)
 
-    def download_jobs(self):
-        self.machine.context.download(self)
+    def download_jobs(self) -> None:
+        self._require_machine().context.download(self)
         # for job in self.belonging_jobs:
         #     job.tag_finished()
         # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")
 
-    def clean_jobs(self):
-        self.machine.context.clean()
+    def clean_jobs(self) -> None:
+        self._require_machine().context.clean()
         assert self.submission_hash is not None
         record.remove(self.submission_hash)
 
-    def submission_to_json(self):
+    def submission_to_json(self) -> None:
         # self.update_submission_state()
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = f"{self.submission_hash}.json"
-        self.machine.context.write_file(submission_file_name, write_str=write_str)
+        self._require_machine().context.write_file(
+            submission_file_name, write_str=write_str
+        )
 
     @classmethod
-    def submission_from_json(cls, json_file_name="submission.json"):
+    def submission_from_json(
+        cls, json_file_name: str = "submission.json"
+    ) -> "Submission":
         with open(json_file_name) as f:
             submission_dict = json.load(f)
         submission = cls.deserialize(submission_dict=submission_dict, machine=None)
         return submission
 
-    def try_recover_from_json(self):
+    def try_recover_from_json(self) -> None:
+        machine = self._require_machine()
         submission_file_name = f"{self.submission_hash}.json"
-        if_recover = self.machine.context.check_file_exists(submission_file_name)
+        if_recover = machine.context.check_file_exists(submission_file_name)
         submission = None
         submission_dict = {}
         if if_recover:
-            submission_dict_str = self.machine.context.read_file(
-                fname=submission_file_name
-            )
+            submission_dict_str = machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
             # Reuse the authenticated machine that read the recovery file. Creating a
             # second SSHContext here can fail for one-time authentication methods such
@@ -686,7 +714,7 @@ class Submission:
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
                     f"submission.submission_hash:{submission.submission_hash}; "
-                    f"machine.context.remote_root:{self.machine.context.remote_root}; "
+                    f"machine.context.remote_root:{machine.context.remote_root}; "
                     f"submission.work_base:{submission.work_base};"
                 )
             else:
@@ -739,16 +767,16 @@ class Task:
         # self.uuid =
         self.task_state = JobStatus.unsubmitted
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.serialize())
 
-    def __eq__(self, other):
-        return json.dumps(self.serialize()) == json.dumps(other.serialize())
+    def __eq__(self, other: object) -> bool:
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())  # type: ignore[attr-defined]
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:  # noqa: ANN401
         return self.serialize()[key]
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         return sha1(json.dumps(self.serialize()).encode("utf-8")).hexdigest()
 
     @classmethod
@@ -807,7 +835,7 @@ class Task:
         return task
 
     @classmethod
-    def deserialize(cls, task_dict):
+    def deserialize(cls, task_dict: Dict[str, Any]) -> "Task":  # noqa: ANN401
         """Convert the task_dict to a Task class object.
 
         Parameters
@@ -823,7 +851,7 @@ class Task:
         task = cls(**task_dict)
         return task
 
-    def serialize(self):
+    def serialize(self) -> Dict[str, Any]:  # noqa: ANN401
         task_dict = {}
         task_dict["command"] = self.command
         task_dict["task_work_path"] = self.task_work_path
@@ -835,7 +863,7 @@ class Task:
         return task_dict
 
     @staticmethod
-    def arginfo():
+    def arginfo() -> Argument:
         doc_command = (
             "Shell command executed for this task. A zero exit code is treated as success. "
             "If the real application may fail before useful artifacts are synchronized, consider "
@@ -903,7 +931,7 @@ class Task:
         task_format = Argument("task", dict, task_args)
         return task_format
 
-    def get_task_state(self, context):
+    def get_task_state(self, context: "BaseContext") -> None:
         """Get the task state by checking the tag file.
 
         Parameters
@@ -942,17 +970,20 @@ class Job:
 
     def __init__(
         self,
-        job_task_list,
+        job_task_list: List["Task"],
         *,
-        resources,
-        machine=None,
-    ):
+        resources: "Resources",
+        machine: Optional["Machine"] = None,
+    ) -> None:
         self.job_task_list = job_task_list
         # self.job_work_base = job_work_base
         self.resources = resources
         self.machine = machine
-        self.job_state = None  # JobStatus.unsubmitted
-        self.job_id = ""
+        self.job_state: Optional[JobStatus] = None  # JobStatus.unsubmitted
+        self.job_id: Union[str, int] = ""
+        # Cloud backends attach these identifiers while staging and submitting.
+        self.upload_path = ""
+        self.jgid: Optional[Union[str, int]] = None
         self.fail_count = 0
         self.job_uuid = uuid.uuid4()
 
@@ -961,19 +992,21 @@ class Job:
         # existing contexts, but hide them from normal directory listings.
         self.script_file_name = f".{self.job_hash}.sub"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.serialize())
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """When check whether the two jobs are equal,
         we disregard the runtime infomation(job_state, job_id, fail_count) of the jobs.
         """
         return json.dumps(self.serialize(if_static=True)) == json.dumps(
-            other.serialize(if_static=True)
+            other.serialize(if_static=True)  # type: ignore[attr-defined]
         )
 
     @classmethod
-    def deserialize(cls, job_dict, machine=None):
+    def deserialize(
+        cls, job_dict: Dict[str, Any], machine: Optional["Machine"] = None
+    ) -> "Job":  # noqa: ANN401
         """Convert the  job_dict to a Submission class object.
 
         Parameters
@@ -1015,7 +1048,7 @@ class Job:
             task.task_state = job.job_state
         return job
 
-    def get_job_state(self):
+    def get_job_state(self) -> None:
         """Get the jobs. Usually, this method will query the database of slurm or pbs job scheduler system and get the results.
 
         Notes
@@ -1034,7 +1067,7 @@ class Job:
             if task.task_state != JobStatus.finished:
                 task.task_state = job_state
 
-    def handle_unexpected_job_state(self):
+    def handle_unexpected_job_state(self) -> None:
         job_state = self.job_state
 
         if job_state == JobStatus.unknown:
@@ -1089,10 +1122,10 @@ class Job:
                 time.sleep(self.resources.wait_time)
             # self.get_job_state()
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         return str(list(self.serialize(if_static=True).keys())[0])
 
-    def serialize(self, if_static=False):
+    def serialize(self, if_static: bool = False) -> Dict[str, Any]:  # noqa: ANN401
         """Convert the Task class instance to a dictionary.
 
         Parameters
@@ -1120,10 +1153,10 @@ class Job:
             # job_content_dict['job_uuid'] = self.job_uuid
         return {job_hash: job_content_dict}
 
-    def register_job_id(self, job_id):
+    def register_job_id(self, job_id: Union[str, int]) -> None:
         self.job_id = job_id
 
-    def submit_job(self):
+    def submit_job(self) -> None:
         assert self.machine is not None
         job_id = self.machine.do_submit(self)
         self.register_job_id(job_id)
@@ -1132,7 +1165,7 @@ class Job:
         else:
             self.job_state = JobStatus.unsubmitted
 
-    def job_to_json(self):
+    def job_to_json(self) -> None:
         write_str = json.dumps(self.serialize(), indent=2, default=str)
         assert self.machine is not None
         self.machine.context.write_file(
@@ -1180,7 +1213,9 @@ class Job:
         payload.belonging_jobs = [self]
         payload.forward_common_files = submission.forward_common_files
         payload.preserve_existing_forward_common_files = True
-        context.upload(payload)
+        # Upload contexts intentionally consume this structural subset of a
+        # Submission; the cast records that duck-typed boundary for the checker.
+        context.upload(cast(Submission, payload))
 
 
 class Resources:
@@ -1239,7 +1274,7 @@ class Resources:
         prepend_script: Optional[Sequence[str]] = None,
         append_script: Optional[Sequence[str]] = None,
         wait_time: int = 0,
-        **kwargs: Any,
+        **kwargs: Any,  # noqa: ANN401
     ) -> None:
         self.number_node = number_node
         self.cpu_per_node = cpu_per_node
@@ -1287,10 +1322,10 @@ class Resources:
         if self.strategy["ratio_unfinished"] >= 1.0:
             raise RuntimeError("ratio_unfinished must be smaller than 1.0")
 
-    def __eq__(self, other):
-        return json.dumps(self.serialize()) == json.dumps(other.serialize())
+    def __eq__(self, other: object) -> bool:
+        return json.dumps(self.serialize()) == json.dumps(other.serialize())  # type: ignore[attr-defined]
 
-    def serialize(self):
+    def serialize(self) -> Dict[str, Any]:  # noqa: ANN401
         resources_dict = {}
         resources_dict["number_node"] = self.number_node
         resources_dict["cpu_per_node"] = self.cpu_per_node
@@ -1313,7 +1348,7 @@ class Resources:
         return resources_dict
 
     @classmethod
-    def deserialize(cls, resources_dict):
+    def deserialize(cls, resources_dict: Dict[str, Any]) -> "Resources":  # noqa: ANN401
         resources = cls(
             number_node=resources_dict.get("number_node", 1),
             cpu_per_node=resources_dict.get("cpu_per_node", 1),
@@ -1335,25 +1370,27 @@ class Resources:
         )
         return resources
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:  # noqa: ANN401
         return self.serialize()[key]
 
     @classmethod
-    def load_from_json(cls, json_file):
+    def load_from_json(cls, json_file: str) -> "Resources":
         with open(json_file) as f:
             resources_dict = json.load(f)
         resources = cls.load_from_dict(resources_dict=resources_dict)
         return resources
 
     @classmethod
-    def load_from_yaml(cls, yaml_file):
+    def load_from_yaml(cls, yaml_file: str) -> "Resources":
         with open(yaml_file) as f:
             resources_dict = yaml.safe_load(f)
         resources = cls.load_from_dict(resources_dict=resources_dict)
         return resources
 
     @classmethod
-    def load_from_dict(cls, resources_dict: dict, allow_ref: bool = False):
+    def load_from_dict(
+        cls, resources_dict: Dict[str, Any], allow_ref: bool = False
+    ) -> "Resources":  # noqa: ANN401
         """Load Resources from a dict.
 
         Parameters
@@ -1374,7 +1411,7 @@ class Resources:
         return cls.deserialize(resources_dict=resources_dict)
 
     @staticmethod
-    def arginfo(detail_kwargs=True):
+    def arginfo(detail_kwargs: bool = True) -> Argument:
         doc_number_node = "Number of nodes requested for each scheduler job generated by DPDispatcher."
         doc_cpu_per_node = (
             "Number of CPUs requested on each node for each scheduler job."

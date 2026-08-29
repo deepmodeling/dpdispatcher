@@ -1,18 +1,21 @@
+from __future__ import annotations
+
 import json
 import pathlib
 import re
 import shlex
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import yaml
 from dargs import Argument, Variant
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.utils.job_status import JobStatus
 
 if TYPE_CHECKING:
-    from dpdispatcher.submission import Task
+    from dpdispatcher.submission import Job, Resources, Submission, Task
 
 script_template = """\
 {script_header}
@@ -190,7 +193,7 @@ def _format_export_lines(envs: Mapping[str, Any]) -> str:
     behavior while making the final value deterministic and shell-safe.  An
     empty list emits no export and therefore leaves an inherited value intact.
     """
-    lines: List[str] = []
+    lines: list[str] = []
     for name, value in envs.items():
         if not isinstance(name, str):
             raise TypeError("Environment variable names must be strings")
@@ -221,9 +224,9 @@ class Machine(metaclass=ABCMeta):
     options = set()
     # alias: for subclasses_dict key
     # notes: this attribute can be inherited
-    alias: Tuple[str, ...] = tuple()
+    alias: tuple[str, ...] = tuple()
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any) -> Machine:  # noqa: ANN401
         if cls is Machine:
             subcls = cls.subclasses_dict[kwargs["batch_type"]]
             instance = subcls.__new__(subcls, *args, **kwargs)
@@ -233,15 +236,15 @@ class Machine(metaclass=ABCMeta):
 
     def __init__(
         self,
-        batch_type=None,
-        context_type=None,
-        local_root=None,
-        remote_root=None,
-        remote_profile={},
-        retry_count=3,
+        batch_type: str | None = None,
+        context_type: str | None = None,
+        local_root: str | None = None,
+        remote_root: str | None = None,
+        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        retry_count: int = 3,
         *,
-        context=None,
-    ):
+        context: BaseContext | None = None,
+    ) -> None:
         if context is None:
             assert isinstance(self, self.__class__.subclasses_dict[batch_type])
             context = BaseContext(
@@ -255,15 +258,23 @@ class Machine(metaclass=ABCMeta):
         self.bind_context(context=context)
         self.retry_count = retry_count
 
-    def bind_context(self, context):
+    def bind_context(self, context: BaseContext) -> None:
         self.context = context
 
-    def get_job_error(self, job):
+    def get_job_error(self, job: Job) -> str | None:
         """Return the saved error diagnostic for a job, if available."""
         error_file = job.job_hash + "_last_err_file"
         if self.context.check_file_exists(error_file):
             return self.context.read_file(error_file)
         return None
+
+    def gen_local_script(self, job: Job) -> str:
+        """Generate a local staging script for cloud backends.
+
+        Only cloud machine implementations support this operation; the base
+        declaration keeps their context interface type-safe.
+        """
+        raise NotImplementedError("machine does not support local script staging")
 
     # def __init__ (self,
     #             context):
@@ -274,7 +285,7 @@ class Machine(metaclass=ABCMeta):
     # self.sub_script_name = '%s.sub' % self.context.job_uuid
     # self.job_id_name = '%s_job_id' % self.context.job_uuid
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init_subclass__(**kwargs)
         alias = [cls.__name__, *cls.alias]
         for aa in alias:
@@ -284,21 +295,23 @@ class Machine(metaclass=ABCMeta):
         # cls.subclasses.append(cls)
 
     @classmethod
-    def load_from_json(cls, json_path):
+    def load_from_json(cls, json_path: str) -> Machine:
         with open(json_path) as f:
             machine_dict = json.load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     @classmethod
-    def load_from_yaml(cls, yaml_path):
+    def load_from_yaml(cls, yaml_path: str) -> Machine:
         with open(yaml_path) as f:
             machine_dict = yaml.safe_load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     @classmethod
-    def load_from_dict(cls, machine_dict: dict, allow_ref: bool = False) -> "Machine":
+    def load_from_dict(
+        cls, machine_dict: dict[str, Any], allow_ref: bool = False
+    ) -> Machine:  # noqa: ANN401
         """Load a Machine from a dict.
 
         Parameters
@@ -332,7 +345,7 @@ class Machine(metaclass=ABCMeta):
         machine = machine_class(context=context, retry_count=retry_count)
         return machine
 
-    def serialize(self, if_empty_remote_profile: bool = False) -> Dict[str, Any]:
+    def serialize(self, if_empty_remote_profile: bool = False) -> dict[str, Any]:  # noqa: ANN401
         machine_dict = {}
         machine_dict["batch_type"] = self.__class__.__name__
         machine_dict["context_type"] = self.context.__class__.__name__
@@ -355,46 +368,46 @@ class Machine(metaclass=ABCMeta):
         )
         return machine_dict
 
-    def __eq__(self, other):
-        return self.serialize() == other.serialize()
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Machine) and self.serialize() == other.serialize()
 
     @classmethod
-    def deserialize(cls, machine_dict):
+    def deserialize(cls, machine_dict: dict[str, Any]) -> Machine:  # noqa: ANN401
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     @abstractmethod
-    def check_status(self, job):
+    def check_status(self, job: Job) -> JobStatus:
         raise NotImplementedError(
             "abstract method check_status should be implemented by derived class"
         )
 
-    def default_resources(self, res):
+    def default_resources(self, res: Resources) -> Resources:
         raise NotImplementedError(
             "abstract method default_resources should be implemented by derived class"
         )
 
-    def sub_script_head(self, res):
+    def sub_script_head(self, res: Resources) -> str:
         raise NotImplementedError(
             "abstract method sub_script_head should be implemented by derived class"
         )
 
-    def sub_script_cmd(self, res):
+    def sub_script_cmd(self, res: Resources) -> str:
         raise NotImplementedError(
             "abstract method sub_script_cmd should be implemented by derived class"
         )
 
     @abstractmethod
-    def do_submit(self, job):
+    def do_submit(self, job: Job) -> str | int:
         """Submit a single job, assuming that no job is running there."""
         raise NotImplementedError(
             "abstract method do_submit should be implemented by derived class"
         )
 
-    def gen_script_run_command(self, job):
+    def gen_script_run_command(self, job: Job) -> str:
         return f"source $REMOTE_ROOT/{job.script_file_name}.run"
 
-    def gen_script(self, job):
+    def gen_script(self, job: Job) -> str:
         script_header = self.gen_script_header(job)
         script_custom_flags = self.gen_script_custom_flags_lines(job)
         script_env = self.gen_script_env(job)
@@ -409,25 +422,25 @@ class Machine(metaclass=ABCMeta):
         )
         return script
 
-    def check_if_recover(self, submission):
+    def check_if_recover(self, submission: Submission) -> bool:
         submission_hash = submission.submission_hash
         submission_file_name = f"{submission_hash}.json"
         if_recover = self.context.check_file_exists(submission_file_name)
         return if_recover
 
     @abstractmethod
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: Job) -> bool:
         raise NotImplementedError(
             "abstract method check_finish_tag should be implemented by derived class"
         )
 
     @abstractmethod
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: Job) -> str:
         raise NotImplementedError(
             "abstract method gen_script_header should be implemented by derived class"
         )
 
-    def gen_script_custom_flags_lines(self, job):
+    def gen_script_custom_flags_lines(self, job: Job) -> str:
         custom_flags_lines = ""
         custom_flags = job.resources.custom_flags
         for ii in custom_flags:
@@ -435,7 +448,7 @@ class Machine(metaclass=ABCMeta):
             custom_flags_lines += line
         return custom_flags_lines
 
-    def gen_script_env(self, job):
+    def gen_script_env(self, job: Job) -> str:
         source_files_part = ""
 
         module_unload_part = ""
@@ -490,7 +503,7 @@ class Machine(metaclass=ABCMeta):
         )
         return script_env
 
-    def gen_script_command(self, job):
+    def gen_script_command(self, job: Job) -> str:
         script_command = ""
         resources = job.resources
         # in_para_task_num = 0
@@ -526,7 +539,7 @@ class Machine(metaclass=ABCMeta):
         return script_command
 
     @staticmethod
-    def _gen_failure_diagnostic(task: "Task", last_err_file: str) -> str:
+    def _gen_failure_diagnostic(task: Task, last_err_file: str) -> str:
         """Generate a last-error excerpt only when stderr has a task log."""
         if task.errlog is None:
             return ""
@@ -537,7 +550,7 @@ class Machine(metaclass=ABCMeta):
             f"> $REMOTE_ROOT/{shlex.quote(last_err_file)};"
         )
 
-    def gen_script_end(self, job):
+    def gen_script_end(self, job: Job) -> str:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 
@@ -551,7 +564,7 @@ class Machine(metaclass=ABCMeta):
         )
         return script_end
 
-    def gen_script_wait(self, resources):
+    def gen_script_wait(self, resources: Resources) -> str:
         # if not resources.strategy.get('if_cuda_multi_devices', None):
         #     return "wait \n"
         para_deg = resources.para_deg
@@ -569,7 +582,7 @@ class Machine(metaclass=ABCMeta):
             return "wait \n"
         return ""
 
-    def gen_command_env_cuda_devices(self, resources):
+    def gen_command_env_cuda_devices(self, resources: Resources) -> str:
         # task_need_resources = task.task_need_resources
         # task_need_gpus = task_need_resources.get('task_need_gpus', 1)
         command_env = ""
@@ -586,7 +599,7 @@ class Machine(metaclass=ABCMeta):
         return command_env
 
     @classmethod
-    def arginfo(cls):
+    def arginfo(cls) -> Argument:
         # TODO: change the possible value of batch and context types after we refactor the code
         doc_batch_type = "Batch backend used to execute jobs. Option: " + ", ".join(
             cls.options
@@ -667,7 +680,7 @@ class Machine(metaclass=ABCMeta):
         )
 
     @classmethod
-    def resources_subfields(cls) -> List[Argument]:
+    def resources_subfields(cls) -> list[Argument]:
         """Generate the resources subfields.
 
         Returns
@@ -681,7 +694,7 @@ class Machine(metaclass=ABCMeta):
             )
         ]
 
-    def kill(self, job):
+    def kill(self, job: Job) -> None:
         """Kill the job.
 
         If not implemented, pass and let the user manually kill it.
@@ -693,7 +706,7 @@ class Machine(metaclass=ABCMeta):
         """
         dlog.warning(f"Job {job.job_id} should be manually killed")
 
-    def get_exit_code(self, job):
+    def get_exit_code(self, job: Job) -> int:
         """Get exit code of the job.
 
         Parameters

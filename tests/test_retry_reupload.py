@@ -13,6 +13,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from typing import Any, List, Optional
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -24,7 +25,11 @@ from dpdispatcher.utils.job_status import JobStatus
 class TestEnsureForwardFilesOnRetry(unittest.TestCase):
     """Unit tests for Job._ensure_forward_files_on_retry()."""
 
-    def _make_job(self, task_list=None, forward_common_files=None):
+    def _make_job(
+        self,
+        task_list: Optional[List[MagicMock]] = None,
+        forward_common_files: Optional[List[str]] = None,
+    ) -> Job:
         """Create a Job with mocked machine/context."""
         job = Job.__new__(Job)
         job.machine = MagicMock()
@@ -42,13 +47,13 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
         job.job_task_list = task_list
         return job
 
-    def test_calls_context_upload(self):
+    def test_calls_context_upload(self) -> None:
         """Calls context.upload() exactly once."""
         job = self._make_job()
         job._ensure_forward_files_on_retry()
         job.machine.context.upload.assert_called_once()
 
-    def test_payload_contains_job_tasks(self):
+    def test_payload_contains_job_tasks(self) -> None:
         """Upload payload contains this job's task list."""
         task = MagicMock()
         task.task_work_path = "task0"
@@ -58,21 +63,21 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
         payload = job.machine.context.upload.call_args[0][0]
         self.assertEqual(payload.belonging_tasks, [task])
 
-    def test_payload_contains_forward_common_files(self):
+    def test_payload_contains_forward_common_files(self) -> None:
         """Upload payload includes forward_common_files from submission."""
         job = self._make_job(forward_common_files=["shared_model.pb"])
         job._ensure_forward_files_on_retry()
         payload = job.machine.context.upload.call_args[0][0]
         self.assertEqual(payload.forward_common_files, ["shared_model.pb"])
 
-    def test_payload_contains_retry_job(self):
+    def test_payload_contains_retry_job(self) -> None:
         """Upload payload includes the job collection required by cloud contexts."""
         job = self._make_job()
         job._ensure_forward_files_on_retry()
         payload = job.machine.context.upload.call_args[0][0]
         self.assertEqual(payload.belonging_jobs, [job])
 
-    def test_cloud_upload_contexts_receive_retry_job(self):
+    def test_cloud_upload_contexts_receive_retry_job(self) -> None:
         """Both cloud upload implementations can consume the retry payload."""
         from dpdispatcher.contexts.dp_cloud_server_context import (
             BohriumContext,
@@ -91,7 +96,11 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
                 context = job.machine.context
                 context.upload_job = MagicMock()
 
-                def run_real_upload(payload, method=upload_method, ctx=context):
+                def run_real_upload(
+                    payload: Any,  # noqa: ANN401
+                    method: Any = upload_method,  # noqa: ANN401
+                    ctx: Any = context,  # noqa: ANN401
+                ) -> Any:  # noqa: ANN401
                     return method(ctx, payload)
 
                 context.upload.side_effect = run_real_upload
@@ -99,28 +108,28 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
 
                 context.upload_job.assert_called_once_with(job, ["shared_model.pb"])
 
-    def test_no_submission_on_context(self):
+    def test_no_submission_on_context(self) -> None:
         """If context has no submission attr, method returns early (no-op)."""
         job = self._make_job()
         del job.machine.context.submission
         job._ensure_forward_files_on_retry()
         job.machine.context.upload.assert_not_called()
 
-    def test_no_machine_is_noop(self):
+    def test_no_machine_is_noop(self) -> None:
         """If machine is None, method is a no-op."""
         job = Job.__new__(Job)
         job.machine = None
         job.job_task_list = []
         job._ensure_forward_files_on_retry()
 
-    def test_upload_exception_propagates(self):
+    def test_upload_exception_propagates(self) -> None:
         """Exceptions from upload propagate to the retry caller."""
         job = self._make_job()
         job.machine.context.upload.side_effect = FileNotFoundError("gone")
         with self.assertRaises(FileNotFoundError):
             job._ensure_forward_files_on_retry()
 
-    def test_restore_failure_prevents_resubmission(self):
+    def test_restore_failure_prevents_resubmission(self) -> None:
         """A terminated job is not resubmitted without its required inputs."""
         job = self._make_job()
         job.job_state = JobStatus.terminated
@@ -143,17 +152,17 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
 class TestEnsureForwardFilesIntegration(unittest.TestCase):
     """Integration test with real LocalContext."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmpdir = tempfile.mkdtemp()
         self.local_root = os.path.join(self.tmpdir, "local")
         self.remote_root = os.path.join(self.tmpdir, "remote")
         os.makedirs(self.local_root)
         os.makedirs(self.remote_root)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmpdir)
 
-    def test_binary_file_integrity(self):
+    def test_binary_file_integrity(self) -> None:
         """Binary .pb file is uploaded without corruption."""
         from dpdispatcher.contexts.local_context import LocalContext
 
@@ -185,7 +194,7 @@ class TestEnsureForwardFilesIntegration(unittest.TestCase):
         with open(remote_file, "rb") as f:
             self.assertEqual(f.read(), binary_content)
 
-    def test_glob_expansion(self):
+    def test_glob_expansion(self) -> None:
         """Glob patterns in forward_files are expanded correctly."""
         from dpdispatcher.contexts.local_context import LocalContext
 

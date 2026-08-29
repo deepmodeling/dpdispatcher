@@ -13,6 +13,7 @@
 import os
 import sys
 from datetime import date
+from typing import Any
 
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -68,7 +69,7 @@ autosummary_generate = True
 master_doc = "index"
 
 
-def run_apidoc(_):
+def run_apidoc(_: Any) -> None:  # noqa: ANN401
     from sphinx.ext.apidoc import main
 
     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -89,7 +90,7 @@ def run_apidoc(_):
     )
 
 
-def setup(app):
+def setup(app: Any) -> None:  # noqa: ANN401
     app.connect("builder-inited", run_apidoc)
 
 

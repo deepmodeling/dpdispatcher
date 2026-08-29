@@ -20,7 +20,7 @@ from .context import (
 
 
 class TestSlurmScriptGeneration(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
 
     def _make_header(
@@ -41,7 +41,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         resources = Resources(**machine_dict["resources"])
         return machine.gen_script_header(SimpleNamespace(resources=resources))
 
-    def test_shell_trival(self):
+    def test_shell_trival(self) -> None:
         header = self._make_header()
         benchmark_str = textwrap.dedent(
             """\
@@ -53,7 +53,7 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         )
         self.assertEqual(header, benchmark_str)
 
-    def test_cpu_header_omits_gpu_request(self):
+    def test_cpu_header_omits_gpu_request(self) -> None:
         header = self._make_header(
             resource_updates={
                 "gpu_per_node": 0,
@@ -70,13 +70,13 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         self.assertIn("#SBATCH --ntasks-per-node 4", header)
         self.assertIn("#SBATCH --partition CPU", header)
 
-    def test_gpu_header_uses_default_gres_when_requested(self):
+    def test_gpu_header_uses_default_gres_when_requested(self) -> None:
         header = self._make_header(remove_resource_keys=["custom_gpu_line"])
 
         self.assertIn("#SBATCH --gres=gpu:2", header)
 
     @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
-    def test_template(self):
+    def test_template(self) -> None:
         with open("jsons/machine_lazy_local_slurm.json") as f:
             machine_dict = json.load(f)
 

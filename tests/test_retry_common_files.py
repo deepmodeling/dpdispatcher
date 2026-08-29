@@ -14,7 +14,7 @@ from dpdispatcher.submission import Job
 class TestRetryCommonFiles(unittest.TestCase):
     """A single-job retry must not replace live shared inputs."""
 
-    def _make_job(self, context):
+    def _make_job(self, context: object) -> Job:
         job = Job.__new__(Job)
         job.machine = MagicMock()
         job.machine.context = context
@@ -24,7 +24,7 @@ class TestRetryCommonFiles(unittest.TestCase):
         job.job_task_list = [task]
         return job
 
-    def test_retry_payload_requests_preservation(self):
+    def test_retry_payload_requests_preservation(self) -> None:
         context = MagicMock()
         context.submission.forward_common_files = ["shared"]
         job = self._make_job(context)
@@ -36,7 +36,7 @@ class TestRetryCommonFiles(unittest.TestCase):
 
     def test_existing_common_entries_are_preserved_while_missing_entries_are_added(
         self,
-    ):
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             local_root = os.path.join(tmpdir, "local")
             remote_root = os.path.join(tmpdir, "remote")
@@ -67,7 +67,7 @@ class TestRetryCommonFiles(unittest.TestCase):
             with open(os.path.join(remote_common, "config.json")) as fp:
                 self.assertEqual(fp.read(), "new config")
 
-    def test_concurrent_retries_publish_shared_directory_atomically(self):
+    def test_concurrent_retries_publish_shared_directory_atomically(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             local_root = os.path.join(tmpdir, "local")
             remote_root = os.path.join(tmpdir, "remote")
@@ -83,7 +83,7 @@ class TestRetryCommonFiles(unittest.TestCase):
             publish_barrier = threading.Barrier(2)
             rename = os.rename
 
-            def synchronized_rename(source, target):
+            def synchronized_rename(source: str, target: str) -> None:
                 publish_barrier.wait(timeout=5)
                 return rename(source, target)
 

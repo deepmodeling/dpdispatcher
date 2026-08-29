@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Submission
 
 
 class Record:
@@ -10,7 +15,7 @@ class Record:
         self.record_directory = Path.home() / ".dpdispatcher" / "submission"
         self.record_directory.mkdir(parents=True, exist_ok=True)
 
-    def get_submissions(self) -> List[str]:
+    def get_submissions(self) -> list[str]:
         """Get all stored submission hashes.
 
         Returns
@@ -24,7 +29,7 @@ class Record:
             if (f.is_file() and f.suffix == ".json")
         ]
 
-    def write(self, submission) -> Path:
+    def write(self, submission: Submission) -> Path:
         """Write submission data to file.
 
         Parameters
@@ -59,7 +64,7 @@ class Record:
             raise FileNotFoundError(f"Submission file not found: {submission_file}")
         return submission_file
 
-    def remove(self, hash: str):
+    def remove(self, hash: str) -> None:
         """Remove submission data by hash.
 
         Call this method when the remote directory is cleaned.

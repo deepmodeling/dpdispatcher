@@ -28,7 +28,7 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
     old_remote_root = "/remote/old-hash"
     new_remote_root = "/remote/new-hash"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = SSHContext.__new__(SSHContext)
         self.context.temp_local_root = "/local"
         self.context.temp_remote_root = "/remote"
@@ -39,7 +39,7 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
         self.context.ssh_session.ssh.open_sftp.return_value = self.sftp
         self.submission = SimpleNamespace(work_base="work", submission_hash="new-hash")
 
-    def test_empty_old_root_is_removed_instead_of_moved(self):
+    def test_empty_old_root_is_removed_instead_of_moved(self) -> None:
         """An empty old hash is a disposable placeholder, not recovery data."""
         self.sftp.listdir.return_value = []
 
@@ -49,7 +49,16 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
         self.sftp.rename.assert_not_called()
         self.sftp.mkdir.assert_called_once_with(self.new_remote_root)
 
-    def test_non_empty_old_root_is_moved_when_destination_is_absent(self):
+    def test_initial_bind_skips_recovery_without_an_old_root(self) -> None:
+        """The ANN-compatible empty sentinel is not an SFTP recovery path."""
+        self.context.remote_root = ""
+
+        self.context.bind_submission(self.submission)
+
+        self.sftp.listdir.assert_not_called()
+        self.sftp.mkdir.assert_called_once_with(self.new_remote_root)
+
+    def test_non_empty_old_root_is_moved_when_destination_is_absent(self) -> None:
         """Files from an interrupted submission remain available for recovery."""
         self.sftp.listdir.return_value = ["task-state.json"]
         self.sftp.stat.side_effect = FileNotFoundError(errno.ENOENT, "not found")
@@ -61,7 +70,7 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
         )
         self.sftp.rmdir.assert_not_called()
 
-    def test_source_disappearance_during_move_is_tolerated(self):
+    def test_source_disappearance_during_move_is_tolerated(self) -> None:
         """Concurrent recovery can consume the old directory first."""
         self.sftp.listdir.return_value = ["task-state.json"]
         self.sftp.stat.side_effect = FileNotFoundError(errno.ENOENT, "not found")
@@ -71,7 +80,7 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
 
         self.sftp.mkdir.assert_called_once_with(self.new_remote_root)
 
-    def test_unrelated_move_error_is_not_masked(self):
+    def test_unrelated_move_error_is_not_masked(self) -> None:
         """Permission and transport-related move failures remain actionable."""
         self.sftp.listdir.return_value = ["task-state.json"]
         self.sftp.stat.side_effect = FileNotFoundError(errno.ENOENT, "not found")
@@ -83,7 +92,7 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
 
         self.assertIs(raised.exception, move_error)
 
-    def test_existing_destination_is_not_overwritten(self):
+    def test_existing_destination_is_not_overwritten(self) -> None:
         """A new hash directory wins over stale non-empty recovery data."""
         self.sftp.listdir.return_value = ["task-state.json"]
         self.sftp.stat.return_value = MagicMock()
@@ -99,7 +108,7 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
 )
 class TestSSHContext(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         mdata = {
             "batch_type": "Shell",
             "context_type": "SSHContext",
@@ -136,18 +145,18 @@ class TestSSHContext(unittest.TestCase):
             cls.machine.context.write_file(file, "# mock log")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         cls.machine.context.clean()
         # close the server
         cls.machine.context.close()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = self.__class__.machine.context
 
-    def test_ssh_session(self):
+    def test_ssh_session(self) -> None:
         self.assertIsInstance(self.__class__.machine.context.ssh_session, SSHSession)
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         self.context.upload(self.__class__.submission)
         check_file_list = [
             "graph.pb",
@@ -162,7 +171,7 @@ class TestSSHContext(unittest.TestCase):
                 )
             )
 
-    def test_empty_transfer(self):
+    def test_empty_transfer(self) -> None:
         # Both forward_files and backward_files are empty
         machine = Machine.load_from_dict(self.machine.serialize())
         resources = Resources.load_from_dict(
@@ -192,7 +201,7 @@ class TestSSHContext(unittest.TestCase):
         )
         submission.run_submission()
 
-    def test_recover(self):
+    def test_recover(self) -> None:
         """Test recover from a previous submission."""
         machine = Machine.load_from_dict(self.machine.serialize())
         resources = Resources.load_from_dict(
@@ -239,7 +248,7 @@ class TestSSHContext(unittest.TestCase):
             )
             submission.run_submission()
 
-    def test_download(self):
+    def test_download(self) -> None:
         self.context.download(self.__class__.submission)
 
 
@@ -248,7 +257,7 @@ class TestSSHContext(unittest.TestCase):
 )
 class TestSSHContextNoCompress(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         mdata = {
             "batch_type": "Shell",
             "context_type": "SSHContext",
@@ -284,18 +293,18 @@ class TestSSHContextNoCompress(unittest.TestCase):
             cls.machine.context.write_file(file, "# mock log")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         cls.machine.context.clean()
         # close the server
         cls.machine.context.close()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = self.__class__.machine.context
 
-    def test_ssh_session(self):
+    def test_ssh_session(self) -> None:
         self.assertIsInstance(self.__class__.machine.context.ssh_session, SSHSession)
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         self.context.upload(self.__class__.submission)
         check_file_list = [
             "graph.pb",
@@ -310,5 +319,5 @@ class TestSSHContextNoCompress(unittest.TestCase):
                 )
             )
 
-    def test_download(self):
+    def test_download(self) -> None:
         self.context.download(self.__class__.submission)

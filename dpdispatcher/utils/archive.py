@@ -9,7 +9,7 @@ import tarfile
 import tempfile
 import unicodedata
 import zipfile
-from typing import Any, Dict, Iterable, List, NamedTuple, Set, Tuple
+from typing import IO, Any, Dict, Iterable, List, NamedTuple, Set, Tuple
 
 
 class UnsafeArchiveError(ValueError):
@@ -249,7 +249,7 @@ def _validate_existing_paths(root: str, members: List[_ValidatedMember]) -> None
 def _replace_regular_file(
     root: str,
     parts: Tuple[str, ...],
-    source: Any,
+    source: IO[bytes],
     mode: int,
 ) -> None:
     """Atomically replace one regular file without following its old inode."""

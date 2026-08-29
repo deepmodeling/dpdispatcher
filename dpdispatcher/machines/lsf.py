@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import shlex
-from typing import List
+from typing import TYPE_CHECKING
 
 from dargs import Argument
 
@@ -11,6 +13,9 @@ from dpdispatcher.utils.utils import (
     customized_script_header_template,
     retry,
 )
+
+if TYPE_CHECKING:
+    from dpdispatcher.submission import Job, Resources
 
 lsf_script_header_template = """\
 #!/bin/bash -l
@@ -25,11 +30,11 @@ lsf_script_header_template = """\
 class LSF(Machine):
     """LSF batch."""
 
-    def gen_script(self, job):
+    def gen_script(self, job: Job) -> str:
         lsf_script = super().gen_script(job)
         return lsf_script
 
-    def gen_script_header(self, job):
+    def gen_script_header(self, job: Job) -> str:
         resources = job.resources
         script_header_dict = {
             "lsf_nodes_line": f"#BSUB -n {resources.number_node * resources.cpu_per_node}",
@@ -78,7 +83,7 @@ class LSF(Machine):
         return lsf_script_header
 
     @retry()
-    def do_submit(self, job):
+    def do_submit(self, job: Job) -> str:
         script_file_name = job.script_file_name
         script_str = self.gen_script(job)
         job_id_name = job.job_hash + "_job_id"
@@ -104,16 +109,16 @@ class LSF(Machine):
         return job_id
 
     # TODO: derive abstract methods
-    def sub_script_cmd(self, res):
-        pass
+    def sub_script_cmd(self, res: Resources) -> str:
+        return ""
 
-    def sub_script_head(self, res):
-        pass
+    def sub_script_head(self, res: Resources) -> str:
+        return ""
 
     @retry()
-    def check_status(self, job):
+    def check_status(self, job: Job) -> JobStatus:
         try:
-            job_id = job.job_id
+            job_id = str(job.job_id)
         except AttributeError:
             return JobStatus.terminated
         if job_id == "":
@@ -159,12 +164,12 @@ class LSF(Machine):
         else:
             return JobStatus.unknown
 
-    def check_finish_tag(self, job):
+    def check_finish_tag(self, job: Job) -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
         return self.context.check_file_exists(job_tag_finished)
 
     @classmethod
-    def resources_subfields(cls) -> List[Argument]:
+    def resources_subfields(cls) -> list[Argument]:
         """Generate the resources subfields.
 
         Returns
@@ -215,7 +220,7 @@ class LSF(Machine):
             )
         ]
 
-    def kill(self, job):
+    def kill(self, job: Job) -> None:
         """Kill the job.
 
         Parameters

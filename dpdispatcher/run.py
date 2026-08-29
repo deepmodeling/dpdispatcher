@@ -168,7 +168,7 @@ def create_submission(
     )
 
 
-def run_pep723(script: str, allow_ref: bool = False):
+def run_pep723(script: str, allow_ref: bool = False) -> None:
     """Run a PEP 723 script.
 
     Parameters
@@ -185,6 +185,6 @@ def run_pep723(script: str, allow_ref: bool = False):
     dpdispatcher_metadata = metadata["tool"]["dpdispatcher"]
     script_hash = sha1(script.encode("utf-8")).hexdigest()
     submission = create_submission(dpdispatcher_metadata, script_hash, allow_ref)
-    submission.machine.context.write_file(f"script_{script_hash}.py", script)
+    submission._require_machine().context.write_file(f"script_{script_hash}.py", script)
     # write script
     submission.run_submission()

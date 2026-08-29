@@ -1,5 +1,6 @@
 import unittest
 from types import SimpleNamespace
+from typing import Sequence
 
 from dpdispatcher import Resources, Task
 from dpdispatcher.entrypoints.submission import _configured_log_files
@@ -7,7 +8,7 @@ from dpdispatcher.machine import Machine
 
 
 class TestNoneErrlogScriptGeneration(unittest.TestCase):
-    def _make_job(self, tasks):
+    def _make_job(self, tasks: Sequence[Task]) -> SimpleNamespace:
         resources = Resources(1, 1, 0, "", len(tasks))
         return SimpleNamespace(
             resources=resources,
@@ -16,14 +17,14 @@ class TestNoneErrlogScriptGeneration(unittest.TestCase):
             fail_count=0,
         )
 
-    def _make_machine(self, batch_type):
+    def _make_machine(self, batch_type: str) -> Machine:
         return Machine(
             batch_type=batch_type,
             context_type="LazyLocalContext",
             local_root=".",
         )
 
-    def test_generic_machine_omits_tail_without_errlog(self):
+    def test_generic_machine_omits_tail_without_errlog(self) -> None:
         machine = self._make_machine("Shell")
         task = Task("false", "task dir", outlog=None, errlog=None)
 
@@ -34,7 +35,7 @@ class TestNoneErrlogScriptGeneration(unittest.TestCase):
         self.assertNotIn("tail -v", script)
         self.assertIn("echo 1 > $REMOTE_ROOT/job-hash_flag_if_job_task_fail", script)
 
-    def test_generic_machine_keeps_tail_for_configured_errlog(self):
+    def test_generic_machine_keeps_tail_for_configured_errlog(self) -> None:
         machine = self._make_machine("Shell")
         task = Task("false", "task dir", errlog="error log")
 
@@ -47,7 +48,7 @@ class TestNoneErrlogScriptGeneration(unittest.TestCase):
         )
         self.assertIn("> $REMOTE_ROOT/job-hash_last_err_file", script)
 
-    def test_slurm_job_array_handles_mixed_errlogs(self):
+    def test_slurm_job_array_handles_mixed_errlogs(self) -> None:
         machine = self._make_machine("SlurmJobArray")
         tasks = [
             Task("false", "task-a", errlog=None),
@@ -60,7 +61,7 @@ class TestNoneErrlogScriptGeneration(unittest.TestCase):
         self.assertNotIn("task-a/''", script)
         self.assertIn("$REMOTE_ROOT/task-b/err", script)
 
-    def test_terminated_log_files_filter_optional_names(self):
+    def test_terminated_log_files_filter_optional_names(self) -> None:
         cases = (
             (Task("true", ".", outlog="out", errlog=None), ["out"]),
             (Task("true", ".", outlog=None, errlog="err"), ["err"]),
