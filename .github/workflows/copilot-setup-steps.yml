@@ -48,7 +48,7 @@ jobs:
       - name: Install development tools
         run: |
           uv tool install pre-commit
-          uv tool install pyright
+          uv tool install ty==0.0.17
 
       - name: Set up pre-commit hooks
         run: |
@@ -61,5 +61,5 @@ jobs:
           python --version
           uv --version
           pre-commit --version
-          pyright --version
+          ty --version
           python -c "import dpdispatcher; print('DPDispatcher installed successfully')"
