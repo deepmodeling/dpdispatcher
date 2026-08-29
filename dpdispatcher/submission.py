@@ -904,13 +904,10 @@ class Job:
                 raise RuntimeError(err_msg)
             # Re-upload forward files before retry to handle cases where remote
             # workdir was cleaned or files were removed between attempts.
-            try:
-                self._ensure_forward_files_on_retry()
-            except Exception as e:
-                dlog.warning(
-                    f"job {self.job_hash} failed to restore forward files "
-                    f"before retry: {e}"
-                )
+            # A failed restoration must stop the retry: submitting without the
+            # required inputs only hides the actionable staging error and causes
+            # another predictable job failure.
+            self._ensure_forward_files_on_retry()
             self.submit_job()
             if self.job_state != JobStatus.unsubmitted:
                 dlog.info(

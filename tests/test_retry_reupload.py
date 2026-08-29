@@ -3,7 +3,7 @@
 Tests verify that:
 1. context.upload() is called on retry with the job's tasks
 2. forward_common_files from submission are included
-3. Exceptions don't crash the retry loop (handled at call site)
+3. Restoration exceptions stop resubmission and remain actionable
 4. No-machine case is a no-op
 5. Binary files are uploaded intact (integration test with real LocalContext)
 """
@@ -18,6 +18,7 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from dpdispatcher.submission import Job
+from dpdispatcher.utils.job_status import JobStatus
 
 
 class TestEnsureForwardFilesOnRetry(unittest.TestCase):
@@ -113,11 +114,30 @@ class TestEnsureForwardFilesOnRetry(unittest.TestCase):
         job._ensure_forward_files_on_retry()
 
     def test_upload_exception_propagates(self):
-        """Exceptions from upload propagate (caught at call site, not here)."""
+        """Exceptions from upload propagate to the retry caller."""
         job = self._make_job()
         job.machine.context.upload.side_effect = FileNotFoundError("gone")
         with self.assertRaises(FileNotFoundError):
             job._ensure_forward_files_on_retry()
+
+    def test_restore_failure_prevents_resubmission(self):
+        """A terminated job is not resubmitted without its required inputs."""
+        job = self._make_job()
+        job.job_state = JobStatus.terminated
+        job.job_hash = "job-hash"
+        job.job_id = "job-id"
+        job.fail_count = 0
+        job.resources = MagicMock(wait_time=0)
+        job.machine.retry_count = 3
+        job._ensure_forward_files_on_retry = MagicMock(
+            side_effect=FileNotFoundError("missing input")
+        )
+        job.submit_job = MagicMock()
+
+        with self.assertRaisesRegex(FileNotFoundError, "missing input"):
+            job.handle_unexpected_job_state()
+
+        job.submit_job.assert_not_called()
 
 
 class TestEnsureForwardFilesIntegration(unittest.TestCase):
