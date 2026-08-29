@@ -18,21 +18,15 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - 3.7
-          - 3.9
           - '3.10'
           - '3.11'
           - '3.12'
+          - '3.13'
+          - '3.14'
         platform:
           - ubuntu-22.04
           - macos-latest
           - windows-latest
-        exclude:  # Apple Silicon ARM64 does not support Python < v3.8
-          - python-version: "3.7"
-            platform: macos-latest
-        include:  # So run those legacy versions on Intel CPUs
-          - python-version: "3.7"
-            platform: macos-15-intel
     steps:
     - uses: actions/checkout@v7
     - name: Set up Python ${{ matrix.python-version }}
