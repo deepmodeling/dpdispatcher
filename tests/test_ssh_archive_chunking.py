@@ -89,6 +89,29 @@ class TestSSHArchiveChunking(unittest.TestCase):
 
         setup_ssh.assert_not_called()
 
+    def test_legacy_positional_arguments_keep_their_meaning(self) -> None:
+        """Appending the new option must not rebind existing positional calls."""
+        with patch.object(SSHSession, "_setup_ssh"):
+            session = SSHSession(
+                "example.com",
+                "user",
+                None,
+                22,
+                None,
+                None,
+                10,
+                None,
+                True,
+                False,
+                "echo ready",
+                "ssh -W %h:%p jump",
+            )
+
+        self.assertFalse(session.look_for_keys)
+        self.assertEqual(session.execute_command, "echo ready")
+        self.assertEqual(session.proxy_command, "ssh -W %h:%p jump")
+        self.assertEqual(session.archive_chunk_size, 0)
+
     def test_reconstructed_size_mismatch_is_reported(self) -> None:
         """A missing or truncated part cannot silently produce a corrupt archive."""
         self.session.archive_chunk_size = 4
@@ -115,6 +138,87 @@ class TestSSHArchiveChunking(unittest.TestCase):
                 self.context._get_archive("/remote/result.tar.gz", local_archive)
 
         self.sftp.remove.assert_called_once_with(split_state["prefix"] + "aaaaaa")
+        self.assertFalse(os.path.exists(local_archive))
+
+    def test_split_failure_still_cleans_partial_remote_parts(self) -> None:
+        """Parts left by a failed split command are removed in the finally block."""
+        self.session.archive_chunk_size = 4
+        self.sftp.stat.return_value.st_size = 8
+        split_state: dict[str, str] = {}
+
+        def fail_after_partial_split(command: str) -> None:
+            split_state["prefix"] = posixpath.basename(shlex.split(command)[-1])
+            self.sftp.listdir.return_value = [split_state["prefix"] + "aaaaaa"]
+            raise RuntimeError("split failed after writing a part")
+
+        self.block_checkcall.side_effect = fail_after_partial_split
+
+        with tempfile.TemporaryDirectory() as directory:
+            local_archive = os.path.join(directory, "result.tar.gz")
+            with self.assertRaisesRegex(RuntimeError, "split failed"):
+                self.context._get_archive("/remote/result.tar.gz", local_archive)
+
+        self.sftp.remove.assert_called_once_with(
+            posixpath.join("/remote", split_state["prefix"] + "aaaaaa")
+        )
+        self.assertFalse(os.path.exists(local_archive))
+
+    def test_chunk_discovery_failure_is_retried_for_cleanup(self) -> None:
+        """A transient listdir failure does not leak parts created by split."""
+        self.session.archive_chunk_size = 4
+        self.sftp.stat.return_value.st_size = 8
+        split_state: dict[str, str] = {}
+        list_calls = 0
+
+        def remember_split(command: str) -> None:
+            split_state["prefix"] = posixpath.basename(shlex.split(command)[-1])
+
+        def fail_then_discover(_directory: str) -> list[str]:
+            nonlocal list_calls
+            list_calls += 1
+            if list_calls == 1:
+                raise OSError("temporary discovery failure")
+            return [split_state["prefix"] + "aaaaaa"]
+
+        self.block_checkcall.side_effect = remember_split
+        self.sftp.listdir.side_effect = fail_then_discover
+
+        with tempfile.TemporaryDirectory() as directory:
+            local_archive = os.path.join(directory, "result.tar.gz")
+            with self.assertRaisesRegex(OSError, "discovery failure"):
+                self.context._get_archive("/remote/result.tar.gz", local_archive)
+
+        self.sftp.remove.assert_called_once_with(
+            posixpath.join("/remote", split_state["prefix"] + "aaaaaa")
+        )
+
+    def test_interrupted_transfer_removes_partial_local_archive(self) -> None:
+        """Interrupted assembly must not leave a corrupt archive-sized file."""
+        self.session.archive_chunk_size = 4
+        self.sftp.stat.return_value.st_size = 8
+        split_state: dict[str, str] = {}
+
+        def remember_split(command: str) -> None:
+            split_state["prefix"] = posixpath.basename(shlex.split(command)[-1])
+
+        self.block_checkcall.side_effect = remember_split
+        self.sftp.listdir.side_effect = lambda _directory: [
+            split_state["prefix"] + "aaaaaa"
+        ]
+
+        def interrupt_transfer(_remote_path: str, local_path: str) -> None:
+            pathlib.Path(local_path).write_bytes(b"partial")
+            raise OSError("connection interrupted")
+
+        self.session.get.side_effect = interrupt_transfer
+
+        with tempfile.TemporaryDirectory() as directory:
+            local_archive = os.path.join(directory, "result.tar.gz")
+            with self.assertRaisesRegex(OSError, "interrupted"):
+                self.context._get_archive("/remote/result.tar.gz", local_archive)
+
+            self.assertFalse(os.path.exists(local_archive))
+            self.assertEqual(list(pathlib.Path(directory).glob("*.part-*")), [])
 
 
 if __name__ == "__main__":
