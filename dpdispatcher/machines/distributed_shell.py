@@ -1,5 +1,6 @@
 """Implement Hadoop YARN DistributedShell submission."""
 
+import shlex
 from typing import TYPE_CHECKING
 
 from dpdispatcher.dlog import dlog
@@ -103,7 +104,7 @@ class DistributedShell(Machine):
     def gen_script_end(self, job: "Job") -> str:
         all_task_dirs = ""
         for task in job.job_task_list:
-            all_task_dirs += f"{task.task_work_path} "
+            all_task_dirs += f"{shlex.quote(task.task_work_path)} "
         job_tag_finished = job.job_hash + "_job_tag_finished"
         flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 
