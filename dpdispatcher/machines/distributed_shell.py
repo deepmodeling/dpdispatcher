@@ -72,7 +72,7 @@ class DistributedShell(Machine):
             module_unload_part += f"module unload {ii}\n"
 
         module_load_part = ""
-        module_list = job.resources.module_load_list
+        module_list = job.resources.module_list
         for ii in module_list:
             module_load_part += f"module load {ii}\n"
 
@@ -194,7 +194,6 @@ class DistributedShell(Machine):
         job_id = int(stdout.decode("utf-8").strip())
 
         self.context.write_file(job_id_name, str(job_id))
-
         return job_id
 
     def check_status(self, job: "Job") -> JobStatus:
