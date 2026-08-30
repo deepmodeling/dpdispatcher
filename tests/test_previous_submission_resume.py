@@ -1,9 +1,9 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from dpdispatcher import Machine, Resources, Submission, Task
+from dpdispatcher import Job, Machine, Resources, Submission, Task
 from dpdispatcher.contexts.hdfs_context import HDFSContext
 from dpdispatcher.utils.hdfs_cli import HDFS
 from dpdispatcher.utils.job_status import JobStatus
@@ -26,6 +26,13 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             context_type="LocalContext",
             local_root=self.local_root,
             remote_root=self.remote_root,
+        )
+
+    def _lazy_machine(self) -> Machine:
+        return Machine(
+            batch_type="Shell",
+            context_type="LazyLocalContext",
+            local_root=self.local_root,
         )
 
     def _old_submission(self) -> Submission:
@@ -130,6 +137,86 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             JobStatus.finished,
         )
 
+    def test_lazy_local_recovery_keeps_shared_work_base(self) -> None:
+        """LazyLocalContext must not move its hash-independent work directory."""
+        previous = Submission(
+            work_base="work",
+            machine=self._lazy_machine(),
+            resources=Resources(1, 1, 0, "", 1, wait_time=0),
+            task_list=[Task("true", "task")],
+        )
+        previous.generate_jobs()
+        os.makedirs(previous.machine.context.remote_root, exist_ok=True)
+        previous.submission_to_json()
+        task = previous.belonging_jobs[0].job_task_list[0]
+        os.makedirs(previous.machine.context.remote_root + "/task", exist_ok=True)
+        open(
+            os.path.join(
+                previous.machine.context.remote_root,
+                "task",
+                f"{task.task_hash}_task_tag_finished",
+            ),
+            "w",
+        ).close()
+
+        current = Submission(
+            work_base="work",
+            machine=self._lazy_machine(),
+            resources=Resources(1, 1, 0, "", 1, wait_time=30),
+            task_list=[Task("true", "task")],
+            previous_submission_hash=previous.submission_hash,
+        )
+        current.generate_jobs()
+        current.try_recover_from_json()
+
+        self.assertEqual(
+            current.machine.context.remote_root,
+            os.path.join(self.local_root, "work"),
+        )
+        self.assertTrue(os.path.isdir(os.path.join(self.local_root, "work")))
+        self.assertEqual(
+            current.belonging_jobs[0].job_task_list[0].task_state,
+            JobStatus.finished,
+        )
+
+    def test_cloud_recovery_uses_persisted_finished_job_state(self) -> None:
+        """Cloud recovery must not depend on unavailable task-tag paths."""
+        task = Task("true", "task")
+        machine = MagicMock()
+        machine.serialize.return_value = {"cloud": "machine"}
+        machine.context.supports_task_completion_tags = False
+        machine.context.check_file_exists.return_value = False
+        submission = Submission.__new__(Submission)
+        submission.machine = machine
+        submission.work_base = "work"
+        submission._abs_work_base = os.path.abspath("work")
+        submission.previous_submission_hash = "previous-hash"
+        submission.submission_hash = "current-hash"
+        submission.forward_common_files = []
+        submission.backward_common_files = []
+        submission.belonging_jobs = []
+        submission.belonging_tasks = [task]
+        job = Job(
+            job_task_list=[task],
+            machine=machine,
+            resources=Resources(1, 1, 0, "", 1),
+        )
+        job.job_state = JobStatus.finished
+        submission.belonging_jobs = [job]
+        previous = {
+            "work_base": "work",
+            "_abs_work_base": submission._abs_work_base,
+            "machine": {"cloud": "machine"},
+            "forward_common_files": [],
+            "backward_common_files": [],
+            "belonging_jobs": [job.serialize()],
+        }
+
+        submission._recover_finished_tasks_from_previous(previous)
+
+        self.assertEqual(task.task_state, JobStatus.finished)
+        machine.context.check_file_exists.assert_not_called()
+
     def test_non_resource_change_is_rejected(self) -> None:
         previous = self._old_submission()
         current = Submission(
@@ -175,6 +262,15 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         self.assertEqual(exists.call_args_list[0].args, (new_root,))
         self.assertEqual(exists.call_args_list[1].args, (old_root,))
         move.assert_called_once_with(old_root, new_root)
+
+    def test_hdfs_recovery_rejects_conflicting_roots(self) -> None:
+        """A stale destination must not hide completion tags in the source."""
+        context = HDFSContext.__new__(HDFSContext)
+        old_root = "hdfs://cluster/work/old"
+        new_root = "hdfs://cluster/work/new"
+        with patch.object(HDFS, "exists", side_effect=[True, True]):
+            with self.assertRaisesRegex(FileExistsError, "both old and new"):
+                context.migrate_recovery_root(old_root, new_root)
 
 
 if __name__ == "__main__":

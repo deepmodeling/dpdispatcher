@@ -32,6 +32,8 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 
 
 class BohriumContext(BaseContext):
+    # Bohrium exposes job archives and metadata, not task completion-tag paths.
+    supports_task_completion_tags = False
     alias = ("DpCloudServerContext", "LebesgueContext")
 
     def __init__(

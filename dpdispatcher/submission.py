@@ -843,9 +843,29 @@ class Submission:
             )
 
         finished_count = 0
-        for job in self.belonging_jobs:
+        supports_task_tags = getattr(
+            machine.context, "supports_task_completion_tags", True
+        )
+        previous_jobs = previous.get("belonging_jobs", [])
+        for job_index, job in enumerate(self.belonging_jobs):
+            previous_job_state = None
+            if job_index < len(previous_jobs):
+                previous_job = previous_jobs[job_index]
+                if previous_job:
+                    previous_job_state = previous_job[next(iter(previous_job))].get(
+                        "job_state"
+                    )
             for task in job.job_task_list:
-                if task.has_finished_tag(machine.context):
+                # Cloud contexts cannot inspect task tags.  A persisted
+                # finished job is the strongest available signal there; cloud
+                # archives are job-scoped, so partial grouped-job recovery is
+                # intentionally not inferred from unavailable task paths.
+                if (
+                    not supports_task_tags
+                    and previous_job_state == JobStatus.finished
+                ) or (
+                    supports_task_tags and task.has_finished_tag(machine.context)
+                ):
                     task.task_state = JobStatus.finished
                     finished_count += 1
                 else:

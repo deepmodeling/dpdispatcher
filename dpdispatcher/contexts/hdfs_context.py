@@ -65,6 +65,15 @@ class HDFSContext(BaseContext):
         if old_remote_root == new_remote_root:
             return
         if HDFS.exists(new_remote_root):
+            # A destination left by an interrupted recovery must not hide the
+            # source tree that still contains completion tags.  Returning is
+            # safe only when the source has already disappeared (idempotent
+            # completion of an earlier move).
+            if HDFS.exists(old_remote_root):
+                raise FileExistsError(
+                    "Cannot migrate recovered HDFS submission: both old and new "
+                    f"roots exist ({old_remote_root}, {new_remote_root})"
+                )
             return
         if not HDFS.exists(old_remote_root):
             raise FileNotFoundError(
