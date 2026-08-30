@@ -56,9 +56,7 @@ class TestSchedulerStatusParsing(unittest.TestCase):
         """An entirely empty squeue response follows the same fallback."""
         machine = Slurm.__new__(Slurm)
         machine.context = SimpleNamespace(
-            block_call=Mock(
-                return_value=(0, None, io.BytesIO(b""), io.BytesIO())
-            ),
+            block_call=Mock(return_value=(0, None, io.BytesIO(b""), io.BytesIO())),
             check_file_exists=Mock(return_value=False),
         )
         job = SimpleNamespace(job_id="123", job_hash="job-hash")
