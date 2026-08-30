@@ -1,3 +1,5 @@
+"""Define the execution-context interface used by machine backends."""
+
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
@@ -13,11 +15,12 @@ if TYPE_CHECKING:
 
 
 class BaseContext(metaclass=ABCMeta):
-    """Common interface and runtime attributes shared by execution contexts.
+    """Define file transfer and command execution for an environment.
 
-    Backend implementations historically return different auxiliary values
-    from transfer and cleanup operations. Those methods therefore use ``Any``
-    at this boundary while concrete contexts retain their precise return types.
+    ``BaseContext`` acts as both an abstract interface and a factory. Calling it
+    with ``context_type`` selects a registered subclass such as ``SSHContext``
+    or ``LazyLocalContext``. Concrete contexts must implement file transfer,
+    cleanup, file access, and blocking command execution.
     """
 
     subclasses_dict = {}
@@ -37,6 +40,7 @@ class BaseContext(metaclass=ABCMeta):
     machine: Machine
 
     def __new__(cls, *args: Any, **kwargs: Any) -> BaseContext:  # noqa: ANN401
+        """Select a registered context subclass when called on ``BaseContext``."""
         if cls is BaseContext:
             subcls = cls.subclasses_dict[kwargs["context_type"]]
             instance = subcls.__new__(subcls, *args, **kwargs)
@@ -56,6 +60,7 @@ class BaseContext(metaclass=ABCMeta):
 
     @classmethod
     def load_from_dict(cls, context_dict: dict[str, Any]) -> BaseContext:  # noqa: ANN401
+        """Create a registered context from a machine configuration mapping."""
         context_type = context_dict["context_type"]
         # print("debug778:context_type", cls.subclasses_dict, context_type)
         try:
@@ -69,10 +74,12 @@ class BaseContext(metaclass=ABCMeta):
         return context
 
     def bind_submission(self, submission: Submission) -> None:
+        """Bind a submission and its derived working paths to this context."""
         self.submission = submission
 
     @abstractmethod
     def upload(self, submission: Submission) -> None:
+        """Upload all files required by a submission to the execution root."""
         raise NotImplementedError("abstract method")
 
     @abstractmethod
@@ -83,18 +90,22 @@ class BaseContext(metaclass=ABCMeta):
         mark_failure: bool = True,
         back_error: bool = False,
     ) -> Any:  # noqa: ANN401
+        """Download declared result files from the execution root."""
         raise NotImplementedError("abstract method")
 
     @abstractmethod
     def clean(self) -> Any:  # noqa: ANN401
+        """Remove the submission-specific execution directory."""
         raise NotImplementedError("abstract method")
 
     @abstractmethod
     def write_file(self, fname: str, write_str: str) -> Any:  # noqa: ANN401
+        """Write text to a file relative to the execution root."""
         raise NotImplementedError("abstract method")
 
     @abstractmethod
     def read_file(self, fname: str) -> Any:  # noqa: ANN401
+        """Read text from a file relative to the execution root."""
         raise NotImplementedError("abstract method")
 
     def write_local_file(self, fname: str, write_str: str) -> Any:  # noqa: ANN401
@@ -107,6 +118,7 @@ class BaseContext(metaclass=ABCMeta):
         raise NotImplementedError("abstract method")
 
     def check_finish(self, proc: Any) -> Any:  # noqa: ANN401
+        """Return whether an asynchronous process has finished."""
         raise NotImplementedError("abstract method")
 
     def block_checkcall(

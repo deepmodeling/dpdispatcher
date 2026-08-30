@@ -10,6 +10,8 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+"""Configure the Sphinx documentation build for DPDispatcher."""
+
 import os
 import sys
 from datetime import date
@@ -78,6 +80,8 @@ master_doc = "index"
 
 
 def run_apidoc(_: Any) -> None:  # noqa: ANN401
+    """Generate API source pages before Sphinx reads the documentation tree."""
+
     from sphinx.ext.apidoc import main
 
     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -99,6 +103,8 @@ def run_apidoc(_: Any) -> None:  # noqa: ANN401
 
 
 def setup(app: Any) -> None:  # noqa: ANN401
+    """Register documentation-build hooks."""
+
     app.connect("builder-inited", run_apidoc)
 
 

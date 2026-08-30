@@ -1,3 +1,5 @@
+"""Parse PEP 723 metadata and execute its DPDispatcher submission."""
+
 import os
 import re
 import sys
