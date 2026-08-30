@@ -80,7 +80,7 @@ class TestRun(unittest.TestCase):
             )
             self.assertTrue(
                 all(
-                    task.command.endswith(" $REMOTE_ROOT/script_abc.py")
+                    task.command.endswith(' "$REMOTE_ROOT/script_abc.py"')
                     for task in submission.belonging_tasks
                 )
             )
