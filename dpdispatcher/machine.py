@@ -275,10 +275,18 @@ class Machine(metaclass=ABCMeta):
         self.context = context
 
     def get_job_error(self, job: Job) -> str | None:
-        """Return the saved error diagnostic for a job, if available."""
+        """Return a text error diagnostic for a job, if available.
+
+        HDFS contexts expose command output as bytes while other contexts
+        return text. Decode byte-valued responses here so callers receive the
+        same text interface regardless of the execution backend.
+        """
         error_file = job.job_hash + "_last_err_file"
         if self.context.check_file_exists(error_file):
-            return self.context.read_file(error_file)
+            error_content = self.context.read_file(error_file)
+            if isinstance(error_content, bytes):
+                return error_content.decode("utf-8", errors="replace")
+            return error_content
         return None
 
     def gen_local_script(self, job: Job) -> str:

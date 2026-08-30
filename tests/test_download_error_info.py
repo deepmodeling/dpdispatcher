@@ -4,10 +4,12 @@ import os
 import sys
 import tempfile
 import unittest
+from types import MethodType, SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from dpdispatcher.machine import Machine
 from dpdispatcher.submission import Submission
 from dpdispatcher.utils.job_status import JobStatus
 
@@ -62,6 +64,23 @@ class TestDownloadErrorInfo(unittest.TestCase):
         with open(local_err_path) as f:
             content = f.read()
         self.assertIn("Lost atoms", content)
+
+    def test_downloads_bytes_error_from_hdfs_job(self) -> None:
+        """Persist byte-valued stderr returned by the HDFS context."""
+        sub = self._make_submission([JobStatus.failed])
+        context = SimpleNamespace(
+            local_root=self._tmpdir,
+            check_file_exists=lambda _filename: True,
+            read_file=lambda _filename: b"HDFS stderr: out of memory",
+        )
+        sub.machine = SimpleNamespace(context=context)
+        sub.machine.get_job_error = MethodType(Machine.get_job_error, sub.machine)
+
+        sub.try_download_error_info()
+
+        local_err_path = os.path.join(self._tmpdir, "hash_0000_last_err_file")
+        with open(local_err_path) as f:
+            self.assertEqual(f.read(), "HDFS stderr: out of memory")
 
     def test_no_download_for_finished_job(self) -> None:
         """Finished job → no error file downloaded."""
