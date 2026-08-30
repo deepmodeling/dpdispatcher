@@ -8,7 +8,7 @@ from dpdispatcher.utils.job_status import JobStatus
 
 
 class AttrDict(dict[str, Any]):
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> Any:  # noqa: ANN401
         return self[name]
 
 
