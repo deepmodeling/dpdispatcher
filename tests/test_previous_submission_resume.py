@@ -105,7 +105,11 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         )
         self.assertTrue(
             os.path.isfile(
-                os.path.join(self.remote_root, current.submission_hash, f"{current.submission_hash}.json")
+                os.path.join(
+                    self.remote_root,
+                    current.submission_hash,
+                    f"{current.submission_hash}.json",
+                )
             )
         )
 
