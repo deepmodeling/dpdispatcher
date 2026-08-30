@@ -166,8 +166,8 @@ class Slurm(Machine):
             )
         # ``squeue`` returns only its header when a job has already left the
         # active queue. Do not mistake the header's ``ST`` column for a real
-        # terminal state; consult the completion marker and otherwise leave
-        # the state unknown for the caller's normal error handling.
+        # terminal state; consult the completion marker and otherwise report
+        # termination so the caller can retry a failed job.
         output_lines = [
             line.strip()
             for line in stdout.read().decode("utf-8").splitlines()
