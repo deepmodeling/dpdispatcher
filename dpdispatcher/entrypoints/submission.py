@@ -97,7 +97,7 @@ def handle_submission(
     if download_finished_task:
         submission.belonging_tasks += finished_tasks
 
-    submission.download_jobs()
+    submission.download_jobs(include_failed=download_terminated_log)
 
     if download_terminated_log:
         terminated_log_files = []

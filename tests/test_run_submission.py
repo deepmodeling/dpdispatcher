@@ -166,6 +166,15 @@ class RunSubmission:
                 download_terminated_log=True,
                 clean=True,
             )
+            self.assertTrue(
+                os.path.isfile(
+                    os.path.join(
+                        self.machine_dict["local_root"],
+                        "test_dir",
+                        "err0.txt",
+                    )
+                )
+            )
 
     def test_async_run_submission(self) -> None:
         machine = Machine.load_from_dict(self.machine_dict)

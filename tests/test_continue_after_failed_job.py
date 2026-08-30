@@ -56,6 +56,48 @@ class TestTerminalFailedJobs(unittest.TestCase):
             [finished.job_task_list[0], failed.job_task_list[0]],
         )
 
+    def test_download_include_failed_bypasses_success_filter(self) -> None:
+        """Explicit terminated-log downloads retain failed task selection."""
+        finished = self._job(state=JobStatus.finished, command="true")
+        failed = self._job(state=JobStatus.failed)
+        submission = Submission.__new__(Submission)
+        submission.machine = MagicMock()
+        submission.belonging_jobs = [finished, failed]
+        submission.belonging_tasks = [
+            finished.job_task_list[0],
+            failed.job_task_list[0],
+        ]
+
+        def inspect_selection(selected: Submission) -> None:
+            self.assertEqual(selected.belonging_jobs, [finished, failed])
+            self.assertEqual(
+                selected.belonging_tasks,
+                [finished.job_task_list[0], failed.job_task_list[0]],
+            )
+
+        submission.machine.context.download.side_effect = inspect_selection
+        submission.download_jobs(include_failed=True)
+
+    def test_ratio_cleanup_preserves_failed_job_and_task(self) -> None:
+        """Ratio-based early termination must not erase durable failures."""
+        failed = self._job(state=JobStatus.failed)
+        running = self._job(state=JobStatus.running, command="true")
+        submission = Submission.__new__(Submission)
+        submission.machine = MagicMock()
+        submission.belonging_jobs = [failed, running]
+        submission.belonging_tasks = [
+            failed.job_task_list[0],
+            running.job_task_list[0],
+        ]
+
+        submission.remove_unfinished_tasks()
+
+        self.assertEqual(failed.job_state, JobStatus.failed)
+        self.assertEqual(failed.job_task_list, [failed.job_task_list[0]])
+        self.assertEqual(submission.belonging_tasks, [failed.job_task_list[0]])
+        self.assertEqual(running.job_state, JobStatus.finished)
+        submission.machine.kill.assert_called_once_with(running)
+
     @patch("dpdispatcher.submission.time.sleep")
     def test_submission_waits_for_other_jobs_before_reporting(
         self, _sleep: MagicMock

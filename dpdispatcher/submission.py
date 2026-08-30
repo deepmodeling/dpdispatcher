@@ -595,27 +595,35 @@ class Submission:
         return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
     def remove_unfinished_tasks(self) -> None:
+        """Stop unfinished work while preserving durable failed records.
+
+        A failed job is terminal evidence that must remain available to
+        ``raise_for_failed_jobs`` and post-mortem download handling.  Only
+        non-terminal jobs are converted to finished after the ratio threshold
+        is reached; failed jobs and their failed tasks stay in the submission.
+        """
         machine = self._require_machine()
         dlog.info("Remove unfinished tasks")
-        # kill all jobs and mark them as finished
+        # Kill all jobs that are not already terminal.  In particular, do not
+        # rewrite JobStatus.failed: doing so hides the failure from callers.
         for job in self.belonging_jobs:
-            if job.job_state != JobStatus.finished:
+            if job.job_state not in (JobStatus.finished, JobStatus.failed):
                 machine.kill(job)
                 job.job_state = JobStatus.finished
-        # remove all unfinished tasks
-        finished_tasks = []
-        for task in self.belonging_tasks:
-            if task.task_state == JobStatus.finished:
-                finished_tasks.append(task)
-            # there is no need to remove actual remote directory
-            # as it should be cleaned anyway
-        self.belonging_tasks = finished_tasks
-        # clean removed tasks in jobs - although this should not be necessary
+        # Keep failed tasks alongside successful tasks so diagnostics and
+        # explicit terminated-log downloads can still address them.
+        retained_tasks = [
+            task
+            for task in self.belonging_tasks
+            if task.task_state in (JobStatus.finished, JobStatus.failed)
+        ]
+        self.belonging_tasks = retained_tasks
+        # Remove only tasks that were intentionally stopped from each job.
         for job in self.belonging_jobs:
             job.job_task_list = [
                 task
                 for task in job.job_task_list
-                if task.task_state == JobStatus.finished
+                if task.task_state in (JobStatus.finished, JobStatus.failed)
             ]
 
     def check_all_finished(self) -> bool:
@@ -698,9 +706,16 @@ class Submission:
     def upload_jobs(self) -> None:
         self._require_machine().context.upload(self)
 
-    def download_jobs(self) -> None:
+    def download_jobs(self, include_failed: bool = False) -> None:
+        """Download selected task outputs, optionally including failed jobs.
+
+        Normal result downloads omit failed jobs so missing outputs do not mask
+        successful work.  Explicit terminated-log requests need the original
+        failed tasks, however, and set ``include_failed=True`` to bypass that
+        success-only filtering.
+        """
         context = self._require_machine().context
-        if not self.failed_jobs():
+        if include_failed or not self.failed_jobs():
             context.download(self)
             return
 
