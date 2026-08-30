@@ -132,7 +132,7 @@ def create_submission(
     tasks = []
     for task in metadata["task_list"]:
         task = task.copy()
-        task["command"] += f" $REMOTE_ROOT/script_{script_hash}.py"
+        task["command"] += f' "$REMOTE_ROOT/script_{script_hash}.py"'
         local_work_base = os.path.join(
             metadata["machine"]["local_root"],
             metadata["work_base"],

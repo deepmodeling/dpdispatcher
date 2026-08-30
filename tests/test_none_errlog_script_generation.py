@@ -33,7 +33,7 @@ class TestNoneErrlogScriptGeneration(unittest.TestCase):
         self.assertNotIn("1>>", script)
         self.assertNotIn("2>>", script)
         self.assertNotIn("tail -v", script)
-        self.assertIn("echo 1 > $REMOTE_ROOT/job-hash_flag_if_job_task_fail", script)
+        self.assertIn('echo 1 > "$REMOTE_ROOT/job-hash_flag_if_job_task_fail"', script)
 
     def test_generic_machine_keeps_tail_for_configured_errlog(self) -> None:
         machine = self._make_machine("Shell")
@@ -43,10 +43,10 @@ class TestNoneErrlogScriptGeneration(unittest.TestCase):
 
         self.assertIn("2>>'error log'", script)
         self.assertIn(
-            "tail -v -c 1000 $REMOTE_ROOT/'task dir'/'error log'",
+            "tail -v -c 1000 \"$REMOTE_ROOT\"/'task dir'/'error log'",
             script,
         )
-        self.assertIn("> $REMOTE_ROOT/job-hash_last_err_file", script)
+        self.assertIn('> "$REMOTE_ROOT"/job-hash_last_err_file', script)
 
     def test_slurm_job_array_handles_mixed_errlogs(self) -> None:
         machine = self._make_machine("SlurmJobArray")
@@ -59,7 +59,7 @@ class TestNoneErrlogScriptGeneration(unittest.TestCase):
 
         self.assertEqual(script.count("tail -v -c 1000"), 1)
         self.assertNotIn("task-a/''", script)
-        self.assertIn("$REMOTE_ROOT/task-b/err", script)
+        self.assertIn('"$REMOTE_ROOT"/task-b/err', script)
 
     def test_terminated_log_files_filter_optional_names(self) -> None:
         cases = (

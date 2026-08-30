@@ -41,7 +41,7 @@ for TGZ in `ls *.tgz`; do tar xvf $TGZ; done
 
 """
 script_end_template = """
-cd $REMOTE_ROOT
+cd "$REMOTE_ROOT"
 test $? -ne 0 && exit 1
 
 wait
@@ -96,7 +96,7 @@ class DistributedShell(Machine):
             source_files_part=source_files_part,
             export_envs_part=export_envs_part,
             prepend_script_part=prepend_script_part,
-            remote_root=self.context.remote_root,
+            remote_root=shlex.quote(self.context.remote_root),
             submission_hash=self.context.submission.submission_hash,
         )
         return script_env
@@ -116,7 +116,7 @@ class DistributedShell(Machine):
             flag_if_job_task_fail=flag_if_job_task_fail,
             all_task_dirs=all_task_dirs,
             append_script_part=append_script_part,
-            remote_root=self.context.remote_root,
+            remote_root=shlex.quote(self.context.remote_root),
             submission_hash=self.context.submission.submission_hash,
             job_hash=job.job_hash,
         )
