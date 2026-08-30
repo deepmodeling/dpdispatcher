@@ -59,9 +59,9 @@ class TestFugaku(unittest.TestCase):
         return_value="custom header",
     )
     def test_custom_header(self, customized: MagicMock) -> None:
-        self.resources["strategy"][
-            "customized_script_header_template_file"
-        ] = "header.in"
+        self.resources["strategy"]["customized_script_header_template_file"] = (
+            "header.in"
+        )
         self.assertEqual(self.machine.gen_script_header(self.job), "custom header")
         customized.assert_called_once_with("header.in", self.resources)
 

@@ -74,9 +74,9 @@ class TestDistributedShell(unittest.TestCase):
     def test_default_and_custom_header(self) -> None:
         self.assertIn("#!/bin/bash -l", self.machine.gen_script_header(self.job))
 
-        self.resources["strategy"][
-            "customized_script_header_template_file"
-        ] = "header.in"
+        self.resources["strategy"]["customized_script_header_template_file"] = (
+            "header.in"
+        )
         with patch(
             "dpdispatcher.machines.distributed_shell.customized_script_header_template",
             return_value="custom header",
