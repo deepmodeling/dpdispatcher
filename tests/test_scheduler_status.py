@@ -135,6 +135,51 @@ class TestSchedulerStatusParsing(unittest.TestCase):
                     machine._parse_status_output("header\n", job), expected
                 )
 
+    def test_pbs_header_only_output_uses_finish_tag(self) -> None:
+        """A qstat header or separator is not mistaken for a job row."""
+        job = SimpleNamespace(job_id="123", job_hash="job-hash")
+        for output in (
+            "Job id Name User Time Use S Queue\n",
+            "-------------------------------\n",
+        ):
+            for finish_tag, expected in (
+                (True, JobStatus.finished),
+                (False, JobStatus.terminated),
+            ):
+                with self.subTest(output=output, finish_tag=finish_tag):
+                    machine = PBS.__new__(PBS)
+                    machine.context = SimpleNamespace(
+                        check_file_exists=Mock(return_value=finish_tag)
+                    )
+                    self.assertEqual(
+                        machine._parse_status_output(output, job), expected
+                    )
+
+    def test_fugaku_header_only_output_uses_finish_tag(self) -> None:
+        """A pjstat header falls back to history instead of being indexed."""
+        job = SimpleNamespace(job_id="123", job_hash="job-hash")
+        for finish_tag, expected in (
+            (True, JobStatus.finished),
+            (False, JobStatus.terminated),
+        ):
+            with self.subTest(finish_tag=finish_tag):
+                machine = Fugaku.__new__(Fugaku)
+                machine.context = SimpleNamespace(
+                    block_call=Mock(
+                        side_effect=[
+                            (
+                                0,
+                                None,
+                                io.BytesIO(b"JOBID NAME USER STATUS QUEUE\n"),
+                                io.BytesIO(),
+                            ),
+                            (0, None, io.BytesIO(b""), io.BytesIO()),
+                        ]
+                    ),
+                    check_file_exists=Mock(return_value=finish_tag),
+                )
+                self.assertEqual(machine.check_status(job), expected)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -120,7 +120,7 @@ class PBS(Machine):
         one that should be retried.
         """
         status_lines = [line.strip() for line in output.splitlines() if line.strip()]
-        if not status_lines:
+        if not status_lines or self._is_status_header(status_lines[-1]):
             return (
                 JobStatus.finished
                 if self.check_finish_tag(job)
@@ -148,6 +148,14 @@ class PBS(Machine):
                 return JobStatus.terminated
         else:
             return JobStatus.unknown
+
+    @staticmethod
+    def _is_status_header(line: str) -> bool:
+        """Return whether *line* is a qstat header or separator, not a job row."""
+        if line.startswith("-"):
+            return True
+        fields = line.lower().split()
+        return len(fields) >= 2 and fields[:2] == ["job", "id"]
 
     def check_finish_tag(self, job: Job) -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"

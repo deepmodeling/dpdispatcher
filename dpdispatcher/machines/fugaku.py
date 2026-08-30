@@ -90,7 +90,7 @@ class Fugaku(Machine):
         # Preserve the historical ``-H`` lookup for terminal jobs, but guard
         # both responses before indexing their status columns.
         status_fields = status_lines[-1].split() if status_lines else []
-        if len(status_fields) < 4:
+        if len(status_lines) < 2 or len(status_fields) < 4:
             ret, stdin, history_stdout, stderr = self.context.block_call(
                 "pjstat -H  " + job_id
             )
