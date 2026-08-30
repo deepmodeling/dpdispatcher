@@ -854,11 +854,8 @@ class Submission:
                 # archives are job-scoped, so partial grouped-job recovery is
                 # intentionally not inferred from unavailable task paths.
                 if (
-                    not supports_task_tags
-                    and previous_job_state == JobStatus.finished
-                ) or (
-                    supports_task_tags and task.has_finished_tag(machine.context)
-                ):
+                    not supports_task_tags and previous_job_state == JobStatus.finished
+                ) or (supports_task_tags and task.has_finished_tag(machine.context)):
                     task.task_state = JobStatus.finished
                     finished_count += 1
                 else:
