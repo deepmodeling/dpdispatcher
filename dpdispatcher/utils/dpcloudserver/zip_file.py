@@ -1,3 +1,5 @@
+"""Create and extract ZIP archives for cloud file transfer."""
+
 import glob
 import os
 from collections.abc import Iterable
@@ -15,7 +17,7 @@ def zip_file_list(
     zip_filename: str,
     file_list: Iterable[str] | None = None,
 ) -> str:
-    """Archive files matched relative to ``root_path`` into ``zip_filename``."""
+    """Create a ZIP archive from paths and glob patterns below a root."""
     out_zip_file = os.path.join(root_path, zip_filename)
     # print('debug: file_list', file_list)
     patterns = file_list if file_list is not None else ()
@@ -86,6 +88,6 @@ def zip_file_list(
 
 
 def unzip_file(zip_file: str, out_dir: str = "./") -> None:
-    """Extract a cloud result zip after validating every archive member."""
+    """Extract a ZIP archive into a local directory."""
     with ZipFile(zip_file, "r") as obj:
         safe_extract_zip(obj, out_dir)

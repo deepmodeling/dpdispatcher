@@ -1,3 +1,5 @@
+"""Implement the SDK-based Bohrium OpenAPI batch backend."""
+
 import os
 import shutil
 import time
@@ -30,12 +32,14 @@ shell_script_header_template = """
 
 
 def unzip_file(zip_file: str, out_dir: str = "./") -> None:
-    """Extract an OpenAPI result zip without allowing unsafe members."""
+    """Extract a ZIP archive into a local directory."""
     with ZipFile(zip_file, "r") as obj:
         safe_extract_zip(obj, out_dir)
 
 
 class OpenAPI(Machine):
+    """Submit and monitor jobs through the Bohrium SDK OpenAPI."""
+
     def __init__(self, context: "BaseContext", **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(context=context, **kwargs)
         if not found_bohriumsdk:

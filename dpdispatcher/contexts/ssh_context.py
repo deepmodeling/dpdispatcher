@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+"""Provide SSH command execution and rsync/SFTP file staging."""
+
 from __future__ import annotations
 
 import errno
 import fnmatch
 import os
 import pathlib
+import posixpath
 import shlex
 import shutil
 import socket
@@ -39,6 +42,8 @@ if TYPE_CHECKING:
 
 
 class SSHSession:
+    """Manage a resilient Paramiko SSH connection and file-transfer helpers."""
+
     def __init__(
         self,
         hostname: str,
@@ -53,6 +58,7 @@ class SSHSession:
         look_for_keys: bool = True,
         execute_command: str | None = None,
         proxy_command: str | None = None,
+        archive_chunk_size: int = 0,
     ) -> None:
         self.hostname = hostname
         self.username = username
@@ -64,6 +70,9 @@ class SSHSession:
         self.totp_secret = totp_secret
         self.ssh = None
         self.tar_compress = tar_compress
+        if archive_chunk_size < 0:
+            raise ValueError("archive_chunk_size must be greater than or equal to 0")
+        self.archive_chunk_size = archive_chunk_size
         self.look_for_keys = look_for_keys
         self.execute_command = execute_command
         self.proxy_command = proxy_command
@@ -309,7 +318,7 @@ class SSHSession:
 
     @retry(sleep=1)
     def exec_command(self, cmd: str) -> tuple[Any, Any, Any]:  # noqa: ANN401
-        """Calling self.ssh.exec_command but has an exception check."""
+        """Call ``SSHClient.exec_command`` with connection checks and retries."""
         assert self.ssh is not None
         try:
             return self.ssh.exec_command(cmd)
@@ -346,6 +355,11 @@ class SSHSession:
         doc_timeout = "Timeout in seconds for establishing the SSH connection."
         doc_totp_secret = "Time-based one-time-password secret used for keyboard-interactive 2FA. It should be a base32-encoded string."
         doc_tar_compress = "Whether upload/download tar archives are compressed. Keeping this True usually reduces transfer size at the cost of extra CPU time."
+        doc_archive_chunk_size = (
+            "Maximum size in bytes of each temporary archive part when downloading "
+            "backward files. The default 0 transfers one archive as before. A positive "
+            "value requires the remote `split` command and bounds each individual transfer."
+        )
         doc_look_for_keys = "Whether to search for discoverable private key files in ~/.ssh when key_filename is not provided."
         doc_execute_command = "Optional command executed immediately after the SSH connection is established."
         doc_proxy_command = "Optional SSH ProxyCommand used to reach the target through an intermediate host or tunnel."
@@ -403,6 +417,12 @@ class SSHSession:
                 optional=True,
                 default=None,
                 doc=doc_proxy_command,
+            ),
+            Argument(
+                "archive_chunk_size",
+                int,
+                optional=True,
+                doc=doc_archive_chunk_size,
             ),
         ]
         ssh_remote_profile_format = Argument(
@@ -464,6 +484,8 @@ class SSHSession:
 
 
 class SSHContext(BaseContext):
+    """Run submissions on a remote host reached through an SSH session."""
+
     def __init__(
         self,
         local_root: str,
@@ -482,7 +504,11 @@ class SSHContext(BaseContext):
             "remote_root must be a abspath"
         )
         self.temp_remote_root = remote_root
-        self.remote_profile = remote_profile
+        # Keep the disabled chunking default out of serialized profiles so
+        # pre-feature submissions retain their original identity/hash.
+        self.remote_profile = dict(remote_profile)
+        if self.remote_profile.get("archive_chunk_size") == 0:
+            self.remote_profile.pop("archive_chunk_size")
         self.remote_root = ""
 
         # self.job_uuid = None
@@ -493,7 +519,7 @@ class SSHContext(BaseContext):
         #    self.job_uuid=job_uuid
         # else:
         #    self.job_uuid = str(uuid.uuid4())
-        self.ssh_session = SSHSession(**remote_profile)
+        self.ssh_session = SSHSession(**self.remote_profile)
         # self.temp_remote_root = os.path.join(self.ssh_session.get_session_root())
         self.ssh_session.ensure_alive()
         self._mkdir(self.temp_remote_root, recursive=self.create_remote_root)
@@ -969,6 +995,23 @@ class SSHContext(BaseContext):
         directories: list[str] | None = None,
         tar_compress: bool = True,
     ) -> None:
+        """Upload files to server.
+
+        Parameters
+        ----------
+        files : list
+            uploaded files
+        dereference : bool, default: True
+            If dereference is False, add symbolic and hard links to the archive.
+            If it is True, add the content of the target files to the archive.
+            This has no effect on systems that do not support symbolic links.
+        directories : list, default: None
+            uploaded directories non-recursively. Use `files` for uploading
+            recursively
+        tar_compress : bool, default: True
+            If tar_compress is True, compress the archive using gzip
+            It it is False, then it is uncompressed
+        """
         assert self.submission.submission_hash is not None
         """Upload files to server.
 
@@ -1085,13 +1128,112 @@ class SSHContext(BaseContext):
         to_f = pathlib.PurePath(os.path.join(self.local_root, of)).as_posix()
         if os.path.isfile(to_f):
             os.remove(to_f)
-        self.ssh_session.get(from_f, to_f)
+        self._get_archive(from_f, to_f)
         # extract
         with tarfile.open(to_f, mode=tarfile_mode) as tar:
             safe_extract_tar(tar, self.local_root)
         # cleanup
         os.remove(to_f)
         self.sftp.remove(from_f)
+
+    def _get_archive(self, remote_archive: str, local_archive: str) -> None:
+        """Download one remote archive, optionally through bounded-size parts.
+
+        Splitting is opt-in because it depends on the remote ``split`` utility.
+        Each part is removed after it is appended locally, so temporary local
+        storage is bounded by the archive plus one configured-size part.
+
+        Parameters
+        ----------
+        remote_archive : str
+            Absolute path of the archive on the remote host.
+        local_archive : str
+            Absolute path where the reconstructed archive is written locally.
+        """
+        chunk_size = self.ssh_session.archive_chunk_size
+        if chunk_size == 0:
+            self.ssh_session.get(remote_archive, local_archive)
+            return
+        if chunk_size < 0:
+            raise ValueError("archive_chunk_size must be greater than or equal to 0")
+
+        remote_directory = posixpath.dirname(remote_archive)
+        chunk_basename_prefix = f".dpdispatcher-archive-{uuid.uuid4().hex}-"
+        chunk_prefix = posixpath.join(remote_directory, chunk_basename_prefix)
+        local_chunk = ""
+        assembled = False
+        try:
+            expected_size = self.sftp.stat(remote_archive).st_size
+            split_command = (
+                f"split -b {chunk_size} -a 6 "
+                f"{shlex.quote(remote_archive)} {shlex.quote(chunk_prefix)}"
+            )
+            self.block_checkcall(split_command)
+
+            remote_chunks = [
+                posixpath.join(remote_directory, filename)
+                for filename in sorted(self.sftp.listdir(remote_directory))
+                if filename.startswith(chunk_basename_prefix)
+            ]
+            if not remote_chunks:
+                raise RuntimeError(
+                    "The remote split command produced no archive parts; "
+                    "check that `split` is available on the SSH host."
+                )
+
+            with open(local_archive, "wb") as assembled_archive:
+                for index, remote_chunk in enumerate(remote_chunks):
+                    local_chunk = f"{local_archive}.part-{index:06d}"
+                    self.ssh_session.get(remote_chunk, local_chunk)
+                    with open(local_chunk, "rb") as chunk_file:
+                        shutil.copyfileobj(chunk_file, assembled_archive)
+                    os.remove(local_chunk)
+                    local_chunk = ""
+
+            actual_size = os.path.getsize(local_archive)
+            if actual_size != expected_size:
+                raise OSError(
+                    "Reconstructed archive size does not match the remote archive: "
+                    f"expected {expected_size} bytes, got {actual_size} bytes"
+                )
+            assembled = True
+        finally:
+            if local_chunk and os.path.exists(local_chunk):
+                try:
+                    os.remove(local_chunk)
+                except OSError as error:
+                    dlog.debug(
+                        f"Could not remove temporary local archive part "
+                        f"{local_chunk}: {error}"
+                    )
+            if not assembled and os.path.exists(local_archive):
+                try:
+                    os.remove(local_archive)
+                except OSError as error:
+                    dlog.debug(
+                        f"Could not remove incomplete local archive "
+                        f"{local_archive}: {error}"
+                    )
+            try:
+                discovered_chunks = [
+                    posixpath.join(remote_directory, filename)
+                    for filename in sorted(self.sftp.listdir(remote_directory))
+                    if filename.startswith(chunk_basename_prefix)
+                ]
+            except Exception as error:
+                dlog.debug(
+                    f"Could not discover temporary remote archive parts "
+                    f"with prefix {chunk_basename_prefix}: {error}"
+                )
+                discovered_chunks = []
+            for remote_chunk in discovered_chunks:
+                try:
+                    self.sftp.remove(remote_chunk)
+                except Exception as error:
+                    dlog.debug(
+                        f"Could not remove temporary remote archive part "
+                        f"{remote_chunk}: {error}"
+                    )
 
     @classmethod
     def machine_subfields(cls) -> list[Argument]:

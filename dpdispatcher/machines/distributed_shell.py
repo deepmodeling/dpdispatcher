@@ -1,3 +1,5 @@
+"""Implement Hadoop YARN DistributedShell submission."""
+
 from typing import TYPE_CHECKING
 
 from dpdispatcher.dlog import dlog
@@ -55,6 +57,8 @@ fi
 
 
 class DistributedShell(Machine):
+    """Run archived DPDispatcher jobs in a YARN DistributedShell container."""
+
     def gen_script_env(self, job: "Job") -> str:
         source_files_part = ""
 

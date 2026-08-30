@@ -1,3 +1,5 @@
+"""Implement Slurm scheduler submission and Slurm job arrays."""
+
 from __future__ import annotations
 
 import math
@@ -34,6 +36,8 @@ wait
 
 
 class Slurm(Machine):
+    """Submit and monitor jobs through Slurm command-line tools."""
+
     def gen_script(self, job: Job) -> str:
         slurm_script = super().gen_script(job)
         return slurm_script

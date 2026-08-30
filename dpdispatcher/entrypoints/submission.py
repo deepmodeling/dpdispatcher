@@ -1,3 +1,5 @@
+"""Implement recovery actions for a recorded submission."""
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 

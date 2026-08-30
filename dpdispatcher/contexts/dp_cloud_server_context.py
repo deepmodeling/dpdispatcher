@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Stage files for the legacy Bohrium cloud-service backend."""
+
 # %%
 from __future__ import annotations
 
@@ -32,6 +34,7 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 
 
 class BohriumContext(BaseContext):
+    """Transfer submissions through Bohrium object storage and cloud APIs."""
     downloads_by_job = True
     alias = ("DpCloudServerContext", "LebesgueContext")
 

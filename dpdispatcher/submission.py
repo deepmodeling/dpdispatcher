@@ -1,4 +1,6 @@
 # %%
+"""Define submissions, tasks, generated jobs, and resource requests."""
+
 import asyncio
 import copy
 import functools
@@ -30,25 +32,26 @@ default_strategy = dict(if_cuda_multi_devices=False, ratio_unfinished=0.0)
 
 
 class Submission:
-    """A submission represents a collection of tasks.
-    These tasks usually locate at a common directory.
-    And these Tasks may share common files to be uploaded and downloaded.
+    """Coordinate a collection of tasks that share a working directory.
+
+    A submission groups tasks into scheduler jobs, stages common files, monitors
+    execution, downloads declared results, and records state for recovery.
 
     Parameters
     ----------
-    work_base : Path
-        the base directory of the local tasks. It is usually the dir name of project .
-    machine : Machine
-        machine class object (for example, PBS, Slurm, Shell) to execute the jobs.
-        The machine can still be bound after the instantiation with the bind_submission method.
-    resources : Resources
-        the machine resources (cpu or gpu) used to generate the slurm/pbs script
-    forward_common_files : list
-        the common files to be uploaded to other computers before the jobs begin
-    backward_common_files : list
-        the common files to be downloaded from other computers after the jobs finish
-    task_list : list of Task
-        a list of tasks to be run.
+    work_base : path-like
+        Local base directory containing all task working directories.
+    machine : Machine, optional
+        Batch backend and execution context. It may be bound later with
+        :meth:`bind_machine`.
+    resources : Resources, optional
+        Resource request copied into every generated job.
+    forward_common_files : list of path-like, optional
+        Files shared by all tasks and staged before execution.
+    backward_common_files : list of path-like, optional
+        Shared result files downloaded after execution.
+    task_list : list of Task, optional
+        Tasks to register when the submission is created.
     """
 
     def __init__(
@@ -89,8 +92,9 @@ class Submission:
         return json.dumps(self.serialize(), indent=4)
 
     def __eq__(self, other: object) -> bool:
-        """When check whether the two submission are equal,
-        we disregard the runtime infomation(job_state, job_id, fail_count) of the submission.belonging_jobs.
+        """Compare submissions while ignoring mutable job runtime information.
+
+        Job state, scheduler IDs, and failure counts do not affect equality.
         """
         return json.dumps(self.serialize(if_static=True)) == json.dumps(
             other.serialize(if_static=True)  # type: ignore[attr-defined]
@@ -107,22 +111,19 @@ class Submission:
         *,
         bind_context: bool = True,
     ) -> "Submission":  # noqa: ANN401
-        """Convert the submission_dict to a Submission class object.
+        """Reconstruct a submission from serialized state.
 
         Parameters
         ----------
         submission_dict : dict
-            path-like, the base directory of the local tasks
-        machine : Machine
-            Machine class Object to execute the jobs
-        bind_context : bool, default=True
-            Whether to bind the machine context to the deserialized submission.
-            Disable this when the machine is shared with an active submission.
+            Serialized submission configuration and job state.
+        machine : Machine, optional
+            Machine to bind instead of reconstructing the serialized machine.
 
         Returns
         -------
-        submission : Submission
-            the Submission class instance converted from the submission_dict
+        Submission
+            Reconstructed submission.
         """
         submission = cls(
             work_base=submission_dict["work_base"],
@@ -145,17 +146,17 @@ class Submission:
         return submission
 
     def serialize(self, if_static: bool = False) -> dict[str, Any]:  # noqa: ANN401
-        """Convert the Submission class instance to a dictionary.
+        """Return a JSON-compatible representation of the submission.
 
         Parameters
         ----------
-        if_static : bool
-            whether dump the job runtime infomation (like job_id, job_state, fail_count) to the dictionary.
+        if_static : bool, default=False
+            Exclude job IDs, states, and failure counts when true.
 
         Returns
         -------
-        submission_dict : dict
-            the dictionary converted from the Submission class instance
+        dict
+            Submission configuration and, unless excluded, current runtime state.
         """
         assert self.resources is not None
         submission_dict = {}
@@ -180,6 +181,7 @@ class Submission:
         return submission_dict
 
     def register_task(self, task: "Task") -> None:
+        """Append one task before jobs have been generated."""
         if self.belonging_jobs:
             raise RuntimeError(
                 f"Not allowed to register tasks after generating jobs. submission hash error {self}"
@@ -187,6 +189,7 @@ class Submission:
         self.belonging_tasks.append(task)
 
     def register_task_list(self, task_list: list["Task"]) -> None:
+        """Append multiple tasks before jobs have been generated."""
         if self.belonging_jobs:
             raise RuntimeError(
                 f"Not allowed to register tasks after generating jobs. submission hash error {self}"
@@ -194,6 +197,7 @@ class Submission:
         self.belonging_tasks.extend(task_list)
 
     def get_hash(self) -> str:
+        """Return the stable hash of the submission's static configuration."""
         return sha1(
             json.dumps(self.serialize(if_static=True)).encode("utf-8")
         ).hexdigest()
@@ -204,14 +208,17 @@ class Submission:
         *,
         bind_context: bool = True,
     ) -> "Submission":
-        """Bind this submission to a machine. update the machine's context remote_root and local_root.
+        """Bind a machine and initialize submission-specific context paths.
 
         Parameters
         ----------
-        machine : Machine
-            the machine to bind with
-        bind_context : bool, default=True
-            Whether to update the machine context's active submission and roots.
+        machine : Machine or None
+            Machine to use for generated jobs and file operations.
+
+        Returns
+        -------
+        Submission
+            This submission, for convenient chained configuration.
         """
         self.submission_hash = self.get_hash()
         self.machine = machine
@@ -237,32 +244,27 @@ class Submission:
         clean: bool | str = True,
         check_interval: int = 30,
     ) -> dict[str, Any]:  # noqa: ANN401
-        """Main method to execute the submission.
-        First, check whether old Submission exists on the remote machine, and try to recover from it.
-        Second, upload the local files to the remote machine where the tasks to be executed.
-        Third, run the submission defined previously.
-        Forth, wait until the tasks in the submission finished and download the result file to local directory.
-        If dry_run is True, submission will be uploaded but not be executed and exit.
-        If exit_on_submit is True, submission will exit.
+        """Execute the submission and monitor it until completion.
+
+        The lifecycle recovers compatible state, stages files, submits or retries
+        jobs, polls their status, downloads declared results, persists recovery
+        state, and optionally cleans the execution directory.
 
         Parameters
         ----------
-        dry_run : bool
-            If True, only upload without execution.
+        dry_run : bool, default=False
+            Upload inputs and generated scripts without submitting jobs.
+        exit_on_submit : bool, default=False
+            Return after jobs have been submitted instead of waiting for them.
+        clean : bool, default=True
+            Remove the submission-specific execution directory after download.
+        check_interval : int or float, default=30
+            Seconds between scheduler status checks.
 
-        exit_on_submit : bool
-            If True, exit after submission without waiting.
-
-        clean : bool or str
-            Controls whether to clean remote working directory after completion.
-
-            - True or "always": always clean (default, backward compatible)
-            - False or "never": never clean
-            - "on_success": only clean when all jobs finished successfully;
-              preserve remote workdir on failure for debugging.
-
-        check_interval : int
-            Seconds between status polling iterations.
+        Returns
+        -------
+        dict
+            Serialized submission state at the point this method returns.
         """
         assert self.resources is not None
         machine = self._require_machine()
@@ -471,15 +473,7 @@ class Submission:
                     )
 
     def try_download_result(self) -> bool:
-        """Download result files, retrying transient failures for up to 24 hours.
-
-        Returns
-        -------
-        bool
-            Whether all result files were downloaded successfully. A false
-            result prevents ``clean='on_success'`` from deleting the only
-            remaining remote copy after retry exhaustion.
-        """
+        """Download results, retrying transient failures for up to 24 hours."""
         start_time = time.time()
         retry_interval = 60  # retry every 1 minute
         success = False
@@ -506,32 +500,22 @@ class Submission:
         return success
 
     async def async_run_submission(self, **kwargs: Any) -> None:  # noqa: ANN401
-        """Async interface of run_submission.
+        """Run :meth:`run_submission` in an executor.
+
+        Cleanup defaults to false for asynchronous submissions so concurrent
+        work does not remove shared context data unexpectedly. Explicitly pass
+        ``clean=True`` only when each submission has an isolated execution root.
 
         Examples
         --------
         >>> import asyncio
-        >>> from dpdispacher import Machine, Resource, Submission
-        >>> async def run_jobs():
-        ...     backgroud_task = set()
-        ...     # task1
-        ...     task1 = Task(...)
-        ...     submission1 = Submission(..., task_list=[task1])
-        ...     background_task = asyncio.create_task(
-        ...         submission1.async_run_submission(check_interval=2, clean=False)
+        >>> async def run_all(submissions):
+        ...     return await asyncio.gather(
+        ...         *(
+        ...             submission.async_run_submission(check_interval=2)
+        ...             for submission in submissions
+        ...         )
         ...     )
-        ...     # task2
-        ...     task2 = Task(...)
-        ...     submission2 = Submission(..., task_list=[task1])
-        ...     background_task = asyncio.create_task(
-        ...         submission2.async_run_submission(check_interval=2, clean=False)
-        ...     )
-        ...     background_tasks.add(background_task)
-        ...     result = await asyncio.gather(*background_tasks)
-        ...     return result
-        >>> run_jobs()
-
-        May raise Error if pass `clean=True` explicitly when submit to pbs or slurm.
         """
         kwargs = {**{"clean": False}, **kwargs}
         if self._should_clean(kwargs["clean"]):
@@ -544,11 +528,11 @@ class Submission:
         return await loop.run_in_executor(None, wrapped_submission)
 
     def update_submission_state(self) -> None:
-        """Check whether all the jobs in the submission.
+        """Refresh every unfinished job's state from its machine backend.
 
         Notes
         -----
-        this method will not handle unexpected (like resubmit terminated) job state in the submission.
+        This method only queries state. It does not submit or retry jobs.
         """
         for job in self.belonging_jobs:
             if job.job_state in (JobStatus.finished, JobStatus.failed):
@@ -560,10 +544,10 @@ class Submission:
             )
 
     def handle_unexpected_submission_state(self) -> None:
-        """Handle unexpected job state of the submission.
-        If the job state is unsubmitted, submit the job.
-        If the job state is terminated (killed unexpectly), resubmit the job.
-        If the job state is unknown, raise an error.
+        """Submit unsubmitted jobs and retry unexpectedly terminated jobs.
+
+        Unknown states and exhausted retries are persisted for recovery before
+        the error is propagated.
         """
         machine = self._require_machine()
         try:
@@ -573,26 +557,28 @@ class Submission:
             self.submission_to_json()
             record_path = record.write(self)
             raise RuntimeError(
-                f"Meet errors will handle unexpected submission state.\n"
+                "Failed while handling an unexpected submission state.\n"
+                f"Underlying job error: {e}\n"
                 f"Debug information: remote_root=={machine.context.remote_root}.\n"
                 f"Debug information: submission_hash=={self.submission_hash}.\n"
                 f"Please check error messages above and in remote_root. "
                 f"The submission information is saved in {str(record_path)}.\n"
-                f"For furthur actions, run the following command with proper flags: dpdisp submission {self.submission_hash}"
+                "For further actions, run the following command with proper flags: "
+                f"dpdisp submission {self.submission_hash}"
             ) from e
 
     def check_ratio_unfinished(self, ratio_unfinished: float) -> bool:
-        """Calculate the ratio of unfinished tasks in the submission.
+        """Return whether the allowed unfinished-task threshold is satisfied.
 
         Parameters
         ----------
         ratio_unfinished : float
-            the ratio of unfinished tasks in the submission
+            Maximum fraction of tasks that may remain unfinished.
 
         Returns
         -------
         bool
-            whether the ratio of unfinished tasks in the submission is larger than ratio_unfinished
+            True when the finished fraction is at least ``1 - ratio_unfinished``.
         """
         assert self.resources is not None
         machine = self._require_machine()
@@ -641,11 +627,11 @@ class Submission:
             ]
 
     def check_all_finished(self) -> bool:
-        """Check whether all the jobs in the submission.
+        """Return whether every generated job has finished successfully.
 
         Notes
         -----
-        This method will not handle unexpected job state in the submission.
+        This method does not submit, retry, or otherwise change job states.
         """
         # self.update_submission_state()
         if any(
@@ -675,11 +661,11 @@ class Submission:
             return True
 
     def generate_jobs(self) -> None:
-        """After tasks register to the self.belonging_tasks,
-        This method generate the jobs and add these jobs to self.belonging_jobs.
-        The jobs are generated by the tasks randomly, and there are self.resources.group_size tasks in a task.
-        Why we randomly shuffle the tasks is under the consideration of load balance.
-        The random seed is a constant (to be concrete, 42). And this insures that the jobs are equal when we re-run the program.
+        """Generate jobs after tasks are registered.
+
+        Tasks are shuffled with a fixed seed before grouping to distribute task
+        cost while preserving deterministic job hashes for recovery. Each job
+        contains at most ``resources.group_size`` tasks; zero groups all tasks.
         """
         assert self.resources is not None
         if self.belonging_jobs:
@@ -718,6 +704,7 @@ class Submission:
         self.submission_hash = self.get_hash()
 
     def upload_jobs(self) -> None:
+        """Upload submission inputs through the bound context."""
         self._require_machine().context.upload(self)
 
     def download_jobs(self, include_failed: bool = False) -> None:
@@ -741,36 +728,56 @@ class Submission:
             )
             return
 
-        # Filesystem contexts select by task, while cloud contexts select by job.
-        # Temporarily expose only successful work to both styles so missing outputs
-        # from terminal failures cannot mask results produced by other jobs.
+        # Temporarily expose only successful work so missing outputs from
+        # terminal failures cannot mask results produced by other jobs.
         original_tasks = self.belonging_tasks
         original_jobs = self.belonging_jobs
         selected_tasks = [
             task for task in original_tasks if task.task_state == JobStatus.finished
         ]
-        self.belonging_tasks = selected_tasks
-        if getattr(context, "downloads_by_job", False) is True:
+        downloads_by_job = getattr(context, "downloads_by_job", False) is True
+        if downloads_by_job and not getattr(
+            context, "supports_partial_job_download", True
+        ):
+            # Job archives that require all tasks to succeed do not exist for a
+            # failed grouped job.  Restrict both lists to complete jobs and
+            # avoid invoking the backend when there is no archive to fetch.
+            selected_jobs = [
+                job for job in original_jobs if job.job_state == JobStatus.finished
+            ]
+            selected_hashes = {
+                task.task_hash
+                for job in selected_jobs
+                for task in job.job_task_list
+            }
+            selected_tasks = [
+                task for task in selected_tasks if task.task_hash in selected_hashes
+            ]
+        elif downloads_by_job:
             # Cloud archives are keyed by parent job rather than task. Retain a
             # mixed-state parent whenever it contains selected finished tasks;
             # the task-level cleanup below removes outputs of failed siblings.
             selected_hashes = {task.task_hash for task in selected_tasks}
-            self.belonging_jobs = [
+            selected_jobs = [
                 job
                 for job in original_jobs
                 if job.job_state == JobStatus.finished
                 or any(task.task_hash in selected_hashes for task in job.job_task_list)
             ]
         else:
-            self.belonging_jobs = [
+            selected_jobs = [
                 job for job in original_jobs if job.job_state == JobStatus.finished
             ]
+        if downloads_by_job and not selected_jobs:
+            return
+        self.belonging_tasks = selected_tasks
+        self.belonging_jobs = selected_jobs
         try:
             context.download(self)
         finally:
             self.belonging_tasks = original_tasks
             self.belonging_jobs = original_jobs
-        if getattr(context, "downloads_by_job", False) is True:
+        if downloads_by_job:
             self._remove_unselected_task_outputs(original_jobs, selected_tasks)
 
     def _remove_unselected_task_outputs(
@@ -807,12 +814,14 @@ class Submission:
         # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")
 
     def clean_jobs(self) -> None:
+        """Remove remote working data and the local recovery record."""
         self._require_machine().context.clean()
         assert self.submission_hash is not None
         record.remove(self.submission_hash)
 
     def submission_to_json(self) -> None:
         # self.update_submission_state()
+        """Write current submission state to the execution root as JSON."""
         write_str = json.dumps(self.serialize(), indent=4, default=str)
         submission_file_name = f"{self.submission_hash}.json"
         self._require_machine().context.write_file(
@@ -823,12 +832,14 @@ class Submission:
     def submission_from_json(
         cls, json_file_name: str = "submission.json"
     ) -> "Submission":
+        """Load a submission, including machine state, from a local JSON file."""
         with open(json_file_name) as f:
             submission_dict = json.load(f)
         submission = cls.deserialize(submission_dict=submission_dict, machine=None)
         return submission
 
     def try_recover_from_json(self) -> None:
+        """Restore compatible job state from the remote submission JSON file."""
         machine = self._require_machine()
         submission_file_name = f"{self.submission_hash}.json"
         if_recover = machine.context.check_file_exists(submission_file_name)
@@ -866,23 +877,24 @@ class Submission:
 
 
 class Task:
-    """A task is a sequential command to be executed,
-    as well as the files it depends on to transmit forward and backward.
+    """Represent a sequential command and its staged files.
+
+    A task records the files it depends on and the results to transfer back.
 
     Parameters
     ----------
-    command : Str
-        the command to be executed.
-    task_work_path : Path
-        the directory of each file where the files are dependent on.
-    forward_files : list of Path
-        the files to be transmitted to remote machine before the command execute.
-    backward_files : list of Path
-        the files to be transmitted from remote machine after the comand finished.
-    outlog : Str or None
-        the filename to which command redirect stdout
-    errlog : Str or None
-        the filename to which command redirects stderr, or None to inherit stderr
+    command : str
+        Shell command to execute.
+    task_work_path : path-like
+        Working directory relative to the submission's ``work_base``.
+    forward_files : list of path-like, optional
+        Task-specific input files staged before execution.
+    backward_files : list of path-like, optional
+        Task-specific result files downloaded after execution.
+    outlog : str or None, default="log"
+        File that receives standard output, or ``None`` to leave it attached.
+    errlog : str or None, default="err"
+        File that receives standard error, or ``None`` to leave it attached.
     """
 
     def __init__(
@@ -919,6 +931,7 @@ class Task:
         return self.serialize()[key]
 
     def get_hash(self) -> str:
+        """Return the stable hash of the task configuration."""
         return sha1(json.dumps(self.serialize()).encode("utf-8")).hexdigest()
 
     @classmethod
@@ -978,22 +991,23 @@ class Task:
 
     @classmethod
     def deserialize(cls, task_dict: dict[str, Any]) -> "Task":  # noqa: ANN401
-        """Convert the task_dict to a Task class object.
+        """Reconstruct a task from a serialized dictionary.
 
         Parameters
         ----------
         task_dict : dict
-            the dictionary which contains the task information
+            Task configuration.
 
         Returns
         -------
-        task : Task
-            the Task class instance converted from the task_dict
+        Task
+            Reconstructed task.
         """
         task = cls(**task_dict)
         return task
 
     def serialize(self) -> dict[str, Any]:  # noqa: ANN401
+        """Return the task configuration as a JSON-compatible dictionary."""
         task_dict = {}
         task_dict["command"] = self.command
         task_dict["task_work_path"] = self.task_work_path
@@ -1006,6 +1020,7 @@ class Task:
 
     @staticmethod
     def arginfo() -> Argument:
+        """Build the dargs schema for task configuration."""
         doc_command = (
             "Shell command executed for this task. A zero exit code is treated as success. "
             "If the real application may fail before useful artifacts are synchronized, consider "
@@ -1096,18 +1111,20 @@ class Task:
 
 
 class Job:
-    """Job is generated by Submission automatically.
-    A job ususally has many tasks and it may request computing resources from job scheduler systems.
-    Each Job can generate a script file to be submitted to the job scheduler system or executed locally.
+    """Represent one scheduler job generated from a group of tasks.
+
+    Applications normally let :class:`Submission` create jobs. A job owns a
+    resource request, generates scheduler scripts through its machine, and
+    stores scheduler ID, state, and retry information for recovery.
 
     Parameters
     ----------
     job_task_list : list of Task
-        the tasks belonging to the job
+        Tasks grouped into this scheduler job.
     resources : Resources
-        the machine resources. Passed from Submission when it constructs jobs.
-    machine : machine
-        machine object to execute the job. Passed from Submission when it constructs jobs.
+        Resource request copied from the parent submission.
+    machine : Machine, optional
+        Backend used to generate, submit, and monitor the job.
     """
 
     def __init__(
@@ -1139,8 +1156,9 @@ class Job:
         return str(self.serialize())
 
     def __eq__(self, other: object) -> bool:
-        """When check whether the two jobs are equal,
-        we disregard the runtime infomation(job_state, job_id, fail_count) of the jobs.
+        """Compare jobs while ignoring mutable scheduler runtime information.
+
+        Job state, scheduler IDs, and failure counts do not affect equality.
         """
         return json.dumps(self.serialize(if_static=True)) == json.dumps(
             other.serialize(if_static=True)  # type: ignore[attr-defined]
@@ -1150,19 +1168,19 @@ class Job:
     def deserialize(
         cls, job_dict: dict[str, Any], machine: Optional["Machine"] = None
     ) -> "Job":  # noqa: ANN401
-        """Convert the  job_dict to a Submission class object.
+        """Reconstruct a job and its tasks from serialized state.
 
         Parameters
         ----------
         job_dict : dict
-            the dictionary which contains the job information
-        machine : Machine
-            the machine object to execute the job
+            Single-entry mapping from job hash to configuration and runtime data.
+        machine : Machine, optional
+            Machine to bind to the reconstructed job.
 
         Returns
         -------
-        submission : Job
-            the Job class instance converted from the job_dict
+        Job
+            Reconstructed job.
         """
         if len(job_dict.keys()) != 1:
             raise RuntimeError(
@@ -1198,11 +1216,11 @@ class Job:
         return job
 
     def get_job_state(self) -> None:
-        """Get the jobs. Usually, this method will query the database of slurm or pbs job scheduler system and get the results.
+        """Query the backend and update this job and its unfinished tasks.
 
         Notes
         -----
-        this method will not submit or resubmit the jobs if the job is unsubmitted.
+        This method does not submit or retry the job.
         """
         dlog.debug(
             f"query database; self.job_hash:{self.job_hash}; self.job_id:{self.job_id}"
@@ -1217,6 +1235,7 @@ class Job:
                 task.task_state = job_state
 
     def handle_unexpected_job_state(self) -> None:
+        """Submit or retry a job according to its current state."""
         job_state = self.job_state
 
         if job_state == JobStatus.failed:
@@ -1276,20 +1295,21 @@ class Job:
             # self.get_job_state()
 
     def get_hash(self) -> str:
+        """Return the stable hash used as this job's identifier."""
         return str(list(self.serialize(if_static=True).keys())[0])
 
     def serialize(self, if_static: bool = False) -> dict[str, Any]:  # noqa: ANN401
-        """Convert the Task class instance to a dictionary.
+        """Return a hash-keyed, JSON-compatible representation of the job.
 
         Parameters
         ----------
-        if_static : bool
-            whether dump the job runtime infomation (job_id, job_state, fail_count, job_uuid etc.) to the dictionary.
+        if_static : bool, default=False
+            Exclude job ID, state, and failure count when true.
 
         Returns
         -------
-        task_dict : dict
-            the dictionary converted from the Task class instance
+        dict
+            Mapping from the deterministic job hash to job data.
         """
         job_content_dict = {}
         # for task in self.job_task_list:
@@ -1311,9 +1331,11 @@ class Job:
         return {job_hash: job_content_dict}
 
     def register_job_id(self, job_id: str | int) -> None:
+        """Store the identifier returned by the scheduler."""
         self.job_id = job_id
 
     def submit_job(self) -> None:
+        """Submit the job through its machine and update its local state."""
         assert self.machine is not None
         job_id = self.machine.do_submit(self)
         self.register_job_id(job_id)
@@ -1323,6 +1345,7 @@ class Job:
             self.job_state = JobStatus.unsubmitted
 
     def job_to_json(self) -> None:
+        """Write current job state to the execution root as JSON."""
         write_str = json.dumps(self.serialize(), indent=2, default=str)
         assert self.machine is not None
         self.machine.context.write_file(
@@ -1387,40 +1410,47 @@ class Job:
 
 
 class Resources:
-    """Resources is used to describe the machine resources we need to do calculations.
+    """Describe the resources and execution strategy for generated jobs.
 
     Parameters
     ----------
     number_node : int
-        The number of node need for each `job`.
+        Number of nodes requested for each generated job.
     cpu_per_node : int
-        cpu numbers of each node.
+        Number of CPUs requested on each node.
     gpu_per_node : int
-        gpu numbers of each node.
+        Number of GPUs requested on each node.
     queue_name : str
-        The queue name of batch job scheduler system.
+        Queue or partition name passed to the batch backend.
     group_size : int
-        The number of `tasks` in a `job`.
-    custom_flags : list of Str
-        The extra lines pass to job submitting script header
-    strategy : dict
-        strategies we use to generation job submitting scripts.
-        if_cuda_multi_devices : bool
-            If there are multiple nvidia GPUS on the node, and we want to assign the tasks to different GPUS.
-            If true, dpdispatcher will manually export environment variable CUDA_VISIBLE_DEVICES to different task.
-            Usually, this option will be used with Task.task_need_resources variable simultaneously.
-        ratio_unfinished : float
-            The ratio of `task` that can be unfinished.
-        customized_script_header_template_file : str
-            The customized template file to generate job submitting script header,
-            which overrides the default file.
-    para_deg : int
-        Decide how many tasks will be run in parallel.
-        Usually run with `strategy['if_cuda_multi_devices']`
-    source_list : list of Path
-        The env file to be sourced before the command execution.
-    wait_time : int
-        The waitting time in second after a single task submitted. Default: 0.
+        Maximum number of tasks grouped into one scheduler job. Zero groups all
+        tasks into one job.
+    custom_flags : list of str, optional
+        Extra scheduler directives inserted into the generated script header.
+    strategy : dict, optional
+        Script-generation strategy. Recognized keys include
+        ``if_cuda_multi_devices``, ``ratio_unfinished``, and
+        ``customized_script_header_template_file``.
+    para_deg : int, default=1
+        Number of task commands run concurrently inside one generated job.
+    module_unload_list : list of str, optional
+        Environment modules to unload before task execution.
+    module_purge : bool, default=False
+        Whether to purge loaded environment modules first.
+    module_list : list of str, optional
+        Environment modules to load before task execution.
+    source_list : list of str, optional
+        Shell files to source before task execution.
+    envs : dict, optional
+        Environment variables to export before task execution.
+    prepend_script : list of str, optional
+        Shell lines inserted before task commands.
+    append_script : list of str, optional
+        Shell lines inserted after all task commands finish.
+    wait_time : int, default=0
+        Delay in seconds after each job submission or resubmission.
+    **kwargs
+        Backend-specific resource options, stored in ``Resources.kwargs``.
     """
 
     def __init__(
@@ -1494,6 +1524,7 @@ class Resources:
         return json.dumps(self.serialize()) == json.dumps(other.serialize())  # type: ignore[attr-defined]
 
     def serialize(self) -> dict[str, Any]:  # noqa: ANN401
+        """Return the resource request as a JSON-compatible dictionary."""
         resources_dict = {}
         resources_dict["number_node"] = self.number_node
         resources_dict["cpu_per_node"] = self.cpu_per_node
@@ -1517,6 +1548,7 @@ class Resources:
 
     @classmethod
     def deserialize(cls, resources_dict: dict[str, Any]) -> "Resources":  # noqa: ANN401
+        """Reconstruct a resource request from a serialized dictionary."""
         resources = cls(
             number_node=resources_dict.get("number_node", 1),
             cpu_per_node=resources_dict.get("cpu_per_node", 1),
@@ -1543,6 +1575,7 @@ class Resources:
 
     @classmethod
     def load_from_json(cls, json_file: str) -> "Resources":
+        """Load and validate a resource request from a JSON file."""
         with open(json_file) as f:
             resources_dict = json.load(f)
         resources = cls.load_from_dict(resources_dict=resources_dict)
@@ -1550,6 +1583,7 @@ class Resources:
 
     @classmethod
     def load_from_yaml(cls, yaml_file: str) -> "Resources":
+        """Load and validate a resource request from a YAML file."""
         with open(yaml_file) as f:
             resources_dict = yaml.safe_load(f)
         resources = cls.load_from_dict(resources_dict=resources_dict)
@@ -1580,6 +1614,7 @@ class Resources:
 
     @staticmethod
     def arginfo(detail_kwargs: bool = True) -> Argument:
+        """Build the dargs schema for common and backend-specific resources."""
         doc_number_node = "Number of nodes requested for each scheduler job generated by DPDispatcher."
         doc_cpu_per_node = (
             "Number of CPUs requested on each node for each scheduler job."

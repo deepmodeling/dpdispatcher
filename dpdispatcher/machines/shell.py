@@ -1,3 +1,5 @@
+"""Implement local or remote background execution through a shell."""
+
 import shlex
 from typing import TYPE_CHECKING
 
@@ -15,6 +17,8 @@ shell_script_header_template = """
 
 
 class Shell(Machine):
+    """Run generated job scripts as background shell processes."""
+
     def gen_script(self, job: "Job") -> str:
         shell_script = super().gen_script(job)
         return shell_script

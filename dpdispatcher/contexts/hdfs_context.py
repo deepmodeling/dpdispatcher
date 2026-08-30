@@ -1,3 +1,5 @@
+"""Stage DistributedShell submission data through HDFS archives."""
+
 import os
 import shutil
 import tarfile
@@ -14,6 +16,14 @@ if TYPE_CHECKING:
 
 
 class HDFSContext(BaseContext):
+    """Transfer submission inputs and outputs between local storage and HDFS."""
+
+    # DistributedShell emits one archive per grouped job, and only emits it
+    # after every task succeeds.  Submission.download_jobs must therefore
+    # select complete jobs instead of attempting partial archive downloads.
+    downloads_by_job = True
+    supports_partial_job_download = False
+
     def __init__(
         self,
         local_root: str,
@@ -150,7 +160,18 @@ class HDFSContext(BaseContext):
         os.mkdir(os.path.join(self.local_root, "tmp"))
         rfile_tgz = f"{self.remote_root}/{submission.submission_hash}_*_download.tar.gz"
         lfile_tgz = f"{self.local_root}/tmp/"
-        HDFS.copy_to_local(rfile_tgz, lfile_tgz)
+        try:
+            HDFS.copy_to_local(rfile_tgz, lfile_tgz)
+        except RuntimeError:
+            # A failed DistributedShell job does not produce an archive.  An
+            # explicit terminated-log download should still succeed when no
+            # optional archive exists, while normal result downloads retain
+            # the original error/retry behavior.
+            if check_exists and not mark_failure:
+                dlog.debug("No HDFS result archive found; skipping optional download")
+                shutil.rmtree(gz_dir, ignore_errors=True)
+                return
+            raise
 
         tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar.gz"))
         for tgz in tgz_file_list:
@@ -171,31 +192,27 @@ class HDFSContext(BaseContext):
                 lfile = os.path.join(local_job, jj)
 
                 if not os.path.exists(rfile):
-                    if check_exists:
-                        if mark_failure:
-                            with open(
-                                os.path.join(
-                                    self.local_root,
-                                    task.task_work_path,
-                                    f"tag_failure_download_{jj}",
-                                ),
-                                "w",
-                            ) as fp:
-                                pass
-                        else:
-                            raise FileNotFoundError(
-                                "do not find download file " + rfile
-                            )
-                    else:
+                    if not check_exists:
                         raise FileNotFoundError("do not find download file " + rfile)
-                else:
-                    if os.path.exists(lfile):
-                        dlog.info(f"find existing {lfile}, replacing by {rfile}")
-                        if os.path.isdir(lfile):
-                            shutil.rmtree(lfile, ignore_errors=True)
-                        elif os.path.isfile(lfile):
-                            os.remove(lfile)
-                    shutil.move(rfile, lfile)
+                    if mark_failure:
+                        with open(
+                            os.path.join(
+                                self.local_root,
+                                task.task_work_path,
+                                f"tag_failure_download_{jj}",
+                            ),
+                            "w",
+                        ) as fp:
+                            pass
+                    # Missing files are optional when mark_failure is false.
+                    continue
+                if os.path.exists(lfile):
+                    dlog.info(f"find existing {lfile}, replacing by {rfile}")
+                    if os.path.isdir(lfile):
+                        shutil.rmtree(lfile, ignore_errors=True)
+                    elif os.path.isfile(lfile):
+                        os.remove(lfile)
+                shutil.move(rfile, lfile)
 
         local_job = self.local_root
         remote_job = gz_dir
@@ -208,25 +225,23 @@ class HDFSContext(BaseContext):
             lfile = os.path.join(local_job, jj)
 
             if not os.path.exists(rfile):
-                if check_exists:
-                    if mark_failure:
-                        with open(
-                            os.path.join(self.local_root, f"tag_failure_download_{jj}"),
-                            "w",
-                        ) as fp:
-                            pass
-                    else:
-                        raise FileNotFoundError("do not find download file " + rfile)
-                else:
+                if not check_exists:
                     raise FileNotFoundError("do not find download file " + rfile)
-            else:
-                if os.path.exists(lfile):
-                    dlog.info(f"find existing {lfile}, replacing by {rfile}")
-                    if os.path.isdir(lfile):
-                        shutil.rmtree(lfile, ignore_errors=True)
-                    elif os.path.isfile(lfile):
-                        os.remove(lfile)
-                shutil.move(rfile, lfile)
+                if mark_failure:
+                    with open(
+                        os.path.join(self.local_root, f"tag_failure_download_{jj}"),
+                        "w",
+                    ) as fp:
+                        pass
+                # Missing files are optional when mark_failure is false.
+                continue
+            if os.path.exists(lfile):
+                dlog.info(f"find existing {lfile}, replacing by {rfile}")
+                if os.path.isdir(lfile):
+                    shutil.rmtree(lfile, ignore_errors=True)
+                elif os.path.isfile(lfile):
+                    os.remove(lfile)
+            shutil.move(rfile, lfile)
 
         # remove tmp dir
         shutil.rmtree(gz_dir, ignore_errors=True)

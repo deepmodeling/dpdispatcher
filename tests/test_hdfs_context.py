@@ -24,6 +24,42 @@ from .sample_class import SampleClass
 class TestHDFSContextDownload(unittest.TestCase):
     """Test download bookkeeping without requiring a Hadoop installation."""
 
+    def test_missing_optional_file_is_skipped(self) -> None:
+        """Post-mortem downloads tolerate logs absent from a failed task."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+
+            task = SimpleNamespace(
+                task_work_path="task",
+                backward_files=["missing.log"],
+            )
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[task],
+                backward_common_files=[],
+            )
+            os.mkdir(os.path.join(local_root, "task"))
+
+            def create_empty_download_archive(_remote: str, destination: str) -> None:
+                archive_path = os.path.join(
+                    destination, "submission-hash_1_download.tar.gz"
+                )
+                with tarfile.open(archive_path, "w:gz"):
+                    pass
+
+            with patch.object(
+                HDFS, "copy_to_local", side_effect=create_empty_download_archive
+            ):
+                context.download(
+                    submission,
+                    check_exists=True,
+                    mark_failure=False,
+                )
+
+            self.assertFalse(os.path.exists(os.path.join(local_root, "task/missing.log")))
+
     def test_back_error_uses_relative_copies_without_mutating_submission(self) -> None:
         with tempfile.TemporaryDirectory() as local_root:
             context = HDFSContext.__new__(HDFSContext)

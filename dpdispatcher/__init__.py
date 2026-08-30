@@ -1,3 +1,10 @@
+"""Public interface for configuring and running DPDispatcher submissions.
+
+The top-level package exports the core configuration and runtime objects. Batch
+systems and execution contexts register themselves when the package is imported,
+so :class:`Machine` can construct the requested backend from configuration.
+"""
+
 __author__ = "DeepModeling Team"
 __copyright__ = "Copyright 2019-2023, DeepModeling"
 __status__ = "Production"

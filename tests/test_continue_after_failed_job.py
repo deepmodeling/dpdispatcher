@@ -115,6 +115,33 @@ class TestTerminalFailedJobs(unittest.TestCase):
             self.assertTrue((Path(local_root) / "finished" / "result.txt").is_file())
             self.assertFalse((Path(local_root) / "failed" / "result.txt").exists())
 
+    def test_job_archive_download_skips_mixed_jobs(self) -> None:
+        """Archive backends must not request results for failed grouped jobs."""
+        finished = self._job(state=JobStatus.finished, command="true")
+        failed = self._job(state=JobStatus.failed)
+        submission = Submission.__new__(Submission)
+        submission.machine = MagicMock()
+        submission.machine.context.downloads_by_job = True
+        submission.machine.context.supports_partial_job_download = False
+        submission.belonging_jobs = [failed]
+        submission.belonging_tasks = failed.job_task_list
+
+        submission.download_jobs()
+        submission.machine.context.download.assert_not_called()
+
+        def inspect_selection(selected: Submission) -> None:
+            self.assertEqual(selected.belonging_jobs, [finished])
+            self.assertEqual(selected.belonging_tasks, finished.job_task_list)
+
+        submission.machine.context.download.side_effect = inspect_selection
+        submission.belonging_jobs = [finished, failed]
+        submission.belonging_tasks = [
+            finished.job_task_list[0],
+            failed.job_task_list[0],
+        ]
+        submission.download_jobs()
+        submission.machine.context.download.assert_called_once()
+
     def test_ratio_cleanup_preserves_failed_job_and_task(self) -> None:
         """Ratio-based early termination must not erase durable failures."""
         failed = self._job(state=JobStatus.failed)

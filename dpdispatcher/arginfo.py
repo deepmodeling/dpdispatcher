@@ -1,3 +1,5 @@
+"""Expose dargs schemas for machine, resource, and task configuration."""
+
 from dpdispatcher.machine import Machine
 from dpdispatcher.submission import Resources, Task
 
