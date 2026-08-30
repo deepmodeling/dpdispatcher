@@ -54,14 +54,21 @@ class TestSchedulerStatusParsing(unittest.TestCase):
 
     def test_empty_slurm_output_uses_finish_tag(self) -> None:
         """An entirely empty squeue response follows the same fallback."""
-        machine = Slurm.__new__(Slurm)
-        machine.context = SimpleNamespace(
-            block_call=Mock(return_value=(0, None, io.BytesIO(b""), io.BytesIO())),
-            check_file_exists=Mock(return_value=False),
-        )
-        job = SimpleNamespace(job_id="123", job_hash="job-hash")
+        for finish_tag, expected in (
+            (True, JobStatus.finished),
+            (False, JobStatus.terminated),
+        ):
+            with self.subTest(finish_tag=finish_tag):
+                machine = Slurm.__new__(Slurm)
+                machine.context = SimpleNamespace(
+                    block_call=Mock(
+                        return_value=(0, None, io.BytesIO(b""), io.BytesIO())
+                    ),
+                    check_file_exists=Mock(return_value=finish_tag),
+                )
+                job = SimpleNamespace(job_id="123", job_hash="job-hash")
 
-        self.assertEqual(machine.check_status(job), JobStatus.terminated)
+                self.assertEqual(machine.check_status(job), expected)
 
     def test_short_data_row_is_unknown(self) -> None:
         for machine_class in (LSF, JH_UniScheduler):

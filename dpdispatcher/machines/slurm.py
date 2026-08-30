@@ -174,19 +174,15 @@ class Slurm(Machine):
             if line.strip()
         ]
         if not output_lines:
-            return (
-                JobStatus.finished
-                if self.check_finish_tag(job)
-                else JobStatus.terminated
-            )
+            if self.check_finish_tag(job):
+                return JobStatus.finished
+            return JobStatus.terminated
         status_line = output_lines[-1]
         status_fields = status_line.split()
         if len(status_fields) >= 1 and status_fields[0].upper() == "JOBID":
-            return (
-                JobStatus.finished
-                if self.check_finish_tag(job)
-                else JobStatus.terminated
-            )
+            if self.check_finish_tag(job):
+                return JobStatus.finished
+            return JobStatus.terminated
         status_word = status_fields[-1] if status_fields else ""
         if not (len(status_line.split()) == 2 and status_word.isupper()):
             raise RuntimeError(
