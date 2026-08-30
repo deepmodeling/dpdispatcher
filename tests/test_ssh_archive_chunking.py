@@ -136,9 +136,9 @@ class TestSSHArchiveChunking(unittest.TestCase):
             local_archive = os.path.join(directory, "result.tar.gz")
             with self.assertRaisesRegex(OSError, "expected 5 bytes, got 4 bytes"):
                 self.context._get_archive("/remote/result.tar.gz", local_archive)
+            self.assertFalse(os.path.exists(local_archive))
 
         self.sftp.remove.assert_called_once_with(split_state["prefix"] + "aaaaaa")
-        self.assertFalse(os.path.exists(local_archive))
 
     def test_split_failure_still_cleans_partial_remote_parts(self) -> None:
         """Parts left by a failed split command are removed in the finally block."""
