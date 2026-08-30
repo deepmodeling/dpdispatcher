@@ -29,6 +29,8 @@ jobs:
           - windows-latest
     steps:
     - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v7
       with:
@@ -39,7 +41,7 @@ jobs:
         cache-dependency-glob: |
           **/requirements*.txt
           **/pyproject.toml
-    - run: uv pip install --system .[test] coverage
+    - run: uv pip install --system '.[test]' coverage
     - name: Test
       run: |
         python -m coverage run -p --source=./dpdispatcher -m unittest -v
@@ -54,6 +56,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
     - name: Set up Python 3.12
       uses: actions/setup-python@v7
       with:
@@ -64,7 +68,7 @@ jobs:
         cache-dependency-glob: |
           **/requirements*.txt
           **/pyproject.toml
-    - run: uv pip install --system .[test,bohrium] coverage
+    - run: uv pip install --system '.[test,bohrium]' coverage
     - name: Test with optional cloud dependencies
       run: |
         python -m coverage run -p --source=./dpdispatcher -m unittest -v

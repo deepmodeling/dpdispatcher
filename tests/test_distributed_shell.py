@@ -9,11 +9,13 @@ from dpdispatcher.utils.job_status import JobStatus
 
 class AttrDict(dict[str, Any]):
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
+        """Expose dictionary values through attribute access in fixtures."""
         return self[name]
 
 
 class TestDistributedShell(unittest.TestCase):
     def setUp(self) -> None:
+        """Build a representative DistributedShell fixture."""
         self.context = MagicMock()
         self.context.remote_root = "/remote/root"
         self.context.submission.submission_hash = "submission123"
@@ -47,6 +49,7 @@ class TestDistributedShell(unittest.TestCase):
         )
 
     def test_gen_script_env(self) -> None:
+        """Environment generation includes modules, exports, and staging."""
         script = self.machine.gen_script_env(self.job)
         self.assertIn("module purge", script)
         self.assertIn("module unload old/module", script)
@@ -59,9 +62,10 @@ class TestDistributedShell(unittest.TestCase):
         self.assertIn("job123_flag_if_job_task_fail", script)
 
     def test_gen_script_end(self) -> None:
+        """Archive and completion commands quote task paths safely."""
         script = self.machine.gen_script_end(self.job)
         self.assertIn(
-            "tar czf submission123_job123_download.tar.gz task1 task two ",
+            "tar czf submission123_job123_download.tar.gz task1 'task two' ",
             script,
         )
         self.assertIn(
@@ -72,6 +76,7 @@ class TestDistributedShell(unittest.TestCase):
         self.assertIn("echo after", script)
 
     def test_default_and_custom_header(self) -> None:
+        """Default and customized scheduler headers are supported."""
         self.assertIn("#!/bin/bash -l", self.machine.gen_script_header(self.job))
 
         self.resources["strategy"]["customized_script_header_template_file"] = (
@@ -86,6 +91,7 @@ class TestDistributedShell(unittest.TestCase):
 
     @patch("dpdispatcher.machines.distributed_shell.run_cmd_with_all_output")
     def test_do_submit(self, run_command: MagicMock) -> None:
+        """Submission writes scripts and returns the YARN process identifier."""
         self.machine.gen_script = MagicMock(return_value="submission script")
         self.machine.gen_script_command = MagicMock(return_value="run script")
         run_command.return_value = (0, b"321\n", b"")
@@ -111,6 +117,7 @@ class TestDistributedShell(unittest.TestCase):
 
     @patch("dpdispatcher.machines.distributed_shell.run_cmd_with_all_output")
     def test_do_submit_reports_command_failure(self, run_command: MagicMock) -> None:
+        """Non-zero YARN submission commands raise an actionable error."""
         self.machine.gen_script = MagicMock(return_value="submission script")
         self.machine.gen_script_command = MagicMock(return_value="run script")
         run_command.return_value = (2, b"", b"submission failed")
@@ -120,6 +127,7 @@ class TestDistributedShell(unittest.TestCase):
 
     @patch("dpdispatcher.machines.distributed_shell.run_cmd_with_all_output")
     def test_check_status(self, run_command: MagicMock) -> None:
+        """Status checks report finished jobs when their tag exists."""
         self.job.job_id = ""
         self.assertEqual(self.machine.check_status(self.job), JobStatus.unsubmitted)
 
@@ -139,6 +147,7 @@ class TestDistributedShell(unittest.TestCase):
             self.machine.check_status(self.job)
 
     def test_check_finish_tag(self) -> None:
+        """Finish-tag checks use the expected job-specific marker."""
         self.context.check_file_exists.return_value = True
         self.assertTrue(self.machine.check_finish_tag(self.job))
         self.context.check_file_exists.assert_called_once_with(

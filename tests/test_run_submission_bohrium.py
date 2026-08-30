@@ -27,6 +27,7 @@ class TestOpenAPIContextUpload(unittest.TestCase):
         mock_job_cls: MagicMock,
         mock_tiefblue_cls: MagicMock,
     ) -> None:
+        """Upload through the per-job storage host returned by the API."""
         mock_job_api = MagicMock()
         mock_job_api.create.return_value = {
             "jobId": 123,
@@ -89,6 +90,7 @@ class TestOpenAPIContextUpload(unittest.TestCase):
         mock_job_cls: MagicMock,
         mock_tiefblue_cls: MagicMock,
     ) -> None:
+        """Keep the default storage when the API omits a storage host."""
         mock_job_api = MagicMock()
         mock_job_api.create.return_value = {
             "jobId": 123,
@@ -135,6 +137,7 @@ class TestOpenAPIContextUpload(unittest.TestCase):
 )
 class TestBohriumRun(RunSubmission, unittest.TestCase):
     def setUp(self) -> None:
+        """Configure Bohrium credentials and input settings for integration tests."""
         super().setUp()
         self.machine_dict.update(
             batch_type="Bohrium",
@@ -158,6 +161,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
     def test_async_run_submission(self) -> Any:  # noqa: ANN401
+        """Run the shared asynchronous submission integration scenario."""
         return super().test_async_run_submission()
 
 
@@ -167,6 +171,7 @@ class TestBohriumRun(RunSubmission, unittest.TestCase):
 )
 class TestOpenAPIRun(RunSubmission, unittest.TestCase):
     def setUp(self) -> None:
+        """Configure OpenAPI credentials and input settings for integration tests."""
         super().setUp()
         bohrium_config = textwrap.dedent(
             """\
@@ -189,4 +194,5 @@ class TestOpenAPIRun(RunSubmission, unittest.TestCase):
 
     @unittest.skip("Manaually skip")  # comment this line to open unittest
     def test_async_run_submission(self) -> Any:  # noqa: ANN401
+        """Run the shared asynchronous submission integration scenario."""
         return super().test_async_run_submission()
