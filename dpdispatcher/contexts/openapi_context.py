@@ -65,6 +65,8 @@ def zip_file_list(root_path: str, zip_filename: str, file_list: list[str] = []) 
 
 
 class OpenAPIContext(BaseContext):
+    downloads_by_job = True
+
     def __init__(
         self,
         local_root: str,

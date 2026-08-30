@@ -4,7 +4,6 @@ import random
 import shutil
 import sys
 import tempfile
-import traceback
 from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -152,29 +151,29 @@ class RunSubmission:
             backward_common_files=[],
             task_list=task_list,
         )
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".+") as raised:
             submission.run_submission(check_interval=2)
-        except RuntimeError:
-            # macos shell has some issues
-            if sys.platform == "linux":
-                self.assertTrue(err_msg in traceback.format_exc())
-            self.assertTrue(record.get_submission(submission.submission_hash).is_file())
-            # post processing
-            handle_submission(
-                submission_hash=submission.submission_hash,
-                download_finished_task=True,
-                download_terminated_log=True,
-                clean=True,
-            )
-            self.assertTrue(
-                os.path.isfile(
-                    os.path.join(
-                        self.machine_dict["local_root"],
-                        "test_dir",
-                        "err0.txt",
-                    )
+        # macOS may format the shell diagnostic differently, but Linux must
+        # still expose the command's stderr marker in the raised error.
+        if sys.platform == "linux":
+            self.assertIn(err_msg, str(raised.exception))
+        self.assertTrue(record.get_submission(submission.submission_hash).is_file())
+        # post processing
+        handle_submission(
+            submission_hash=submission.submission_hash,
+            download_finished_task=True,
+            download_terminated_log=True,
+            clean=True,
+        )
+        self.assertTrue(
+            os.path.isfile(
+                os.path.join(
+                    self.machine_dict["local_root"],
+                    "test_dir",
+                    "err0.txt",
                 )
             )
+        )
 
     def test_async_run_submission(self) -> None:
         machine = Machine.load_from_dict(self.machine_dict)

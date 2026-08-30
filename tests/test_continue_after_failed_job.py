@@ -1,4 +1,6 @@
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from dpdispatcher import Job, Resources, Submission, Task
@@ -78,6 +80,40 @@ class TestTerminalFailedJobs(unittest.TestCase):
 
         submission.machine.context.download.side_effect = inspect_selection
         submission.download_jobs(include_failed=True)
+
+    def test_cloud_download_keeps_finished_tasks_in_mixed_job(self) -> None:
+        """Cloud archive downloads retain selected outputs from mixed jobs only."""
+        finished = Task("true", "finished", backward_files=["result.txt"])
+        failed = Task("false", "failed", backward_files=["result.txt"])
+        finished.task_state = JobStatus.finished
+        failed.task_state = JobStatus.failed
+        job = Job(
+            job_task_list=[finished, failed],
+            resources=Resources(1, 1, 0, "", 1),
+        )
+        job.job_state = JobStatus.failed
+        submission = Submission.__new__(Submission)
+        submission.belonging_jobs = [job]
+        submission.belonging_tasks = [finished, failed]
+        context = MagicMock()
+        context.downloads_by_job = True
+        with tempfile.TemporaryDirectory() as local_root:
+            context.local_root = local_root
+
+            def download_archive(selected: Submission) -> None:
+                self.assertEqual(selected.belonging_jobs, [job])
+                self.assertEqual(selected.belonging_tasks, [finished])
+                for task in selected.belonging_jobs[0].job_task_list:
+                    path = Path(local_root) / task.task_work_path / "result.txt"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(task.task_work_path)
+
+            context.download.side_effect = download_archive
+            submission.machine = MagicMock(context=context)
+            submission.download_jobs()
+
+            self.assertTrue((Path(local_root) / "finished" / "result.txt").is_file())
+            self.assertFalse((Path(local_root) / "failed" / "result.txt").exists())
 
     def test_ratio_cleanup_preserves_failed_job_and_task(self) -> None:
         """Ratio-based early termination must not erase durable failures."""

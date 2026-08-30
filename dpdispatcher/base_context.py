@@ -35,6 +35,9 @@ class BaseContext(metaclass=ABCMeta):
     create_remote_root: bool
     submission: Submission
     machine: Machine
+    # Cloud contexts retrieve one archive per parent job; filesystem contexts
+    # can select backward files directly at task granularity.
+    downloads_by_job: bool = False
 
     def __new__(cls, *args: Any, **kwargs: Any) -> BaseContext:  # noqa: ANN401
         if cls is BaseContext:

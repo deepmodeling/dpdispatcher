@@ -32,6 +32,7 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 
 
 class BohriumContext(BaseContext):
+    downloads_by_job = True
     alias = ("DpCloudServerContext", "LebesgueContext")
 
     def __init__(

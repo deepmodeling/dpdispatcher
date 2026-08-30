@@ -2,10 +2,12 @@
 import asyncio
 import copy
 import functools
+import glob
 import json
 import os
 import pathlib
 import random
+import shutil
 import time
 import uuid
 from collections.abc import Sequence
@@ -374,7 +376,7 @@ class Submission:
         # if a custom/incomplete submission object cannot be serialized.
         try:
             record.write(self)
-        except Exception:
+        except Exception:  # noqa: BLE001 - persistence must not mask the job failure
             dlog.exception("Unable to persist failed submission record")
         details = "\n\n".join(
             job.failure_reason
@@ -744,17 +746,64 @@ class Submission:
         # from terminal failures cannot mask results produced by other jobs.
         original_tasks = self.belonging_tasks
         original_jobs = self.belonging_jobs
-        self.belonging_tasks = [
+        selected_tasks = [
             task for task in original_tasks if task.task_state == JobStatus.finished
         ]
-        self.belonging_jobs = [
-            job for job in original_jobs if job.job_state == JobStatus.finished
-        ]
+        self.belonging_tasks = selected_tasks
+        if getattr(context, "downloads_by_job", False) is True:
+            # Cloud archives are keyed by parent job rather than task. Retain a
+            # mixed-state parent whenever it contains selected finished tasks;
+            # the task-level cleanup below removes outputs of failed siblings.
+            selected_hashes = {task.task_hash for task in selected_tasks}
+            self.belonging_jobs = [
+                job
+                for job in original_jobs
+                if job.job_state == JobStatus.finished
+                or any(
+                    task.task_hash in selected_hashes for task in job.job_task_list
+                )
+            ]
+        else:
+            self.belonging_jobs = [
+                job for job in original_jobs if job.job_state == JobStatus.finished
+            ]
         try:
             context.download(self)
         finally:
             self.belonging_tasks = original_tasks
             self.belonging_jobs = original_jobs
+        if getattr(context, "downloads_by_job", False) is True:
+            self._remove_unselected_task_outputs(original_jobs, selected_tasks)
+
+    def _remove_unselected_task_outputs(
+        self, jobs: list["Job"], selected_tasks: list["Task"]
+    ) -> None:
+        """Remove outputs of failed siblings after a mixed cloud archive download.
+
+        Cloud contexts retrieve one archive per parent job and cannot apply the
+        task-level selection used by filesystem contexts. For a mixed-state
+        parent, remove only configured backward files belonging to unselected
+        tasks after extraction; explicit include_failed=True downloads take
+        a separate path and intentionally retain those files.
+        """
+        context = self._require_machine().context
+        local_root = context.local_root
+        selected_hashes = {task.task_hash for task in selected_tasks}
+        for job in jobs:
+            if not any(task.task_hash in selected_hashes for task in job.job_task_list):
+                continue
+            for task in job.job_task_list:
+                if task.task_hash in selected_hashes:
+                    continue
+                task_root = os.path.join(local_root, task.task_work_path)
+                for pattern in task.backward_files:
+                    if pattern in ("", ".", "./"):
+                        continue
+                    for path in glob.glob(os.path.join(task_root, pattern)):
+                        if os.path.isdir(path) and not os.path.islink(path):
+                            shutil.rmtree(path)
+                        elif os.path.lexists(path):
+                            os.remove(path)
         # for job in self.belonging_jobs:
         #     job.tag_finished()
         # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")
