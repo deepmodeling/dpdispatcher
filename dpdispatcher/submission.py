@@ -51,6 +51,9 @@ class Submission:
         Shared result files downloaded after execution.
     task_list : list of Task, optional
         Tasks to register when the submission is created.
+    previous_submission_hash : str, optional
+        SHA-1 hash of a compatible prior submission whose finished-task state
+        should be reused after a resource-only change.
     """
 
     def __init__(
@@ -64,6 +67,7 @@ class Submission:
         task_list: list["Task"] = [],
         previous_submission_hash: str | None = None,
     ) -> None:
+        """Initialize submission configuration and an optional recovery locator."""
         self.local_root = None
         self.work_base = work_base
         self._abs_work_base = os.path.abspath(work_base)
@@ -143,12 +147,14 @@ class Submission:
             Job.deserialize(job_dict=job_dict)
             for job_dict in submission_dict["belonging_jobs"]
         ]
-        submission.submission_hash = submission.get_hash()
-        if machine is not None:
-            submission.bind_machine(machine=machine, bind_context=bind_context)
-        else:
+        if machine is None:
             machine = Machine.deserialize(machine_dict=submission_dict["machine"])
-            submission.bind_machine(machine)
+        # ``get_hash`` includes the machine configuration.  Set it before binding
+        # so a fresh process derives the same hash that was persisted by the
+        # original submission instead of hashing an unbound placeholder machine.
+        submission.machine = machine
+        submission.submission_hash = submission.get_hash()
+        submission.bind_machine(machine=machine, bind_context=bind_context)
         return submission
 
     def serialize(self, if_static: bool = False) -> dict[str, Any]:  # noqa: ANN401
@@ -789,12 +795,8 @@ class Submission:
                             )
                         os.replace(old_remote_root, new_remote_root)
 
-        previous_hash = self.previous_submission_hash
         self.previous_submission_hash = None
-        try:
-            self.bind_machine(machine)
-        finally:
-            self.previous_submission_hash = previous_hash
+        self.bind_machine(machine)
 
     def _recover_finished_tasks_from_previous(self, previous: dict[str, Any]) -> None:
         """Reuse task completion tags after an explicitly selected resource change.

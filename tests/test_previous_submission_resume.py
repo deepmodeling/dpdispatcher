@@ -12,6 +12,7 @@ from dpdispatcher.utils.job_status import JobStatus
 
 class TestPreviousSubmissionResume(unittest.TestCase):
     def setUp(self) -> None:
+        """Create isolated local and remote roots for each recovery test."""
         self.tempdir = tempfile.TemporaryDirectory()
         self.local_root = os.path.join(self.tempdir.name, "local")
         self.remote_root = os.path.join(self.tempdir.name, "remote")
@@ -19,9 +20,11 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         os.makedirs(self.remote_root)
 
     def tearDown(self) -> None:
+        """Remove the temporary roots created by :meth:`setUp`."""
         self.tempdir.cleanup()
 
     def _machine(self) -> Machine:
+        """Build a LocalContext machine rooted in the test temporary directory."""
         return Machine(
             batch_type="Shell",
             context_type="LocalContext",
@@ -30,6 +33,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         )
 
     def _lazy_machine(self) -> Machine:
+        """Build a LazyLocalContext machine sharing one hash-independent root."""
         return Machine(
             batch_type="Shell",
             context_type="LazyLocalContext",
@@ -37,6 +41,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         )
 
     def _old_submission(self) -> Submission:
+        """Create and persist a baseline submission used as recovery input."""
         submission = Submission(
             work_base="work",
             machine=self._machine(),
@@ -49,6 +54,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         return submission
 
     def test_resource_change_reuses_only_completed_tasks(self) -> None:
+        """Reuse a finished task tag while assigning the new resource hash."""
         previous = self._old_submission()
         task = previous.belonging_jobs[0].job_task_list[0]
         task_dir = os.path.join(previous.machine.context.remote_root, "task")
@@ -137,6 +143,38 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             chained.belonging_jobs[0].job_task_list[0].task_state,
             JobStatus.finished,
         )
+
+    def test_recovered_state_clears_one_time_previous_locator(self) -> None:
+        """Fresh deserialization must bind the migrated state under its new hash."""
+        previous = self._old_submission()
+        task = previous.belonging_jobs[0].job_task_list[0]
+        task_dir = os.path.join(previous.machine.context.remote_root, "task")
+        os.makedirs(task_dir)
+        open(os.path.join(task_dir, f"{task.task_hash}_task_tag_finished"), "w").close()
+
+        current = Submission(
+            work_base="work",
+            machine=self._machine(),
+            resources=Resources(1, 1, 0, "", 1, wait_time=30),
+            task_list=[Task("true", "task", backward_files=["result"])],
+            previous_submission_hash=previous.submission_hash,
+        )
+        current.generate_jobs()
+        current.try_recover_from_json()
+        current.submission_to_json()
+
+        state_path = os.path.join(
+            self.remote_root,
+            current.submission_hash,
+            f"{current.submission_hash}.json",
+        )
+        loaded = Submission.submission_from_json(state_path)
+        self.assertIsNone(loaded.previous_submission_hash)
+        self.assertEqual(
+            loaded.machine.context.remote_root,
+            os.path.join(self.remote_root, current.submission_hash),
+        )
+        loaded.try_recover_from_json()
 
     def test_lazy_local_recovery_keeps_shared_work_base(self) -> None:
         """LazyLocalContext must not move its hash-independent work directory."""
@@ -254,6 +292,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         machine.context.check_file_exists.assert_not_called()
 
     def test_non_resource_change_is_rejected(self) -> None:
+        """Reject recovery when task definitions change with the resources."""
         previous = self._old_submission()
         current = Submission(
             work_base="work",
@@ -268,6 +307,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             current.try_recover_from_json()
 
     def test_previous_hash_is_validated_before_path_binding(self) -> None:
+        """Reject malformed prior hashes before touching any context paths."""
         with self.assertRaisesRegex(ValueError, "40-character SHA-1"):
             Submission(
                 work_base="work",
@@ -278,6 +318,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             )
 
     def test_json_loader_accepts_previous_hash(self) -> None:
+        """Round-trip the explicit previous-submission hash in JSON state."""
         previous = self._old_submission()
         serialized = previous.serialize()
         serialized["previous_submission_hash"] = previous.submission_hash
