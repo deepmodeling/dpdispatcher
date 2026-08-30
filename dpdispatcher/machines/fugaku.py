@@ -1,3 +1,5 @@
+"""Implement Fujitsu Fugaku-compatible scheduler submission."""
+
 import shlex
 from typing import TYPE_CHECKING
 
@@ -17,6 +19,8 @@ fugaku_script_header_template = """\
 
 
 class Fugaku(Machine):
+    """Generate and submit jobs using Fujitsu's ``pjsub`` interface."""
+
     def gen_script(self, job: "Job") -> str:
         fugaku_script = super().gen_script(job)
         return fugaku_script

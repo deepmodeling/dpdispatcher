@@ -27,9 +27,11 @@ Since [`bash -l`](https://www.gnu.org/software/bash/manual/bash.html#Invoking-Ba
 
 `SSH` runs jobs in a remote server.
 Files will be copied to the remote directory via SSH channels before jobs start and copied back after jobs finish.
-To use SSH, one needs to provide necessary parameters in {dargs:argument}`remote_profile <machine[SSHContext]/remote_profile>`, such as {dargs:argument}`username <machine[SSHContext]/remote_profile/hostname>` and {dargs:argument}`hostname <username[SSHContext]/remote_profile/hostname>`.
+To use SSH, provide the connection parameters in {dargs:argument}`remote_profile <machine[SSHContext]/remote_profile>`, including {dargs:argument}`username <machine[SSHContext]/remote_profile/username>` and {dargs:argument}`hostname <machine[SSHContext]/remote_profile/hostname>`.
 
 By default, DPDispatcher creates only the final {dargs:argument}`remote_root <machine/remote_root>` component and requires its parent directory to already exist. To recursively create missing parent directories, set {dargs:argument}`create_remote_root <machine[SSHContext]/create_remote_root>` to `true`.
+
+Large backward-file archives can be transferred in smaller pieces by setting {dargs:argument}`archive_chunk_size <machine[SSHContext]/remote_profile/archive_chunk_size>` to a positive byte count. For example, `104857600` limits each temporary transfer to 100 MiB. The remote host must provide the `split` command. The default value `0` keeps the single-archive transfer behavior.
 
 It's suggested to generate [SSH keys](https://help.ubuntu.com/community/SSH/OpenSSH/Keys) and transfer the public key to the remote server in advance, which is more secure than password authentication.
 
@@ -76,5 +78,5 @@ Read [Support DPDispatcher on Yarn](dpdispatcher_on_yarn.md) for details.
 
 {dargs:argument}`context_type <machine/context_type>`: `OpenAPI`
 
-OpenAPI is a new way to submit jobs to Bohrium. It using [AccessKey](https://bohrium.dp.tech/personal/setting) instead of username and password. Read Bohrium documentation for details.
+OpenAPI submits jobs to Bohrium using an [AccessKey](https://bohrium.dp.tech/personal/setting) instead of a username and password. Read the Bohrium documentation for details.
 To use OpenAPI, one needs to provide necessary parameters in {dargs:argument}`remote_profile <machine[OpenAPIContext]/remote_profile>`.

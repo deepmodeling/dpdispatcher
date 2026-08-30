@@ -1,3 +1,5 @@
+"""Stage DistributedShell submission data through HDFS archives."""
+
 import os
 import shutil
 import tarfile
@@ -14,6 +16,8 @@ if TYPE_CHECKING:
 
 
 class HDFSContext(BaseContext):
+    """Transfer submission inputs and outputs between local storage and HDFS."""
+
     def __init__(
         self,
         local_root: str,

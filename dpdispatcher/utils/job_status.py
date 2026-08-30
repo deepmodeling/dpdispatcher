@@ -1,7 +1,11 @@
+"""Define scheduler-independent states for jobs and tasks."""
+
 from enum import IntEnum
 
 
 class JobStatus(IntEnum):
+    """Represent normalized lifecycle states returned by machine backends."""
+
     unsubmitted = 1
     waiting = 2
     running = 3

@@ -1,3 +1,5 @@
+"""Configure the package logger for file and standard-output diagnostics."""
+
 import logging
 import os
 import sys

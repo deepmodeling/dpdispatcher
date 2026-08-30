@@ -1,3 +1,5 @@
+"""Persist recoverable submission state in the user's data directory."""
+
 from __future__ import annotations
 
 import json
@@ -53,8 +55,6 @@ class Record:
         ----------
         hash : str
             Hash of submission data.
-        not_exist_ok : bool
-            If True, return the expected path even when the record does not exist.
 
         Returns
         -------

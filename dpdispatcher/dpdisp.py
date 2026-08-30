@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Implement the ``dpdisp`` command-line interface."""
+
 import argparse
 
 from dpdispatcher.entrypoints.gui import start_dpgui
@@ -157,6 +159,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 
 def main() -> None:
+    """Parse command-line arguments and dispatch the selected subcommand."""
     args = parse_args()
     if args.command == "submission":
         handle_submission(

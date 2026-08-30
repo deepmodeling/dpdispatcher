@@ -1,3 +1,5 @@
+"""Stage submissions for Bohrium through its SDK-based OpenAPI."""
+
 from __future__ import annotations
 
 import glob
@@ -35,12 +37,13 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 
 
 def unzip_file(zip_file: str, out_dir: str = "./") -> None:
-    """Extract an OpenAPI result zip without allowing unsafe members."""
+    """Extract a ZIP archive into a local directory."""
     with ZipFile(zip_file, "r") as obj:
         safe_extract_zip(obj, out_dir)
 
 
 def zip_file_list(root_path: str, zip_filename: str, file_list: list[str] = []) -> str:
+    """Create a ZIP archive from paths and glob patterns below a root."""
     out_zip_file = os.path.join(root_path, zip_filename)
     # print('debug: file_list', file_list)
     zip_obj = ZipFile(out_zip_file, "w")
@@ -65,6 +68,7 @@ def zip_file_list(root_path: str, zip_filename: str, file_list: list[str] = []) 
 
 
 class OpenAPIContext(BaseContext):
+    """Transfer files with Bohrium object storage authenticated by access key."""
     # OpenAPI exposes job archives and metadata, not task completion-tag paths.
     supports_task_completion_tags = False
 

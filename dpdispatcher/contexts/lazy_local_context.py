@@ -1,3 +1,5 @@
+"""Execute jobs directly inside their existing local working directory."""
+
 import os
 import subprocess as sp
 from typing import TYPE_CHECKING, Any
@@ -9,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class SPRetObj:
+    """Adapt subprocess byte output to the stream interface used by contexts."""
+
     def __init__(self, ret: bytes) -> None:
         self.data = ret
 
