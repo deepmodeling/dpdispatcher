@@ -12,9 +12,13 @@ import unittest
 from types import SimpleNamespace
 from typing import Any
 
+from dpdispatcher.machines.slurm import SlurmJobArray
+
 from .context import (
+    Job,
     Machine,
     Resources,
+    Task,
     setUpModule,  # noqa: F401
 )
 
@@ -74,6 +78,81 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         header = self._make_header(remove_resource_keys=["custom_gpu_line"])
 
         self.assertIn("#SBATCH --gres=gpu:2", header)
+
+    def test_repeated_script_command_generation_is_deterministic(self) -> None:
+        """Repeated rendering must not carry parallelism state across calls."""
+        machine = Machine(
+            batch_type="Slurm",
+            context_type="LazyLocalContext",
+            local_root=".",
+            remote_root="/tmp/dpdispatcher",
+            remote_profile={},
+        )
+        resources = Resources(
+            number_node=1,
+            cpu_per_node=1,
+            gpu_per_node=0,
+            queue_name="",
+            group_size=3,
+            para_deg=2,
+        )
+        tasks = [
+            Task(
+                command=f"echo {index}",
+                task_work_path=".",
+                forward_files=[],
+                backward_files=[],
+                outlog=None,
+                errlog=None,
+            )
+            for index in range(3)
+        ]
+        job = Job(job_task_list=tasks, resources=resources, machine=machine)
+
+        first = machine.gen_script_command(job)
+        second = machine.gen_script_command(job)
+
+        self.assertEqual(first, second)
+
+    def test_repeated_job_array_script_generation_is_deterministic(self) -> None:
+        """Slurm job arrays reset the same per-script counters as Slurm."""
+        machine = Machine(
+            batch_type="Slurm",
+            context_type="LazyLocalContext",
+            local_root=".",
+            remote_root="/tmp/dpdispatcher",
+            remote_profile={},
+        )
+        resources = Resources(
+            number_node=1,
+            cpu_per_node=1,
+            gpu_per_node=2,
+            queue_name="",
+            group_size=3,
+            para_deg=1,
+            strategy={"if_cuda_multi_devices": True},
+        )
+        tasks = [
+            Task(
+                command=f"echo {index}",
+                task_work_path=".",
+                forward_files=[],
+                backward_files=[],
+                outlog=None,
+                errlog=None,
+            )
+            for index in range(3)
+        ]
+        job = Job(job_task_list=tasks, resources=resources, machine=machine)
+        array_machine = SlurmJobArray(
+            context=machine.context,
+            retry_count=machine.retry_count,
+        )
+
+        first = array_machine.gen_script_command(job)
+        second = array_machine.gen_script_command(job)
+
+        self.assertEqual(first, second)
 
     @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
     def test_template(self) -> None:

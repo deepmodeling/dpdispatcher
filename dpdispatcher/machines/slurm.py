@@ -283,6 +283,12 @@ class SlurmJobArray(Slurm):
     def gen_script_command(self, job: Job) -> str:
         resources = job.resources
         slurm_job_size = self._get_slurm_job_size(job)
+        # ``gen_script_wait`` and ``gen_command_env_cuda_devices`` update these
+        # counters while rendering each array element. A retry regenerates the
+        # script, so start from a clean per-script state just like the base
+        # scheduler implementation.
+        resources.task_in_para = 0
+        resources.gpu_in_use = 0
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
         script_command = "case $SLURM_ARRAY_TASK_ID in\n"
         for ii, task in enumerate(job.job_task_list):
