@@ -113,6 +113,8 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         second = machine.gen_script_command(job)
 
         self.assertEqual(first, second)
+        self.assertEqual(resources.task_in_para, 0)
+        self.assertEqual(resources.gpu_in_use, 0)
 
     def test_repeated_job_array_script_generation_is_deterministic(self) -> None:
         """Slurm job arrays reset the same per-script counters as Slurm."""
@@ -153,6 +155,8 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         second = array_machine.gen_script_command(job)
 
         self.assertEqual(first, second)
+        self.assertEqual(resources.task_in_para, 0)
+        self.assertEqual(resources.gpu_in_use, 0)
 
     @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
     def test_template(self) -> None:

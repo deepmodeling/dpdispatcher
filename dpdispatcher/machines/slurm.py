@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import math
 import pathlib
 import shlex
@@ -281,12 +282,10 @@ class SlurmJobArray(Slurm):
         )
 
     def gen_script_command(self, job: Job) -> str:
-        resources = job.resources
+        # Keep per-render counters isolated from the caller's Resources object
+        # so direct and repeated rendering remain side-effect free.
+        resources = copy.copy(job.resources)
         slurm_job_size = self._get_slurm_job_size(job)
-        # ``gen_script_wait`` and ``gen_command_env_cuda_devices`` update these
-        # counters while rendering each array element. A retry regenerates the
-        # script, so start from a clean per-script state just like the base
-        # scheduler implementation.
         resources.task_in_para = 0
         resources.gpu_in_use = 0
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1

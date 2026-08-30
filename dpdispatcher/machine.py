@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import pathlib
 import re
@@ -534,11 +535,10 @@ class Machine(metaclass=ABCMeta):
     def gen_script_command(self, job: Job) -> str:
         """Generate task commands, logging redirection, and completion tags."""
         script_command = ""
-        resources = job.resources
         # These counters describe one generated script, not persistent resource
-        # configuration. Reset them before every generation so retries and
-        # repeated staging calls preserve the original task grouping and GPU
-        # assignment.
+        # configuration. Isolate them from the caller's reusable Resources
+        # object so rendering has no observable stateful side effects.
+        resources = copy.copy(job.resources)
         resources.task_in_para = 0
         resources.gpu_in_use = 0
         # in_para_task_num = 0
