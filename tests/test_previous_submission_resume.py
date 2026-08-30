@@ -253,6 +253,47 @@ class TestPreviousSubmissionResume(unittest.TestCase):
 
         session.sftp.rename.assert_not_called()
 
+    def test_ssh_recovery_bind_failure_restores_retry_state(self) -> None:
+        """A failed SSH rebind keeps the prior locator and remote root retryable."""
+        context = SSHContext.__new__(SSHContext)
+        old_remote_root = "/remote/old"
+        context.remote_root = old_remote_root
+        context.temp_remote_root = "/remote"
+        context.temp_local_root = "/local"
+        session = MagicMock()
+        session.ssh = MagicMock()
+        session.sftp.listdir.return_value = ["previous.json"]
+        session.sftp.stat.return_value = MagicMock()
+        context.ssh_session = session
+
+        machine = MagicMock()
+        machine.context = context
+        machine.serialize.return_value = {"batch_type": "Shell"}
+        submission = Submission.__new__(Submission)
+        submission.machine = machine
+        submission.work_base = "work"
+        submission._abs_work_base = "/local/work"
+        submission.resources = Resources(1, 1, 0, "", 1)
+        submission.forward_common_files = []
+        submission.backward_common_files = []
+        submission.belonging_tasks = []
+        submission.belonging_jobs = []
+        submission.submission_hash = "1" * 40
+        submission.previous_submission_hash = "0" * 40
+
+        with self.assertRaisesRegex(FileExistsError, "both old and new"):
+            submission._bind_recovered_submission()
+
+        self.assertEqual(submission.previous_submission_hash, "0" * 40)
+        self.assertEqual(context.remote_root, old_remote_root)
+
+        # A retry must fail on the same explicit conflict instead of falling
+        # through as a new submission after the locator was lost.
+        with self.assertRaisesRegex(FileExistsError, "both old and new"):
+            submission._bind_recovered_submission()
+        self.assertEqual(submission.previous_submission_hash, "0" * 40)
+        self.assertEqual(context.remote_root, old_remote_root)
+
     def test_cloud_recovery_uses_persisted_finished_job_state(self) -> None:
         """Cloud recovery must not depend on unavailable task-tag paths."""
         task = Task("true", "task")
