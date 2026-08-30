@@ -91,6 +91,50 @@ class TestSchedulerStatusParsing(unittest.TestCase):
 
                     self.assertEqual(machine.check_status(job), expected)
 
+    def test_pbs_status_rows_map_to_dispatcher_states(self) -> None:
+        """PBS and Torque share the same state-column interpretation."""
+        job = SimpleNamespace(job_id="123", job_hash="job-hash")
+        for machine_class in (PBS, Torque):
+            for status_word, expected, finish_tag in (
+                ("Q", JobStatus.waiting, False),
+                ("H", JobStatus.waiting, False),
+                ("R", JobStatus.running, False),
+                ("C", JobStatus.finished, True),
+                ("E", JobStatus.terminated, False),
+                ("K", JobStatus.finished, True),
+                ("F", JobStatus.terminated, False),
+                ("OTHER", JobStatus.unknown, False),
+            ):
+                with self.subTest(
+                    machine=machine_class.__name__, status_word=status_word
+                ):
+                    machine = machine_class.__new__(machine_class)
+                    machine.context = SimpleNamespace(
+                        check_file_exists=Mock(return_value=finish_tag)
+                    )
+                    output = (
+                        f"header\n123.server name user 00:00:00 {status_word} queue\n"
+                    )
+                    self.assertEqual(
+                        machine._parse_status_output(output, job), expected
+                    )
+
+    def test_pbs_short_status_row_uses_finish_tag(self) -> None:
+        """Malformed rows follow the same finished-versus-terminated rule."""
+        job = SimpleNamespace(job_id="123", job_hash="job-hash")
+        for finish_tag, expected in (
+            (True, JobStatus.finished),
+            (False, JobStatus.terminated),
+        ):
+            with self.subTest(finish_tag=finish_tag):
+                machine = PBS.__new__(PBS)
+                machine.context = SimpleNamespace(
+                    check_file_exists=Mock(return_value=finish_tag)
+                )
+                self.assertEqual(
+                    machine._parse_status_output("header\n", job), expected
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
