@@ -759,9 +759,7 @@ class Submission:
                 job
                 for job in original_jobs
                 if job.job_state == JobStatus.finished
-                or any(
-                    task.task_hash in selected_hashes for task in job.job_task_list
-                )
+                or any(task.task_hash in selected_hashes for task in job.job_task_list)
             ]
         else:
             self.belonging_jobs = [
