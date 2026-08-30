@@ -45,6 +45,7 @@ class TestHDFSContextDownload(unittest.TestCase):
             os.mkdir(os.path.join(local_root, "task"))
 
             def create_empty_download_archive(_remote: str, destination: str) -> None:
+                """Create an archive containing one available diagnostic file."""
                 archive_path = os.path.join(
                     destination, "submission-hash_1_download.tar.gz"
                 )
@@ -123,6 +124,7 @@ class TestHDFSContextDownload(unittest.TestCase):
                     )
 
     def test_back_error_uses_relative_copies_without_mutating_submission(self) -> None:
+        """Append diagnostic files without changing configured result lists."""
         with tempfile.TemporaryDirectory() as local_root:
             context = HDFSContext.__new__(HDFSContext)
             context.local_root = local_root
@@ -178,6 +180,108 @@ class TestHDFSContextDownload(unittest.TestCase):
             self.assertTrue(
                 os.path.isfile(os.path.join(local_root, "error-common.log"))
             )
+
+    def test_missing_files_mark_failure_and_replace_existing_outputs(self) -> None:
+        """Mark missing outputs and replace pre-existing task and common paths."""
+        with (
+            tempfile.TemporaryDirectory() as local_root,
+            tempfile.TemporaryDirectory() as source_root,
+        ):
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            task = SimpleNamespace(
+                task_work_path="task",
+                backward_files=["missing.log", "existing.txt", "existing_dir"],
+            )
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[task],
+                backward_common_files=["missing-common", "common.txt", "common_dir"],
+            )
+            task_root = os.path.join(local_root, "task")
+            os.makedirs(task_root)
+            with open(os.path.join(task_root, "existing.txt"), "w") as stream:
+                stream.write("old")
+            os.mkdir(os.path.join(task_root, "existing_dir"))
+            with open(os.path.join(local_root, "common.txt"), "w") as stream:
+                stream.write("old common")
+            os.mkdir(os.path.join(local_root, "common_dir"))
+
+            archive_root = os.path.join(source_root, "task")
+            os.makedirs(os.path.join(archive_root, "existing_dir"))
+            with open(os.path.join(archive_root, "existing.txt"), "w") as stream:
+                stream.write("new")
+            with open(
+                os.path.join(archive_root, "existing_dir", "nested.txt"), "w"
+            ) as stream:
+                stream.write("nested")
+            with open(os.path.join(source_root, "common.txt"), "w") as stream:
+                stream.write("new common")
+            os.makedirs(os.path.join(source_root, "common_dir"))
+            with open(
+                os.path.join(source_root, "common_dir", "nested.txt"), "w"
+            ) as stream:
+                stream.write("nested common")
+
+            def create_download_archive(_remote: str, destination: str) -> None:
+                """Create an archive containing only the available outputs."""
+                archive_path = os.path.join(
+                    destination, "submission-hash_1_download.tar.gz"
+                )
+                with tarfile.open(archive_path, "w:gz") as archive:
+                    archive.add(os.path.join(source_root, "task"), arcname="task")
+                    archive.add(
+                        os.path.join(source_root, "common.txt"), arcname="common.txt"
+                    )
+                    archive.add(
+                        os.path.join(source_root, "common_dir"), arcname="common_dir"
+                    )
+
+            with patch.object(
+                HDFS, "copy_to_local", side_effect=create_download_archive
+            ):
+                context.download(submission, check_exists=True, mark_failure=True)
+
+            self.assertTrue(
+                os.path.isfile(
+                    os.path.join(local_root, "task", "tag_failure_download_missing.log")
+                )
+            )
+            self.assertTrue(
+                os.path.isfile(
+                    os.path.join(local_root, "tag_failure_download_missing-common")
+                )
+            )
+            with open(os.path.join(task_root, "existing.txt")) as stream:
+                self.assertEqual(stream.read(), "new")
+            self.assertTrue(
+                os.path.isfile(os.path.join(task_root, "existing_dir", "nested.txt"))
+            )
+            with open(os.path.join(local_root, "common.txt")) as stream:
+                self.assertEqual(stream.read(), "new common")
+            self.assertTrue(
+                os.path.isfile(os.path.join(local_root, "common_dir", "nested.txt"))
+            )
+
+    def test_missing_archive_raises_in_normal_download_mode(self) -> None:
+        """Propagate a missing archive during required result downloads."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[],
+                backward_common_files=[],
+            )
+            with patch.object(
+                HDFS,
+                "copy_to_local",
+                side_effect=HDFSMissingPathError("archive is absent"),
+            ):
+                with self.assertRaises(HDFSMissingPathError):
+                    context.download(submission)
 
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")

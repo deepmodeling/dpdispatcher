@@ -6,7 +6,7 @@ import glob
 import os
 import shutil
 import uuid
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn
 from zipfile import ZipFile
 
 import tqdm
@@ -70,7 +70,7 @@ def zip_file_list(root_path: str, zip_filename: str, file_list: list[str] = []) 
 class OpenAPIContext(BaseContext):
     """Transfer files with Bohrium object storage authenticated by access key."""
 
-    downloads_by_job = True
+    downloads_by_job: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -237,7 +237,8 @@ class OpenAPIContext(BaseContext):
         mark_failure: bool = True,
         back_error: bool = False,
     ) -> bool:
-        self.last_downloaded_files = set()
+        """Download completed Bohrium archives and record extracted paths."""
+        self.last_downloaded_files: set[str] = set()
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}

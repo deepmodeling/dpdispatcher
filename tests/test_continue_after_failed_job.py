@@ -4,11 +4,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from dpdispatcher import Job, Resources, Submission, Task
+from dpdispatcher.entrypoints.submission import handle_submission
 from dpdispatcher.utils.job_status import JobStatus
 
 
 class TestTerminalFailedJobs(unittest.TestCase):
     def _job(self, *, state: JobStatus, command: str = "false") -> Job:
+        """Create a minimal job whose state can be controlled by a test."""
         task = Task(command, ".", backward_files=["result"])
         job = Job(job_task_list=[task], resources=Resources(1, 1, 0, "", 1))
         job.job_state = state
@@ -20,6 +22,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
         return job
 
     def test_retry_exhaustion_becomes_durable_terminal_state(self) -> None:
+        """Persist a retry-exhausted job as failed without resubmitting it."""
         job = self._job(state=JobStatus.terminated)
 
         job.handle_unexpected_job_state()
@@ -35,6 +38,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
         self.assertEqual(restored.failure_reason, job.failure_reason)
 
     def test_download_filters_failed_outputs_and_restores_submission(self) -> None:
+        """Pass only successful jobs to ordinary result downloads."""
         finished = self._job(state=JobStatus.finished, command="true")
         failed = self._job(state=JobStatus.failed)
         submission = Submission.__new__(Submission)
@@ -46,6 +50,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
         ]
 
         def inspect_selection(selected: Submission) -> None:
+            """Assert the temporary success-only submission view."""
             self.assertEqual(selected.belonging_jobs, [finished])
             self.assertEqual(selected.belonging_tasks, [finished.job_task_list[0]])
 
@@ -71,6 +76,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
         ]
 
         def inspect_selection(selected: Submission, **kwargs: bool) -> None:
+            """Assert that explicit diagnostic downloads retain all tasks."""
             self.assertEqual(selected.belonging_jobs, [finished, failed])
             self.assertEqual(
                 selected.belonging_tasks,
@@ -101,6 +107,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
             context.local_root = local_root
 
             def download_archive(selected: Submission) -> None:
+                """Write only the selected finished task's archive output."""
                 self.assertEqual(selected.belonging_jobs, [job])
                 self.assertEqual(selected.belonging_tasks, [finished])
                 downloaded_files = set()
@@ -141,6 +148,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
             stale_output.write_text("pre-existing")
 
             def download_archive(_selected: Submission) -> None:
+                """Write the finished output and expose its extraction manifest."""
                 output = Path(local_root) / "finished" / "result.txt"
                 output.parent.mkdir(parents=True, exist_ok=True)
                 output.write_text("downloaded")
@@ -176,6 +184,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
             context.local_root = local_root
 
             def download_archive(_selected: Submission) -> None:
+                """Write a shared output and expose it in the extraction manifest."""
                 output = Path(local_root) / "result.txt"
                 output.write_text("shared")
                 context.last_downloaded_files = {"result.txt"}
@@ -201,6 +210,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
         submission.machine.context.download.assert_not_called()
 
         def inspect_selection(selected: Submission) -> None:
+            """Assert that complete jobs remain eligible for archive download."""
             self.assertEqual(selected.belonging_jobs, [finished])
             self.assertEqual(selected.belonging_tasks, finished.job_task_list)
 
@@ -237,6 +247,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
     def test_submission_waits_for_other_jobs_before_reporting(
         self, _sleep: MagicMock
     ) -> None:
+        """Monitor remaining jobs before raising the aggregate failure."""
         failed = self._job(state=JobStatus.terminated)
         running = self._job(state=JobStatus.running, command="true")
         submission = Submission.__new__(Submission)
@@ -258,6 +269,7 @@ class TestTerminalFailedJobs(unittest.TestCase):
         update_count = 0
 
         def update_states() -> None:
+            """Finish the second job after the failed job has been observed."""
             nonlocal update_count
             update_count += 1
             if update_count == 3:
@@ -280,6 +292,138 @@ class TestTerminalFailedJobs(unittest.TestCase):
         self.assertEqual(failed.job_state, JobStatus.failed)
         self.assertEqual(running.job_state, JobStatus.finished)
         submission.try_download_result.assert_called_once_with()
+
+    def test_cleanup_ignores_missing_manifests_and_invalid_roots(self) -> None:
+        """Avoid deleting files when a cloud context gives no safe manifest."""
+        submission = Submission.__new__(Submission)
+        context = MagicMock()
+        submission.machine = MagicMock(context=context)
+
+        submission._remove_unselected_task_outputs([], [], None)
+
+        context.local_root = None
+        submission._remove_unselected_task_outputs([], [], set())
+
+    def test_cleanup_skips_invalid_manifest_entries_and_empty_matches(self) -> None:
+        """Ignore empty or non-string manifest entries and empty manifests."""
+        submission = Submission.__new__(Submission)
+        context = MagicMock()
+        submission.machine = MagicMock(context=context)
+        with tempfile.TemporaryDirectory() as local_root:
+            context.local_root = local_root
+            submission._remove_unselected_task_outputs([], [], {"", 42})
+
+    def test_cleanup_rejects_task_paths_outside_local_root(self) -> None:
+        """Do not match outputs whose task root escapes the local root."""
+        submission = Submission.__new__(Submission)
+        with tempfile.TemporaryDirectory() as local_root:
+            context = MagicMock()
+            context.local_root = local_root
+            submission.machine = MagicMock(context=context)
+            extracted = Path(local_root) / "downloaded.txt"
+            extracted.write_text("downloaded")
+            task = Task("true", "../outside", backward_files=["result.txt"])
+            job = Job(job_task_list=[task], resources=Resources(1, 1, 0, "", 1))
+            submission._remove_unselected_task_outputs(
+                [job], [task], {"downloaded.txt"}
+            )
+            self.assertTrue(extracted.exists())
+
+    def test_cleanup_handles_directory_patterns_and_unselected_jobs(self) -> None:
+        """Preserve shared directory outputs and skip jobs without selected tasks."""
+        submission = Submission.__new__(Submission)
+        with tempfile.TemporaryDirectory() as local_root:
+            context = MagicMock()
+            context.local_root = local_root
+            submission.machine = MagicMock(context=context)
+            output = Path(local_root) / "task" / "outdir" / "result.txt"
+            output.parent.mkdir(parents=True)
+            output.write_text("result")
+            selected = Task("true", "task", backward_files=[".", "outdir"])
+            failed = Task("false", "task", backward_files=["outdir"])
+            job = Job(
+                job_task_list=[selected, failed],
+                resources=Resources(1, 1, 0, "", 1),
+            )
+            unrelated = Job(
+                job_task_list=[Task("false", "other", backward_files=["other.txt"])],
+                resources=Resources(1, 1, 0, "", 1),
+            )
+            submission._remove_unselected_task_outputs(
+                [job, unrelated], [selected], {"task/outdir/result.txt"}
+            )
+            self.assertTrue(output.exists())
+
+    def test_cleanup_handles_manifest_commonpath_errors(self) -> None:
+        """Treat platform-specific path comparisons that fail as outside-root."""
+        submission = Submission.__new__(Submission)
+        with tempfile.TemporaryDirectory() as local_root:
+            context = MagicMock()
+            context.local_root = local_root
+            submission.machine = MagicMock(context=context)
+            extracted = Path(local_root) / "downloaded.txt"
+            extracted.write_text("downloaded")
+            with patch(
+                "dpdispatcher.submission.os.path.commonpath",
+                side_effect=ValueError,
+            ):
+                submission._remove_unselected_task_outputs([], [], {"downloaded.txt"})
+
+    def test_cleanup_ignores_outside_glob_matches(self) -> None:
+        """Ignore output globs that resolve outside the local root."""
+        submission = Submission.__new__(Submission)
+        with (
+            tempfile.TemporaryDirectory() as local_root,
+            tempfile.TemporaryDirectory() as outside,
+        ):
+            context = MagicMock()
+            context.local_root = local_root
+            submission.machine = MagicMock(context=context)
+            extracted = Path(local_root) / "downloaded.txt"
+            extracted.write_text("downloaded")
+            task = Task("true", "task", backward_files=["*.txt"])
+            job = Job(job_task_list=[task], resources=Resources(1, 1, 0, "", 1))
+            with (
+                patch("dpdispatcher.submission.glob.glob", return_value=[outside]),
+                patch(
+                    "dpdispatcher.submission.os.path.commonpath",
+                    side_effect=[local_root, local_root, ValueError],
+                ),
+            ):
+                submission._remove_unselected_task_outputs(
+                    [job], [task], {"downloaded.txt"}
+                )
+
+    def test_handle_submission_resets_failed_jobs_and_tasks(self) -> None:
+        """Reset durable failures to terminated state for an explicit retry."""
+        failed = self._job(state=JobStatus.failed)
+        failed.failure_reason = "failed permanently"
+        pending = self._job(state=JobStatus.unsubmitted)
+        failed.fail_count = 4
+        pending.fail_count = 2
+        submission = MagicMock()
+        submission.belonging_jobs = [failed, pending]
+        submission._require_machine.return_value = MagicMock()
+
+        with (
+            patch("dpdispatcher.entrypoints.submission.record.get_submission"),
+            patch("dpdispatcher.entrypoints.submission.record.write"),
+            patch(
+                "dpdispatcher.entrypoints.submission.Submission.submission_from_json",
+                return_value=submission,
+            ),
+        ):
+            handle_submission(
+                submission_hash="submission-hash",
+                reset_fail_count=True,
+            )
+
+        self.assertEqual(failed.fail_count, 0)
+        self.assertEqual(failed.job_state, JobStatus.terminated)
+        self.assertEqual(failed.failure_reason, None)
+        self.assertEqual(failed.job_task_list[0].task_state, JobStatus.terminated)
+        self.assertEqual(pending.fail_count, 0)
+        submission.submission_to_json.assert_called_once_with()
 
 
 if __name__ == "__main__":

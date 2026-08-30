@@ -125,6 +125,7 @@ class RunSubmission:
             )
 
     def test_failed_submission(self) -> None:
+        """Raise after failed execution while retaining logs for post-processing."""
         machine = Machine.load_from_dict(self.machine_dict)
         resources = Resources.load_from_dict(self.resources_dict)
 

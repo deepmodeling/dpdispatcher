@@ -1227,6 +1227,7 @@ class Job:
         resources: "Resources",
         machine: Optional["Machine"] = None,
     ) -> None:
+        """Initialize a grouped scheduler job and its runtime state."""
         self.job_task_list = job_task_list
         # self.job_work_base = job_work_base
         self.resources = resources
