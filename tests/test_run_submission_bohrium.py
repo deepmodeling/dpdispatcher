@@ -19,7 +19,7 @@ if openapi_context.found_bohriumsdk:
 @unittest.skipUnless(openapi_context.found_bohriumsdk, "requires bohrium-sdk")
 class TestOpenAPIContextUpload(unittest.TestCase):
     @patch("dpdispatcher.contexts.openapi_context.Tiefblue")
-    @patch("dpdispatcher.contexts.openapi_context.Job")
+    @patch("dpdispatcher.contexts.openapi_context.BohriumJob")
     @patch("dpdispatcher.contexts.openapi_context.Bohrium")
     def test_upload_job_uses_store_host_when_create_returns_it(
         self,
@@ -81,7 +81,7 @@ class TestOpenAPIContextUpload(unittest.TestCase):
         self.assertIs(context.storage, default_storage)
 
     @patch("dpdispatcher.contexts.openapi_context.Tiefblue")
-    @patch("dpdispatcher.contexts.openapi_context.Job")
+    @patch("dpdispatcher.contexts.openapi_context.BohriumJob")
     @patch("dpdispatcher.contexts.openapi_context.Bohrium")
     def test_upload_job_keeps_default_storage_without_store_host(
         self,

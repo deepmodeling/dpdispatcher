@@ -335,8 +335,20 @@ class Submission:
 
         # Determine whether to clean remote workdir
         should_clean = self._should_clean(clean, all_jobs_genuinely_finished)
-        if should_clean:
+        failed_jobs = self.failed_jobs()
+        if should_clean and not failed_jobs:
             self.clean_jobs()
+        elif should_clean and failed_jobs:
+            # Preserve failed-job artifacts for the explicit post-mortem
+            # ``dpdisp submission --download-terminated-log`` flow.  Before
+            # retry exhaustion became a durable state, failures raised before
+            # reaching cleanup; retaining that behavior keeps stderr and other
+            # terminal logs available while still allowing a later explicit
+            # ``clean`` action to remove the remote workdir.
+            dlog.info(
+                "preserving remote workdir for failed jobs at: "
+                f"{machine.context.remote_root}"
+            )
         elif clean == "on_success":
             dlog.info(
                 "clean='on_success': some jobs did not finish successfully, "
@@ -716,7 +728,15 @@ class Submission:
         """
         context = self._require_machine().context
         if include_failed or not self.failed_jobs():
-            context.download(self)
+            # Terminated-log requests may include a configured stdout file that
+            # was never created (for example, a command that fails before
+            # producing output).  Ask contexts to skip absent files while still
+            # transferring any logs that do exist, such as stderr diagnostics.
+            context.download(
+                self,
+                check_exists=include_failed,
+                mark_failure=False,
+            )
             return
 
         # Filesystem contexts select by task, while cloud contexts select by job.

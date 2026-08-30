@@ -68,12 +68,13 @@ class TestTerminalFailedJobs(unittest.TestCase):
             failed.job_task_list[0],
         ]
 
-        def inspect_selection(selected: Submission) -> None:
+        def inspect_selection(selected: Submission, **kwargs: bool) -> None:
             self.assertEqual(selected.belonging_jobs, [finished, failed])
             self.assertEqual(
                 selected.belonging_tasks,
                 [finished.job_task_list[0], failed.job_task_list[0]],
             )
+            self.assertEqual(kwargs, {"check_exists": True, "mark_failure": False})
 
         submission.machine.context.download.side_effect = inspect_selection
         submission.download_jobs(include_failed=True)
