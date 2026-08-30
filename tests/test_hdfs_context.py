@@ -46,8 +46,17 @@ class TestHDFSContextDownload(unittest.TestCase):
                 archive_path = os.path.join(
                     destination, "submission-hash_1_download.tar.gz"
                 )
-                with tarfile.open(archive_path, "w:gz"):
-                    pass
+                source = os.path.join(local_root, "archive-source", "task")
+                os.makedirs(source)
+                with open(os.path.join(source, "present.log"), "w") as stream:
+                    stream.write("diagnostic")
+                with tarfile.open(archive_path, "w:gz") as archive:
+                    archive.add(
+                        os.path.join(source, "present.log"),
+                        arcname="task/present.log",
+                    )
+
+            task.backward_files.append("present.log")
 
             with patch.object(
                 HDFS, "copy_to_local", side_effect=create_empty_download_archive
@@ -61,6 +70,8 @@ class TestHDFSContextDownload(unittest.TestCase):
             self.assertFalse(
                 os.path.exists(os.path.join(local_root, "task/missing.log"))
             )
+            with open(os.path.join(local_root, "task/present.log")) as stream:
+                self.assertEqual(stream.read(), "diagnostic")
 
     def test_back_error_uses_relative_copies_without_mutating_submission(self) -> None:
         with tempfile.TemporaryDirectory() as local_root:
