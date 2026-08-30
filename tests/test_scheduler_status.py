@@ -6,6 +6,7 @@ from unittest.mock import Mock
 from dpdispatcher.machine import Machine
 from dpdispatcher.machines.JH_UniScheduler import JH_UniScheduler
 from dpdispatcher.machines.lsf import LSF
+from dpdispatcher.machines.slurm import Slurm
 from dpdispatcher.utils.job_status import JobStatus
 
 
@@ -35,12 +36,12 @@ class TestSchedulerStatusParsing(unittest.TestCase):
         self.assertEqual(status, expected)
 
     def test_header_only_output_uses_finish_tag(self) -> None:
-        for machine_class in (LSF, JH_UniScheduler):
+        for machine_class in (LSF, JH_UniScheduler, Slurm):
             with self.subTest(machine=machine_class.__name__):
                 self._check_header_only_status(machine_class, finish_tag=True)
 
     def test_header_only_output_without_finish_tag_is_unknown(self) -> None:
-        for machine_class in (LSF, JH_UniScheduler):
+        for machine_class in (LSF, JH_UniScheduler, Slurm):
             with self.subTest(machine=machine_class.__name__):
                 self._check_header_only_status(machine_class, finish_tag=False)
 

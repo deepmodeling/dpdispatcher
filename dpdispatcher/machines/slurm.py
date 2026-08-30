@@ -164,8 +164,26 @@ class Slurm(Machine):
                 f"status command {command} fails to execute."
                 f"job_id:{job_id} \n error message:{err_str}\n return code {ret}\n"
             )
-        status_line = stdout.read().decode("utf-8").split("\n")[-2]
-        status_word = status_line.split()[-1]
+        # ``squeue`` returns only its header when a job has already left the
+        # active queue. Do not mistake the header's ``ST`` column for a real
+        # terminal state; consult the completion marker and otherwise leave
+        # the state unknown for the caller's normal error handling.
+        output_lines = [
+            line.strip()
+            for line in stdout.read().decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        if not output_lines:
+            return (
+                JobStatus.finished if self.check_finish_tag(job) else JobStatus.unknown
+            )
+        status_line = output_lines[-1]
+        status_fields = status_line.split()
+        if len(status_fields) >= 1 and status_fields[0].upper() == "JOBID":
+            return (
+                JobStatus.finished if self.check_finish_tag(job) else JobStatus.unknown
+            )
+        status_word = status_fields[-1] if status_fields else ""
         if not (len(status_line.split()) == 2 and status_word.isupper()):
             raise RuntimeError(
                 "Error in getting job status, "
