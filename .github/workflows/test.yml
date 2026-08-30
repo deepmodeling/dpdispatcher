@@ -29,6 +29,8 @@ jobs:
           - windows-latest
     steps:
     - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v7
       with:
@@ -39,7 +41,7 @@ jobs:
         cache-dependency-glob: |
           **/requirements*.txt
           **/pyproject.toml
-    - run: uv pip install --system .[test] coverage
+    - run: uv pip install --system '.[test]' coverage
     - name: Test
       run: |
         python -m coverage run -p --source=./dpdispatcher -m unittest -v
@@ -49,8 +51,37 @@ jobs:
     - uses: codecov/codecov-action@v7
       with:
         use_oidc: true
+
+  coverage-extras:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.12'
+    - uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+        cache-dependency-glob: |
+          **/requirements*.txt
+          **/pyproject.toml
+    - run: uv pip install --system '.[test,bohrium]' coverage
+    - name: Test with optional cloud dependencies
+      run: |
+        python -m coverage run -p --source=./dpdispatcher -m unittest -v
+        python -m coverage run -p --source=./dpdispatcher -m dpdispatcher -h
+        python -m coverage combine
+        python -m coverage report
+    - uses: codecov/codecov-action@v7
+      with:
+        use_oidc: true
+        flags: optional-dependencies
+
   pass:
-    needs: [test]
+    needs: [test, coverage-extras]
     runs-on: ubuntu-latest
     if: always()
     steps:
