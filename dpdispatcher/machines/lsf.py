@@ -45,6 +45,8 @@ class LSF(Machine):
                 f"#BSUB -q {resources.queue_name}" if resources.queue_name else ""
             ),
         }
+        name_getter = getattr(job, "get_scheduler_name", None)
+        job_name = name_getter(128) if callable(name_getter) else None
         gpu_usage_flag = resources.kwargs.get("gpu_usage", False)
         gpu_new_syntax_flag = resources.kwargs.get("gpu_new_syntax", False)
         gpu_exclusive_flag = resources.kwargs.get("gpu_exclusive", True)
@@ -81,6 +83,8 @@ class LSF(Machine):
             )
         else:
             lsf_script_header = lsf_script_header_template.format(**script_header_dict)
+            if job_name:
+                lsf_script_header += f"\n#BSUB -J {job_name}"
 
         return lsf_script_header
 

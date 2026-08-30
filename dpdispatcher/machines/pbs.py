@@ -46,6 +46,12 @@ class PBS(Machine):
         pbs_script_header_dict["queue_name_line"] = (
             f"#PBS -q {resources.queue_name}" if resources.queue_name else ""
         )
+        name_getter = getattr(job, "get_scheduler_name", None)
+        job_name = (
+            name_getter(15, require_alpha_prefix=True)
+            if callable(name_getter)
+            else None
+        )
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None
@@ -58,6 +64,8 @@ class PBS(Machine):
             pbs_script_header = pbs_script_header_template.format(
                 **pbs_script_header_dict
             )
+            if job_name:
+                pbs_script_header += f"#PBS -N {job_name}\n"
         return pbs_script_header
 
     def do_submit(self, job: Job) -> str:
@@ -182,6 +190,12 @@ class Torque(PBS):
         pbs_script_header_dict["queue_name_line"] = (
             f"#PBS -q {resources.queue_name}" if resources.queue_name else ""
         )
+        name_getter = getattr(job, "get_scheduler_name", None)
+        job_name = (
+            name_getter(15, require_alpha_prefix=True)
+            if callable(name_getter)
+            else None
+        )
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None
@@ -194,6 +208,8 @@ class Torque(PBS):
             pbs_script_header = pbs_script_header_template.format(
                 **pbs_script_header_dict
             )
+            if job_name:
+                pbs_script_header += f"#PBS -N {job_name}\n"
         return pbs_script_header
 
 
@@ -215,7 +231,13 @@ class SGE(PBS):
         ### Ref:https://softpanorama.org/HPC/PBS_and_derivatives/Reference/pbs_command_vs_sge_commands.shtml
         # resources.number_node is not used in SGE
         resources = job.resources
-        job_name = resources.kwargs.get("job_name", "wDPjob")
+        name_getter = getattr(job, "get_scheduler_name", None)
+        task_job_name = (
+            name_getter(128, require_alpha_prefix=True)
+            if callable(name_getter)
+            else None
+        )
+        job_name = resources.kwargs.get("job_name") or task_job_name or "wDPjob"
         pe_name = resources.kwargs.get("pe_name", "mpi")
         sge_script_header_dict = {}
         sge_script_header_dict["select_node_line"] = f"#$ -N {job_name}\n"
@@ -352,7 +374,6 @@ class SGE(PBS):
                         "job_name",
                         str,
                         optional=True,
-                        default="wDPjob",
                         doc=doc_job_name,
                     ),
                 ],
