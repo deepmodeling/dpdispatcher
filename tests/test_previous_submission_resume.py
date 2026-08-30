@@ -58,11 +58,68 @@ class TestPreviousSubmissionResume(unittest.TestCase):
 
         self.assertEqual(
             current.machine.context.remote_root,
-            os.path.join(self.remote_root, previous.submission_hash),
+            os.path.join(self.remote_root, current.submission_hash),
         )
         self.assertEqual(current.belonging_jobs[0].job_state, JobStatus.finished)
         self.assertEqual(
             current.belonging_jobs[0].job_task_list[0].task_state,
+            JobStatus.finished,
+        )
+
+    def test_missing_explicit_previous_state_fails_fast(self) -> None:
+        """A mistyped prior hash must not silently submit into a new directory."""
+        machine = self._machine()
+        current = Submission(
+            work_base="work",
+            machine=machine,
+            resources=Resources(1, 1, 0, "", 1, wait_time=30),
+            task_list=[Task("true", "task", backward_files=["result"])],
+            previous_submission_hash="0" * 40,
+        )
+        current.generate_jobs()
+
+        with self.assertRaisesRegex(FileNotFoundError, "Previous submission state"):
+            current.try_recover_from_json()
+
+    def test_chained_resume_persists_state_under_new_hash(self) -> None:
+        """A subsequent fresh process can resume from the migrated H1 state."""
+        previous = self._old_submission()
+        task = previous.belonging_jobs[0].job_task_list[0]
+        task_dir = os.path.join(previous.machine.context.remote_root, "task")
+        os.makedirs(task_dir)
+        open(os.path.join(task_dir, f"{task.task_hash}_task_tag_finished"), "w").close()
+
+        current = Submission(
+            work_base="work",
+            machine=self._machine(),
+            resources=Resources(1, 1, 0, "", 1, wait_time=30),
+            task_list=[Task("true", "task", backward_files=["result"])],
+            previous_submission_hash=previous.submission_hash,
+        )
+        current.generate_jobs()
+        current.try_recover_from_json()
+        current.submission_to_json()
+
+        self.assertFalse(
+            os.path.exists(os.path.join(self.remote_root, previous.submission_hash))
+        )
+        self.assertTrue(
+            os.path.isfile(
+                os.path.join(self.remote_root, current.submission_hash, f"{current.submission_hash}.json")
+            )
+        )
+
+        chained = Submission(
+            work_base="work",
+            machine=self._machine(),
+            resources=Resources(1, 1, 0, "", 1, wait_time=60),
+            task_list=[Task("true", "task", backward_files=["result"])],
+            previous_submission_hash=current.submission_hash,
+        )
+        chained.generate_jobs()
+        chained.try_recover_from_json()
+        self.assertEqual(
+            chained.belonging_jobs[0].job_task_list[0].task_state,
             JobStatus.finished,
         )
 

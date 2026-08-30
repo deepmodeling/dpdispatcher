@@ -714,6 +714,11 @@ class Submission:
         recovery_hash = self.previous_submission_hash or self.submission_hash
         submission_file_name = f"{recovery_hash}.json"
         if_recover = machine.context.check_file_exists(submission_file_name)
+        if self.previous_submission_hash is not None and not if_recover:
+            raise FileNotFoundError(
+                "Previous submission state was not found for explicit "
+                f"previous_submission_hash={self.previous_submission_hash}"
+            )
         submission = None
         submission_dict = {}
         if if_recover:
@@ -721,6 +726,7 @@ class Submission:
             submission_dict = json.loads(submission_dict_str)
             if self.previous_submission_hash is not None:
                 self._recover_finished_tasks_from_previous(submission_dict)
+                self._bind_recovered_submission()
                 return
             # Reuse the authenticated machine that read the recovery file. Creating a
             # second SSHContext here can fail for one-time authentication methods such
@@ -748,6 +754,47 @@ class Submission:
                 print(self.serialize())
                 print(submission.serialize())
                 raise RuntimeError("Recover failed.")
+
+    def _bind_recovered_submission(self) -> None:
+        """Move a recovered work directory under this submission's new hash.
+
+        Explicit resource-only resumes initially bind the context to the
+        previous hash so completion tags can be inspected.  Once recovery is
+        validated, the directory must follow the new hash; otherwise the next
+        fresh process cannot locate the persisted ``H1.json`` state.  SSH
+        contexts perform the remote rename in ``bind_submission``; local
+        filesystem contexts are migrated here before rebinding.
+        """
+        machine = self._require_machine()
+        context = machine.context
+        old_remote_root = getattr(context, "remote_root", None)
+        current_hash = self.submission_hash
+        if current_hash is None:
+            raise RuntimeError("Recovered submission has no submission hash")
+
+        # LocalContext/Shell use ordinary filesystem paths and do not implement
+        # SSHContext's remote rename hook.  Move the old tree only when the
+        # destination is absent, preserving any newer destination state.
+        temp_remote_root = getattr(context, "temp_remote_root", None)
+        if (
+            not hasattr(context, "_recover_remote_root")
+            and isinstance(old_remote_root, str)
+            and isinstance(temp_remote_root, str)
+        ):
+            new_remote_root = os.path.join(temp_remote_root, current_hash)
+            if (
+                old_remote_root != new_remote_root
+                and os.path.isdir(old_remote_root)
+                and not os.path.exists(new_remote_root)
+            ):
+                os.replace(old_remote_root, new_remote_root)
+
+        previous_hash = self.previous_submission_hash
+        self.previous_submission_hash = None
+        try:
+            self.bind_machine(machine)
+        finally:
+            self.previous_submission_hash = previous_hash
 
     def _recover_finished_tasks_from_previous(self, previous: dict[str, Any]) -> None:
         """Reuse task completion tags after an explicitly selected resource change.
