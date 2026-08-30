@@ -32,7 +32,14 @@ class TestSchedulerStatusParsing(unittest.TestCase):
 
         status = machine.check_status(job)
 
-        expected = JobStatus.finished if finish_tag else JobStatus.unknown
+        if finish_tag:
+            expected = JobStatus.finished
+        elif machine_class is Slurm:
+            # A disappeared Slurm job without its success marker has failed;
+            # report it as terminated so Submission can retry it.
+            expected = JobStatus.terminated
+        else:
+            expected = JobStatus.unknown
         self.assertEqual(status, expected)
 
     def test_header_only_output_uses_finish_tag(self) -> None:
@@ -40,7 +47,7 @@ class TestSchedulerStatusParsing(unittest.TestCase):
             with self.subTest(machine=machine_class.__name__):
                 self._check_header_only_status(machine_class, finish_tag=True)
 
-    def test_header_only_output_without_finish_tag_is_unknown(self) -> None:
+    def test_header_only_output_without_finish_tag_is_not_finished(self) -> None:
         for machine_class in (LSF, JH_UniScheduler, Slurm):
             with self.subTest(machine=machine_class.__name__):
                 self._check_header_only_status(machine_class, finish_tag=False)
