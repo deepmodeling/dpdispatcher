@@ -81,22 +81,39 @@ class Fugaku(Machine):
             return JobStatus.unsubmitted
         ret, stdin, stdout, stderr = self.context.block_call("pjstat " + job_id)
         err_str = stderr.read().decode("utf-8")
-        try:
-            status_line = stdout.read().decode("utf-8").split("\n")[-2]
-        # pjstat only retrun 0 if the job is not waiting or running
-        except Exception:
-            ret, stdin, stdout, stderr = self.context.block_call("pjstat -H  " + job_id)
-            status_line = stdout.read().decode("utf-8").split("\n")[-2]
-            status_word = status_line.split()[3]
+        status_lines = [
+            line.strip()
+            for line in stdout.read().decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        # ``pjstat`` may return no row after a job leaves the active queue.
+        # Preserve the historical ``-H`` lookup for terminal jobs, but guard
+        # both responses before indexing their status columns.
+        status_fields = status_lines[-1].split() if status_lines else []
+        if len(status_fields) < 4:
+            ret, stdin, history_stdout, stderr = self.context.block_call(
+                "pjstat -H  " + job_id
+            )
+            history_lines = [
+                line.strip()
+                for line in history_stdout.read().decode("utf-8").splitlines()
+                if line.strip()
+            ]
+            history_fields = history_lines[-1].split() if history_lines else []
+            if len(history_fields) < 4:
+                return (
+                    JobStatus.finished
+                    if self.check_finish_tag(job)
+                    else JobStatus.terminated
+                )
+            status_word = history_fields[3]
             if status_word in ["EXT", "CCL", "ERR"]:
                 if self.check_finish_tag(job):
                     dlog.info(f"job: {job.job_hash} {job.job_id} finished")
                     return JobStatus.finished
-                else:
-                    return JobStatus.terminated
-            else:
-                return JobStatus.unknown
-        status_word = status_line.split()[3]
+                return JobStatus.terminated
+            return JobStatus.unknown
+        status_word = status_fields[3]
         # dlog.info (status_word)
         if status_word in ["QUE", "HLD", "RNA", "SPD"]:
             return JobStatus.waiting

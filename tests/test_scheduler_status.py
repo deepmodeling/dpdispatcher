@@ -4,8 +4,10 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from dpdispatcher.machine import Machine
+from dpdispatcher.machines.fugaku import Fugaku
 from dpdispatcher.machines.JH_UniScheduler import JH_UniScheduler
 from dpdispatcher.machines.lsf import LSF
+from dpdispatcher.machines.pbs import PBS, Torque
 from dpdispatcher.utils.job_status import JobStatus
 
 
@@ -62,6 +64,32 @@ class TestSchedulerStatusParsing(unittest.TestCase):
                 job = SimpleNamespace(job_id="123", job_hash="job-hash")
 
                 self.assertEqual(machine.check_status(job), JobStatus.unknown)
+
+    def test_empty_pbs_family_output_uses_finish_tag(self) -> None:
+        """PBS-family backends must not index an absent status row."""
+        for machine_class in (PBS, Torque, Fugaku):
+            for finish_tag, expected in (
+                (True, JobStatus.finished),
+                (False, JobStatus.terminated),
+            ):
+                with self.subTest(
+                    machine=machine_class.__name__, finish_tag=finish_tag
+                ):
+                    machine = machine_class.__new__(machine_class)
+                    machine.context = SimpleNamespace(
+                        block_call=Mock(
+                            return_value=(
+                                0,
+                                None,
+                                io.BytesIO(b""),
+                                io.BytesIO(),
+                            )
+                        ),
+                        check_file_exists=Mock(return_value=finish_tag),
+                    )
+                    job = SimpleNamespace(job_id="123", job_hash="job-hash")
+
+                    self.assertEqual(machine.check_status(job), expected)
 
 
 if __name__ == "__main__":
