@@ -72,7 +72,7 @@ class DistributedShell(Machine):
             module_unload_part += f"module unload {ii}\n"
 
         module_load_part = ""
-        module_list = job.resources.module_list
+        module_list = job.resources.module_load_list
         for ii in module_list:
             module_load_part += f"module load {ii}\n"
 
@@ -96,7 +96,7 @@ class DistributedShell(Machine):
             source_files_part=source_files_part,
             export_envs_part=export_envs_part,
             prepend_script_part=prepend_script_part,
-            remote_root=self.context.remote_root,
+            remote_root=shlex.quote(self.context.remote_root),
             submission_hash=self.context.submission.submission_hash,
         )
         return script_env
@@ -116,7 +116,7 @@ class DistributedShell(Machine):
             flag_if_job_task_fail=flag_if_job_task_fail,
             all_task_dirs=all_task_dirs,
             append_script_part=append_script_part,
-            remote_root=self.context.remote_root,
+            remote_root=shlex.quote(self.context.remote_root),
             submission_hash=self.context.submission.submission_hash,
             job_hash=job.job_hash,
         )
@@ -194,6 +194,7 @@ class DistributedShell(Machine):
         job_id = int(stdout.decode("utf-8").strip())
 
         self.context.write_file(job_id_name, str(job_id))
+
         return job_id
 
     def check_status(self, job: "Job") -> JobStatus:
