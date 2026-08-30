@@ -282,6 +282,7 @@ class SlurmJobArray(Slurm):
         )
 
     def gen_script_command(self, job: Job) -> str:
+        """Generate a Slurm array command without mutating job resources."""
         # Keep per-render counters isolated from the caller's Resources object
         # so direct and repeated rendering remain side-effect free.
         resources = copy.copy(job.resources)

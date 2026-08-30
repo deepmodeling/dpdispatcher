@@ -96,6 +96,8 @@ class TestSlurmScriptGeneration(unittest.TestCase):
             group_size=3,
             para_deg=2,
         )
+        resources.task_in_para = 1
+        resources.gpu_in_use = 1
         tasks = [
             Task(
                 command=f"echo {index}",
@@ -113,8 +115,8 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         second = machine.gen_script_command(job)
 
         self.assertEqual(first, second)
-        self.assertEqual(resources.task_in_para, 0)
-        self.assertEqual(resources.gpu_in_use, 0)
+        self.assertEqual(resources.task_in_para, 1)
+        self.assertEqual(resources.gpu_in_use, 1)
 
     def test_repeated_job_array_script_generation_is_deterministic(self) -> None:
         """Slurm job arrays reset the same per-script counters as Slurm."""
@@ -134,6 +136,8 @@ class TestSlurmScriptGeneration(unittest.TestCase):
             para_deg=1,
             strategy={"if_cuda_multi_devices": True},
         )
+        resources.task_in_para = 2
+        resources.gpu_in_use = 1
         tasks = [
             Task(
                 command=f"echo {index}",
@@ -155,8 +159,8 @@ class TestSlurmScriptGeneration(unittest.TestCase):
         second = array_machine.gen_script_command(job)
 
         self.assertEqual(first, second)
-        self.assertEqual(resources.task_in_para, 0)
-        self.assertEqual(resources.gpu_in_use, 0)
+        self.assertEqual(resources.task_in_para, 2)
+        self.assertEqual(resources.gpu_in_use, 1)
 
     @unittest.skipIf(sys.platform == "win32", "skip for persimission error")
     def test_template(self) -> None:
