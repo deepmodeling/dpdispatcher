@@ -58,7 +58,9 @@ class TestHDFSContextDownload(unittest.TestCase):
                     mark_failure=False,
                 )
 
-            self.assertFalse(os.path.exists(os.path.join(local_root, "task/missing.log")))
+            self.assertFalse(
+                os.path.exists(os.path.join(local_root, "task/missing.log"))
+            )
 
     def test_back_error_uses_relative_copies_without_mutating_submission(self) -> None:
         with tempfile.TemporaryDirectory() as local_root:

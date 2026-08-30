@@ -746,9 +746,7 @@ class Submission:
                 job for job in original_jobs if job.job_state == JobStatus.finished
             ]
             selected_hashes = {
-                task.task_hash
-                for job in selected_jobs
-                for task in job.job_task_list
+                task.task_hash for job in selected_jobs for task in job.job_task_list
             }
             selected_tasks = [
                 task for task in selected_tasks if task.task_hash in selected_hashes
