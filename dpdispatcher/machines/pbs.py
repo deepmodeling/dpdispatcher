@@ -1,3 +1,5 @@
+"""Implement PBS-family schedulers, including Torque and SGE variants."""
+
 from __future__ import annotations
 
 import posixpath
@@ -25,6 +27,7 @@ pbs_script_header_template = """
 class PBS(Machine):
     # def __init__(self, **kwargs):
     #     super().__init__(**kwargs)
+    """Submit and monitor jobs through OpenPBS or PBS Professional."""
 
     def gen_script(self, job: Job) -> str:
         pbs_script = super().gen_script(job)
@@ -138,6 +141,8 @@ class PBS(Machine):
 
 
 class Torque(PBS):
+    """Adapt PBS submission and status parsing for the Torque scheduler."""
+
     def check_status(self, job: Job) -> JobStatus:
         job_id = str(job.job_id)
         if job_id == "":
@@ -217,6 +222,8 @@ sge_script_header_template = """
 
 
 class SGE(PBS):
+    """Adapt PBS-style scripts and commands for Sun Grid Engine."""
+
     def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(**kwargs)
 

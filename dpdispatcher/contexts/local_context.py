@@ -1,3 +1,5 @@
+"""Execute jobs locally while staging them in a separate directory."""
+
 from __future__ import annotations
 
 import os
@@ -18,6 +20,8 @@ if TYPE_CHECKING:
 
 
 class SPRetObj:
+    """Adapt subprocess byte output to the stream interface used by contexts."""
+
     def __init__(self, ret: bytes) -> None:
         self.data = ret
 

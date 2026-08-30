@@ -1,3 +1,5 @@
+"""Define scheduler-independent job generation and the machine factory."""
+
 from __future__ import annotations
 
 import json
@@ -213,12 +215,20 @@ def _format_export_lines(envs: Mapping[str, Any]) -> str:
 
 
 class Machine(metaclass=ABCMeta):
-    """A machine is used to handle the connection with remote machines.
+    """Generate, submit, and monitor jobs on a selected batch system.
+
+    ``Machine`` acts as a factory when instantiated with ``batch_type``. A
+    machine delegates filesystem and command operations to its bound
+    :class:`~dpdispatcher.base_context.BaseContext` while its concrete subclass
+    implements scheduler-specific submission and status handling.
 
     Parameters
     ----------
-    context : SubClass derived from BaseContext
-        The context is used to mainatin the connection with remote machine.
+    context : BaseContext, optional
+        Existing execution context. When omitted, ``context_type`` and the root
+        and profile arguments are used to construct one.
+    retry_count : int, default=3
+        Number of scheduler failures allowed before a job is reported as failed.
     """
 
     subclasses_dict = {}
@@ -228,6 +238,7 @@ class Machine(metaclass=ABCMeta):
     alias: tuple[str, ...] = tuple()
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Machine:  # noqa: ANN401
+        """Select a registered backend subclass when called on ``Machine``."""
         if cls is Machine:
             subcls = cls.subclasses_dict[kwargs["batch_type"]]
             instance = subcls.__new__(subcls, *args, **kwargs)
@@ -260,6 +271,7 @@ class Machine(metaclass=ABCMeta):
         self.retry_count = retry_count
 
     def bind_context(self, context: BaseContext) -> None:
+        """Bind the execution context used for files and remote commands."""
         self.context = context
 
     def get_job_error(self, job: Job) -> str | None:
@@ -297,6 +309,7 @@ class Machine(metaclass=ABCMeta):
 
     @classmethod
     def load_from_json(cls, json_path: str) -> Machine:
+        """Load a machine configuration from a JSON file."""
         with open(json_path) as f:
             machine_dict = json.load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
@@ -304,6 +317,7 @@ class Machine(metaclass=ABCMeta):
 
     @classmethod
     def load_from_yaml(cls, yaml_path: str) -> Machine:
+        """Load a machine configuration from a YAML file."""
         with open(yaml_path) as f:
             machine_dict = yaml.safe_load(f)
         machine = cls.load_from_dict(machine_dict=machine_dict)
@@ -347,6 +361,7 @@ class Machine(metaclass=ABCMeta):
         return machine
 
     def serialize(self, if_empty_remote_profile: bool = False) -> dict[str, Any]:  # noqa: ANN401
+        """Return a normalized dictionary representation of the machine."""
         machine_dict = {}
         machine_dict["batch_type"] = self.__class__.__name__
         machine_dict["context_type"] = self.context.__class__.__name__
@@ -374,26 +389,31 @@ class Machine(metaclass=ABCMeta):
 
     @classmethod
     def deserialize(cls, machine_dict: dict[str, Any]) -> Machine:  # noqa: ANN401
+        """Reconstruct a machine from its serialized dictionary."""
         machine = cls.load_from_dict(machine_dict=machine_dict)
         return machine
 
     @abstractmethod
     def check_status(self, job: Job) -> JobStatus:
+        """Query the scheduler and return the current status of a job."""
         raise NotImplementedError(
             "abstract method check_status should be implemented by derived class"
         )
 
     def default_resources(self, res: Resources) -> Resources:
+        """Return backend defaults for an incomplete resource specification."""
         raise NotImplementedError(
             "abstract method default_resources should be implemented by derived class"
         )
 
     def sub_script_head(self, res: Resources) -> str:
+        """Return the legacy scheduler header for a resource specification."""
         raise NotImplementedError(
             "abstract method sub_script_head should be implemented by derived class"
         )
 
     def sub_script_cmd(self, res: Resources) -> str:
+        """Return the legacy scheduler launch command for resources."""
         raise NotImplementedError(
             "abstract method sub_script_cmd should be implemented by derived class"
         )
@@ -406,9 +426,11 @@ class Machine(metaclass=ABCMeta):
         )
 
     def gen_script_run_command(self, job: Job) -> str:
+        """Return the command that sources the generated per-task script."""
         return f"source $REMOTE_ROOT/{job.script_file_name}.run"
 
     def gen_script(self, job: Job) -> str:
+        """Generate the complete scheduler submission script for a job."""
         script_header = self.gen_script_header(job)
         script_custom_flags = self.gen_script_custom_flags_lines(job)
         script_env = self.gen_script_env(job)
@@ -424,6 +446,7 @@ class Machine(metaclass=ABCMeta):
         return script
 
     def check_if_recover(self, submission: Submission) -> bool:
+        """Return whether serialized state exists for a remote submission."""
         submission_hash = submission.submission_hash
         submission_file_name = f"{submission_hash}.json"
         if_recover = self.context.check_file_exists(submission_file_name)
@@ -431,17 +454,20 @@ class Machine(metaclass=ABCMeta):
 
     @abstractmethod
     def check_finish_tag(self, job: Job) -> bool:
+        """Return whether the success marker for a job is present."""
         raise NotImplementedError(
             "abstract method check_finish_tag should be implemented by derived class"
         )
 
     @abstractmethod
     def gen_script_header(self, job: Job) -> str:
+        """Generate scheduler directives and the script shebang for a job."""
         raise NotImplementedError(
             "abstract method gen_script_header should be implemented by derived class"
         )
 
     def gen_script_custom_flags_lines(self, job: Job) -> str:
+        """Render user-provided scheduler directives as script lines."""
         custom_flags_lines = ""
         custom_flags = job.resources.custom_flags
         for ii in custom_flags:
@@ -450,6 +476,7 @@ class Machine(metaclass=ABCMeta):
         return custom_flags_lines
 
     def gen_script_env(self, job: Job) -> str:
+        """Generate environment setup shared by every task in a job."""
         source_files_part = ""
 
         module_unload_part = ""
@@ -505,6 +532,7 @@ class Machine(metaclass=ABCMeta):
         return script_env
 
     def gen_script_command(self, job: Job) -> str:
+        """Generate task commands, logging redirection, and completion tags."""
         script_command = ""
         resources = job.resources
         # in_para_task_num = 0
@@ -552,6 +580,7 @@ class Machine(metaclass=ABCMeta):
         )
 
     def gen_script_end(self, job: Job) -> str:
+        """Generate job finalization, failure checks, and append commands."""
         job_tag_finished = job.job_hash + "_job_tag_finished"
         flag_if_job_task_fail = job.job_hash + "_flag_if_job_task_fail"
 
@@ -568,6 +597,7 @@ class Machine(metaclass=ABCMeta):
     def gen_script_wait(self, resources: Resources) -> str:
         # if not resources.strategy.get('if_cuda_multi_devices', None):
         #     return "wait \n"
+        """Generate synchronization commands for the configured parallelism."""
         para_deg = resources.para_deg
         resources.task_in_para += 1
         # task_need_gpus = task.task_need_gpus
@@ -586,6 +616,7 @@ class Machine(metaclass=ABCMeta):
     def gen_command_env_cuda_devices(self, resources: Resources) -> str:
         # task_need_resources = task.task_need_resources
         # task_need_gpus = task_need_resources.get('task_need_gpus', 1)
+        """Assign a GPU to the next task when automatic GPU mapping is enabled."""
         command_env = ""
         # gpu_number = resources.gpu_per_node
         # resources.gpu_in_use = 0
@@ -602,6 +633,7 @@ class Machine(metaclass=ABCMeta):
     @classmethod
     def arginfo(cls) -> Argument:
         # TODO: change the possible value of batch and context types after we refactor the code
+        """Build the dargs schema for machine and context configuration."""
         doc_batch_type = "Batch backend used to execute jobs. Option: " + ", ".join(
             cls.options
         )

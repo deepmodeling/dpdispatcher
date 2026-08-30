@@ -1,3 +1,5 @@
+"""Read legacy Bohrium API endpoints and object-storage settings."""
+
 import os
 
 HTTP_TIME_OUT = 30

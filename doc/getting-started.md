@@ -1,29 +1,25 @@
 # Getting Started
 
-DPDispatcher provides the following classes:
+DPDispatcher provides the following core classes:
 
-- {class}`Task <dpdispatcher.submission.Task>` class, which represents a command to be run on batch job system, as well as the essential files need by the command.
+- {class}`Task <dpdispatcher.submission.Task>` represents one command, its working directory, and the files that must be staged before and after execution.
+- {class}`Resources <dpdispatcher.submission.Resources>` describes the CPUs, GPUs, queue, task grouping, and environment required by each generated job.
+- {class}`Submission <dpdispatcher.submission.Submission>` groups tasks, generates jobs, transfers files, submits work, monitors it, and downloads results.
+- {class}`Job <dpdispatcher.submission.Job>` represents one generated scheduler job. Applications normally inspect jobs but let `Submission` create them automatically.
 
-- {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a collection of jobs defined by the HPC system.
-  And there may be common files to be uploaded by them.
-  DPDispatcher will create and submit these jobs when a `submission` instance execute {meth}`run_submission <dpdispatcher.submission.Submission.run_submission>` method.
-  This method will poke until the jobs finish and return.
+See the {doc}`python-api` guide for path semantics, grouping, lifecycle options,
+asynchronous submissions, and backend extension points.
 
-- {class}`Job <dpdispatcher.submission.Job>` class, a class used by {class}`Submission <dpdispatcher.submission.Submission>` class, which represents a job on the HPC system.
-  {class}`Submission <dpdispatcher.submission.Submission>` will generate `job`s' submitting scripts used by HPC systems automatically with the {class}`Task <dpdispatcher.submission.Task>` and {class}`Resources <dpdispatcher.submission.Resources>`
-
-  Generated submission and run scripts are internal, dot-prefixed files named
-  `.JOB_HASH.sub` and `.JOB_HASH.sub.run`. They remain in the submission work
-  directory for scheduler and recovery compatibility, but normal directory
-  listings hide them. Do not rename or remove them while a submission is active
-  or may need to be recovered.
-
-- {class}`Resources <dpdispatcher.submission.Resources>` class, which represents the computing resources for each job within a `submission`.
+Generated submission and run scripts are internal, dot-prefixed files named
+`.JOB_HASH.sub` and `.JOB_HASH.sub.run`. They remain in the submission work
+directory for scheduler and recovery compatibility, but normal directory
+listings hide them. Do not rename or remove them while a submission is active
+or may need to be recovered.
 
 You can use DPDispatcher in a Python script to submit five tasks:
 
 ```python
-from dpdispatcher import Machine, Resources, Task, Submission
+from dpdispatcher import Machine, Resources, Submission, Task
 
 machine = Machine.load_from_json("machine.json")
 resources = Resources.load_from_json("resources.json")
@@ -120,8 +116,7 @@ and `task.json` is
 }
 ```
 
-You may also submit multiple GPU jobs:
-complex resources example
+You may also run multiple GPU tasks within each generated job:
 
 ```python3
 resources = Resources(
@@ -132,7 +127,7 @@ resources = Resources(
     group_size=4,
     custom_flags=["#SBATCH --nice=100", "#SBATCH --time=24:00:00"],
     strategy={
-        # used when you want to add CUDA_VISIBLE_DIVECES automatically
+        # Add CUDA_VISIBLE_DEVICES automatically for concurrent tasks.
         "if_cuda_multi_devices": True
     },
     para_deg=1,
@@ -149,4 +144,5 @@ resources = Resources(
 )
 ```
 
-The details of parameters can be found in [Machine Parameters](machine), [Resources Parameters](resources), and [Task Parameters](task).
+Parameter details are available in {doc}`Machine parameters <machine>`,
+{doc}`Resources parameters <resources>`, and {doc}`Task parameters <task>`.

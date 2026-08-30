@@ -1,6 +1,6 @@
 # Install DPDispatcher
 
-DPDispatcher can installed by `pip`:
+DPDispatcher can be installed with `pip`:
 
 ```bash
 pip install dpdispatcher
