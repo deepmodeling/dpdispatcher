@@ -47,3 +47,13 @@ class TestSSHSessionLiveness(unittest.TestCase):
 
         self.assertTrue(session._check_alive())
         transport.send_ignore.assert_called_once_with()
+
+    def test_probe_exception_is_not_reported_alive(self) -> None:
+        """Socket/Paramiko probe failures should trigger reconnection."""
+        transport = MagicMock()
+        transport.is_active.return_value = True
+        transport.send_ignore.side_effect = OSError("socket closed")
+
+        session = self._session(transport)
+
+        self.assertFalse(session._check_alive())
