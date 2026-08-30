@@ -12,6 +12,8 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 
+from dpdispatcher.utils.hdfs_cli import HDFSMissingPathError
+
 from .context import (
     HDFS,
     HDFSContext,
@@ -72,6 +74,53 @@ class TestHDFSContextDownload(unittest.TestCase):
             )
             with open(os.path.join(local_root, "task/present.log")) as stream:
                 self.assertEqual(stream.read(), "diagnostic")
+
+    def test_missing_optional_archive_is_skipped(self) -> None:
+        """An absent grouped-job archive is optional in terminated-log mode."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[],
+                backward_common_files=[],
+            )
+
+            with patch.object(
+                HDFS,
+                "copy_to_local",
+                side_effect=HDFSMissingPathError("archive is absent"),
+            ):
+                context.download(
+                    submission,
+                    check_exists=True,
+                    mark_failure=False,
+                )
+
+    def test_hdfs_transfer_errors_are_not_suppressed(self) -> None:
+        """Permission and transport failures still reach callers."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[],
+                backward_common_files=[],
+            )
+
+            with patch.object(
+                HDFS,
+                "copy_to_local",
+                side_effect=RuntimeError("permission denied"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "permission denied"):
+                    context.download(
+                        submission,
+                        check_exists=True,
+                        mark_failure=False,
+                    )
 
     def test_back_error_uses_relative_copies_without_mutating_submission(self) -> None:
         with tempfile.TemporaryDirectory() as local_root:

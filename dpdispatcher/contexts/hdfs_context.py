@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, NoReturn
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
 from dpdispatcher.utils.archive import safe_extract_tar
-from dpdispatcher.utils.hdfs_cli import HDFS
+from dpdispatcher.utils.hdfs_cli import HDFS, HDFSMissingPathError
 
 if TYPE_CHECKING:
     from dpdispatcher.submission import Submission
@@ -162,7 +162,7 @@ class HDFSContext(BaseContext):
         lfile_tgz = f"{self.local_root}/tmp/"
         try:
             HDFS.copy_to_local(rfile_tgz, lfile_tgz)
-        except RuntimeError:
+        except HDFSMissingPathError:
             # A failed DistributedShell job does not produce an archive.  An
             # explicit terminated-log download should still succeed when no
             # optional archive exists, while normal result downloads retain
