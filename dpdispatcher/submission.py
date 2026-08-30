@@ -772,22 +772,22 @@ class Submission:
         if current_hash is None:
             raise RuntimeError("Recovered submission has no submission hash")
 
-        # LocalContext/Shell use ordinary filesystem paths and do not implement
-        # SSHContext's remote rename hook.  Move the old tree only when the
-        # destination is absent, preserving any newer destination state.
         temp_remote_root = getattr(context, "temp_remote_root", None)
-        if (
-            not hasattr(context, "_recover_remote_root")
-            and isinstance(old_remote_root, str)
-            and isinstance(temp_remote_root, str)
-        ):
+        if isinstance(old_remote_root, str) and isinstance(temp_remote_root, str):
             new_remote_root = os.path.join(temp_remote_root, current_hash)
-            if (
-                old_remote_root != new_remote_root
-                and os.path.isdir(old_remote_root)
-                and not os.path.exists(new_remote_root)
-            ):
-                os.replace(old_remote_root, new_remote_root)
+            if old_remote_root != new_remote_root:
+                migrate_root = getattr(context, "migrate_recovery_root", None)
+                if callable(migrate_root):
+                    # Contexts such as HDFS must move state through their
+                    # backend API; local os.path/os.replace cannot address URIs.
+                    migrate_root(old_remote_root, new_remote_root)
+                elif not hasattr(context, "_recover_remote_root"):
+                    # LocalContext/Shell use ordinary filesystem paths and do
+                    # not implement SSHContext's remote rename hook.
+                    if os.path.isdir(old_remote_root) and not os.path.exists(
+                        new_remote_root
+                    ):
+                        os.replace(old_remote_root, new_remote_root)
 
         previous_hash = self.previous_submission_hash
         self.previous_submission_hash = None

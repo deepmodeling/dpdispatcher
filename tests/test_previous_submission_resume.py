@@ -1,8 +1,11 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from dpdispatcher import Machine, Resources, Submission, Task
+from dpdispatcher.contexts.hdfs_context import HDFSContext
+from dpdispatcher.utils.hdfs_cli import HDFS
 from dpdispatcher.utils.job_status import JobStatus
 
 
@@ -157,6 +160,21 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         serialized["previous_submission_hash"] = previous.submission_hash
         recovered = Submission.deserialize(serialized)
         self.assertEqual(recovered.previous_submission_hash, previous.submission_hash)
+
+    def test_hdfs_recovery_moves_root_through_backend(self) -> None:
+        """HDFS recovery must preserve completion state under the new hash."""
+        context = HDFSContext.__new__(HDFSContext)
+        old_root = "hdfs://cluster/work/old"
+        new_root = "hdfs://cluster/work/new"
+        with (
+            patch.object(HDFS, "exists", side_effect=[False, True]) as exists,
+            patch.object(HDFS, "move") as move,
+        ):
+            context.migrate_recovery_root(old_root, new_root)
+
+        self.assertEqual(exists.call_args_list[0].args, (new_root,))
+        self.assertEqual(exists.call_args_list[1].args, (old_root,))
+        move.assert_called_once_with(old_root, new_root)
 
 
 if __name__ == "__main__":

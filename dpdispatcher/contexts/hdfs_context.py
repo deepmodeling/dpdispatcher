@@ -54,6 +54,24 @@ class HDFSContext(BaseContext):
 
         HDFS.mkdir(self.remote_root)
 
+    def migrate_recovery_root(self, old_remote_root: str, new_remote_root: str) -> None:
+        """Move a recovered submission tree through the HDFS API.
+
+        Resource-only resumes must preserve completion tags stored under the
+        previous hash.  Local filesystem operations cannot inspect or rename an
+        HDFS URI, so use backend existence checks and an atomic HDFS move.
+        Existing new-hash state wins to keep repeated recovery idempotent.
+        """
+        if old_remote_root == new_remote_root:
+            return
+        if HDFS.exists(new_remote_root):
+            return
+        if not HDFS.exists(old_remote_root):
+            raise FileNotFoundError(
+                f"Recovered HDFS submission root does not exist: {old_remote_root}"
+            )
+        HDFS.move(old_remote_root, new_remote_root)
+
     def _put_files(self, files: list[str], dereference: bool = True) -> None:
         assert self.submission.submission_hash is not None
         of = self.submission.submission_hash + "_upload.tgz"
