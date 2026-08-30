@@ -367,7 +367,6 @@ class SGE(PBS):
                         "job_name",
                         str,
                         optional=True,
-                        default="wDPjob",
                         doc=doc_job_name,
                     ),
                 ],

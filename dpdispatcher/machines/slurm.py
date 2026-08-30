@@ -3,7 +3,8 @@ from __future__ import annotations
 import math
 import pathlib
 import shlex
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, cast
 
 from dargs import Argument
 
@@ -62,8 +63,13 @@ class Slurm(Machine):
             )
         else:
             script_header_dict["slurm_partition_line"] = ""
-        name_getter = getattr(job, "get_scheduler_name", None)
-        job_name = name_getter(128) if callable(name_getter) else None
+        candidate = getattr(job, "get_scheduler_name", None)
+        name_getter: Callable[[int], str | None] | None = (
+            cast(Callable[[int], str | None], candidate)
+            if callable(candidate)
+            else None
+        )
+        job_name: str | None = name_getter(128) if name_getter is not None else None
         if (
             resources["strategy"].get("customized_script_header_template_file")
             is not None

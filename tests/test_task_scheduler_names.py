@@ -65,6 +65,37 @@ class TestTaskSchedulerNames(unittest.TestCase):
         self.assertTrue(first_name[0].isalpha())
         self.assertNotEqual(first_name, second_name)
 
+    def test_loaded_sge_resources_preserve_task_name_fallback(self) -> None:
+        """An omitted SGE job_name must not materialize the generic default."""
+        machine = Machine(
+            batch_type="SGE",
+            context_type="LazyLocalContext",
+            local_root=".",
+        )
+        resources = Resources.load_from_dict(
+            {
+                "batch_type": "SGE",
+                "number_node": 1,
+                "cpu_per_node": 1,
+                "gpu_per_node": 0,
+                "queue_name": "",
+                "group_size": 1,
+                "kwargs": {},
+            }
+        )
+        self.assertNotIn("job_name", resources.kwargs)
+        submission = Submission(
+            work_base=".",
+            machine=machine,
+            resources=resources,
+            task_list=[Task("true", ".", task_name="water 001")],
+        )
+        submission.generate_jobs()
+        self.assertIn(
+            "#$ -N water-001",
+            machine.gen_script_header(submission.belonging_jobs[0]),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
