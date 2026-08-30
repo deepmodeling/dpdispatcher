@@ -103,10 +103,13 @@ class TestTerminalFailedJobs(unittest.TestCase):
             def download_archive(selected: Submission) -> None:
                 self.assertEqual(selected.belonging_jobs, [job])
                 self.assertEqual(selected.belonging_tasks, [finished])
+                downloaded_files = set()
                 for task in selected.belonging_jobs[0].job_task_list:
                     path = Path(local_root) / task.task_work_path / "result.txt"
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(task.task_work_path)
+                    downloaded_files.add(path.relative_to(Path(local_root)).as_posix())
+                context.last_downloaded_files = downloaded_files
 
             context.download.side_effect = download_archive
             submission.machine = MagicMock(context=context)
@@ -114,6 +117,74 @@ class TestTerminalFailedJobs(unittest.TestCase):
 
             self.assertTrue((Path(local_root) / "finished" / "result.txt").is_file())
             self.assertFalse((Path(local_root) / "failed" / "result.txt").exists())
+
+    def test_cloud_download_cleanup_only_removes_archive_outputs(self) -> None:
+        """Pre-existing failed outputs survive an archive without that file."""
+        finished = Task("true", "finished", backward_files=["result.txt"])
+        failed = Task("false", "failed", backward_files=["result.txt"])
+        finished.task_state = JobStatus.finished
+        failed.task_state = JobStatus.failed
+        job = Job(
+            job_task_list=[finished, failed],
+            resources=Resources(1, 1, 0, "", 1),
+        )
+        job.job_state = JobStatus.failed
+        submission = Submission.__new__(Submission)
+        submission.belonging_jobs = [job]
+        submission.belonging_tasks = [finished, failed]
+        context = MagicMock()
+        context.downloads_by_job = True
+        with tempfile.TemporaryDirectory() as local_root:
+            context.local_root = local_root
+            stale_output = Path(local_root) / "failed" / "result.txt"
+            stale_output.parent.mkdir(parents=True)
+            stale_output.write_text("pre-existing")
+
+            def download_archive(_selected: Submission) -> None:
+                output = Path(local_root) / "finished" / "result.txt"
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_text("downloaded")
+                context.last_downloaded_files = {"finished/result.txt"}
+
+            context.download.side_effect = download_archive
+            submission.machine = MagicMock(context=context)
+            submission.download_jobs()
+
+            self.assertEqual(stale_output.read_text(), "pre-existing")
+            self.assertEqual(
+                (Path(local_root) / "finished" / "result.txt").read_text(),
+                "downloaded",
+            )
+
+    def test_cloud_download_preserves_shared_selected_output(self) -> None:
+        """A path shared with a successful task is never cleaned as failed."""
+        finished = Task("true", ".", backward_files=["result.txt"])
+        failed = Task("false", ".", backward_files=["result.txt"])
+        finished.task_state = JobStatus.finished
+        failed.task_state = JobStatus.failed
+        job = Job(
+            job_task_list=[finished, failed],
+            resources=Resources(1, 1, 0, "", 1),
+        )
+        job.job_state = JobStatus.failed
+        submission = Submission.__new__(Submission)
+        submission.belonging_jobs = [job]
+        submission.belonging_tasks = [finished, failed]
+        context = MagicMock()
+        context.downloads_by_job = True
+        with tempfile.TemporaryDirectory() as local_root:
+            context.local_root = local_root
+
+            def download_archive(_selected: Submission) -> None:
+                output = Path(local_root) / "result.txt"
+                output.write_text("shared")
+                context.last_downloaded_files = {"result.txt"}
+
+            context.download.side_effect = download_archive
+            submission.machine = MagicMock(context=context)
+            submission.download_jobs()
+
+            self.assertEqual((Path(local_root) / "result.txt").read_text(), "shared")
 
     def test_job_archive_download_skips_mixed_jobs(self) -> None:
         """Archive backends must not request results for failed grouped jobs."""

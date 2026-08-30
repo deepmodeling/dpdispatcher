@@ -179,6 +179,7 @@ class BohriumContext(BaseContext):
         mark_failure: bool = True,
         back_error: bool = False,
     ) -> bool:
+        self.last_downloaded_files = set()
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}
@@ -218,7 +219,9 @@ class BohriumContext(BaseContext):
             ):
                 continue
             self.api.download_from_url(info["resultUrl"], target_result_zip)
-            zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
+            self.last_downloaded_files.update(
+                zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
+            )
             self._backup(self.local_root, target_result_zip)
         self._clean_backup(
             self.local_root, keep_backup=self.remote_profile.get("keep_backup", True)

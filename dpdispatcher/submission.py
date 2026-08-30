@@ -9,7 +9,6 @@ import json
 import os
 import pathlib
 import random
-import shutil
 import time
 import uuid
 from collections.abc import Sequence
@@ -776,37 +775,112 @@ class Submission:
             self.belonging_tasks = original_tasks
             self.belonging_jobs = original_jobs
         if downloads_by_job:
-            self._remove_unselected_task_outputs(original_jobs, selected_tasks)
+            self._remove_unselected_task_outputs(
+                original_jobs,
+                selected_tasks,
+                getattr(context, "last_downloaded_files", None),
+            )
 
     def _remove_unselected_task_outputs(
-        self, jobs: list["Job"], selected_tasks: list["Task"]
+        self,
+        jobs: list["Job"],
+        selected_tasks: list["Task"],
+        downloaded_files: set[str] | None,
     ) -> None:
         """Remove outputs of failed siblings after a mixed cloud archive download.
 
         Cloud contexts retrieve one archive per parent job and cannot apply the
         task-level selection used by filesystem contexts. For a mixed-state
-        parent, remove only configured backward files belonging to unselected
-        tasks after extraction; explicit include_failed=True downloads take
-        a separate path and intentionally retain those files.
+        parent, remove only configured backward files that the current archive
+        actually extracted. Explicit include_failed=True downloads take a
+        separate path and intentionally retain those files.
         """
         context = self._require_machine().context
-        local_root = context.local_root
+        if not isinstance(downloaded_files, set):
+            # Older/custom cloud contexts do not report an extraction manifest;
+            # guessing from backward_files could delete unrelated local data.
+            return
+        try:
+            local_root = os.path.realpath(
+                os.path.abspath(os.fspath(context.local_root))
+            )
+        except (AttributeError, TypeError):
+            return
+
+        extracted_paths: set[str] = set()
+        for filename in downloaded_files:
+            if not isinstance(filename, str) or not filename:
+                continue
+            path = (
+                filename
+                if os.path.isabs(filename)
+                else os.path.join(local_root, filename)
+            )
+            path = os.path.realpath(os.path.abspath(path))
+            try:
+                is_inside_root = os.path.commonpath((local_root, path)) == local_root
+            except ValueError:
+                is_inside_root = False
+            if is_inside_root and path != local_root and os.path.lexists(path):
+                extracted_paths.add(path)
+
+        if not extracted_paths:
+            return
+
+        def matches_task_output(task: "Task", path: str) -> bool:
+            """Return whether an extracted path matches a task output pattern."""
+            task_root = os.path.realpath(
+                os.path.abspath(os.path.join(local_root, task.task_work_path))
+            )
+            try:
+                if os.path.commonpath((local_root, task_root)) != local_root:
+                    return False
+            except ValueError:
+                return False
+            for pattern in task.backward_files:
+                if pattern in ("", ".", "./"):
+                    continue
+                for matched in glob.glob(
+                    os.path.join(task_root, pattern), recursive=True
+                ):
+                    matched = os.path.realpath(os.path.abspath(matched))
+                    try:
+                        if os.path.commonpath((local_root, matched)) != local_root:
+                            continue
+                    except ValueError:
+                        continue
+                    if matched == path:
+                        return True
+                    if os.path.isdir(matched):
+                        try:
+                            if os.path.commonpath((matched, path)) == matched:
+                                return True
+                        except ValueError:
+                            continue
+            return False
+
         selected_hashes = {task.task_hash for task in selected_tasks}
+        # A path referenced by both a successful task and a failed sibling is
+        # shared output. Preserve it even when the archive contained the path.
+        protected_paths = {
+            path
+            for path in extracted_paths
+            if any(matches_task_output(task, path) for task in selected_tasks)
+        }
         for job in jobs:
             if not any(task.task_hash in selected_hashes for task in job.job_task_list):
                 continue
             for task in job.job_task_list:
                 if task.task_hash in selected_hashes:
                     continue
-                task_root = os.path.join(local_root, task.task_work_path)
-                for pattern in task.backward_files:
-                    if pattern in ("", ".", "./"):
+                for path in extracted_paths:
+                    if path in protected_paths or not matches_task_output(task, path):
                         continue
-                    for path in glob.glob(os.path.join(task_root, pattern)):
-                        if os.path.isdir(path) and not os.path.islink(path):
-                            shutil.rmtree(path)
-                        elif os.path.lexists(path):
-                            os.remove(path)
+                    # The extraction manifest contains files, not whole output
+                    # trees. Remove only those files so pre-existing siblings
+                    # inside a configured output directory remain untouched.
+                    if os.path.isfile(path) or os.path.islink(path):
+                        os.remove(path)
         # for job in self.belonging_jobs:
         #     job.tag_finished()
         # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")

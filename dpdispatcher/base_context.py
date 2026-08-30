@@ -41,6 +41,9 @@ class BaseContext(metaclass=ABCMeta):
     # Cloud contexts retrieve one archive per parent job; filesystem contexts
     # can select backward files directly at task granularity.
     downloads_by_job: bool = False
+    # Cloud contexts populate this with relative files extracted by their most
+    # recent download so mixed-state cleanup never guesses at local paths.
+    last_downloaded_files: set[str] | None = None
     # Some job-archive backends only create an archive when every task in the
     # grouped job succeeds.  Such backends cannot download a mixed-state job
     # by selecting only its finished sibling tasks.
