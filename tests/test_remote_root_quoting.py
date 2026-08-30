@@ -10,7 +10,9 @@ from dpdispatcher.machine import Machine
 
 class TestRemoteRootQuoting(unittest.TestCase):
     def test_shell_generated_script_runs_when_remote_root_contains_spaces(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="dpdispatcher remote root ") as remote_root:
+        with tempfile.TemporaryDirectory(
+            prefix="dpdispatcher remote root "
+        ) as remote_root:
             remote_path = Path(remote_root)
             task_dir = remote_path / "task dir"
             task_dir.mkdir()
