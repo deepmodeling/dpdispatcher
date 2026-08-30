@@ -614,7 +614,12 @@ class SSHContext(BaseContext):
                 raise
         else:
             # Never overwrite a destination that may contain newer recovery data.
-            return
+            # Surface the conflict instead of silently abandoning completion
+            # tags that remain in the old root.
+            raise FileExistsError(
+                "Cannot migrate recovered SSH submission: both old and new "
+                f"roots exist ({old_remote_root}, {self.remote_root})"
+            )
 
         try:
             # Unlike a shell `mv`, SFTP rename exposes a missing-source errno. This

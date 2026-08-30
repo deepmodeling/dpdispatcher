@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from dpdispatcher import Job, Machine, Resources, Submission, Task
 from dpdispatcher.contexts.hdfs_context import HDFSContext
+from dpdispatcher.contexts.ssh_context import SSHContext
 from dpdispatcher.utils.hdfs_cli import HDFS
 from dpdispatcher.utils.job_status import JobStatus
 
@@ -178,6 +179,41 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             current.belonging_jobs[0].job_task_list[0].task_state,
             JobStatus.finished,
         )
+
+    def test_local_recovery_rejects_conflicting_roots(self) -> None:
+        """A stale LocalContext destination must not hide the source state."""
+        previous = self._old_submission()
+        current = Submission(
+            work_base="work",
+            machine=self._machine(),
+            resources=Resources(1, 1, 0, "", 1, wait_time=30),
+            task_list=[Task("true", "task", backward_files=["result"])],
+            previous_submission_hash=previous.submission_hash,
+        )
+        current.generate_jobs()
+        old_root = previous.machine.context.remote_root
+        new_root = os.path.join(self.remote_root, current.submission_hash)
+        os.makedirs(new_root)
+
+        with self.assertRaisesRegex(FileExistsError, "both old and new"):
+            current.try_recover_from_json()
+
+        self.assertTrue(os.path.isdir(old_root))
+        self.assertTrue(os.path.isdir(new_root))
+
+    def test_ssh_recovery_rejects_conflicting_roots(self) -> None:
+        """A stale SSH destination must not hide tags in the source root."""
+        context = SSHContext.__new__(SSHContext)
+        context.remote_root = "/remote/new"
+        session = MagicMock()
+        session.sftp.listdir.return_value = ["previous.json"]
+        session.sftp.stat.return_value = MagicMock()
+        context.ssh_session = session
+
+        with self.assertRaisesRegex(FileExistsError, "both old and new"):
+            context._recover_remote_root("/remote/old")
+
+        session.sftp.rename.assert_not_called()
 
     def test_cloud_recovery_uses_persisted_finished_job_state(self) -> None:
         """Cloud recovery must not depend on unavailable task-tag paths."""

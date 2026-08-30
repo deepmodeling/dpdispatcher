@@ -777,9 +777,16 @@ class Submission:
                 elif not hasattr(context, "_recover_remote_root"):
                     # LocalContext/Shell use ordinary filesystem paths and do
                     # not implement SSHContext's remote rename hook.
-                    if os.path.isdir(old_remote_root) and not os.path.exists(
-                        new_remote_root
-                    ):
+                    if os.path.isdir(old_remote_root):
+                        # A pre-existing destination can contain state from a
+                        # concurrent or earlier resume.  Do not silently bind
+                        # to it while abandoning completion tags in the source.
+                        if os.path.lexists(new_remote_root):
+                            raise FileExistsError(
+                                "Cannot migrate recovered submission: both old "
+                                f"and new roots exist ({old_remote_root}, "
+                                f"{new_remote_root})"
+                            )
                         os.replace(old_remote_root, new_remote_root)
 
         previous_hash = self.previous_submission_hash

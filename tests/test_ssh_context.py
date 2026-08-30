@@ -91,12 +91,13 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
 
         self.assertIs(raised.exception, move_error)
 
-    def test_existing_destination_is_not_overwritten(self) -> None:
-        """A new hash directory wins over stale non-empty recovery data."""
+    def test_existing_destination_rejects_conflicting_recovery(self) -> None:
+        """Conflicting roots fail instead of silently dropping recovery state."""
         self.sftp.listdir.return_value = ["task-state.json"]
         self.sftp.stat.return_value = MagicMock()
 
-        self.context.bind_submission(self.submission)
+        with self.assertRaisesRegex(FileExistsError, "both old and new"):
+            self.context.bind_submission(self.submission)
 
         self.sftp.rename.assert_not_called()
         self.sftp.rmdir.assert_not_called()
