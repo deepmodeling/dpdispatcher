@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 
-from dpdispatcher.run import create_submission, run_pep723
+from dpdispatcher.run import create_submission
 
 from .context import run
 
