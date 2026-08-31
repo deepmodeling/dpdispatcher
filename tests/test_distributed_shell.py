@@ -65,7 +65,7 @@ class TestDistributedShell(unittest.TestCase):
         """Archive and completion commands quote task paths safely."""
         script = self.machine.gen_script_end(self.job)
         self.assertIn(
-            "tar czf submission123_job123_download.tar.gz task1 'task two' ",
+            "tar --dereference -czf submission123_job123_download.tar.gz task1 'task two' ",
             script,
         )
         self.assertIn(

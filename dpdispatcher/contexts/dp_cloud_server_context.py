@@ -14,6 +14,7 @@ from dargs.dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.file_manager import AtomicTextWriter, FileTransfer, PathResolver
 
 # from dpdispatcher.submission import Machine
 # from . import dlog
@@ -43,14 +44,15 @@ class BohriumContext(BaseContext):
         self,
         local_root: str,
         remote_root: str | None = None,
-        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] | None = None,  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
-        self.remote_profile = remote_profile
+        remote_profile = {} if remote_profile is None else remote_profile
+        self.remote_profile = dict(remote_profile)
         ticket = os.environ.get("BOHR_TICKET", None)
         email = remote_profile.get("email", None)
         phone = remote_profile.get("phone", None)
@@ -261,23 +263,20 @@ class BohriumContext(BaseContext):
         return result
 
     def write_local_file(self, fname: str, write_str: str) -> str:
-        local_filename = os.path.join(self.local_root, fname)
-        with open(local_filename, "w") as f:
-            f.write(write_str)
-        return local_filename
+        return os.fspath(AtomicTextWriter(self.local_root).write(fname, write_str))
 
     def read_file(self, fname: str) -> str:
         result = self.read_home_file(fname)
         return result
 
     def write_home_file(self, fname: str, write_str: str) -> bool:
-        # os.makedirs(self.remote_root, exist_ok = True)
-        with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname), "w") as fp:
-            fp.write(write_str)
+        AtomicTextWriter(DP_CLOUD_SERVER_HOME_DIR).write(fname, write_str)
         return True
 
     def read_home_file(self, fname: str) -> str:
-        with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname)) as fp:
+        with open(
+            PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(fname), encoding="utf-8"
+        ) as fp:
             ret = fp.read()
         return ret
 
@@ -286,12 +285,14 @@ class BohriumContext(BaseContext):
         return result
 
     def check_home_file_exits(self, fname: str) -> bool:
-        return os.path.isfile(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname))
+        return PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(fname).is_file()
 
     def clean(self) -> bool:
         submission_file_name = f"{self.submission.submission_hash}.json"
-        submission_json = os.path.join(DP_CLOUD_SERVER_HOME_DIR, submission_file_name)
-        os.remove(submission_json)
+        submission_json = PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(
+            submission_file_name
+        )
+        FileTransfer.remove(submission_json)
         return True
 
     # def get_return(self, cmd_pipes):

@@ -253,7 +253,7 @@ class Machine(metaclass=ABCMeta):
         context_type: str | None = None,
         local_root: str | None = None,
         remote_root: str | None = None,
-        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] | None = None,  # noqa: ANN401
         retry_count: int = 3,
         *,
         context: BaseContext | None = None,
@@ -264,7 +264,7 @@ class Machine(metaclass=ABCMeta):
                 context_type=context_type,
                 local_root=local_root,
                 remote_root=remote_root,
-                remote_profile=remote_profile,
+                remote_profile={} if remote_profile is None else remote_profile,
             )
         else:
             pass

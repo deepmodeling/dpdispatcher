@@ -26,6 +26,12 @@ from dargs.dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.file_manager import (
+    AtomicTextWriter,
+    PathResolver,
+    RemoteManifestBuilder,
+    SubmissionStagingPlan,
+)
 from dpdispatcher.utils.archive import safe_extract_tar
 
 # from dpdispatcher.submission import Machine
@@ -749,26 +755,26 @@ class SSHContext(BaseContext):
                 recover = True
         self.ssh_session.sftp.chdir(None)
 
-        file_list = []
-        directory_list = []
-        for task in submission.belonging_tasks:
-            directory_list.append(os.path.join(self.local_root, task.task_work_path))
-            #     file_list.append(ii)
-            self._walk_directory(
-                task.forward_files,
-                os.path.join(self.local_root, task.task_work_path),
-                file_list,
-                directory_list,
+        manifest = SubmissionStagingPlan(self.local_root, submission).upload_manifest()
+        if manifest.missing:
+            missing = manifest.missing[0]
+            raise FileNotFoundError(
+                "cannot find upload file "
+                + os.path.join(
+                    self.local_root, missing.destination_prefix, missing.pattern
+                )
             )
-        self._walk_directory(
-            submission.forward_common_files,
-            self.local_root,
-            file_list,
-            directory_list,
-        )
-
-        # convert to relative path to local_root
-        directory_list = [os.path.relpath(jj, self.local_root) for jj in directory_list]
+        resolver = PathResolver(self.local_root)
+        file_list = [
+            resolver.relative(entry.source)
+            for entry in manifest.entries
+            if entry.source != pathlib.Path(".")
+        ]
+        directory_list = [
+            entry.destination
+            for entry in manifest.entries
+            if entry.source == pathlib.Path(".")
+        ]
 
         # check if the same file exists on the remote file
         # only check sha256 when the job is recovered
@@ -776,10 +782,8 @@ class SSHContext(BaseContext):
             # generate local sha256 file
             sha256_list = []
             for jj in file_list:
-                sha256 = get_sha256(jj)
-                jj_rel = pathlib.PurePath(
-                    os.path.relpath(jj, self.local_root)
-                ).as_posix()
+                sha256 = get_sha256(os.path.join(self.local_root, jj))
+                jj_rel = pathlib.PurePath(jj).as_posix()
                 sha256_list.append(f"{sha256}  {jj_rel}")
             # write to remote
             sha256_file = pathlib.PurePath(
@@ -798,10 +802,6 @@ class SSHContext(BaseContext):
             for ii in self.read_file(".sha256sum_stdout").split("\n"):
                 if ii:
                     file_list.append(ii.split(":")[0])
-        else:
-            # convert to relative path to local_root
-            file_list = [os.path.relpath(jj, self.local_root) for jj in file_list]
-
         self._put_files(
             file_list,
             dereference=dereference,
@@ -821,13 +821,15 @@ class SSHContext(BaseContext):
                 os.path.join(remote_dir, entry.filename)
             ).as_posix()
             st_mode = entry.st_mode
+            if st_mode is None:
+                continue
             if S_ISDIR(st_mode):
                 self.list_remote_dir(sftp, remote_name, ref_remote_root, result_list)
             elif S_ISREG(st_mode):
                 rel_remote_name = os.path.relpath(remote_name, start=ref_remote_root)
                 result_list.append(rel_remote_name)
 
-    def download(
+    def _download_legacy(
         self,
         submission: Submission,
         # job_dirs,
@@ -907,6 +909,77 @@ class SSHContext(BaseContext):
                 tar_compress=bool(self.remote_profile.get("tar_compress", True)),
             )
 
+    def download(
+        self,
+        submission: Submission,
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> None:
+        """Download selected remote files using one SFTP-backed manifest.
+
+        Remote wildcard expansion is performed against a single recursive
+        SFTP index; the controller's local ``glob`` implementation must never
+        be applied to paths that only exist on the remote host.
+        """
+        assert self.remote_root is not None
+        self.ssh_session.ensure_alive()
+        remote_files: list[str] = []
+        self.list_remote_dir(
+            self.sftp, self.remote_root, self.remote_root, remote_files
+        )
+        builder = RemoteManifestBuilder(
+            remote_files,
+            exists=self.check_file_exists,
+            assume_literals=not check_exists,
+        )
+        for task in submission.belonging_tasks:
+            builder.add_paths(
+                source_prefix=task.task_work_path,
+                destination_prefix=task.task_work_path,
+                patterns=task.backward_files,
+                required=True,
+            )
+            if back_error:
+                builder.add_paths(
+                    source_prefix=task.task_work_path,
+                    destination_prefix=task.task_work_path,
+                    patterns=["error*"],
+                    required=False,
+                )
+        builder.add_paths(
+            source_prefix=".",
+            destination_prefix=".",
+            patterns=submission.backward_common_files,
+            required=True,
+        )
+        if back_error:
+            builder.add_paths(
+                source_prefix=".",
+                destination_prefix=".",
+                patterns=["error*"],
+                required=False,
+            )
+        manifest = builder.build()
+        if manifest.missing and not check_exists:
+            missing = manifest.missing[0]
+            raise FileNotFoundError(
+                "cannot find download file "
+                + os.path.join(
+                    self.remote_root, missing.destination_prefix, missing.pattern
+                )
+            )
+        if check_exists and mark_failure:
+            writer = AtomicTextWriter(self.local_root)
+            for missing in manifest.missing:
+                writer.write(missing.failure_marker(), "")
+        file_list = [entry.destination for entry in manifest.entries]
+        if file_list:
+            self._get_files(
+                file_list,
+                tar_compress=bool(self.remote_profile.get("tar_compress", True)),
+            )
+
     def block_call(self, cmd: str) -> tuple[int, Any, Any, Any]:  # noqa: ANN401
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
@@ -923,7 +996,11 @@ class SSHContext(BaseContext):
     def write_file(self, fname: str, write_str: str) -> None:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
-        fname = pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
+        fname = (
+            PathResolver(self.remote_root)
+            .resolve(fname, allow_absolute=True)
+            .as_posix()
+        )
         # to prevent old file from being overwritten but cancelled, create a temporary file first
         # when it is fully written, rename it to the original file name
         temp_fname = fname + "_tmp"
@@ -941,7 +1018,9 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         with self.sftp.open(
-            pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(),
+            PathResolver(self.remote_root)
+            .resolve(fname, allow_absolute=True)
+            .as_posix(),
             "r",
         ) as fp:
             ret = fp.read().decode("utf-8")
@@ -952,7 +1031,9 @@ class SSHContext(BaseContext):
         self.ssh_session.ensure_alive()
         try:
             self.sftp.stat(
-                pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
+                PathResolver(self.remote_root)
+                .resolve(fname, allow_absolute=True)
+                .as_posix()
             )
             ret = True
         except OSError:

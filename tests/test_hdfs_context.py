@@ -283,6 +283,29 @@ class TestHDFSContextDownload(unittest.TestCase):
                 with self.assertRaises(HDFSMissingPathError):
                     context.download(submission)
 
+    def test_upload_ignores_manifest_directory_markers(self) -> None:
+        """HDFS archives requested files without recursively archiving inputs."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            task_dir = os.path.join(local_root, "task")
+            os.makedirs(task_dir)
+            with open(os.path.join(task_dir, "input.dat"), "w") as stream:
+                stream.write("input")
+
+            task = SimpleNamespace(
+                task_work_path="task",
+                forward_files=["input.dat"],
+            )
+            submission = SimpleNamespace(
+                belonging_tasks=[task],
+                forward_common_files=[],
+            )
+            with patch.object(context, "_put_files") as put_files:
+                context.upload(submission)
+
+            put_files.assert_called_once_with(["task/input.dat"], dereference=True)
+
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")
 class TestHDFSContext(unittest.TestCase):

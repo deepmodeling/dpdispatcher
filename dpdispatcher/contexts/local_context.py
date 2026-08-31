@@ -14,6 +14,12 @@ from dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.file_manager import (
+    AtomicTextWriter,
+    FileTransfer,
+    PathResolver,
+    SubmissionStagingPlan,
+)
 
 if TYPE_CHECKING:
     from dpdispatcher.submission import Submission
@@ -63,7 +69,7 @@ class LocalContext(BaseContext):
         self,
         local_root: str,
         remote_root: str,
-        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] | None = None,  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -72,7 +78,8 @@ class LocalContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(remote_root)
-        self.remote_profile = remote_profile
+        remote_profile = {} if remote_profile is None else remote_profile
+        self.remote_profile = dict(remote_profile)
         self.symlink = remote_profile.get("symlink", True)
 
     @classmethod
@@ -181,7 +188,7 @@ class LocalContext(BaseContext):
         else:
             raise ValueError(f"Unknown file type: {local_path}")
 
-    def upload(self, submission: Submission) -> None:
+    def _upload_legacy(self, submission: Submission) -> None:
         os.makedirs(self.remote_root, exist_ok=True)
         for ii in submission.belonging_tasks:
             local_job = os.path.join(self.local_root, ii.task_work_path)
@@ -228,7 +235,37 @@ class LocalContext(BaseContext):
             else:
                 self._copy_from_local_to_remote(local_path, remote_path)
 
-    def download(
+    def upload(self, submission: Submission) -> None:
+        """Stage all forward files through one validated transfer manifest."""
+        os.makedirs(self.remote_root, exist_ok=True)
+        plan = SubmissionStagingPlan(self.local_root, submission)
+        preserve_common = getattr(
+            submission, "preserve_existing_forward_common_files", False
+        )
+        if preserve_common:
+            manifests = (
+                plan.upload_manifest(include_common=False),
+                plan.upload_manifest(include_tasks=False),
+            )
+        else:
+            manifests = (plan.upload_manifest(),)
+        for index, manifest in enumerate(manifests):
+            if manifest.missing:
+                missing = manifest.missing[0]
+                raise FileNotFoundError(
+                    "cannot find upload file "
+                    + os.path.join(
+                        self.local_root, missing.destination_prefix, missing.pattern
+                    )
+                )
+            FileTransfer(
+                self.remote_root,
+                symlink=self.symlink,
+                link_sources=self.symlink,
+                overwrite=not (preserve_common and index == 1),
+            ).apply(manifest)
+
+    def _download_legacy(
         self,
         submission: Submission,
         check_exists: bool = False,
@@ -383,6 +420,33 @@ class LocalContext(BaseContext):
                 # no nothing in the case of linked files
                 pass
 
+    def download(
+        self,
+        submission: Submission,
+        check_exists: bool = False,
+        mark_failure: bool = True,
+        back_error: bool = False,
+    ) -> None:
+        """Download requested artifacts through a manifest and one copier."""
+        manifest = SubmissionStagingPlan(self.local_root, submission).download_manifest(
+            self.remote_root,
+            fallback_root=self.local_root,
+            include_errors=back_error,
+        )
+        if manifest.missing and not check_exists:
+            missing = manifest.missing[0]
+            raise FileNotFoundError(
+                "cannot find download file "
+                + os.path.join(
+                    self.remote_root, missing.destination_prefix, missing.pattern
+                )
+            )
+        if check_exists and mark_failure:
+            writer = AtomicTextWriter(self.local_root)
+            for missing in manifest.missing:
+                writer.write(missing.failure_marker(), "")
+        FileTransfer(self.local_root, move=True).apply(manifest)
+
     def block_call(self, cmd: str) -> tuple[int, None, SPRetObj, SPRetObj]:
         proc = sp.Popen(
             cmd, cwd=self.remote_root, shell=True, stdout=sp.PIPE, stderr=sp.PIPE
@@ -394,20 +458,20 @@ class LocalContext(BaseContext):
         return code, None, stdout, stderr
 
     def clean(self) -> None:
-        shutil.rmtree(self.remote_root, ignore_errors=True)
+        FileTransfer.remove(self.remote_root)
 
     def write_file(self, fname: str, write_str: str) -> None:
-        os.makedirs(self.remote_root, exist_ok=True)
-        with open(os.path.join(self.remote_root, fname), "w") as fp:
-            fp.write(write_str)
+        AtomicTextWriter(self.remote_root).write(fname, write_str)
 
     def read_file(self, fname: str) -> str:
-        with open(os.path.join(self.remote_root, fname)) as fp:
+        with open(
+            PathResolver(self.remote_root).resolve(fname), encoding="utf-8"
+        ) as fp:
             ret = fp.read()
         return ret
 
     def check_file_exists(self, fname: str) -> bool:
-        return os.path.isfile(os.path.join(self.remote_root, fname))
+        return PathResolver(self.remote_root).resolve(fname).is_file()
 
     def call(self, cmd: str) -> sp.Popen:
         proc = sp.Popen(

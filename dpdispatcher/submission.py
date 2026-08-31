@@ -20,6 +20,7 @@ import yaml
 from dargs.dargs import Argument, Variant
 
 from dpdispatcher.dlog import dlog
+from dpdispatcher.file_manager import PathPolicy
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.record import record
@@ -62,13 +63,24 @@ class Submission:
         work_base: str,
         machine: Optional["Machine"] = None,
         resources: Optional["Resources"] = None,
-        forward_common_files: list[str] = [],
-        backward_common_files: list[str] = [],
+        forward_common_files: list[str] | None = None,
+        backward_common_files: list[str] | None = None,
         *,
-        task_list: list["Task"] = [],
+        task_list: list["Task"] | None = None,
         continue_on_failure: bool = False,
     ) -> None:
         self.local_root = None
+        if isinstance(work_base, os.PathLike):
+            work_base = os.fspath(work_base)
+        forward_common_files = (
+            [] if forward_common_files is None else list(forward_common_files)
+        )
+        backward_common_files = (
+            [] if backward_common_files is None else list(backward_common_files)
+        )
+        PathPolicy.normalize_relative(work_base, allow_glob=False)
+        for path in (*forward_common_files, *backward_common_files):
+            PathPolicy.normalize_relative(path, allow_glob=True)
         self.work_base = work_base
         self._abs_work_base = os.path.abspath(work_base)
 
@@ -87,7 +99,7 @@ class Submission:
         self.submission_hash = None
         # warning: can not remote .copy() or there will be bugs
         # self.belonging_tasks = task_list
-        self.belonging_tasks = task_list.copy()
+        self.belonging_tasks = list(task_list) if task_list is not None else []
         self.belonging_jobs = list()
         self.continue_on_failure = continue_on_failure
 
@@ -1070,11 +1082,43 @@ class Task:
         errlog: str | None = "err",
         task_name: str | None = None,
     ) -> None:
+        if isinstance(task_work_path, os.PathLike):
+            task_work_path = os.fspath(task_work_path)
+        if isinstance(outlog, os.PathLike):
+            outlog = os.fspath(outlog)
+        if isinstance(errlog, os.PathLike):
+            errlog = os.fspath(errlog)
+        forward_files = (
+            [
+                os.fspath(path) if isinstance(path, os.PathLike) else path
+                for path in forward_files
+            ]
+            if forward_files is not None
+            else []
+        )
+        backward_files = (
+            [
+                os.fspath(path) if isinstance(path, os.PathLike) else path
+                for path in backward_files
+            ]
+            if backward_files is not None
+            else []
+        )
+        # Keep task roots as supplied for backwards compatibility with
+        # recovery/cleanup code that inspects malformed records.  All actual
+        # filesystem resolution goes through ``PathPolicy`` in the staging
+        # layer, where traversal is rejected before any transfer occurs.
+        for path in (*forward_files, *backward_files):
+            PathPolicy.normalize_relative(path, allow_glob=True)
+        if outlog is not None:
+            PathPolicy.normalize_relative(outlog, allow_glob=False)
+        if errlog is not None:
+            PathPolicy.normalize_relative(errlog, allow_glob=False)
         self.command = command
         self.task_work_path = task_work_path
         # Detach task state from caller-owned lists and constructor defaults.
-        self.forward_files = list(forward_files) if forward_files is not None else []
-        self.backward_files = list(backward_files) if backward_files is not None else []
+        self.forward_files = forward_files
+        self.backward_files = backward_files
         self.outlog = outlog
         self.errlog = errlog
         self.task_name = task_name

@@ -3,12 +3,21 @@
 import os
 import shutil
 import tarfile
+import tempfile
 from glob import glob
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, NoReturn
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
-from dpdispatcher.utils.archive import safe_extract_tar
+from dpdispatcher.file_manager import (
+    AtomicTextWriter,
+    FileTransfer,
+    PathPolicy,
+    PathResolver,
+    SafeArchiveExtractor,
+    SubmissionStagingPlan,
+)
 from dpdispatcher.utils.hdfs_cli import HDFS, HDFSMissingPathError
 
 if TYPE_CHECKING:
@@ -28,7 +37,7 @@ class HDFSContext(BaseContext):
         self,
         local_root: str,
         remote_root: str,
-        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] | None = None,  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -37,7 +46,7 @@ class HDFSContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = remote_root
-        self.remote_profile = remote_profile
+        self.remote_profile = dict(remote_profile) if remote_profile is not None else {}
 
     @classmethod
     def load_from_dict(cls, context_dict: dict[str, Any]) -> "HDFSContext":  # noqa: ANN401
@@ -98,32 +107,23 @@ class HDFSContext(BaseContext):
         -------
         none
         """
-        file_list = []
-
-        for task in submission.belonging_tasks:
-            local_job = os.path.join(self.local_root, task.task_work_path)
-            for ff in task.forward_files:
-                abs_file_list = glob(os.path.join(local_job, ff))
-                if not abs_file_list:
-                    raise FileNotFoundError(
-                        "cannot find upload file " + os.path.join(local_job, ff)
-                    )
-                rel_file_list = [
-                    os.path.relpath(ii, self.local_root) for ii in abs_file_list
-                ]
-                file_list.extend(rel_file_list)
-
-        local_job = self.local_root
-        for fc in submission.forward_common_files:
-            abs_file_list = glob(os.path.join(local_job, fc))
-            if not abs_file_list:
-                raise FileNotFoundError(
-                    "cannot find upload file " + os.path.join(local_job, fc)
+        manifest = SubmissionStagingPlan(self.local_root, submission).upload_manifest()
+        if manifest.missing:
+            missing = manifest.missing[0]
+            raise FileNotFoundError(
+                "cannot find upload file "
+                + os.path.join(
+                    self.local_root, missing.destination_prefix, missing.pattern
                 )
-            rel_file_list = [
-                os.path.relpath(ii, self.local_root) for ii in abs_file_list
-            ]
-            file_list.extend(rel_file_list)
+            )
+        resolver = PathResolver(self.local_root)
+        file_list = [
+            resolver.relative(entry.source)
+            for entry in manifest.entries
+            # Directory markers are useful for filesystem transfers but would
+            # archive the entire HDFS staging root when represented by ``.``.
+            if entry.source != Path(".")
+        ]
 
         self._put_files(file_list, dereference=dereference)
 
@@ -151,100 +151,53 @@ class HDFSContext(BaseContext):
         -------
         none
         """
-        cwd = os.getcwd()
-
         # download all hdfs files to tmp dir
         gz_dir = os.path.join(self.local_root, "tmp")
-        if os.path.exists(gz_dir):
-            shutil.rmtree(gz_dir, ignore_errors=True)
+        if os.path.lexists(gz_dir):
+            FileTransfer.remove(gz_dir)
         os.mkdir(os.path.join(self.local_root, "tmp"))
-        rfile_tgz = f"{self.remote_root}/{submission.submission_hash}_*_download.tar.gz"
-        lfile_tgz = f"{self.local_root}/tmp/"
         try:
-            HDFS.copy_to_local(rfile_tgz, lfile_tgz)
-        except HDFSMissingPathError:
-            # A failed DistributedShell job does not produce an archive.  An
-            # explicit terminated-log download should still succeed when no
-            # optional archive exists, while normal result downloads retain
-            # the original error/retry behavior.
-            if check_exists and not mark_failure:
-                dlog.debug("No HDFS result archive found; skipping optional download")
-                shutil.rmtree(gz_dir, ignore_errors=True)
-                return
-            raise
-
-        tgz_file_list = glob(os.path.join(self.local_root, "tmp/*_download.tar.gz"))
-        for tgz in tgz_file_list:
-            with tarfile.open(tgz, "r:gz") as tar:
-                safe_extract_tar(tar, gz_dir)
-
-        for task in submission.belonging_tasks:
-            local_job = os.path.join(self.local_root, task.task_work_path)
-            remote_job = os.path.join(gz_dir, task.task_work_path)
-            # Work on a copy so generated error artifacts do not become part
-            # of the submission's persistent backward-file configuration.
-            flist = list(task.backward_files)
-            if back_error:
-                errors = glob(os.path.join(remote_job, "error*"))
-                flist.extend(os.path.relpath(error, remote_job) for error in errors)
-            for jj in flist:
-                rfile = os.path.join(remote_job, jj)
-                lfile = os.path.join(local_job, jj)
-
-                if not os.path.exists(rfile):
-                    if not check_exists:
-                        raise FileNotFoundError("do not find download file " + rfile)
-                    if mark_failure:
-                        with open(
-                            os.path.join(
-                                self.local_root,
-                                task.task_work_path,
-                                f"tag_failure_download_{jj}",
-                            ),
-                            "w",
-                        ) as fp:
-                            pass
-                    # Missing files are optional when mark_failure is false.
-                    continue
-                if os.path.exists(lfile):
-                    dlog.info(f"find existing {lfile}, replacing by {rfile}")
-                    if os.path.isdir(lfile):
-                        shutil.rmtree(lfile, ignore_errors=True)
-                    elif os.path.isfile(lfile):
-                        os.remove(lfile)
-                shutil.move(rfile, lfile)
-
-        local_job = self.local_root
-        remote_job = gz_dir
-        flist = list(submission.backward_common_files)
-        if back_error:
-            errors = glob(os.path.join(remote_job, "error*"))
-            flist.extend(os.path.relpath(error, remote_job) for error in errors)
-        for jj in flist:
-            rfile = os.path.join(remote_job, jj)
-            lfile = os.path.join(local_job, jj)
-
-            if not os.path.exists(rfile):
+            try:
+                rfile_tgz = (
+                    f"{self.remote_root}/{submission.submission_hash}_*_download.tar.gz"
+                )
+                HDFS.copy_to_local(rfile_tgz, f"{self.local_root}/tmp/")
+                for tgz in glob(os.path.join(self.local_root, "tmp/*_download.tar.gz")):
+                    SafeArchiveExtractor(gz_dir).extract_tar(tgz)
+            except HDFSMissingPathError:
+                # A failed DistributedShell job does not produce an archive.
+                # Optional terminated-log downloads can stop immediately;
+                # marker-producing downloads continue with an empty remote
+                # manifest so missing outputs are recorded consistently.
                 if not check_exists:
-                    raise FileNotFoundError("do not find download file " + rfile)
-                if mark_failure:
-                    with open(
-                        os.path.join(self.local_root, f"tag_failure_download_{jj}"),
-                        "w",
-                    ) as fp:
-                        pass
-                # Missing files are optional when mark_failure is false.
-                continue
-            if os.path.exists(lfile):
-                dlog.info(f"find existing {lfile}, replacing by {rfile}")
-                if os.path.isdir(lfile):
-                    shutil.rmtree(lfile, ignore_errors=True)
-                elif os.path.isfile(lfile):
-                    os.remove(lfile)
-            shutil.move(rfile, lfile)
+                    raise
+                if not mark_failure:
+                    dlog.debug(
+                        "No HDFS result archive found; skipping optional download"
+                    )
+                    return
+                dlog.debug("No HDFS result archive found; recording missing outputs")
 
-        # remove tmp dir
-        shutil.rmtree(gz_dir, ignore_errors=True)
+            manifest = SubmissionStagingPlan(
+                self.local_root, submission
+            ).download_manifest(
+                gz_dir,
+                fallback_root=self.local_root,
+                include_errors=back_error,
+            )
+            if manifest.missing and not check_exists:
+                missing = manifest.missing[0]
+                raise FileNotFoundError(
+                    "cannot find download file "
+                    + os.path.join(gz_dir, missing.destination_prefix, missing.pattern)
+                )
+            if check_exists and mark_failure:
+                writer = AtomicTextWriter(self.local_root)
+                for missing in manifest.missing:
+                    writer.write(missing.failure_marker(), "")
+            FileTransfer(self.local_root, move=True).apply(manifest)
+        finally:
+            shutil.rmtree(gz_dir, ignore_errors=True)
 
     def check_file_exists(self, fname: str) -> bool:
         """Check whether the given file exists, often used in checking whether the belonging job has finished.
@@ -258,20 +211,31 @@ class HDFSContext(BaseContext):
         -------
         status: boolean
         """
-        return bool(HDFS.exists(os.path.join(self.remote_root, fname)))
+        return HDFS.exists(self._remote_file(fname))
 
     def clean(self) -> None:
         HDFS.remove(self.remote_root)
 
     def write_file(self, fname: str, write_str: str) -> str:
-        local_file = os.path.join("/tmp/", fname)
-        with open(local_file, "w") as fp:
+        normalized = PathPolicy.normalize_relative(fname)
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", suffix=".dpdispatcher", delete=False
+        ) as fp:
             fp.write(write_str)
-        HDFS.copy_from_local(local_file, os.path.join(self.remote_root, fname))
+            local_file = fp.name
+        try:
+            HDFS.copy_from_local(local_file, self._remote_file(normalized))
+        finally:
+            FileTransfer.remove(local_file)
         return local_file
 
     def read_file(self, fname: str) -> bytes:
-        return HDFS.read_hdfs_file(os.path.join(self.remote_root, fname))
+        return HDFS.read_hdfs_file(self._remote_file(fname))
+
+    def _remote_file(self, fname: str) -> str:
+        """Resolve a metadata path without allowing it to escape the HDFS root."""
+        normalized = PathPolicy.normalize_relative(fname)
+        return f"{self.remote_root.rstrip('/')}/{normalized}"
 
     def block_call(self, cmd: str) -> NoReturn:
         raise RuntimeError(

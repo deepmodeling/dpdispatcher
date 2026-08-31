@@ -17,6 +17,7 @@ else:
 from dargs import Argument
 
 from dpdispatcher.arginfo import machine_dargs, resources_dargs, task_dargs
+from dpdispatcher.file_manager import PathPolicy
 
 REGEX = r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
 
@@ -158,6 +159,7 @@ def create_submission(
                 # Globbing needs the local root to discover matches, but tasks are
                 # interpreted relative to work_base in every execution context.
                 relative_task_path = os.path.relpath(file, start=local_work_base)
+                PathPolicy.normalize_relative(relative_task_path, allow_glob=False)
                 tasks.append(
                     Task.load_from_dict(
                         {**task, "task_work_path": relative_task_path},
