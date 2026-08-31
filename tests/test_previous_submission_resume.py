@@ -458,6 +458,56 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         self.assertEqual(submission.previous_submission_hash, "0" * 40)
         self.assertEqual(context.remote_root, old_remote_root)
 
+    def test_recovery_keeps_legacy_two_argument_migration_hooks_compatible(
+        self,
+    ) -> None:
+        """Use the original hook signature for third-party contexts."""
+
+        class LegacyMigrationContext:
+            def __init__(self) -> None:
+                self.remote_root = "/remote/old"
+                self.temp_remote_root = "/remote"
+                self.temp_local_root = "/local"
+                self.migrations: list[tuple[str, str]] = []
+
+            def migrate_recovery_root(self, old_root: str, new_root: str) -> bool:
+                self.migrations.append((old_root, new_root))
+                self.remote_root = new_root
+                return True
+
+        context = LegacyMigrationContext()
+        machine = MagicMock()
+        machine.context = context
+        submission = Submission.__new__(Submission)
+        submission.machine = machine
+        submission.work_base = "work"
+        submission._abs_work_base = "/local/work"
+        submission.resources = Resources(1, 1, 0, "", 1)
+        submission.forward_common_files = []
+        submission.backward_common_files = []
+        submission.belonging_tasks = []
+        submission.belonging_jobs = []
+        submission.submission_hash = "1" * 40
+        submission.previous_submission_hash = "0" * 40
+
+        def fail_rebind(_machine: MagicMock) -> None:
+            context.remote_root = "/remote/" + "1" * 40
+            raise OSError("bind failed")
+
+        submission.bind_machine = MagicMock(side_effect=fail_rebind)
+        with self.assertRaisesRegex(OSError, "bind failed"):
+            submission._bind_recovered_submission()
+
+        self.assertEqual(
+            context.migrations,
+            [
+                ("/remote/old", "/remote/" + "1" * 40),
+                ("/remote/" + "1" * 40, "/remote/old"),
+            ],
+        )
+        self.assertEqual(submission.previous_submission_hash, "0" * 40)
+        self.assertEqual(context.remote_root, "/remote/old")
+
     def test_cloud_recovery_uses_persisted_finished_job_state(self) -> None:
         """Cloud recovery must not depend on unavailable task-tag paths."""
         task = Task("true", "task")

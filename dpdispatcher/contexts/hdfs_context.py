@@ -109,6 +109,23 @@ class HDFSContext(BaseContext):
         HDFS.move(old_remote_root, new_remote_root)
         return True
 
+    def rollback_recovery_root(
+        self,
+        current_remote_root: str,
+        previous_remote_root: str,
+    ) -> bool:
+        """Reverse a recovery migration, tolerating an already-finished rollback.
+
+        This dedicated hook keeps the ``force`` detail private to HDFS while
+        allowing older third-party contexts that implement only the original
+        two-argument migration hook to remain usable by ``Submission``.
+        """
+        return self.migrate_recovery_root(
+            current_remote_root,
+            previous_remote_root,
+            force=True,
+        )
+
     def _put_files(self, files: list[str], dereference: bool = True) -> None:
         assert self.submission.submission_hash is not None
         of = self.submission.submission_hash + "_upload.tgz"

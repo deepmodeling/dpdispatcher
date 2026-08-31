@@ -865,13 +865,20 @@ class Submission:
                 and old_remote_root != new_remote_root
             ):
                 try:
-                    if callable(migration_hook):
+                    rollback_hook = getattr(context, "rollback_recovery_root", None)
+                    if callable(rollback_hook):
                         rollback_succeeded = (
-                            migration_hook(
+                            rollback_hook(
                                 new_remote_root,
                                 old_remote_root,
-                                force=True,
                             )
+                            is not False
+                        )
+                    elif callable(migration_hook):
+                        # Preserve compatibility with third-party contexts that
+                        # predate the optional force-aware rollback hook.
+                        rollback_succeeded = (
+                            migration_hook(new_remote_root, old_remote_root)
                             is not False
                         )
                     elif hasattr(context, "_recover_remote_root"):
