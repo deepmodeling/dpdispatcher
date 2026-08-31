@@ -120,10 +120,14 @@ class SSHSession:
             return False
         try:
             transport = self.ssh.get_transport()
-            assert transport is not None
+            if transport is None or not transport.is_active():
+                return False
             transport.send_ignore()
-            return True
-        except EOFError:
+            # Paramiko silently drops ``send_ignore`` when a transport dies
+            # between the initial check and the probe. Verify the state again
+            # so ``ensure_alive`` reconnects before the next SSH operation.
+            return transport.is_active()
+        except (EOFError, OSError, paramiko.ssh_exception.SSHException):
             return False
 
     # def bk_setup_ssh(self,
