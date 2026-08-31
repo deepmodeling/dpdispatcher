@@ -73,6 +73,74 @@ class HDFSContext(BaseContext):
 
         HDFS.mkdir(self.remote_root)
 
+    def migrate_recovery_root(
+        self,
+        old_remote_root: str,
+        new_remote_root: str,
+        *,
+        force: bool = False,
+    ) -> bool:
+        """Move a recovered submission tree through the HDFS API.
+
+        Resource-only resumes must preserve completion tags stored under the
+        previous hash.  Local filesystem operations cannot inspect or rename an
+        HDFS URI, so use backend existence checks and an atomic HDFS move.
+        Existing new-hash state wins to keep repeated recovery idempotent.
+
+        Returns
+        -------
+        bool
+            Whether this call moved (or, for a forced rollback, confirmed) an
+            existing source root.  Recovery uses the signal to roll the move
+            back if subsequent rebinding fails.
+
+        Parameters
+        ----------
+        force : bool, default=False
+            Treat an existing destination with no source as an already-completed
+            operation and report success. Recovery passes this only while
+            reversing a move, so a concurrent rollback is considered successful
+            instead of being mistaken for a failed rollback.
+        """
+        self._last_recovery_already_at_destination = False
+        if old_remote_root == new_remote_root:
+            return False
+        if HDFS.exists(new_remote_root):
+            # A destination left by an interrupted recovery must not hide the
+            # source tree that still contains completion tags.  Returning is
+            # safe only when the source has already disappeared (idempotent
+            # completion of an earlier move).
+            if HDFS.exists(old_remote_root):
+                raise FileExistsError(
+                    "Cannot migrate recovered HDFS submission: both old and new "
+                    f"roots exist ({old_remote_root}, {new_remote_root})"
+                )
+            self._last_recovery_already_at_destination = True
+            return force
+        if not HDFS.exists(old_remote_root):
+            raise FileNotFoundError(
+                f"Recovered HDFS submission root does not exist: {old_remote_root}"
+            )
+        HDFS.move(old_remote_root, new_remote_root)
+        return True
+
+    def rollback_recovery_root(
+        self,
+        current_remote_root: str,
+        previous_remote_root: str,
+    ) -> bool:
+        """Reverse a recovery migration, tolerating an already-finished rollback.
+
+        This dedicated hook keeps the ``force`` detail private to HDFS while
+        allowing older third-party contexts that implement only the original
+        two-argument migration hook to remain usable by ``Submission``.
+        """
+        return self.migrate_recovery_root(
+            current_remote_root,
+            previous_remote_root,
+            force=True,
+        )
+
     def _put_files(self, files: list[str], dereference: bool = True) -> None:
         assert self.submission.submission_hash is not None
         of = self.submission.submission_hash + "_upload.tgz"

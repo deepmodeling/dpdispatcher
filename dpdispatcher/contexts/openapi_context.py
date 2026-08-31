@@ -42,6 +42,8 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 class OpenAPIContext(BaseContext):
     """Transfer files with Bohrium object storage authenticated by access key."""
 
+    # OpenAPI exposes job archives and metadata, not task completion-tag paths.
+    supports_task_completion_tags = False
     downloads_by_job: ClassVar[bool] = True
 
     def __init__(
