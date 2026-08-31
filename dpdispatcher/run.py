@@ -132,7 +132,7 @@ def create_submission(
     tasks = []
     for task in metadata["task_list"]:
         task = task.copy()
-        task["command"] += f" $REMOTE_ROOT/script_{script_hash}.py"
+        task["command"] += f' "$REMOTE_ROOT"/script_{script_hash}.py'
         local_work_base = os.path.join(
             metadata["machine"]["local_root"],
             metadata["work_base"],
@@ -186,6 +186,13 @@ def run_pep723(script: str, allow_ref: bool = False) -> None:
     dpdispatcher_metadata = metadata["tool"]["dpdispatcher"]
     script_hash = sha1(script.encode("utf-8")).hexdigest()
     submission = create_submission(dpdispatcher_metadata, script_hash, allow_ref)
+    # ``Submission`` binds its context before jobs exist, so the initial
+    # submission hash (and therefore the context's remote root) changes when
+    # ``run_submission`` generates jobs.  Stage the script only after that
+    # final hash has been computed; otherwise contexts with hash-specific
+    # directories (for example ``LocalContext``) leave the script behind in
+    # the initial directory and every generated command fails to find it.
+    submission.generate_jobs()
     submission._require_machine().context.write_file(f"script_{script_hash}.py", script)
     # write script
     submission.run_submission()

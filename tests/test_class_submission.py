@@ -42,6 +42,22 @@ class TestSubmission(unittest.TestCase):
         for job in self.submission.belonging_jobs:
             self.assertIsNotNone(job.machine)
 
+    def test_bind_machine_keeps_hash_and_context_root_in_sync(self) -> None:
+        """A machine-bound submission must use its complete static hash."""
+        machine = SampleClass.get_sample_pbs_local_context()
+        submission = Submission(
+            work_base="0_md/",
+            machine=machine,
+            resources=SampleClass.get_sample_resources(),
+        )
+
+        assert submission.submission_hash is not None
+        self.assertEqual(submission.submission_hash, submission.get_hash())
+        self.assertEqual(
+            machine.context.remote_root,
+            os.path.join(machine.context.temp_remote_root, submission.submission_hash),
+        )
+
     def test_get_submision_state(self) -> None:
         pass
 
@@ -89,6 +105,54 @@ class TestSubmission(unittest.TestCase):
         self.submission.belonging_jobs[0].job_state = JobStatus.finished
         self.submission.belonging_jobs[1].job_state = JobStatus.finished
         self.assertTrue(self.submission.check_all_finished())
+
+    def test_check_all_finished_rejects_uninitialized_jobs(self) -> None:
+        """Jobs without a backend state are not completed jobs."""
+        for job in self.submission.belonging_jobs:
+            job.job_state = None
+
+        self.assertFalse(self.submission.check_all_finished())
+
+    def test_deserialize_preserves_tasks_and_absolute_work_base(self) -> None:
+        """Deserialization keeps task ownership and the original work path."""
+        serialized = self.submission.serialize()
+        serialized["_abs_work_base"] = "/work/from/original/process"
+
+        restored = Submission.deserialize(
+            submission_dict=serialized,
+            machine=self.submission.machine,
+            bind_context=False,
+        )
+
+        self.assertEqual(restored._abs_work_base, serialized["_abs_work_base"])
+        self.assertCountEqual(
+            [task.serialize() for task in restored.belonging_tasks],
+            [task.serialize() for task in self.submission.belonging_tasks],
+        )
+        for job in restored.belonging_jobs:
+            for task in job.job_task_list:
+                self.assertIn(task, restored.belonging_tasks)
+
+    def test_deserialize_preserves_tasks_before_job_generation(self) -> None:
+        """Unsubmitted task lists are serialized when no jobs exist yet."""
+        machine = SampleClass.get_sample_pbs_local_context()
+        submission = Submission(
+            work_base="0_md/",
+            machine=machine,
+            resources=SampleClass.get_sample_resources(),
+            task_list=[SampleClass.get_sample_task()],
+        )
+
+        restored = Submission.deserialize(
+            submission_dict=submission.serialize(),
+            machine=machine,
+            bind_context=False,
+        )
+
+        self.assertEqual(
+            [task.serialize() for task in restored.belonging_tasks],
+            [task.serialize() for task in submission.belonging_tasks],
+        )
 
     def test_submission_from_json(self) -> None:
         submission2 = Submission.submission_from_json("jsons/submission.json")

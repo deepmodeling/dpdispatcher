@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import math
 import pathlib
 import shlex
@@ -164,8 +165,26 @@ class Slurm(Machine):
                 f"status command {command} fails to execute."
                 f"job_id:{job_id} \n error message:{err_str}\n return code {ret}\n"
             )
-        status_line = stdout.read().decode("utf-8").split("\n")[-2]
-        status_word = status_line.split()[-1]
+        # ``squeue`` returns only its header when a job has already left the
+        # active queue. Do not mistake the header's ``ST`` column for a real
+        # terminal state; consult the completion marker and otherwise report
+        # termination so the caller can retry a failed job.
+        output_lines = [
+            line.strip()
+            for line in stdout.read().decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        if not output_lines:
+            if self.check_finish_tag(job):
+                return JobStatus.finished
+            return JobStatus.terminated
+        status_line = output_lines[-1]
+        status_fields = status_line.split()
+        if len(status_fields) >= 1 and status_fields[0].upper() == "JOBID":
+            if self.check_finish_tag(job):
+                return JobStatus.finished
+            return JobStatus.terminated
+        status_word = status_fields[-1] if status_fields else ""
         if not (len(status_line.split()) == 2 and status_word.isupper()):
             raise RuntimeError(
                 "Error in getting job status, "
@@ -281,8 +300,13 @@ class SlurmJobArray(Slurm):
         )
 
     def gen_script_command(self, job: Job) -> str:
-        resources = job.resources
+        """Generate a Slurm array command without mutating job resources."""
+        # Keep per-render counters isolated from the caller's Resources object
+        # so direct and repeated rendering remain side-effect free.
+        resources = copy.copy(job.resources)
         slurm_job_size = self._get_slurm_job_size(job)
+        resources.task_in_para = 0
+        resources.gpu_in_use = 0
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
         script_command = "case $SLURM_ARRAY_TASK_ID in\n"
         for ii, task in enumerate(job.job_task_list):

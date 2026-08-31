@@ -1,10 +1,12 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from dpdispatcher import Job, Machine, Resources, Submission, Task
+from dpdispatcher.contexts.dp_cloud_server_context import BohriumContext
 from dpdispatcher.contexts.hdfs_context import HDFSContext
+from dpdispatcher.contexts.openapi_context import OpenAPIContext
 from dpdispatcher.contexts.ssh_context import SSHContext
 from dpdispatcher.utils.hdfs_cli import HDFS
 from dpdispatcher.utils.job_status import JobStatus
@@ -239,6 +241,36 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         self.assertTrue(os.path.isdir(old_root))
         self.assertTrue(os.path.isdir(new_root))
 
+    def test_local_recovery_bind_failure_rolls_back_move(self) -> None:
+        """Restore the old root and locator when rebinding fails after a move."""
+        previous = self._old_submission()
+        current = Submission(
+            work_base="work",
+            machine=self._machine(),
+            resources=Resources(1, 1, 0, "", 1, wait_time=30),
+            task_list=[Task("true", "task", backward_files=["result"])],
+            previous_submission_hash=previous.submission_hash,
+        )
+        current.generate_jobs()
+        old_root = previous.machine.context.remote_root
+        new_root = os.path.join(self.remote_root, current.submission_hash)
+        context = current.machine.context
+        original_bind = context.bind_submission
+
+        def fail_after_bind(submission: Submission) -> None:
+            """Simulate a failure after the context switches to the new root."""
+            original_bind(submission)
+            raise OSError("simulated bind failure")
+
+        with patch.object(context, "bind_submission", side_effect=fail_after_bind):
+            with self.assertRaisesRegex(OSError, "simulated bind failure"):
+                current.try_recover_from_json()
+
+        self.assertTrue(os.path.isdir(old_root))
+        self.assertFalse(os.path.exists(new_root))
+        self.assertEqual(current.previous_submission_hash, previous.submission_hash)
+        self.assertEqual(context.remote_root, old_root)
+
     def test_ssh_recovery_rejects_conflicting_roots(self) -> None:
         """A stale SSH destination must not hide tags in the source root."""
         context = SSHContext.__new__(SSHContext)
@@ -280,6 +312,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         submission.belonging_jobs = []
         submission.submission_hash = "1" * 40
         submission.previous_submission_hash = "0" * 40
+        submission.get_hash = MagicMock(return_value="1" * 40)
 
         with self.assertRaisesRegex(FileExistsError, "both old and new"):
             submission._bind_recovered_submission()
@@ -293,6 +326,92 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             submission._bind_recovered_submission()
         self.assertEqual(submission.previous_submission_hash, "0" * 40)
         self.assertEqual(context.remote_root, old_remote_root)
+
+    def test_ssh_recovery_bind_failure_rolls_back_rename(self) -> None:
+        """Undo an SSH rename when creating the new root fails afterward."""
+        context = SSHContext.__new__(SSHContext)
+        old_remote_root = "/remote/old"
+        new_remote_root = "/remote/" + "1" * 40
+        context.remote_root = old_remote_root
+        context.temp_remote_root = "/remote"
+        context.temp_local_root = "/local"
+        context.create_remote_root = False
+        session = MagicMock()
+        session.ssh = MagicMock()
+        session.sftp.listdir.side_effect = [["previous.json"], ["previous.json"]]
+        session.sftp.stat.side_effect = [
+            FileNotFoundError("new root missing"),
+            OSError("mkdir failed"),
+            FileNotFoundError("old root missing"),
+        ]
+        session.sftp.mkdir.side_effect = OSError("mkdir failed")
+        context.ssh_session = session
+
+        machine = MagicMock()
+        machine.context = context
+        machine.serialize.return_value = {"batch_type": "Shell"}
+        submission = Submission.__new__(Submission)
+        submission.machine = machine
+        submission.work_base = "work"
+        submission._abs_work_base = "/local/work"
+        submission.resources = Resources(1, 1, 0, "", 1)
+        submission.forward_common_files = []
+        submission.backward_common_files = []
+        submission.belonging_tasks = []
+        submission.belonging_jobs = []
+        submission.submission_hash = "1" * 40
+        submission.previous_submission_hash = "0" * 40
+        submission.get_hash = MagicMock(return_value="1" * 40)
+
+        with self.assertRaisesRegex(OSError, "mkdir failed"):
+            submission._bind_recovered_submission()
+
+        self.assertEqual(
+            session.sftp.rename.call_args_list,
+            [
+                call(old_remote_root, new_remote_root),
+                call(new_remote_root, old_remote_root),
+            ],
+        )
+        self.assertEqual(submission.previous_submission_hash, "0" * 40)
+        self.assertEqual(context.remote_root, old_remote_root)
+
+    def test_hdfs_recovery_noop_keeps_destination_locator_on_bind_failure(self) -> None:
+        """Keep the new locator when another process already moved HDFS state."""
+        context = HDFSContext.__new__(HDFSContext)
+        old_remote_root = "hdfs://cluster/work/old"
+        new_remote_root = "hdfs://cluster/work/" + "1" * 40
+        context.remote_root = old_remote_root
+        context.temp_remote_root = "hdfs://cluster/work"
+        context.temp_local_root = "/local"
+
+        machine = MagicMock()
+        machine.context = context
+        machine.serialize.return_value = {"batch_type": "Shell"}
+        submission = Submission.__new__(Submission)
+        submission.machine = machine
+        submission.work_base = "work"
+        submission._abs_work_base = "/local/work"
+        submission.resources = Resources(1, 1, 0, "", 1)
+        submission.forward_common_files = []
+        submission.backward_common_files = []
+        submission.belonging_tasks = []
+        submission.belonging_jobs = []
+        submission.submission_hash = "1" * 40
+        submission.previous_submission_hash = "0" * 40
+        submission.get_hash = MagicMock(return_value="1" * 40)
+
+        with (
+            patch.object(HDFS, "exists", side_effect=[True, False]),
+            patch.object(HDFS, "mkdir", side_effect=OSError("bind failed")),
+            patch.object(HDFS, "move") as move,
+        ):
+            with self.assertRaisesRegex(OSError, "bind failed"):
+                submission._bind_recovered_submission()
+
+        move.assert_not_called()
+        self.assertIsNone(submission.previous_submission_hash)
+        self.assertEqual(context.remote_root, new_remote_root)
 
     def test_cloud_recovery_uses_persisted_finished_job_state(self) -> None:
         """Cloud recovery must not depend on unavailable task-tag paths."""
@@ -317,6 +436,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
             resources=Resources(1, 1, 0, "", 1),
         )
         job.job_state = JobStatus.finished
+        job.job_id = "123:job_group_id:456"
         submission.belonging_jobs = [job]
         previous = {
             "work_base": "work",
@@ -330,7 +450,55 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         submission._recover_finished_tasks_from_previous(previous)
 
         self.assertEqual(task.task_state, JobStatus.finished)
+        self.assertEqual(job.job_id, "123:job_group_id:456")
         machine.context.check_file_exists.assert_not_called()
+
+    def test_bohrium_upload_skips_recovered_finished_jobs(self) -> None:
+        """Do not upload a cloud job that recovery already marked finished."""
+        context = BohriumContext.__new__(BohriumContext)
+        context.upload_job = MagicMock()
+        context.remote_profile = {}
+        finished = MagicMock(job_state=JobStatus.finished)
+        pending = MagicMock(job_state=JobStatus.unsubmitted)
+        submission = MagicMock(
+            belonging_jobs=[finished, pending],
+            forward_common_files=[],
+        )
+
+        context.upload(submission)
+
+        context.upload_job.assert_called_once_with(pending, [])
+
+    def test_recovered_cloud_job_ids_are_used_for_download(self) -> None:
+        """Use persisted IDs when fetching results for finished cloud jobs."""
+        for context_type in (BohriumContext, OpenAPIContext):
+            with self.subTest(context=context_type.__name__):
+                context = context_type.__new__(context_type)
+                context.local_root = self.local_root
+                context.remote_profile = {}
+                job = MagicMock(job_id="123:job_group_id:456", job_hash="job-hash")
+                submission = MagicMock(belonging_jobs=[job])
+                if context_type is BohriumContext:
+                    context.api = MagicMock()
+                    context.api.get_job_detail.return_value = {
+                        "id": 123,
+                        "resultUrl": "",
+                        "status": 2,
+                    }
+                else:
+                    context.job = MagicMock()
+                    context.job.detail.return_value = {
+                        "id": "123:job_group_id:456",
+                        "resultUrl": "",
+                        "status": 2,
+                    }
+
+                context.download(submission)
+
+                if context_type is BohriumContext:
+                    context.api.get_job_detail.assert_called_once_with("123")
+                else:
+                    context.job.detail.assert_called_once_with("123:job_group_id:456")
 
     def test_non_resource_change_is_rejected(self) -> None:
         """Reject recovery when task definitions change with the resources."""

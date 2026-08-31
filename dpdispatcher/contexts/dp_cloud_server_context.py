@@ -22,6 +22,7 @@ from dpdispatcher.utils.dpcloudserver.config import (
     ALI_STS_BUCKET_NAME,
     ALI_STS_ENDPOINT,
 )
+from dpdispatcher.utils.job_status import JobStatus
 
 if TYPE_CHECKING:
     from dpdispatcher.submission import Job, Submission
@@ -157,7 +158,11 @@ class BohriumContext(BaseContext):
         result = None
         dlog.info("checking all job has been uploaded")
         for job in submission.belonging_jobs:
-            job_to_be_uploaded.append(job)
+            # Finished jobs recovered from a previous submission already have
+            # their result archives on the platform.  Upload only jobs that need
+            # a new attempt, matching the OpenAPI context behavior.
+            if job.job_state in (JobStatus.unsubmitted, JobStatus.terminated):
+                job_to_be_uploaded.append(job)
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")
             return result
