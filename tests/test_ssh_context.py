@@ -111,6 +111,21 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
         self.sftp.rename.assert_not_called()
         self.sftp.rmdir.assert_not_called()
 
+    def test_remote_metadata_paths_use_posix_and_stay_in_root(self) -> None:
+        """Remote SFTP paths must not depend on the controller's OS separator."""
+        self.context.remote_root = "/remote/hash"
+
+        self.assertEqual(
+            self.context._resolve_remote_path("task\\state.json"),
+            "/remote/hash/task/state.json",
+        )
+        self.assertEqual(
+            self.context._resolve_remote_path("/remote/hash/task/state.json"),
+            "/remote/hash/task/state.json",
+        )
+        with self.assertRaises(ValueError):
+            self.context._resolve_remote_path("/remote/other/state.json")
+
 
 @unittest.skipIf(
     os.environ.get("DPDISPATCHER_TEST") != "ssh", "outside the ssh testing environment"

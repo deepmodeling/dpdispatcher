@@ -288,7 +288,7 @@ class HDFSContext(BaseContext):
     def clean(self) -> None:
         HDFS.remove(self.remote_root)
 
-    def write_file(self, fname: str, write_str: str) -> str:
+    def write_file(self, fname: str, write_str: str) -> None:
         normalized = PathPolicy.normalize_relative(fname)
         with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", suffix=".dpdispatcher", delete=False
@@ -299,7 +299,6 @@ class HDFSContext(BaseContext):
             HDFS.copy_from_local(local_file, self._remote_file(normalized))
         finally:
             FileTransfer.remove(local_file)
-        return local_file
 
     def read_file(self, fname: str) -> bytes:
         return HDFS.read_hdfs_file(self._remote_file(fname))

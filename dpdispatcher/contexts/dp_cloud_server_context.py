@@ -39,7 +39,7 @@ class BohriumContext(BaseContext):
     """Transfer submissions through Bohrium object storage and cloud APIs."""
 
     # Bohrium exposes job archives and metadata, not task completion-tag paths.
-    supports_task_completion_tags = False
+    supports_task_completion_tags: ClassVar[bool] = False
     downloads_by_job: ClassVar[bool] = True
     alias = ("DpCloudServerContext", "LebesgueContext")
 

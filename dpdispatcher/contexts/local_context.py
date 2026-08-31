@@ -272,13 +272,16 @@ class LocalContext(BaseContext):
 
     def read_file(self, fname: str) -> str:
         with open(
-            PathResolver(self.remote_root).resolve(fname), encoding="utf-8"
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True),
+            encoding="utf-8",
         ) as fp:
             ret = fp.read()
         return ret
 
     def check_file_exists(self, fname: str) -> bool:
-        return PathResolver(self.remote_root).resolve(fname).is_file()
+        return (
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True).is_file()
+        )
 
     def call(self, cmd: str) -> sp.Popen:
         proc = sp.Popen(

@@ -15,6 +15,7 @@ from dpdispatcher.file_manager import (
     FileTransfer,
     ManifestBuilder,
     PathPolicy,
+    PathResolver,
     RemoteManifestBuilder,
     ResolvedManifest,
     SafeArchiveExtractor,
@@ -38,6 +39,22 @@ class TestPathPolicy(unittest.TestCase):
             PathPolicy.normalize_relative("C:/absolute")
         with self.assertRaises(ValueError):
             PathPolicy.normalize_relative("a\x00b")
+
+    def test_absolute_paths_are_normalized_before_containment_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "root"
+            root.mkdir()
+            resolver = PathResolver(root)
+            with self.assertRaises(ValueError):
+                resolver.resolve(root / ".." / "outside", allow_absolute=True)
+
+    def test_glob_expansion_escapes_metacharacters_in_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "root[1]"
+            root.mkdir()
+            (root / "result.txt").write_text("result", encoding="utf-8")
+
+            self.assertEqual(PathResolver(root).expand("*.txt"), [root / "result.txt"])
 
 
 class TestManifestAndTransfer(unittest.TestCase):
@@ -159,7 +176,47 @@ class TestManifestAndTransfer(unittest.TestCase):
         )
         self.assertEqual(
             [entry.destination for entry in manifest.entries],
-            ["common.out", "task/a.out", "task/nested/b.out"],
+            ["common.out", "task/a.out"],
+        )
+
+        nested = (
+            RemoteManifestBuilder(["task/a.out", "task/nested/b.out"])
+            .add_paths(
+                source_prefix="task",
+                destination_prefix="task",
+                patterns=["nested/*.out"],
+            )
+            .build()
+        )
+        self.assertEqual(
+            [entry.destination for entry in nested.entries], ["task/nested/b.out"]
+        )
+
+        recursive = (
+            RemoteManifestBuilder(["task/a.out", "task/nested/b.out"])
+            .add_paths(
+                source_prefix="task",
+                destination_prefix="task",
+                patterns=["**/*.out"],
+            )
+            .build()
+        )
+        self.assertEqual(
+            [entry.destination for entry in recursive.entries],
+            ["task/a.out", "task/nested/b.out"],
+        )
+
+        hidden = (
+            RemoteManifestBuilder(["task/.hidden.out", "task/visible.out"])
+            .add_paths(
+                source_prefix="task",
+                destination_prefix="task",
+                patterns=["*.out"],
+            )
+            .build()
+        )
+        self.assertEqual(
+            [entry.destination for entry in hidden.entries], ["task/visible.out"]
         )
 
 

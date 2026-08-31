@@ -26,6 +26,7 @@ from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
 from dpdispatcher.file_manager import (
     AtomicTextWriter,
+    PathPolicy,
     PathResolver,
     RemoteManifestBuilder,
     SubmissionStagingPlan,
@@ -924,11 +925,7 @@ class SSHContext(BaseContext):
     def write_file(self, fname: str, write_str: str) -> None:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
-        fname = (
-            PathResolver(self.remote_root)
-            .resolve(fname, allow_absolute=True)
-            .as_posix()
-        )
+        fname = self._resolve_remote_path(fname)
         # to prevent old file from being overwritten but cancelled, create a temporary file first
         # when it is fully written, rename it to the original file name
         temp_fname = fname + "_tmp"
@@ -946,9 +943,7 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         with self.sftp.open(
-            PathResolver(self.remote_root)
-            .resolve(fname, allow_absolute=True)
-            .as_posix(),
+            self._resolve_remote_path(fname),
             "r",
         ) as fp:
             ret = fp.read().decode("utf-8")
@@ -958,15 +953,30 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         try:
-            self.sftp.stat(
-                PathResolver(self.remote_root)
-                .resolve(fname, allow_absolute=True)
-                .as_posix()
-            )
+            self.sftp.stat(self._resolve_remote_path(fname))
             ret = True
         except OSError:
             ret = False
         return ret
+
+    def _resolve_remote_path(self, fname: str) -> str:
+        """Resolve a remote POSIX path independently of controller OS rules."""
+        assert self.remote_root is not None
+        raw = os.fspath(fname).replace("\\", "/")
+        if "\x00" in raw:
+            raise ValueError("path must not contain a NUL byte")
+        root = pathlib.PurePosixPath(posixpath.normpath(self.remote_root))
+        if posixpath.isabs(raw):
+            candidate = pathlib.PurePosixPath(posixpath.normpath(raw))
+            try:
+                candidate.relative_to(root)
+            except ValueError as error:
+                raise ValueError(
+                    f"path {candidate} is outside remote root {root}"
+                ) from error
+            return candidate.as_posix()
+        relative = pathlib.PurePosixPath(PathPolicy.normalize_relative(raw))
+        return (root / relative).as_posix()
 
     def call(self, cmd: str) -> dict[str, Any]:  # noqa: ANN401
         stdin, stdout, stderr = self.ssh_session.exec_command(cmd)

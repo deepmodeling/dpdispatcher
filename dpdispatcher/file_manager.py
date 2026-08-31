@@ -20,11 +20,12 @@ import uuid
 import zipfile
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from dpdispatcher.submission import Submission
+    from dpdispatcher.submission import Submission, Task
 
 _GLOB_CHARS = "*?["
 
@@ -90,7 +91,9 @@ class PathResolver:
     """Resolve validated relative paths and glob patterns under one root."""
 
     def __init__(self, root: os.PathLike[str] | str) -> None:
-        self.root = Path(root).absolute()
+        # ``Path.absolute`` preserves ``..``; collapse it once so containment
+        # checks cannot be bypassed by parent-directory components.
+        self.root = Path(os.path.normpath(os.fspath(Path(root).absolute())))
 
     def resolve(
         self,
@@ -105,7 +108,7 @@ class PathResolver:
                 raise ValueError(
                     f"absolute paths are not allowed in staging entries: {value}"
                 )
-            candidate = Path(value).absolute()
+            candidate = Path(os.path.normpath(os.fspath(Path(value).absolute())))
             try:
                 candidate.relative_to(self.root)
             except ValueError as error:
@@ -118,7 +121,7 @@ class PathResolver:
 
     def relative(self, value: os.PathLike[str] | str) -> str:
         """Return the canonical path of ``value`` relative to this root."""
-        candidate = Path(value).absolute()
+        candidate = Path(os.path.normpath(os.fspath(Path(value).absolute())))
         try:
             relative = candidate.relative_to(self.root)
         except ValueError as error:
@@ -137,7 +140,13 @@ class PathResolver:
         normalized = PathPolicy.normalize_relative(pattern, allow_glob=True)
         candidate = self.root / Path(normalized)
         if any(char in normalized for char in _GLOB_CHARS):
-            matches = glob_module.glob(os.fspath(candidate), recursive=True)
+            # Escape only the staging root.  The user pattern remains active
+            # so its wildcard operators retain their intended meaning.
+            pattern = os.path.join(
+                glob_module.escape(os.fspath(self.root)),
+                *normalized.split("/"),
+            )
+            matches = glob_module.glob(pattern, recursive=True)
             return [Path(match) for match in sorted(matches)]
         if os.path.lexists(candidate):
             return [candidate]
@@ -315,9 +324,7 @@ class RemoteManifestBuilder:
                 matches = []
                 for available in self._available:
                     relative = self._relative_to_prefix(available, source_prefix)
-                    if relative is not None and fnmatch.fnmatchcase(
-                        relative, normalized
-                    ):
+                    if relative is not None and self._match_path(relative, normalized):
                         matches.append((relative, available))
             else:
                 relative = normalized
@@ -345,6 +352,41 @@ class RemoteManifestBuilder:
                     )
                 )
         return self
+
+    @staticmethod
+    def _match_path(path: str, pattern: str) -> bool:
+        """Match slash-separated paths without letting ``*`` cross ``/``.
+
+        Ordinary wildcards match one segment, while ``**`` recursively matches
+        zero or more segments, mirroring local :mod:`glob` semantics.
+        """
+        path_parts = tuple(part for part in path.split("/") if part not in ("", "."))
+        pattern_parts = tuple(
+            part for part in pattern.split("/") if part not in ("", ".")
+        )
+
+        @cache
+        def match(path_index: int, pattern_index: int) -> bool:
+            if pattern_index == len(pattern_parts):
+                return path_index == len(path_parts)
+            token = pattern_parts[pattern_index]
+            if token == "**":
+                return match(path_index, pattern_index + 1) or (
+                    path_index < len(path_parts)
+                    and not path_parts[path_index].startswith(".")
+                    and match(path_index + 1, pattern_index)
+                )
+            return (
+                path_index < len(path_parts)
+                and (
+                    pattern_parts[pattern_index].startswith(".")
+                    or not path_parts[path_index].startswith(".")
+                )
+                and fnmatch.fnmatchcase(path_parts[path_index], token)
+                and match(path_index + 1, pattern_index + 1)
+            )
+
+        return match(0, 0)
 
     @staticmethod
     def _relative_to_prefix(path: str, prefix: str) -> str | None:
@@ -377,10 +419,8 @@ class SubmissionStagingPlan:
         self.submission = submission
 
     @staticmethod
-    def _task_path(task: object) -> str:
-        return PathPolicy.normalize_relative(
-            getattr(task, "task_work_path"), allow_glob=False
-        )
+    def _task_path(task: Task) -> str:
+        return PathPolicy.normalize_relative(task.task_work_path, allow_glob=False)
 
     def upload_manifest(
         self, *, include_tasks: bool = True, include_common: bool = True

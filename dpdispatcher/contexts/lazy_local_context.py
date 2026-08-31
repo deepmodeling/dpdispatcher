@@ -159,7 +159,8 @@ class LazyLocalContext(BaseContext):
 
     def read_file(self, fname: str) -> str:
         with open(
-            PathResolver(self.remote_root).resolve(fname), encoding="utf-8"
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True),
+            encoding="utf-8",
         ) as fp:
             ret = fp.read()
         return ret
@@ -169,7 +170,9 @@ class LazyLocalContext(BaseContext):
         # file_to_be_checked = os.path.join(submission_work_base, fname)
         # print('debug:dpdispatcher.LazyLocalContext().check_file_exists:file_to_be_checked', file_to_be_checked)
         # return os.path.isfile(file_to_be_checked)
-        return PathResolver(self.remote_root).resolve(fname).is_file()
+        return (
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True).is_file()
+        )
 
     def call(self, cmd: str) -> sp.Popen:
         cwd = os.getcwd()
