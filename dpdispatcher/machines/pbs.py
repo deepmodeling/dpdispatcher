@@ -108,8 +108,33 @@ class PBS(Machine):
                 raise RuntimeError(
                     f"status command {command} fails to execute. erro info: {err_str} return code {ret}"
                 )
-        status_line = stdout.read().decode("utf-8").split("\n")[-2]
-        status_word = status_line.split()[-2]
+        status = self._parse_status_output(stdout.read().decode("utf-8"), job)
+        return status
+
+    def _parse_status_output(self, output: str, job: Job) -> JobStatus:
+        """Parse a PBS status response without indexing missing rows.
+
+        ``qstat`` can return an empty response or only its header after a job
+        leaves the active queue.  In that case there is no state column to
+        parse; use the completion marker to distinguish a successful job from
+        one that should be retried.
+        """
+        status_lines = [line.strip() for line in output.splitlines() if line.strip()]
+        if not status_lines or self._is_status_header(status_lines[-1]):
+            return (
+                JobStatus.finished
+                if self.check_finish_tag(job)
+                else JobStatus.terminated
+            )
+
+        status_fields = status_lines[-1].split()
+        if len(status_fields) < 2:
+            return (
+                JobStatus.finished
+                if self.check_finish_tag(job)
+                else JobStatus.terminated
+            )
+        status_word = status_fields[-2]
         # dlog.info (status_word)
         if status_word in ["Q", "H"]:
             return JobStatus.waiting
@@ -123,6 +148,14 @@ class PBS(Machine):
                 return JobStatus.terminated
         else:
             return JobStatus.unknown
+
+    @staticmethod
+    def _is_status_header(line: str) -> bool:
+        """Return whether *line* is a qstat header or separator, not a job row."""
+        if line.startswith("-"):
+            return True
+        fields = line.lower().split()
+        return len(fields) >= 2 and fields[:2] == ["job", "id"]
 
     def check_finish_tag(self, job: Job) -> bool:
         job_tag_finished = job.job_hash + "_job_tag_finished"
@@ -160,21 +193,7 @@ class Torque(PBS):
                 raise RuntimeError(
                     f"status command {command} fails to execute. erro info: {err_str} return code {ret}"
                 )
-        status_line = stdout.read().decode("utf-8").split("\n")[-2]
-        status_word = status_line.split()[-2]
-        # dlog.info (status_word)
-        if status_word in ["Q", "H"]:
-            return JobStatus.waiting
-        elif status_word in ["R"]:
-            return JobStatus.running
-        elif status_word in ["C", "E", "K", "F"]:
-            if self.check_finish_tag(job):
-                dlog.info(f"job: {job.job_hash} {job.job_id} finished")
-                return JobStatus.finished
-            else:
-                return JobStatus.terminated
-        else:
-            return JobStatus.unknown
+        return self._parse_status_output(stdout.read().decode("utf-8"), job)
 
     def gen_script_header(self, job: Job) -> str:
         # ref: https://support.adaptivecomputing.com/wp-content/uploads/2021/02/torque/torque.htm#topics/torque/2-jobs/requestingRes.htm
