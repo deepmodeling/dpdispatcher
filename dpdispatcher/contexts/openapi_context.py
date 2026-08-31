@@ -6,7 +6,6 @@ import os
 import shutil
 import uuid
 from typing import TYPE_CHECKING, Any, ClassVar, NoReturn
-from zipfile import ZipFile
 
 import tqdm
 
@@ -28,8 +27,7 @@ from dpdispatcher.file_manager import (
     FileTransfer,
     PathResolver,
 )
-from dpdispatcher.utils.archive import safe_extract_zip
-from dpdispatcher.utils.dpcloudserver.zip_file import zip_file_list
+from dpdispatcher.utils.dpcloudserver.zip_file import unzip_file, zip_file_list
 from dpdispatcher.utils.job_status import JobStatus
 
 if TYPE_CHECKING:
@@ -39,12 +37,6 @@ if TYPE_CHECKING:
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
-
-
-def unzip_file(zip_file: str, out_dir: str = "./") -> set[str]:
-    """Extract a ZIP archive into a local directory."""
-    with ZipFile(zip_file, "r") as obj:
-        return safe_extract_zip(obj, out_dir)
 
 
 class OpenAPIContext(BaseContext):

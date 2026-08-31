@@ -158,8 +158,9 @@ def create_submission(
             for file in matched_paths:
                 # Globbing needs the local root to discover matches, but tasks are
                 # interpreted relative to work_base in every execution context.
-                relative_task_path = os.path.relpath(file, start=local_work_base)
-                PathPolicy.normalize_relative(relative_task_path, allow_glob=False)
+                relative_task_path = PathPolicy.normalize_relative(
+                    os.path.relpath(file, start=local_work_base), allow_glob=True
+                )
                 tasks.append(
                     Task.load_from_dict(
                         {**task, "task_work_path": relative_task_path},

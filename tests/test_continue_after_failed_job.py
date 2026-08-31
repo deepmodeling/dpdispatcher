@@ -33,6 +33,15 @@ class TestTerminalFailedJobs(unittest.TestCase):
         self.assertIsNone(job.failure_reason)
         job.machine.do_submit.assert_not_called()
 
+    def test_terminal_failed_state_is_fail_fast_by_default(self) -> None:
+        """A restored failed job cannot leave the polling loop pending."""
+        job = self._job(state=JobStatus.failed)
+
+        with self.assertRaisesRegex(RuntimeError, "is in failed state"):
+            job.handle_unexpected_job_state()
+
+        job.machine.do_submit.assert_not_called()
+
     def test_retry_exhaustion_becomes_durable_terminal_state_when_opted_in(
         self,
     ) -> None:

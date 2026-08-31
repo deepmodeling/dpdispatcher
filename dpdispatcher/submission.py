@@ -78,7 +78,14 @@ class Submission:
         backward_common_files = (
             [] if backward_common_files is None else list(backward_common_files)
         )
-        PathPolicy.normalize_relative(work_base, allow_glob=False)
+        # ``work_base`` historically accepts an absolute local directory.  It
+        # is resolved as-is by each context, whereas relative values are
+        # validated as staging paths to prevent traversal outside the root.
+        if os.path.isabs(work_base):
+            if "\x00" in work_base:
+                raise ValueError("path must not contain a NUL byte")
+        else:
+            work_base = PathPolicy.normalize_relative(work_base, allow_glob=False)
         for path in (*forward_common_files, *backward_common_files):
             PathPolicy.normalize_relative(path, allow_glob=True)
         self.work_base = work_base
@@ -1469,7 +1476,14 @@ class Job:
         job_state = self.job_state
 
         if job_state == JobStatus.failed:
-            return
+            if continue_on_failure:
+                # Explicit continuation treats a failed job as terminal while
+                # sibling jobs continue; Submission raises after downloads.
+                return
+            raise RuntimeError(
+                self.failure_reason
+                or f"job {self.job_hash} {self.job_id} is in failed state"
+            )
 
         if job_state == JobStatus.unknown:
             raise RuntimeError(f"job_state for job {self} is unknown")

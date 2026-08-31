@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import errno
-import fnmatch
 import os
 import pathlib
 import posixpath
@@ -16,7 +15,6 @@ import tarfile
 import time
 import uuid
 from functools import cache
-from glob import glob
 from stat import S_ISDIR, S_ISREG
 from typing import TYPE_CHECKING, Any
 
@@ -701,40 +699,6 @@ class SSHContext(BaseContext):
         # except Exception:
         #     pass
 
-    def _walk_directory(
-        self,
-        files: list[str],
-        work_path: str,
-        file_list: list[str],
-        directory_list: list[str],
-    ) -> None:
-        """Convert input path to list of files and directories."""
-        for jj in files:
-            file_name = os.path.join(work_path, jj)
-            if os.path.isfile(file_name):
-                file_list.append(file_name)
-            elif os.path.isdir(file_name):
-                for root, dirs, files in os.walk(
-                    file_name, topdown=False, followlinks=True
-                ):
-                    if not files:
-                        directory_list.append(root)
-                    for name in files:
-                        file_list.append(os.path.join(root, name))
-            elif os.path.islink(file_name) and not os.path.exists(file_name):
-                raise OSError(f"{file_name} is broken symbolic link")
-            elif glob(file_name):
-                # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
-                abs_file_list = glob(file_name)
-                rel_file_list = [
-                    os.path.relpath(ii, start=work_path) for ii in abs_file_list
-                ]
-                self._walk_directory(
-                    rel_file_list, work_path, file_list, directory_list
-                )
-            else:
-                raise FileNotFoundError(f"cannot find upload file {work_path} {jj}")
-
     def upload(
         self,
         # job_dirs,
@@ -828,86 +792,6 @@ class SSHContext(BaseContext):
             elif S_ISREG(st_mode):
                 rel_remote_name = os.path.relpath(remote_name, start=ref_remote_root)
                 result_list.append(rel_remote_name)
-
-    def _download_legacy(
-        self,
-        submission: Submission,
-        # job_dirs,
-        # remote_down_files,
-        check_exists: bool = False,
-        mark_failure: bool = True,
-        back_error: bool = False,
-    ) -> None:
-        assert self.remote_root is not None
-        self.ssh_session.ensure_alive()
-        file_list = []
-        # for ii in job_dirs :
-        for ii in submission.belonging_tasks:
-            remote_file_list = None
-            for jj in ii.backward_files:
-                if "*" in jj or "?" in jj:
-                    if remote_file_list is not None:
-                        abs_file_list = fnmatch.filter(remote_file_list, jj)
-                    else:
-                        remote_file_list = []
-                        remote_job = pathlib.PurePath(
-                            os.path.join(self.remote_root, ii.task_work_path)
-                        ).as_posix()
-                        self.list_remote_dir(
-                            self.sftp, remote_job, remote_job, remote_file_list
-                        )
-
-                        abs_file_list = fnmatch.filter(remote_file_list, jj)
-                    rel_file_list = [
-                        pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
-                        for kk in abs_file_list
-                    ]
-
-                else:
-                    rel_file_list = [
-                        pathlib.PurePath(os.path.join(ii.task_work_path, jj)).as_posix()
-                    ]
-                if check_exists:
-                    for file_name in rel_file_list:
-                        if self.check_file_exists(file_name):
-                            file_list.append(file_name)
-                        elif mark_failure:
-                            with open(
-                                os.path.join(
-                                    self.local_root,
-                                    ii.task_work_path,
-                                    f"tag_failure_download_{jj}",
-                                ),
-                                "w",
-                            ) as fp:
-                                pass
-                        else:
-                            pass
-                else:
-                    file_list.extend(rel_file_list)
-            if back_error:
-                if remote_file_list is not None:
-                    abs_errors = fnmatch.filter(remote_file_list, "error*")
-                else:
-                    remote_file_list = []
-                    remote_job = pathlib.PurePath(
-                        os.path.join(self.remote_root, ii.task_work_path)
-                    ).as_posix()
-                    self.list_remote_dir(
-                        self.sftp, remote_job, remote_job, remote_file_list
-                    )
-                    abs_errors = fnmatch.filter(remote_file_list, "error*")
-                rel_errors = [
-                    pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
-                    for kk in abs_errors
-                ]
-                file_list.extend(rel_errors)
-        file_list.extend(submission.backward_common_files)
-        if len(file_list) > 0:
-            self._get_files(
-                file_list,
-                tar_compress=bool(self.remote_profile.get("tar_compress", True)),
-            )
 
     def download(
         self,

@@ -175,6 +175,10 @@ class HDFSContext(BaseContext):
                     dlog.debug(
                         "No HDFS result archive found; skipping optional download"
                     )
+                    # Release the staging directory before returning from the
+                    # optional-download fast path; the ``finally`` block below
+                    # remains a defensive cleanup for all other exits.
+                    FileTransfer.remove(gz_dir)
                     return
                 dlog.debug("No HDFS result archive found; recording missing outputs")
 

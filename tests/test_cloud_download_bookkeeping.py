@@ -82,28 +82,21 @@ class TestCloudDownloadBookkeeping(unittest.TestCase):
             unzip.assert_called_once()
             self.assertEqual(context.last_downloaded_files, {"task/result.txt"})
 
-    def test_archive_unzip_wrappers_delegate_to_safe_extractors(self) -> None:
-        """Delegate both cloud ZIP wrappers to the shared safe extractor."""
+    def test_cloud_contexts_share_the_archive_unzip_helper(self) -> None:
+        """Both cloud contexts use the same safe ZIP extractor implementation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             archive_path = f"{temp_dir}/empty.zip"
             with ZipFile(archive_path, "w"):
                 pass
-            with (
-                patch(
-                    "dpdispatcher.contexts.openapi_context.safe_extract_zip",
-                    return_value={"openapi.txt"},
-                ) as openapi_extract,
-                patch.object(
-                    legacy_zip_file,
-                    "safe_extract_zip",
-                    return_value={"legacy.txt"},
-                ) as legacy_extract,
-            ):
-                self.assertEqual(openapi_unzip_file(archive_path), {"openapi.txt"})
-                self.assertEqual(legacy_unzip_file(archive_path), {"legacy.txt"})
+            with patch.object(
+                legacy_zip_file,
+                "safe_extract_zip",
+                return_value={"shared.txt"},
+            ) as extractor:
+                self.assertEqual(openapi_unzip_file(archive_path), {"shared.txt"})
+                self.assertEqual(legacy_unzip_file(archive_path), {"shared.txt"})
 
-            openapi_extract.assert_called_once()
-            legacy_extract.assert_called_once()
+            self.assertEqual(extractor.call_count, 2)
 
 
 if __name__ == "__main__":

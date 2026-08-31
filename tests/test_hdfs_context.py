@@ -70,6 +70,8 @@ class TestHDFSContextDownload(unittest.TestCase):
                     mark_failure=False,
                 )
 
+            self.assertFalse(os.path.exists(os.path.join(local_root, "tmp")))
+
             self.assertFalse(
                 os.path.exists(os.path.join(local_root, "task/missing.log"))
             )
