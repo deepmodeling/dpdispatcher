@@ -124,6 +124,12 @@ class Submission:
         Submission
             Reconstructed submission.
         """
+        serialized_tasks = submission_dict.get("belonging_tasks")
+        task_list = (
+            [Task.deserialize(task_dict) for task_dict in serialized_tasks]
+            if serialized_tasks is not None
+            else []
+        )
         submission = cls(
             work_base=submission_dict["work_base"],
             resources=Resources.deserialize(
@@ -131,11 +137,23 @@ class Submission:
             ),
             forward_common_files=submission_dict["forward_common_files"],
             backward_common_files=submission_dict["backward_common_files"],
+            task_list=task_list,
         )
+        # Preserve the original absolute path when a record is resumed from a
+        # different working directory. Older records do not have this field and
+        # retain the constructor's backwards-compatible fallback.
+        if "_abs_work_base" in submission_dict:
+            submission._abs_work_base = submission_dict["_abs_work_base"]
         submission.belonging_jobs = [
             Job.deserialize(job_dict=job_dict)
             for job_dict in submission_dict["belonging_jobs"]
         ]
+        if submission.belonging_jobs:
+            # Generated jobs are the canonical serialized representation of their
+            # tasks. Reuse those task objects so task and job state stay linked.
+            submission.belonging_tasks = [
+                task for job in submission.belonging_jobs for task in job.job_task_list
+            ]
         submission.submission_hash = submission.get_hash()
         if machine is not None:
             submission.bind_machine(machine=machine, bind_context=bind_context)
@@ -174,6 +192,13 @@ class Submission:
         submission_dict["resources"] = self.resources.serialize()
         submission_dict["forward_common_files"] = self.forward_common_files
         submission_dict["backward_common_files"] = self.backward_common_files
+        if not self.belonging_jobs:
+            # Before jobs are generated, tasks are not represented elsewhere in
+            # the record. Keep this optional for compatibility with old records
+            # and avoid duplicating task data for generated submissions.
+            submission_dict["belonging_tasks"] = [
+                task.serialize() for task in self.belonging_tasks
+            ]
         submission_dict["belonging_jobs"] = [
             job.serialize(if_static=if_static) for job in self.belonging_jobs
         ]
@@ -219,10 +244,12 @@ class Submission:
         Submission
             This submission, for convenient chained configuration.
         """
-        self.submission_hash = self.get_hash()
         self.machine = machine
         for job in self.belonging_jobs:
             job.machine = machine
+        # ``serialize`` includes the bound machine. Set it first so the hash used
+        # by context roots is the same hash reported by ``get_hash`` and records.
+        self.submission_hash = self.get_hash()
         if machine is not None:
             if bind_context:
                 machine.context.bind_submission(self)
@@ -586,23 +613,10 @@ class Submission:
             for job in self.belonging_jobs
         ):
             self.submission_to_json()
-        if any(
-            (
-                job.job_state
-                in [
-                    JobStatus.running,
-                    JobStatus.waiting,
-                    JobStatus.unsubmitted,
-                    JobStatus.completing,
-                    JobStatus.terminated,
-                    JobStatus.unknown,
-                ]
-            )
-            for job in self.belonging_jobs
-        ):
-            return False
-        else:
-            return True
+        # A newly generated job starts with ``None`` until the backend is
+        # queried. Treat every state other than ``finished`` as unfinished so
+        # an uninitialized job cannot be mistaken for successful completion.
+        return all(job.job_state == JobStatus.finished for job in self.belonging_jobs)
 
     def generate_jobs(self) -> None:
         """Generate jobs after tasks are registered.
