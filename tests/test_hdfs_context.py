@@ -334,6 +334,44 @@ class TestHDFSContextDownload(unittest.TestCase):
             local_file = copy_from_local.call_args.args[0]
             self.assertFalse(os.path.exists(local_file))
 
+    def test_download_cleans_existing_tmp_and_reports_missing_manifest(self) -> None:
+        """An empty archive still follows the required missing-output path."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            os.mkdir(os.path.join(local_root, "tmp"))
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[],
+                backward_common_files=["missing.out"],
+            )
+
+            def create_empty_archive(_remote: str, destination: str) -> None:
+                with tarfile.open(
+                    os.path.join(destination, "submission-hash_1_download.tar.gz"),
+                    "w:gz",
+                ):
+                    pass
+
+            with patch.object(HDFS, "copy_to_local", side_effect=create_empty_archive):
+                with self.assertRaises(FileNotFoundError):
+                    context.download(submission)
+            self.assertFalse(os.path.exists(os.path.join(local_root, "tmp")))
+
+    def test_hdfs_metadata_read_and_exists_delegate_to_backend(self) -> None:
+        """Metadata helpers preserve the HDFS path contract."""
+        context = HDFSContext.__new__(HDFSContext)
+        context.remote_root = "/remote/submission"
+        with (
+            patch.object(HDFS, "exists", return_value=True) as exists,
+            patch.object(HDFS, "read_hdfs_file", return_value=b"ready") as read,
+        ):
+            self.assertTrue(context.check_file_exists("state.txt"))
+            self.assertEqual(context.read_file("state.txt"), b"ready")
+        exists.assert_called_once_with("/remote/submission/state.txt")
+        read.assert_called_once_with("/remote/submission/state.txt")
+
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")
 class TestHDFSContext(unittest.TestCase):

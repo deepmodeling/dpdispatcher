@@ -1,7 +1,9 @@
 import errno
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -150,6 +152,54 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.context._resolve_remote_path("bad\x00name")
+
+    def test_upload_builds_manifest_and_delegates_to_archive_transfer(self) -> None:
+        """Normal SSH uploads use relative manifest paths exactly once."""
+        with tempfile.TemporaryDirectory() as local_root:
+            task_root = Path(local_root, "task")
+            task_root.mkdir()
+            (task_root / "input.txt").write_text("input", encoding="utf-8")
+            self.context.local_root = local_root
+            self.context.remote_root = "/remote/hash"
+            self.context.temp_remote_root = "/remote"
+            self.context.remote_profile = {}
+            self.context._put_files = MagicMock()
+            submission = SimpleNamespace(
+                belonging_tasks=[
+                    SimpleNamespace(task_work_path="task", forward_files=["input.txt"])
+                ],
+                forward_common_files=[],
+            )
+
+            self.context.upload(submission)
+
+            self.context._put_files.assert_called_once_with(
+                ["task/input.txt"],
+                dereference=True,
+                directories=["task"],
+                tar_compress=True,
+            )
+
+    def test_download_records_missing_remote_patterns(self) -> None:
+        """SSH downloads report missing wildcard outputs and write markers."""
+        with tempfile.TemporaryDirectory() as local_root:
+            self.context.local_root = local_root
+            self.context.remote_root = "/remote/hash"
+            self.context.remote_profile = {}
+            self.context.list_remote_dir = MagicMock()
+            submission = SimpleNamespace(
+                belonging_tasks=[
+                    SimpleNamespace(task_work_path="task", backward_files=["missing*"])
+                ],
+                backward_common_files=[],
+            )
+            with self.assertRaises(FileNotFoundError):
+                self.context.download(submission)
+
+            self.context.download(submission, check_exists=True, mark_failure=True)
+            self.assertTrue(
+                Path(local_root, "task", "tag_failure_download_missing_").exists()
+            )
 
 
 @unittest.skipIf(
