@@ -98,6 +98,15 @@ def pep723_args() -> Argument:
                 default=[],
                 doc="Common files to backward from the remote machine",
             ),
+            Argument(
+                "continue_on_failure",
+                dtype=bool,
+                optional=True,
+                default=False,
+                doc=(
+                    "Continue monitoring other jobs after one job exhausts its retries"
+                ),
+            ),
             machine_args,
             resources_args,
             task_args,
@@ -163,6 +172,7 @@ def create_submission(
         work_base=metadata["work_base"],
         forward_common_files=metadata["forward_common_files"],
         backward_common_files=metadata["backward_common_files"],
+        continue_on_failure=metadata["continue_on_failure"],
         machine=Machine.load_from_dict(metadata["machine"], allow_ref=allow_ref),
         resources=Resources.load_from_dict(metadata["resources"], allow_ref=allow_ref),
         task_list=tasks,

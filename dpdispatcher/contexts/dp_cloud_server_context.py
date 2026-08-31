@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import shutil
 import uuid
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn
 
 import tqdm
 from dargs.dargs import Argument
@@ -36,6 +36,7 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 class BohriumContext(BaseContext):
     """Transfer submissions through Bohrium object storage and cloud APIs."""
 
+    downloads_by_job: ClassVar[bool] = True
     alias = ("DpCloudServerContext", "LebesgueContext")
 
     def __init__(
@@ -178,6 +179,8 @@ class BohriumContext(BaseContext):
         mark_failure: bool = True,
         back_error: bool = False,
     ) -> bool:
+        """Download completed job archives and record their extracted paths."""
+        self.last_downloaded_files: set[str] = set()
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}
@@ -217,7 +220,9 @@ class BohriumContext(BaseContext):
             ):
                 continue
             self.api.download_from_url(info["resultUrl"], target_result_zip)
-            zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
+            self.last_downloaded_files.update(
+                zip_file.unzip_file(target_result_zip, out_dir=self.local_root)
+            )
             self._backup(self.local_root, target_result_zip)
         self._clean_backup(
             self.local_root, keep_backup=self.remote_profile.get("keep_backup", True)

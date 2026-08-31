@@ -445,7 +445,7 @@ def safe_extract_tar(archive: tarfile.TarFile, destination: str) -> None:
         _finalize_directory_modes(root, members, original_modes, extraction_succeeded)
 
 
-def safe_extract_zip(archive: zipfile.ZipFile, destination: str) -> None:
+def safe_extract_zip(archive: zipfile.ZipFile, destination: str) -> set[str]:
     """Safely extract regular files and directories from a zip archive.
 
     This applies the same manifest, symlink, and atomic-replacement guarantees
@@ -491,3 +491,9 @@ def safe_extract_zip(archive: zipfile.ZipFile, destination: str) -> None:
         extraction_succeeded = True
     finally:
         _finalize_directory_modes(root, members, original_modes, extraction_succeeded)
+
+    return {
+        pathlib.PurePosixPath(*member.parts).as_posix()
+        for member in members
+        if not member.is_directory
+    }
