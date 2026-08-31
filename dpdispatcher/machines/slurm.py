@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import math
 import pathlib
 import shlex
@@ -281,8 +282,13 @@ class SlurmJobArray(Slurm):
         )
 
     def gen_script_command(self, job: Job) -> str:
-        resources = job.resources
+        """Generate a Slurm array command without mutating job resources."""
+        # Keep per-render counters isolated from the caller's Resources object
+        # so direct and repeated rendering remain side-effect free.
+        resources = copy.copy(job.resources)
         slurm_job_size = self._get_slurm_job_size(job)
+        resources.task_in_para = 0
+        resources.gpu_in_use = 0
         # SLURM_ARRAY_TASK_ID: 0 ~ n_jobs-1
         script_command = "case $SLURM_ARRAY_TASK_ID in\n"
         for ii, task in enumerate(job.job_task_list):
