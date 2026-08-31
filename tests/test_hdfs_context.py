@@ -308,6 +308,32 @@ class TestHDFSContextDownload(unittest.TestCase):
 
             put_files.assert_called_once_with(["task/input.dat"], dereference=True)
 
+    def test_upload_reports_missing_forward_files(self) -> None:
+        """Required HDFS upload inputs fail before creating an archive."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            task = SimpleNamespace(task_work_path="task", forward_files=["missing"])
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[task],
+                forward_common_files=[],
+            )
+            with self.assertRaises(FileNotFoundError):
+                context.upload(submission)
+
+    def test_write_file_cleans_temporary_source_and_returns_none(self) -> None:
+        """HDFS metadata writes do not expose a deleted local temp path."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            with patch.object(HDFS, "copy_from_local") as copy_from_local:
+                self.assertIsNone(context.write_file("state.txt", "ready"))
+            local_file = copy_from_local.call_args.args[0]
+            self.assertFalse(os.path.exists(local_file))
+
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")
 class TestHDFSContext(unittest.TestCase):

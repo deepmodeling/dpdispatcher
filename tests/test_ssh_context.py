@@ -126,6 +126,31 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.context._resolve_remote_path("/remote/other/state.json")
 
+    def test_remote_file_operations_use_resolved_posix_paths(self) -> None:
+        """Metadata I/O keeps POSIX names even when the controller is Windows."""
+        self.context.remote_root = "/remote/hash"
+        self.context.block_checkcall = MagicMock()
+        handle = MagicMock()
+        self.context.sftp.open.return_value.__enter__.return_value = handle
+
+        self.context.write_file("state\\status.txt", "ready")
+        self.context.sftp.open.assert_called_with(
+            "/remote/hash/state/status.txt_tmp", "w"
+        )
+        self.context.block_checkcall.assert_called_once()
+
+        handle.read.return_value = b"ready"
+        self.assertEqual(self.context.read_file("state/status.txt"), "ready")
+        self.context.sftp.open.assert_called_with("/remote/hash/state/status.txt", "r")
+
+        self.context.sftp.stat.return_value = MagicMock()
+        self.assertTrue(self.context.check_file_exists("state/status.txt"))
+        self.context.sftp.stat.side_effect = OSError("missing")
+        self.assertFalse(self.context.check_file_exists("state/status.txt"))
+
+        with self.assertRaises(ValueError):
+            self.context._resolve_remote_path("bad\x00name")
+
 
 @unittest.skipIf(
     os.environ.get("DPDISPATCHER_TEST") != "ssh", "outside the ssh testing environment"

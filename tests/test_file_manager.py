@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from dpdispatcher.file_manager import (
     ArchiveBuilder,
@@ -55,6 +56,135 @@ class TestPathPolicy(unittest.TestCase):
             (root / "result.txt").write_text("result", encoding="utf-8")
 
             self.assertEqual(PathResolver(root).expand("*.txt"), [root / "result.txt"])
+
+    def test_path_policy_edge_cases_and_containment(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "root"
+            root.mkdir()
+            resolver = PathResolver(root)
+            with self.assertRaises(TypeError):
+                PathPolicy.normalize_relative(42)  # type: ignore[arg-type]
+            with self.assertRaises(ValueError):
+                PathPolicy.normalize_relative("result*.out")
+            with self.assertRaises(ValueError):
+                resolver.resolve("/outside")
+            self.assertEqual(
+                resolver.resolve(root / "inside", allow_absolute=True), root / "inside"
+            )
+            with self.assertRaises(ValueError):
+                resolver.relative(root / ".." / "outside")
+            self.assertEqual(PathPolicy.join_relative("prefix", "."), "prefix")
+            self.assertEqual(PathPolicy.join_relative(".", "literal"), "literal")
+
+    def test_manifest_fallback_and_remote_literal_modes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "source"
+            fallback = Path(temp_dir) / "fallback"
+            source.mkdir()
+            fallback.mkdir()
+            (fallback / "already.out").write_text("done", encoding="utf-8")
+            manifest = (
+                ManifestBuilder()
+                .add_paths(
+                    source_root=source,
+                    destination_prefix=".",
+                    patterns=["already.out"],
+                    fallback_root=fallback,
+                )
+                .build()
+            )
+            self.assertEqual(manifest.entries, [])
+            self.assertEqual(ManifestBuilder().missing, [])
+
+        exists = RemoteManifestBuilder(
+            [], exists=lambda path: path == "task/existing.out", assume_literals=False
+        )
+        exists.add_paths(
+            source_prefix="task",
+            destination_prefix="task",
+            patterns=["existing.out", "missing.out"],
+        )
+        resolved = exists.build()
+        self.assertEqual(
+            [entry.destination for entry in resolved.entries], ["task/existing.out"]
+        )
+        self.assertEqual(
+            [missing.pattern for missing in resolved.missing], ["missing.out"]
+        )
+
+        assumed = (
+            RemoteManifestBuilder([], assume_literals=True)
+            .add_paths(
+                source_prefix="task",
+                destination_prefix="task",
+                patterns=["unknown.out"],
+            )
+            .build()
+        )
+        self.assertEqual(
+            [entry.destination for entry in assumed.entries], ["task/unknown.out"]
+        )
+        self.assertEqual(RemoteManifestBuilder._relative_to_prefix("task", "task"), ".")
+        self.assertIsNone(
+            RemoteManifestBuilder._relative_to_prefix("other/file", "task")
+        )
+
+    def test_file_transfer_special_cases(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "root"
+            root.mkdir()
+            source = root / "source.txt"
+            source.write_text("source", encoding="utf-8")
+            destination = root / "destination"
+
+            FileTransfer(root).apply(
+                ResolvedManifest([FileEntry(source, "source.txt")], [])
+            )
+            self.assertEqual(source.read_text(encoding="utf-8"), "source")
+
+            link = root / "link.txt"
+            link.symlink_to(source)
+            FileTransfer(destination, symlink=True).apply(
+                ResolvedManifest([FileEntry(link, "link.txt")], [])
+            )
+            self.assertTrue((destination / "link.txt").is_symlink())
+
+            nested_source = root / "nested"
+            nested_source.mkdir()
+            (nested_source / "new.txt").write_text("new", encoding="utf-8")
+            missing_target = destination / "nested"
+            FileTransfer(destination, overwrite=False)._copy_missing_one(
+                nested_source, missing_target
+            )
+            self.assertEqual(
+                (missing_target / "new.txt").read_text(encoding="utf-8"), "new"
+            )
+
+            race_target = destination / "race.txt"
+            with patch(
+                "dpdispatcher.file_manager.os.symlink", side_effect=FileExistsError
+            ):
+                FileTransfer(destination, link_sources=True)._copy_missing_one(
+                    source, race_target
+                )
+
+    def test_archive_error_paths_are_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "root"
+            root.mkdir()
+            with self.assertRaises(FileNotFoundError):
+                ArchiveBuilder(root).build_zip(root / "out.zip", ["missing"])
+
+            archive_path = root / "unsupported.tar"
+            with tarfile.open(archive_path, "w") as archive:
+                device = tarfile.TarInfo("device")
+                device.type = tarfile.CHRTYPE
+                archive.addfile(device)
+            with self.assertRaises(ValueError):
+                SafeArchiveExtractor(root / "out").extract_tar(archive_path)
+
+            with self.assertRaises(ValueError):
+                SafeArchiveExtractor(root / "out")._member_path("bad\x00name")
 
 
 class TestManifestAndTransfer(unittest.TestCase):
