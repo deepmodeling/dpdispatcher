@@ -21,11 +21,25 @@ class TestTerminalFailedJobs(unittest.TestCase):
         job.machine.context.check_file_exists.return_value = False
         return job
 
-    def test_retry_exhaustion_becomes_durable_terminal_state(self) -> None:
+    def test_retry_exhaustion_remains_fail_fast_by_default(self) -> None:
+        """Retry exhaustion keeps the historical immediate error behavior."""
+        job = self._job(state=JobStatus.terminated)
+
+        with self.assertRaisesRegex(RuntimeError, "failed 1 times"):
+            job.handle_unexpected_job_state()
+
+        self.assertEqual(job.job_state, JobStatus.terminated)
+        self.assertEqual(job.job_task_list[0].task_state, JobStatus.terminated)
+        self.assertIsNone(job.failure_reason)
+        job.machine.do_submit.assert_not_called()
+
+    def test_retry_exhaustion_becomes_durable_terminal_state_when_opted_in(
+        self,
+    ) -> None:
         """Persist a retry-exhausted job as failed without resubmitting it."""
         job = self._job(state=JobStatus.terminated)
 
-        job.handle_unexpected_job_state()
+        job.handle_unexpected_job_state(continue_on_failure=True)
 
         self.assertEqual(job.job_state, JobStatus.failed)
         self.assertEqual(job.job_task_list[0].task_state, JobStatus.failed)
@@ -287,11 +301,60 @@ class TestTerminalFailedJobs(unittest.TestCase):
         with self.assertRaisesRegex(
             RuntimeError, "all remaining jobs were monitored to completion"
         ):
-            submission.run_submission(clean=False, check_interval=0)
+            submission.run_submission(
+                clean=False,
+                check_interval=0,
+                continue_on_failure=True,
+            )
 
         self.assertEqual(failed.job_state, JobStatus.failed)
         self.assertEqual(running.job_state, JobStatus.finished)
         submission.try_download_result.assert_called_once_with()
+
+    def test_submission_serializes_failure_policy_and_legacy_defaults(self) -> None:
+        """Persist opt-in policy while treating older records as fail-fast."""
+        submission = Submission(
+            work_base=".",
+            resources=Resources(1, 1, 0, "", 1),
+            continue_on_failure=True,
+        )
+        serialized = submission.serialize()
+        self.assertTrue(serialized["continue_on_failure"])
+        self.assertNotIn("continue_on_failure", submission.serialize(if_static=True))
+
+        restored = Submission.deserialize(serialized, machine=MagicMock())
+        self.assertTrue(restored.continue_on_failure)
+
+        legacy = dict(serialized)
+        legacy.pop("continue_on_failure")
+        legacy_restored = Submission.deserialize(legacy, machine=MagicMock())
+        self.assertFalse(legacy_restored.continue_on_failure)
+
+    def test_runtime_policy_overrides_persisted_policy(self) -> None:
+        """An explicit run argument takes precedence over stored configuration."""
+        finished = self._job(state=JobStatus.finished, command="true")
+        submission = Submission.__new__(Submission)
+        submission.continue_on_failure = True
+        submission.resources = Resources(1, 1, 0, "", 1)
+        submission.machine = MagicMock()
+        submission.machine.context.remote_root = "/remote"
+        submission.submission_hash = "submission-hash"
+        submission.belonging_jobs = [finished]
+        submission.belonging_tasks = finished.job_task_list
+        finished.machine = submission.machine
+        submission.try_recover_from_json = MagicMock()
+        submission.update_submission_state = MagicMock()
+        submission.check_all_finished = MagicMock(return_value=True)
+        submission.handle_unexpected_submission_state = MagicMock()
+        submission.try_download_result = MagicMock(return_value=True)
+        submission.try_download_error_info = MagicMock()
+        submission.submission_to_json = MagicMock()
+        submission.serialize = MagicMock(return_value={})
+
+        submission.run_submission(clean=False, continue_on_failure=False)
+
+        self.assertFalse(submission.continue_on_failure)
+        submission.handle_unexpected_submission_state.assert_called_once_with()
 
     def test_cleanup_ignores_missing_manifests_and_invalid_roots(self) -> None:
         """Avoid deleting files when a cloud context gives no safe manifest."""

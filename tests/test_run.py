@@ -84,3 +84,41 @@ class TestRun(unittest.TestCase):
                     for task in submission.belonging_tasks
                 )
             )
+
+    def test_create_submission_propagates_failure_policy(self) -> None:
+        """PEP 723 metadata can explicitly opt in to continued monitoring."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            task_dir = Path(temp_dir) / "work"
+            task_dir.mkdir()
+            metadata = {
+                "work_base": "work",
+                "forward_common_files": [],
+                "backward_common_files": [],
+                "continue_on_failure": True,
+                "machine": {
+                    "batch_type": "Shell",
+                    "context_type": "LocalContext",
+                    "local_root": temp_dir,
+                    "remote_root": temp_dir,
+                },
+                "resources": {
+                    "number_node": 1,
+                    "cpu_per_node": 1,
+                    "gpu_per_node": 0,
+                    "queue_name": "",
+                    "group_size": 1,
+                },
+                "task_list": [
+                    {
+                        "command": "echo hello",
+                        "task_work_path": ".",
+                        "forward_files": [],
+                        "backward_files": [],
+                        "outlog": "log",
+                        "errlog": "err",
+                    }
+                ],
+            }
+
+            submission = create_submission(metadata, script_hash="abc")
+            self.assertTrue(submission.continue_on_failure)

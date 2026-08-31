@@ -29,6 +29,17 @@ The JSON entries for submission are defined as follows:
 - `--exit-on-submit`: Exit after submitting without waiting for completion.
 - `--allow-ref`: Allow loading external JSON/YAML snippets through `$ref` (disabled by default for security).
 - `--no-clean`: Keep the remote submission directory after results are downloaded.
+- `--continue-on-failure`: Continue monitoring other jobs after one job exhausts
+  its retries. By default, retry exhaustion fails the submission immediately.
+
+The JSON submission field `continue_on_failure` provides the same opt-in for
+configuration-driven workflows:
+
+```json
+{
+  "continue_on_failure": true
+}
+```
 
 By default, `dpdisp submit` removes the submission-specific remote directory after
 downloading the declared `backward_files` and `backward_common_files`. Use

@@ -52,6 +52,9 @@ class Submission:
         Shared result files downloaded after execution.
     task_list : list of Task, optional
         Tasks to register when the submission is created.
+    continue_on_failure : bool, default=False
+        Continue monitoring other jobs after one job exhausts its retries.
+        The default preserves the historical fail-fast behavior.
     """
 
     def __init__(
@@ -63,6 +66,7 @@ class Submission:
         backward_common_files: list[str] = [],
         *,
         task_list: list["Task"] = [],
+        continue_on_failure: bool = False,
     ) -> None:
         self.local_root = None
         self.work_base = work_base
@@ -85,6 +89,7 @@ class Submission:
         # self.belonging_tasks = task_list
         self.belonging_tasks = task_list.copy()
         self.belonging_jobs = list()
+        self.continue_on_failure = continue_on_failure
 
         self.bind_machine(machine)
 
@@ -132,6 +137,7 @@ class Submission:
             ),
             forward_common_files=submission_dict["forward_common_files"],
             backward_common_files=submission_dict["backward_common_files"],
+            continue_on_failure=submission_dict.get("continue_on_failure", False),
         )
         submission.belonging_jobs = [
             Job.deserialize(job_dict=job_dict)
@@ -151,7 +157,9 @@ class Submission:
         Parameters
         ----------
         if_static : bool, default=False
-            Exclude job IDs, states, and failure counts when true.
+            Exclude job IDs, states, failure counts, and runtime failure policy
+            when true. The policy is intentionally excluded from the static
+            identity so enabling continuation does not change job hashes.
 
         Returns
         -------
@@ -175,6 +183,10 @@ class Submission:
         submission_dict["resources"] = self.resources.serialize()
         submission_dict["forward_common_files"] = self.forward_common_files
         submission_dict["backward_common_files"] = self.backward_common_files
+        if not if_static:
+            # Persist this lifecycle policy so recovery resumes with the same
+            # failure semantics instead of silently changing behavior.
+            submission_dict["continue_on_failure"] = self.continue_on_failure
         submission_dict["belonging_jobs"] = [
             job.serialize(if_static=if_static) for job in self.belonging_jobs
         ]
@@ -243,6 +255,7 @@ class Submission:
         exit_on_submit: bool = False,
         clean: bool | str = True,
         check_interval: int = 30,
+        continue_on_failure: bool | None = None,
     ) -> dict[str, Any]:  # noqa: ANN401
         """Execute the submission and monitor it until completion.
 
@@ -260,6 +273,10 @@ class Submission:
             Remove the submission-specific execution directory after download.
         check_interval : int or float, default=30
             Seconds between scheduler status checks.
+        continue_on_failure : bool, optional
+            Continue monitoring remaining jobs after retry exhaustion. If omitted,
+            use the policy stored on this submission (which defaults to ``False``).
+            An explicit value overrides the persisted policy for this run.
 
         Returns
         -------
@@ -268,6 +285,13 @@ class Submission:
         """
         assert self.resources is not None
         machine = self._require_machine()
+        policy_override = continue_on_failure
+        if policy_override is not None:
+            self.continue_on_failure = policy_override
+        else:
+            # Objects assembled by older callers or lightweight tests may not
+            # have gone through ``__init__``; retain the historical default.
+            self.continue_on_failure = getattr(self, "continue_on_failure", False)
         # Fail-fast: reject invalid clean strategies before recovery/upload/submission.
         self._should_clean(clean, all_genuinely_finished=False)
         if not self.belonging_jobs:
@@ -277,6 +301,15 @@ class Submission:
         all_jobs_genuinely_finished = False
         try:
             self.try_recover_from_json()
+            # Recovery records created by opt-in runs carry their policy. An
+            # explicit runtime argument always wins over that persisted value.
+            if policy_override is not None:
+                self.continue_on_failure = policy_override
+            continue_on_failure = self.continue_on_failure
+            if not continue_on_failure and self.failed_jobs():
+                # A caller explicitly selecting fail-fast must not silently
+                # accept a terminal failure restored from an older record.
+                self.raise_for_failed_jobs(continue_on_failure=False)
             self.update_submission_state()
             if self.check_all_finished():
                 dlog.info("check_all_finished: True")
@@ -287,12 +320,18 @@ class Submission:
                     dlog.info(f"submission succeeded: {self.submission_hash}")
                     dlog.info(f"at {machine.context.remote_root}")
                     return self.serialize()
-                self.handle_unexpected_submission_state()
+                if continue_on_failure:
+                    self.handle_unexpected_submission_state(continue_on_failure=True)
+                else:
+                    self.handle_unexpected_submission_state()
                 self.submission_to_json()
                 time.sleep(1)
                 self.update_submission_state()
                 self.check_all_finished()
-                self.handle_unexpected_submission_state()
+                if continue_on_failure:
+                    self.handle_unexpected_submission_state(continue_on_failure=True)
+                else:
+                    self.handle_unexpected_submission_state()
 
             ratio_unfinished = self.resources.strategy["ratio_unfinished"]
             while not self.check_all_finished():
@@ -319,11 +358,21 @@ class Submission:
                     raise e
                 else:
                     self.update_submission_state()
-                    self.handle_unexpected_submission_state()
+                    if continue_on_failure:
+                        self.handle_unexpected_submission_state(
+                            continue_on_failure=True
+                        )
+                    else:
+                        self.handle_unexpected_submission_state()
             else:
                 # The loop condition became false without ratio-based early exit.
-                all_jobs_genuinely_finished = not self.failed_jobs()
-            self.handle_unexpected_submission_state()
+                all_jobs_genuinely_finished = (
+                    not continue_on_failure or not self.failed_jobs()
+                )
+            if continue_on_failure:
+                self.handle_unexpected_submission_state(continue_on_failure=True)
+            else:
+                self.handle_unexpected_submission_state()
             results_downloaded = self.try_download_result()
             all_jobs_genuinely_finished = (
                 all_jobs_genuinely_finished and results_downloaded
@@ -339,7 +388,7 @@ class Submission:
 
         # Determine whether to clean remote workdir
         should_clean = self._should_clean(clean, all_jobs_genuinely_finished)
-        failed_jobs = self.failed_jobs()
+        failed_jobs = self.failed_jobs() if continue_on_failure else []
         if should_clean and not failed_jobs:
             self.clean_jobs()
         elif should_clean and failed_jobs:
@@ -359,14 +408,15 @@ class Submission:
                 "preserving remote workdir for debugging at: "
                 f"{machine.context.remote_root}"
             )
-        self.raise_for_failed_jobs()
+        if continue_on_failure:
+            self.raise_for_failed_jobs()
         return self.serialize()
 
     def failed_jobs(self) -> list["Job"]:
         """Return jobs that exhausted retries and reached a terminal failure."""
         return [job for job in self.belonging_jobs if job.job_state == JobStatus.failed]
 
-    def raise_for_failed_jobs(self) -> None:
+    def raise_for_failed_jobs(self, *, continue_on_failure: bool = True) -> None:
         """Report all terminal failures after other jobs and downloads finish."""
         failed_jobs = self.failed_jobs()
         if not failed_jobs:
@@ -385,10 +435,17 @@ class Submission:
             or f"job {job.job_hash} {job.job_id} failed without diagnostics"
             for job in failed_jobs
         )
-        raise RuntimeError(
-            f"{len(failed_jobs)} job(s) failed after retries were exhausted; "
-            f"all remaining jobs were monitored to completion.\n{details}"
-        )
+        if continue_on_failure:
+            message = (
+                f"{len(failed_jobs)} job(s) failed after retries were exhausted; "
+                "all remaining jobs were monitored to completion."
+            )
+        else:
+            message = (
+                f"{len(failed_jobs)} job(s) had already failed after retries "
+                "were exhausted."
+            )
+        raise RuntimeError(f"{message}\n{details}")
 
     def _should_clean(
         self, clean: bool | str, all_genuinely_finished: bool = True
@@ -499,7 +556,7 @@ class Submission:
                     break
         return success
 
-    async def async_run_submission(self, **kwargs: Any) -> None:  # noqa: ANN401
+    async def async_run_submission(self, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """Run :meth:`run_submission` in an executor.
 
         Cleanup defaults to false for asynchronous submissions so concurrent
@@ -543,7 +600,9 @@ class Submission:
                 f"update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}"
             )
 
-    def handle_unexpected_submission_state(self) -> None:
+    def handle_unexpected_submission_state(
+        self, *, continue_on_failure: bool = False
+    ) -> None:
         """Submit unsubmitted jobs and retry unexpectedly terminated jobs.
 
         Unknown states and exhausted retries are persisted for recovery before
@@ -552,7 +611,10 @@ class Submission:
         machine = self._require_machine()
         try:
             for job in self.belonging_jobs:
-                job.handle_unexpected_job_state()
+                if continue_on_failure:
+                    job.handle_unexpected_job_state(continue_on_failure=True)
+                else:
+                    job.handle_unexpected_job_state()
         except Exception as e:
             self.submission_to_json()
             record_path = record.write(self)
@@ -936,6 +998,10 @@ class Submission:
                 self.belonging_tasks = [
                     task for job in self.belonging_jobs for task in job.job_task_list
                 ]
+                if "continue_on_failure" in submission_dict:
+                    self.continue_on_failure = bool(
+                        submission_dict["continue_on_failure"]
+                    )
                 self.bind_machine(machine=self.machine)
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
@@ -1328,8 +1394,12 @@ class Job:
             if task.task_state != JobStatus.finished:
                 task.task_state = job_state
 
-    def handle_unexpected_job_state(self) -> None:
-        """Submit or retry a job according to its current state."""
+    def handle_unexpected_job_state(self, *, continue_on_failure: bool = False) -> None:
+        """Submit or retry a job according to its current state.
+
+        Retry exhaustion remains fail-fast by default. Callers that need to
+        monitor sibling jobs must explicitly opt in with ``continue_on_failure``.
+        """
         job_state = self.job_state
 
         if job_state == JobStatus.failed:
@@ -1355,8 +1425,10 @@ class Job:
                 )
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
-                self._mark_failed(err_msg)
-                return
+                if continue_on_failure:
+                    self._mark_failed(err_msg)
+                    return
+                raise RuntimeError(err_msg)
             # Re-upload forward files before retry to handle cases where remote
             # workdir was cleaned or files were removed between attempts.
             # A failed restoration must stop the retry: submitting without the
@@ -1373,7 +1445,9 @@ class Job:
                 dlog.info(
                     f"job {self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}"
                 )
-                self.handle_unexpected_job_state()
+                self.handle_unexpected_job_state(
+                    continue_on_failure=continue_on_failure
+                )
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)
 

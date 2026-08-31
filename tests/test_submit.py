@@ -66,11 +66,18 @@ class TestSubmitCommand(unittest.TestCase):
         )
         self.assertIn(b"--allow-ref", output)
         self.assertIn(b"--no-clean", output)
+        self.assertIn(b"--continue-on-failure", output)
 
     def test_submit_clean_flags(self) -> None:
         """Test that remote cleanup remains default but can be disabled."""
         self.assertTrue(parse_args(["submit", self.json_file]).clean)
         self.assertFalse(parse_args(["submit", "--no-clean", self.json_file]).clean)
+        self.assertFalse(parse_args(["submit", self.json_file]).continue_on_failure)
+        self.assertTrue(
+            parse_args(
+                ["submit", "--continue-on-failure", self.json_file]
+            ).continue_on_failure
+        )
 
     @patch("dpdispatcher.entrypoints.submit.load_submission_from_json")
     def test_submit_forwards_no_clean(self, load_submission: MagicMock) -> None:
@@ -82,6 +89,23 @@ class TestSubmitCommand(unittest.TestCase):
 
         submission.run_submission.assert_called_once_with(
             dry_run=False, exit_on_submit=False, clean=False
+        )
+
+    @patch("dpdispatcher.entrypoints.submit.load_submission_from_json")
+    def test_submit_forwards_continue_on_failure(
+        self, load_submission: MagicMock
+    ) -> None:
+        """Forward the explicit continuation opt-in to the submission runner."""
+        submission = MagicMock()
+        load_submission.return_value = submission
+
+        submit(filename=self.json_file, continue_on_failure=True)
+
+        submission.run_submission.assert_called_once_with(
+            dry_run=False,
+            exit_on_submit=False,
+            clean=True,
+            continue_on_failure=True,
         )
 
     def test_submit_allow_ref_flag(self) -> None:
