@@ -143,6 +143,7 @@ class Submission:
             ),
             forward_common_files=submission_dict["forward_common_files"],
             backward_common_files=submission_dict["backward_common_files"],
+            task_list=task_list,
             continue_on_failure=submission_dict.get("continue_on_failure", False),
         )
         # Preserve the original absolute path when a record is resumed from a
@@ -200,6 +201,13 @@ class Submission:
         submission_dict["resources"] = self.resources.serialize()
         submission_dict["forward_common_files"] = self.forward_common_files
         submission_dict["backward_common_files"] = self.backward_common_files
+        if not self.belonging_jobs:
+            # Before jobs are generated, tasks are not represented elsewhere in
+            # the record. Keep this optional for compatibility with old records
+            # and avoid duplicating task data for generated submissions.
+            submission_dict["belonging_tasks"] = [
+                task.serialize() for task in self.belonging_tasks
+            ]
         if not if_static:
             # Persist this lifecycle policy so recovery resumes with the same
             # failure semantics instead of silently changing behavior.
@@ -726,7 +734,15 @@ class Submission:
         # A newly generated job starts with ``None`` until the backend is
         # queried. Treat every state other than ``finished`` as unfinished so
         # an uninitialized job cannot be mistaken for successful completion.
-        return all(job.job_state == JobStatus.finished for job in self.belonging_jobs)
+        # Explicit continuation treats a retry-exhausted ``failed`` job as
+        # terminal for monitoring purposes; ``run_submission`` reports it only
+        # after all other jobs have reached a terminal state.
+        continue_on_failure = getattr(self, "continue_on_failure", False)
+        return all(
+            job.job_state == JobStatus.finished
+            or (continue_on_failure and job.job_state == JobStatus.failed)
+            for job in self.belonging_jobs
+        )
 
     def generate_jobs(self) -> None:
         """Generate jobs after tasks are registered.

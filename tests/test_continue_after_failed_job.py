@@ -322,12 +322,17 @@ class TestTerminalFailedJobs(unittest.TestCase):
         self.assertTrue(serialized["continue_on_failure"])
         self.assertNotIn("continue_on_failure", submission.serialize(if_static=True))
 
-        restored = Submission.deserialize(serialized, machine=MagicMock())
+        machine = MagicMock()
+        # ``bind_machine`` hashes the submission after assigning the machine;
+        # provide a JSON-compatible serialization just like a real backend.
+        machine.serialize.return_value = {}
+
+        restored = Submission.deserialize(serialized, machine=machine)
         self.assertTrue(restored.continue_on_failure)
 
         legacy = dict(serialized)
         legacy.pop("continue_on_failure")
-        legacy_restored = Submission.deserialize(legacy, machine=MagicMock())
+        legacy_restored = Submission.deserialize(legacy, machine=machine)
         self.assertFalse(legacy_restored.continue_on_failure)
 
     def test_runtime_policy_overrides_persisted_policy(self) -> None:
