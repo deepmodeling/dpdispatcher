@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 
-from dpdispatcher.run import create_submission
+from dpdispatcher.run import create_submission, run_pep723
 
 from .context import run
 
@@ -83,4 +83,43 @@ class TestRun(unittest.TestCase):
                     task.command.endswith(' "$REMOTE_ROOT"/script_abc.py')
                     for task in submission.belonging_tasks
                 )
+            )
+
+    @unittest.skipIf(sys.platform == "win32", "Shell is not supported on Windows")
+    def test_local_context_stages_pep723_script_in_final_remote_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "work").mkdir()
+            script = f'''# /// script
+# [tool.dpdispatcher]
+# work_base = "work"
+# forward_common_files = []
+# backward_common_files = []
+# [tool.dpdispatcher.machine]
+# batch_type = "Shell"
+# context_type = "LocalContext"
+# local_root = "{root}"
+# remote_root = "{root / "remote"}"
+# [[tool.dpdispatcher.task_list]]
+# command = "python"
+# task_work_path = "."
+# forward_files = []
+# backward_files = ["log"]
+# outlog = "log"
+# errlog = "err"
+# [tool.dpdispatcher.resources]
+# number_node = 1
+# cpu_per_node = 1
+# gpu_per_node = 0
+# group_size = 1
+# ///
+
+print("local context script ran")
+'''
+
+            run_pep723(script)
+
+            self.assertEqual(
+                (root / "work" / "log").read_text().strip(),
+                "local context script ran",
             )
