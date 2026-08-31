@@ -55,7 +55,7 @@ class TestHiddenJobScripts(unittest.TestCase):
 
                 self.assertEqual(self.job.script_file_name, self.expected_script_name)
                 self.assertIn(
-                    f"source $REMOTE_ROOT/{self.expected_script_name}.run", script
+                    f'source "$REMOTE_ROOT"/{self.expected_script_name}.run', script
                 )
 
     def test_lazy_local_resubmission_and_recovery_use_hidden_paths(self) -> None:

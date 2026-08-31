@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 __package__ = "tests"
 
-from dpdispatcher.run import create_submission
+from dpdispatcher.run import create_submission, run_pep723
 
 from .context import run
 
@@ -80,7 +80,7 @@ class TestRun(unittest.TestCase):
             )
             self.assertTrue(
                 all(
-                    task.command.endswith(" $REMOTE_ROOT/script_abc.py")
+                    task.command.endswith(' "$REMOTE_ROOT"/script_abc.py')
                     for task in submission.belonging_tasks
                 )
             )
