@@ -87,7 +87,7 @@ def zip_file_list(
 #     return False
 
 
-def unzip_file(zip_file: str, out_dir: str = "./") -> None:
+def unzip_file(zip_file: str, out_dir: str = "./") -> set[str]:
     """Extract a ZIP archive into a local directory."""
     with ZipFile(zip_file, "r") as obj:
-        safe_extract_zip(obj, out_dir)
+        return safe_extract_zip(obj, out_dir)

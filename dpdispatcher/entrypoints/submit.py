@@ -90,6 +90,15 @@ def submission_args() -> Argument:
                     "declarations differ."
                 ),
             ),
+            Argument(
+                "continue_on_failure",
+                dtype=bool,
+                optional=True,
+                default=False,
+                doc=(
+                    "Continue monitoring other jobs after one job exhausts its retries."
+                ),
+            ),
             machine_args,
             resources_args,
             task_args,
@@ -137,7 +146,8 @@ def load_submission_from_json(json_path: str, allow_ref: bool = False) -> Submis
         work_base=submission_dict["work_base"],
         forward_common_files=submission_dict["forward_common_files"],
         backward_common_files=submission_dict["backward_common_files"],
-        previous_submission_hash=submission_dict["previous_submission_hash"],
+        previous_submission_hash=submission_dict.get("previous_submission_hash"),
+        continue_on_failure=submission_dict.get("continue_on_failure", False),
         machine=Machine.load_from_dict(submission_dict["machine"], allow_ref=allow_ref),
         resources=Resources.load_from_dict(
             submission_dict["resources"], allow_ref=allow_ref
@@ -153,6 +163,7 @@ def submit(
     exit_on_submit: bool = False,
     allow_ref: bool = False,
     clean: bool = True,
+    continue_on_failure: bool | None = None,
 ) -> None:
     """Submit a submission from a JSON file.
 
@@ -171,8 +182,16 @@ def submit(
         Whether to remove the remote submission directory after downloading results.
         Disable this when the complete remote work directory must remain available
         for inspection.
+    continue_on_failure : bool, optional
+        Override the submission's retry-exhaustion policy for this run. If omitted,
+        use the value from the JSON configuration.
     """
     submission = load_submission_from_json(filename, allow_ref=allow_ref)
-    submission.run_submission(
-        dry_run=dry_run, exit_on_submit=exit_on_submit, clean=clean
-    )
+    run_kwargs = {
+        "dry_run": dry_run,
+        "exit_on_submit": exit_on_submit,
+        "clean": clean,
+    }
+    if continue_on_failure is not None:
+        run_kwargs["continue_on_failure"] = continue_on_failure
+    submission.run_submission(**run_kwargs)

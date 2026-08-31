@@ -4,6 +4,7 @@
 import asyncio
 import copy
 import functools
+import glob
 import json
 import os
 import pathlib
@@ -54,6 +55,9 @@ class Submission:
     previous_submission_hash : str, optional
         SHA-1 hash of a compatible prior submission whose finished-task state
         should be reused after a resource-only change.
+    continue_on_failure : bool, default=False
+        Continue monitoring other jobs after one job exhausts its retries.
+        The default preserves the historical fail-fast behavior.
     """
 
     def __init__(
@@ -66,6 +70,7 @@ class Submission:
         *,
         task_list: list["Task"] = [],
         previous_submission_hash: str | None = None,
+        continue_on_failure: bool = False,
     ) -> None:
         """Initialize submission configuration and an optional recovery locator."""
         self.local_root = None
@@ -94,6 +99,7 @@ class Submission:
         # self.belonging_tasks = task_list
         self.belonging_tasks = task_list.copy()
         self.belonging_jobs = list()
+        self.continue_on_failure = continue_on_failure
 
         self.bind_machine(machine)
 
@@ -149,6 +155,7 @@ class Submission:
             backward_common_files=submission_dict["backward_common_files"],
             task_list=task_list,
             previous_submission_hash=submission_dict.get("previous_submission_hash"),
+            continue_on_failure=submission_dict.get("continue_on_failure", False),
         )
         # Preserve the original absolute path when a record is resumed from a
         # different working directory. Older records do not have this field and
@@ -181,7 +188,9 @@ class Submission:
         Parameters
         ----------
         if_static : bool, default=False
-            Exclude job IDs, states, and failure counts when true.
+            Exclude job IDs, states, failure counts, and runtime failure policy
+            when true. The policy is intentionally excluded from the static
+            identity so enabling continuation does not change job hashes.
 
         Returns
         -------
@@ -212,6 +221,10 @@ class Submission:
             submission_dict["belonging_tasks"] = [
                 task.serialize() for task in self.belonging_tasks
             ]
+        if not if_static:
+            # Persist this lifecycle policy so recovery resumes with the same
+            # failure semantics instead of silently changing behavior.
+            submission_dict["continue_on_failure"] = self.continue_on_failure
         submission_dict["belonging_jobs"] = [
             job.serialize(if_static=if_static) for job in self.belonging_jobs
         ]
@@ -293,6 +306,7 @@ class Submission:
         exit_on_submit: bool = False,
         clean: bool | str = True,
         check_interval: int = 30,
+        continue_on_failure: bool | None = None,
     ) -> dict[str, Any]:  # noqa: ANN401
         """Execute the submission and monitor it until completion.
 
@@ -310,6 +324,10 @@ class Submission:
             Remove the submission-specific execution directory after download.
         check_interval : int or float, default=30
             Seconds between scheduler status checks.
+        continue_on_failure : bool, optional
+            Continue monitoring remaining jobs after retry exhaustion. If omitted,
+            use the policy stored on this submission (which defaults to ``False``).
+            An explicit value overrides the persisted policy for this run.
 
         Returns
         -------
@@ -318,6 +336,13 @@ class Submission:
         """
         assert self.resources is not None
         machine = self._require_machine()
+        policy_override = continue_on_failure
+        if policy_override is not None:
+            self.continue_on_failure = policy_override
+        else:
+            # Objects assembled by older callers or lightweight tests may not
+            # have gone through ``__init__``; retain the historical default.
+            self.continue_on_failure = getattr(self, "continue_on_failure", False)
         # Fail-fast: reject invalid clean strategies before recovery/upload/submission.
         self._should_clean(clean, all_genuinely_finished=False)
         if not self.belonging_jobs:
@@ -327,6 +352,15 @@ class Submission:
         all_jobs_genuinely_finished = False
         try:
             self.try_recover_from_json()
+            # Recovery records created by opt-in runs carry their policy. An
+            # explicit runtime argument always wins over that persisted value.
+            if policy_override is not None:
+                self.continue_on_failure = policy_override
+            continue_on_failure = self.continue_on_failure
+            if not continue_on_failure and self.failed_jobs():
+                # A caller explicitly selecting fail-fast must not silently
+                # accept a terminal failure restored from an older record.
+                self.raise_for_failed_jobs(continue_on_failure=False)
             self.update_submission_state()
             if self.check_all_finished():
                 dlog.info("check_all_finished: True")
@@ -337,12 +371,18 @@ class Submission:
                     dlog.info(f"submission succeeded: {self.submission_hash}")
                     dlog.info(f"at {machine.context.remote_root}")
                     return self.serialize()
-                self.handle_unexpected_submission_state()
+                if continue_on_failure:
+                    self.handle_unexpected_submission_state(continue_on_failure=True)
+                else:
+                    self.handle_unexpected_submission_state()
                 self.submission_to_json()
                 time.sleep(1)
                 self.update_submission_state()
                 self.check_all_finished()
-                self.handle_unexpected_submission_state()
+                if continue_on_failure:
+                    self.handle_unexpected_submission_state(continue_on_failure=True)
+                else:
+                    self.handle_unexpected_submission_state()
 
             ratio_unfinished = self.resources.strategy["ratio_unfinished"]
             while not self.check_all_finished():
@@ -369,11 +409,21 @@ class Submission:
                     raise e
                 else:
                     self.update_submission_state()
-                    self.handle_unexpected_submission_state()
+                    if continue_on_failure:
+                        self.handle_unexpected_submission_state(
+                            continue_on_failure=True
+                        )
+                    else:
+                        self.handle_unexpected_submission_state()
             else:
                 # The loop condition became false without ratio-based early exit.
-                all_jobs_genuinely_finished = True
-            self.handle_unexpected_submission_state()
+                all_jobs_genuinely_finished = (
+                    not continue_on_failure or not self.failed_jobs()
+                )
+            if continue_on_failure:
+                self.handle_unexpected_submission_state(continue_on_failure=True)
+            else:
+                self.handle_unexpected_submission_state()
             results_downloaded = self.try_download_result()
             all_jobs_genuinely_finished = (
                 all_jobs_genuinely_finished and results_downloaded
@@ -389,15 +439,64 @@ class Submission:
 
         # Determine whether to clean remote workdir
         should_clean = self._should_clean(clean, all_jobs_genuinely_finished)
-        if should_clean:
+        failed_jobs = self.failed_jobs() if continue_on_failure else []
+        if should_clean and not failed_jobs:
             self.clean_jobs()
+        elif should_clean and failed_jobs:
+            # Preserve failed-job artifacts for the explicit post-mortem
+            # ``dpdisp submission --download-terminated-log`` flow.  Before
+            # retry exhaustion became a durable state, failures raised before
+            # reaching cleanup; retaining that behavior keeps stderr and other
+            # terminal logs available while still allowing a later explicit
+            # ``clean`` action to remove the remote workdir.
+            dlog.info(
+                "preserving remote workdir for failed jobs at: "
+                f"{machine.context.remote_root}"
+            )
         elif clean == "on_success":
             dlog.info(
                 "clean='on_success': some jobs did not finish successfully, "
                 "preserving remote workdir for debugging at: "
                 f"{machine.context.remote_root}"
             )
+        if continue_on_failure:
+            self.raise_for_failed_jobs()
         return self.serialize()
+
+    def failed_jobs(self) -> list["Job"]:
+        """Return jobs that exhausted retries and reached a terminal failure."""
+        return [job for job in self.belonging_jobs if job.job_state == JobStatus.failed]
+
+    def raise_for_failed_jobs(self, *, continue_on_failure: bool = True) -> None:
+        """Report all terminal failures after other jobs and downloads finish."""
+        failed_jobs = self.failed_jobs()
+        if not failed_jobs:
+            return
+        # ``clean_jobs`` removes the local record along with the remote workdir.
+        # Re-create it before raising so callers can still inspect diagnostics
+        # and use ``dpdisp submission`` to download logs or retry the submission.
+        # Failure persistence is best effort: never hide the original job error
+        # if a custom/incomplete submission object cannot be serialized.
+        try:
+            record.write(self)
+        except Exception:  # noqa: BLE001 - persistence must not mask the job failure
+            dlog.exception("Unable to persist failed submission record")
+        details = "\n\n".join(
+            job.failure_reason
+            or f"job {job.job_hash} {job.job_id} failed without diagnostics"
+            for job in failed_jobs
+        )
+        if continue_on_failure:
+            message = (
+                f"{len(failed_jobs)} job(s) failed after retries were exhausted; "
+                "all remaining jobs were monitored to completion."
+            )
+        else:
+            message = (
+                f"{len(failed_jobs)} job(s) had already failed after retries "
+                "were exhausted."
+            )
+        raise RuntimeError(f"{message}\n{details}")
 
     def _should_clean(
         self, clean: bool | str, all_genuinely_finished: bool = True
@@ -451,7 +550,11 @@ class Submission:
         if self.machine is None:
             return
         for job in self.belonging_jobs:
-            if job.job_state in (JobStatus.terminated, JobStatus.unknown):
+            if job.job_state in (
+                JobStatus.terminated,
+                JobStatus.failed,
+                JobStatus.unknown,
+            ):
                 err_file_name = job.job_hash + "_last_err_file"
                 try:
                     err_content = self.machine.get_job_error(job)
@@ -504,7 +607,7 @@ class Submission:
                     break
         return success
 
-    async def async_run_submission(self, **kwargs: Any) -> None:  # noqa: ANN401
+    async def async_run_submission(self, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """Run :meth:`run_submission` in an executor.
 
         Cleanup defaults to false for asynchronous submissions so concurrent
@@ -540,15 +643,17 @@ class Submission:
         This method only queries state. It does not submit or retry jobs.
         """
         for job in self.belonging_jobs:
-            if job.job_state == JobStatus.finished:
-                # finished job will be finished for ever, skip
+            if job.job_state in (JobStatus.finished, JobStatus.failed):
+                # Terminal jobs remain terminal and no longer need scheduler queries.
                 continue
             job.get_job_state()
             dlog.debug(
                 f"update_submission_state: job: {job.job_hash}, {job.job_id}, {job.job_state}"
             )
 
-    def handle_unexpected_submission_state(self) -> None:
+    def handle_unexpected_submission_state(
+        self, *, continue_on_failure: bool = False
+    ) -> None:
         """Submit unsubmitted jobs and retry unexpectedly terminated jobs.
 
         Unknown states and exhausted retries are persisted for recovery before
@@ -557,7 +662,10 @@ class Submission:
         machine = self._require_machine()
         try:
             for job in self.belonging_jobs:
-                job.handle_unexpected_job_state()
+                if continue_on_failure:
+                    job.handle_unexpected_job_state(continue_on_failure=True)
+                else:
+                    job.handle_unexpected_job_state()
         except Exception as e:
             self.submission_to_json()
             record_path = record.write(self)
@@ -600,28 +708,35 @@ class Submission:
         return finished_num / len(self.belonging_tasks) >= (1 - ratio_unfinished)
 
     def remove_unfinished_tasks(self) -> None:
-        """Kill unfinished jobs and retain only tasks that already completed."""
+        """Stop unfinished work while preserving durable failed records.
+
+        A failed job is terminal evidence that must remain available to
+        ``raise_for_failed_jobs`` and post-mortem download handling.  Only
+        non-terminal jobs are converted to finished after the ratio threshold
+        is reached; failed jobs and their failed tasks stay in the submission.
+        """
         machine = self._require_machine()
         dlog.info("Remove unfinished tasks")
-        # kill all jobs and mark them as finished
+        # Kill all jobs that are not already terminal.  In particular, do not
+        # rewrite JobStatus.failed: doing so hides the failure from callers.
         for job in self.belonging_jobs:
-            if job.job_state != JobStatus.finished:
+            if job.job_state not in (JobStatus.finished, JobStatus.failed):
                 machine.kill(job)
                 job.job_state = JobStatus.finished
-        # remove all unfinished tasks
-        finished_tasks = []
-        for task in self.belonging_tasks:
-            if task.task_state == JobStatus.finished:
-                finished_tasks.append(task)
-            # there is no need to remove actual remote directory
-            # as it should be cleaned anyway
-        self.belonging_tasks = finished_tasks
-        # clean removed tasks in jobs - although this should not be necessary
+        # Keep failed tasks alongside successful tasks so diagnostics and
+        # explicit terminated-log downloads can still address them.
+        retained_tasks = [
+            task
+            for task in self.belonging_tasks
+            if task.task_state in (JobStatus.finished, JobStatus.failed)
+        ]
+        self.belonging_tasks = retained_tasks
+        # Remove only tasks that were intentionally stopped from each job.
         for job in self.belonging_jobs:
             job.job_task_list = [
                 task
                 for task in job.job_task_list
-                if task.task_state == JobStatus.finished
+                if task.task_state in (JobStatus.finished, JobStatus.failed)
             ]
 
     def check_all_finished(self) -> bool:
@@ -633,14 +748,25 @@ class Submission:
         """
         # self.update_submission_state()
         if any(
-            (job.job_state in [JobStatus.terminated, JobStatus.unknown])
+            (
+                job.job_state
+                in [JobStatus.terminated, JobStatus.failed, JobStatus.unknown]
+            )
             for job in self.belonging_jobs
         ):
             self.submission_to_json()
         # A newly generated job starts with ``None`` until the backend is
         # queried. Treat every state other than ``finished`` as unfinished so
         # an uninitialized job cannot be mistaken for successful completion.
-        return all(job.job_state == JobStatus.finished for job in self.belonging_jobs)
+        # Explicit continuation treats a retry-exhausted ``failed`` job as
+        # terminal for monitoring purposes; ``run_submission`` reports it only
+        # after all other jobs have reached a terminal state.
+        continue_on_failure = getattr(self, "continue_on_failure", False)
+        return all(
+            job.job_state == JobStatus.finished
+            or (continue_on_failure and job.job_state == JobStatus.failed)
+            for job in self.belonging_jobs
+        )
 
     def generate_jobs(self) -> None:
         """Generate jobs after tasks are registered.
@@ -689,9 +815,181 @@ class Submission:
         """Upload submission inputs through the bound context."""
         self._require_machine().context.upload(self)
 
-    def download_jobs(self) -> None:
-        """Download declared submission outputs through the bound context."""
-        self._require_machine().context.download(self)
+    def download_jobs(self, include_failed: bool = False) -> None:
+        """Download selected task outputs, optionally including failed jobs.
+
+        Normal result downloads omit failed jobs so missing outputs do not mask
+        successful work.  Explicit terminated-log requests need the original
+        failed tasks, however, and set ``include_failed=True`` to bypass that
+        success-only filtering.
+        """
+        context = self._require_machine().context
+        if include_failed or not self.failed_jobs():
+            # Terminated-log requests may include a configured stdout file that
+            # was never created (for example, a command that fails before
+            # producing output).  Ask contexts to skip absent files while still
+            # transferring any logs that do exist, such as stderr diagnostics.
+            context.download(
+                self,
+                check_exists=include_failed,
+                mark_failure=False,
+            )
+            return
+
+        # Temporarily expose only successful work so missing outputs from
+        # terminal failures cannot mask results produced by other jobs.
+        original_tasks = self.belonging_tasks
+        original_jobs = self.belonging_jobs
+        selected_tasks = [
+            task for task in original_tasks if task.task_state == JobStatus.finished
+        ]
+        downloads_by_job = getattr(context, "downloads_by_job", False) is True
+        if downloads_by_job and not getattr(
+            context, "supports_partial_job_download", True
+        ):
+            # Job archives that require all tasks to succeed do not exist for a
+            # failed grouped job.  Restrict both lists to complete jobs and
+            # avoid invoking the backend when there is no archive to fetch.
+            selected_jobs = [
+                job for job in original_jobs if job.job_state == JobStatus.finished
+            ]
+            selected_hashes = {
+                task.task_hash for job in selected_jobs for task in job.job_task_list
+            }
+            selected_tasks = [
+                task for task in selected_tasks if task.task_hash in selected_hashes
+            ]
+        elif downloads_by_job:
+            # Cloud archives are keyed by parent job rather than task. Retain a
+            # mixed-state parent whenever it contains selected finished tasks;
+            # the task-level cleanup below removes outputs of failed siblings.
+            selected_hashes = {task.task_hash for task in selected_tasks}
+            selected_jobs = [
+                job
+                for job in original_jobs
+                if job.job_state == JobStatus.finished
+                or any(task.task_hash in selected_hashes for task in job.job_task_list)
+            ]
+        else:
+            selected_jobs = [
+                job for job in original_jobs if job.job_state == JobStatus.finished
+            ]
+        if downloads_by_job and not selected_jobs:
+            return
+        self.belonging_tasks = selected_tasks
+        self.belonging_jobs = selected_jobs
+        try:
+            context.download(self)
+        finally:
+            self.belonging_tasks = original_tasks
+            self.belonging_jobs = original_jobs
+        if downloads_by_job:
+            self._remove_unselected_task_outputs(
+                original_jobs,
+                selected_tasks,
+                getattr(context, "last_downloaded_files", None),
+            )
+
+    def _remove_unselected_task_outputs(
+        self,
+        jobs: list["Job"],
+        selected_tasks: list["Task"],
+        downloaded_files: set[str] | None,
+    ) -> None:
+        """Remove outputs of failed siblings after a mixed cloud archive download.
+
+        Cloud contexts retrieve one archive per parent job and cannot apply the
+        task-level selection used by filesystem contexts. For a mixed-state
+        parent, remove only configured backward files that the current archive
+        actually extracted. Explicit include_failed=True downloads take a
+        separate path and intentionally retain those files.
+        """
+        context = self._require_machine().context
+        if not isinstance(downloaded_files, set):
+            # Older/custom cloud contexts do not report an extraction manifest;
+            # guessing from backward_files could delete unrelated local data.
+            return
+        try:
+            local_root = os.path.realpath(
+                os.path.abspath(os.fspath(context.local_root))
+            )
+        except (AttributeError, TypeError):
+            return
+
+        extracted_paths: set[str] = set()
+        for filename in downloaded_files:
+            if not isinstance(filename, str) or not filename:
+                continue
+            path = (
+                filename
+                if os.path.isabs(filename)
+                else os.path.join(local_root, filename)
+            )
+            path = os.path.realpath(os.path.abspath(path))
+            try:
+                is_inside_root = os.path.commonpath((local_root, path)) == local_root
+            except ValueError:
+                is_inside_root = False
+            if is_inside_root and path != local_root and os.path.lexists(path):
+                extracted_paths.add(path)
+
+        if not extracted_paths:
+            return
+
+        def matches_task_output(task: "Task", path: str) -> bool:
+            """Return whether an extracted path matches a task output pattern."""
+            task_root = os.path.realpath(
+                os.path.abspath(os.path.join(local_root, task.task_work_path))
+            )
+            try:
+                if os.path.commonpath((local_root, task_root)) != local_root:
+                    return False
+            except ValueError:
+                return False
+            for pattern in task.backward_files:
+                if pattern in ("", ".", "./"):
+                    continue
+                for matched in glob.glob(
+                    os.path.join(task_root, pattern), recursive=True
+                ):
+                    matched = os.path.realpath(os.path.abspath(matched))
+                    try:
+                        if os.path.commonpath((local_root, matched)) != local_root:
+                            continue
+                    except ValueError:
+                        continue
+                    if matched == path:
+                        return True
+                    if os.path.isdir(matched):
+                        try:
+                            if os.path.commonpath((matched, path)) == matched:
+                                return True
+                        except ValueError:
+                            continue
+            return False
+
+        selected_hashes = {task.task_hash for task in selected_tasks}
+        # A path referenced by both a successful task and a failed sibling is
+        # shared output. Preserve it even when the archive contained the path.
+        protected_paths = {
+            path
+            for path in extracted_paths
+            if any(matches_task_output(task, path) for task in selected_tasks)
+        }
+        for job in jobs:
+            if not any(task.task_hash in selected_hashes for task in job.job_task_list):
+                continue
+            for task in job.job_task_list:
+                if task.task_hash in selected_hashes:
+                    continue
+                for path in extracted_paths:
+                    if path in protected_paths or not matches_task_output(task, path):
+                        continue
+                    # The extraction manifest contains files, not whole output
+                    # trees. Remove only those files so pre-existing siblings
+                    # inside a configured output directory remain untouched.
+                    if os.path.isfile(path) or os.path.islink(path):
+                        os.remove(path)
         # for job in self.belonging_jobs:
         #     job.tag_finished()
         # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")
@@ -756,6 +1054,10 @@ class Submission:
                 self.belonging_tasks = [
                     task for job in self.belonging_jobs for task in job.job_task_list
                 ]
+                if "continue_on_failure" in submission_dict:
+                    self.continue_on_failure = bool(
+                        submission_dict["continue_on_failure"]
+                    )
                 self.bind_machine(machine=self.machine)
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
@@ -1306,6 +1608,7 @@ class Job:
         resources: "Resources",
         machine: Optional["Machine"] = None,
     ) -> None:
+        """Initialize a grouped scheduler job and its runtime state."""
         self.job_task_list = job_task_list
         # self.job_work_base = job_work_base
         self.resources = resources
@@ -1316,6 +1619,7 @@ class Job:
         self.upload_path = ""
         self.jgid: str | int | None = None
         self.fail_count = 0
+        self.failure_reason: str | None = None
         self.job_uuid = uuid.uuid4()
 
         self.job_hash = self.get_hash()
@@ -1375,9 +1679,15 @@ class Job:
         job.job_state = job_dict[job_hash]["job_state"]
         job.job_id = job_dict[job_hash]["job_id"]
         job.fail_count = job_dict[job_hash]["fail_count"]
+        job.failure_reason = job_dict[job_hash].get("failure_reason")
         # job.job_uuid = job_dict[job_hash]['job_uuid']
-        for task in job.job_task_list:
-            task.task_state = job.job_state
+        task_states = job_dict[job_hash].get("task_states")
+        for index, task in enumerate(job.job_task_list):
+            task.task_state = (
+                task_states[index]
+                if task_states is not None and index < len(task_states)
+                else job.job_state or JobStatus.unsubmitted
+            )
         return job
 
     def get_job_state(self) -> None:
@@ -1399,9 +1709,16 @@ class Job:
             if task.task_state != JobStatus.finished:
                 task.task_state = job_state
 
-    def handle_unexpected_job_state(self) -> None:
-        """Submit or retry a job according to its current state."""
+    def handle_unexpected_job_state(self, *, continue_on_failure: bool = False) -> None:
+        """Submit or retry a job according to its current state.
+
+        Retry exhaustion remains fail-fast by default. Callers that need to
+        monitor sibling jobs must explicitly opt in with ``continue_on_failure``.
+        """
         job_state = self.job_state
+
+        if job_state == JobStatus.failed:
+            return
 
         if job_state == JobStatus.unknown:
             raise RuntimeError(f"job_state for job {self} is unknown")
@@ -1423,6 +1740,9 @@ class Job:
                 )
                 if last_error_message is not None:
                     err_msg += f"\nPossible remote error message: {last_error_message}"
+                if continue_on_failure:
+                    self._mark_failed(err_msg)
+                    return
                 raise RuntimeError(err_msg)
             # Re-upload forward files before retry to handle cases where remote
             # workdir was cleaned or files were removed between attempts.
@@ -1440,7 +1760,9 @@ class Job:
                 dlog.info(
                     f"job {self.job_hash} job_id:{self.job_id} after re-submitting; the state now is {repr(self.job_state)}"
                 )
-                self.handle_unexpected_job_state()
+                self.handle_unexpected_job_state(
+                    continue_on_failure=continue_on_failure
+                )
             if self.resources.wait_time != 0:
                 time.sleep(self.resources.wait_time)
 
@@ -1515,6 +1837,10 @@ class Job:
             job_content_dict["job_state"] = self.job_state
             job_content_dict["job_id"] = self.job_id
             job_content_dict["fail_count"] = self.fail_count
+            job_content_dict["failure_reason"] = self.failure_reason
+            job_content_dict["task_states"] = [
+                task.task_state for task in self.job_task_list
+            ]
             # job_content_dict['job_uuid'] = self.job_uuid
         return {job_hash: job_content_dict}
 
@@ -1548,6 +1874,17 @@ class Job:
             # red color
             last_error_message = "\033[31m" + last_error_message + "\033[0m"
             return last_error_message
+
+    def _mark_failed(self, reason: str) -> None:
+        """Persist retry exhaustion while preserving per-task completion tags."""
+        assert self.machine is not None
+        for task in self.job_task_list:
+            task.get_task_state(self.machine.context)
+            if task.task_state != JobStatus.finished:
+                task.task_state = JobStatus.failed
+        self.failure_reason = reason
+        self.job_state = JobStatus.failed
+        dlog.error(reason)
 
     def _ensure_forward_files_on_retry(self) -> None:
         """Re-upload forward files before retry by delegating to context.upload().

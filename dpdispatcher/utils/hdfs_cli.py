@@ -32,6 +32,23 @@ def _validate_operand(value: str, name: str) -> str:
     return value
 
 
+class HDFSMissingPathError(RuntimeError):
+    """Raised when Hadoop reports that a requested source path is absent."""
+
+
+def _reports_missing_path(output: bytes, error: bytes) -> bool:
+    """Recognize Hadoop's standard missing-path diagnostics."""
+    message = (output + b"\n" + error).decode("utf-8", errors="replace").lower()
+    return any(
+        marker in message
+        for marker in (
+            "no such file or directory",
+            "filenotfoundexception",
+            "does not exist",
+        )
+    )
+
+
 class HDFS:
     """Fundamental class for HDFS basic manipulation."""
 
@@ -143,10 +160,17 @@ class HDFS:
             ret, out, err = _run_hadoop(command)
             if ret == 0:
                 return True
-            raise RuntimeError(
+            error_type = (
+                HDFSMissingPathError
+                if _reports_missing_path(out, err)
+                else RuntimeError
+            )
+            raise error_type(
                 f"Cannot copy remote[{from_uri}] to local[{local_path}] with cmd[{command_text}]; "
                 f"ret[{ret}] output[{out}] stderr[{err}]"
             )
+        except HDFSMissingPathError:
+            raise
         except Exception as error:
             raise RuntimeError(
                 f"Cannot copy remote[{from_uri}] to local[{local_path}] with cmd[{command_text}]"

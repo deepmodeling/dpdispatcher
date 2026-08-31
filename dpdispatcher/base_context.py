@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from dargs import Argument
 
@@ -42,6 +42,16 @@ class BaseContext(metaclass=ABCMeta):
     # Cloud backends expose job metadata rather than task work directories and
     # therefore recover whole completed jobs from the persisted record instead.
     supports_task_completion_tags: bool = True
+    # Cloud contexts retrieve one archive per parent job; filesystem contexts
+    # can select backward files directly at task granularity.
+    downloads_by_job: ClassVar[bool] = False
+    # Cloud contexts populate this with relative files extracted by their most
+    # recent download so mixed-state cleanup never guesses at local paths.
+    last_downloaded_files: set[str]
+    # Some job-archive backends only create an archive when every task in the
+    # grouped job succeeds.  Such backends cannot download a mixed-state job
+    # by selecting only its finished sibling tasks.
+    supports_partial_job_download: ClassVar[bool] = True
 
     def __new__(cls, *args: Any, **kwargs: Any) -> BaseContext:  # noqa: ANN401
         """Select a registered context subclass when called on ``BaseContext``."""

@@ -57,6 +57,22 @@ submission = Submission(
 submission.run_submission(check_interval=1, clean=False)
 ```
 
+Retry exhaustion is fail-fast by default. To finish monitoring sibling jobs
+and report all exhausted jobs together, opt in either when constructing the
+submission or for a single run:
+
+```python
+submission = Submission(
+    work_base=".",
+    machine=machine,
+    resources=resources,
+    task_list=[task],
+    continue_on_failure=True,
+)
+submission.run_submission(check_interval=1, clean=False)
+# Alternatively: submission.run_submission(continue_on_failure=True)
+```
+
 Use `clean=False` while debugging so the execution directory and generated
 scripts remain available for inspection. For remote contexts, the default
 `clean=True` removes the submission-specific remote directory after declared
@@ -139,6 +155,8 @@ Important keyword arguments are:
 - `exit_on_submit=True`: submit jobs and return without polling for completion.
 - `clean=False`: retain the execution directory after downloading results.
 - `check_interval=N`: poll scheduler status every `N` seconds.
+- `continue_on_failure=True`: continue monitoring sibling jobs after retry
+  exhaustion; omitted or `False` preserves fail-fast behavior.
 
 For concurrent submissions, use
 {meth}`Submission.async_run_submission <dpdispatcher.Submission.async_run_submission>`.

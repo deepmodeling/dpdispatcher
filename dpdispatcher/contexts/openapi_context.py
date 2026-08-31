@@ -6,7 +6,7 @@ import glob
 import os
 import shutil
 import uuid
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, ClassVar, NoReturn
 from zipfile import ZipFile
 
 import tqdm
@@ -36,10 +36,10 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 )
 
 
-def unzip_file(zip_file: str, out_dir: str = "./") -> None:
+def unzip_file(zip_file: str, out_dir: str = "./") -> set[str]:
     """Extract a ZIP archive into a local directory."""
     with ZipFile(zip_file, "r") as obj:
-        safe_extract_zip(obj, out_dir)
+        return safe_extract_zip(obj, out_dir)
 
 
 def zip_file_list(root_path: str, zip_filename: str, file_list: list[str] = []) -> str:
@@ -72,6 +72,7 @@ class OpenAPIContext(BaseContext):
 
     # OpenAPI exposes job archives and metadata, not task completion-tag paths.
     supports_task_completion_tags = False
+    downloads_by_job: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -238,6 +239,8 @@ class OpenAPIContext(BaseContext):
         mark_failure: bool = True,
         back_error: bool = False,
     ) -> bool:
+        """Download completed Bohrium archives and record extracted paths."""
+        self.last_downloaded_files: set[str] = set()
         jobs = submission.belonging_jobs
         job_hashs = {}
         job_infos = {}
@@ -277,7 +280,9 @@ class OpenAPIContext(BaseContext):
             ):
                 continue
             self.storage.download_from_url(info["resultUrl"], target_result_zip)
-            unzip_file(target_result_zip, out_dir=self.local_root)
+            self.last_downloaded_files.update(
+                unzip_file(target_result_zip, out_dir=self.local_root)
+            )
             self._backup(self.local_root, target_result_zip)
         self._clean_backup(
             self.local_root, keep_backup=self.remote_profile.get("keep_backup", True)

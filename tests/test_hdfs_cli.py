@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import Mock, call, patch
 
 from dpdispatcher.machines.pbs import SGE
-from dpdispatcher.utils.hdfs_cli import HDFS
+from dpdispatcher.utils.hdfs_cli import HDFS, HDFSMissingPathError
 
 
 class TestHDFSCommands(unittest.TestCase):
@@ -90,6 +90,14 @@ class TestHDFSCommands(unittest.TestCase):
             ["hadoop", "fs", "-test", "-e", "hdfs://cluster/missing path"],
             shell=False,
         )
+
+    @patch("dpdispatcher.utils.hdfs_cli.run_cmd_with_all_output")
+    def test_copy_to_local_classifies_missing_source(self, mock_run: Mock) -> None:
+        """A Hadoop missing-source diagnostic has a distinct exception type."""
+        mock_run.return_value = (1, b"", b"FileNotFoundException: missing")
+
+        with self.assertRaises(HDFSMissingPathError):
+            HDFS.copy_to_local("hdfs://cluster/missing", "/tmp/output")
 
     @patch("dpdispatcher.utils.hdfs_cli.run_cmd_with_all_output")
     def test_rejects_option_like_and_invalid_operands(self, mock_run: Mock) -> None:

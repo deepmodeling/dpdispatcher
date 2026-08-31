@@ -124,6 +124,14 @@ def main_parser() -> argparse.ArgumentParser:
         help="Exit after submitting without waiting for completion.",
     )
     parser_submit.add_argument(
+        "--continue-on-failure",
+        action="store_true",
+        help=(
+            "Continue monitoring other jobs after one job exhausts its retries. "
+            "The default is fail-fast."
+        ),
+    )
+    parser_submit.add_argument(
         "--allow-ref",
         action="store_true",
         help="Allow loading external JSON/YAML snippets through `$ref`. Disabled by default for security.",
@@ -183,6 +191,9 @@ def main() -> None:
             exit_on_submit=args.exit_on_submit,
             allow_ref=args.allow_ref,
             clean=args.clean,
+            # ``False`` means the flag was omitted. Pass ``None`` so a JSON
+            # submission that explicitly enables continuation remains honored.
+            continue_on_failure=(True if args.continue_on_failure else None),
         )
     elif args.command is None:
         pass
