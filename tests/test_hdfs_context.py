@@ -70,6 +70,8 @@ class TestHDFSContextDownload(unittest.TestCase):
                     mark_failure=False,
                 )
 
+            self.assertFalse(os.path.exists(os.path.join(local_root, "tmp")))
+
             self.assertFalse(
                 os.path.exists(os.path.join(local_root, "task/missing.log"))
             )
@@ -282,6 +284,93 @@ class TestHDFSContextDownload(unittest.TestCase):
             ):
                 with self.assertRaises(HDFSMissingPathError):
                     context.download(submission)
+
+    def test_upload_ignores_manifest_directory_markers(self) -> None:
+        """HDFS archives requested files without recursively archiving inputs."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            task_dir = os.path.join(local_root, "task")
+            os.makedirs(task_dir)
+            with open(os.path.join(task_dir, "input.dat"), "w") as stream:
+                stream.write("input")
+
+            task = SimpleNamespace(
+                task_work_path="task",
+                forward_files=["input.dat"],
+            )
+            submission = SimpleNamespace(
+                belonging_tasks=[task],
+                forward_common_files=[],
+            )
+            with patch.object(context, "_put_files") as put_files:
+                context.upload(submission)
+
+            put_files.assert_called_once_with(["task/input.dat"], dereference=True)
+
+    def test_upload_reports_missing_forward_files(self) -> None:
+        """Required HDFS upload inputs fail before creating an archive."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            task = SimpleNamespace(task_work_path="task", forward_files=["missing"])
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[task],
+                forward_common_files=[],
+            )
+            with self.assertRaises(FileNotFoundError):
+                context.upload(submission)
+
+    def test_write_file_cleans_temporary_source_and_returns_none(self) -> None:
+        """HDFS metadata writes do not expose a deleted local temp path."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            with patch.object(HDFS, "copy_from_local") as copy_from_local:
+                self.assertIsNone(context.write_file("state.txt", "ready"))
+            local_file = copy_from_local.call_args.args[0]
+            self.assertFalse(os.path.exists(local_file))
+
+    def test_download_cleans_existing_tmp_and_reports_missing_manifest(self) -> None:
+        """An empty archive still follows the required missing-output path."""
+        with tempfile.TemporaryDirectory() as local_root:
+            context = HDFSContext.__new__(HDFSContext)
+            context.local_root = local_root
+            context.remote_root = "/remote/submission"
+            os.mkdir(os.path.join(local_root, "tmp"))
+            submission = SimpleNamespace(
+                submission_hash="submission-hash",
+                belonging_tasks=[],
+                backward_common_files=["missing.out"],
+            )
+
+            def create_empty_archive(_remote: str, destination: str) -> None:
+                with tarfile.open(
+                    os.path.join(destination, "submission-hash_1_download.tar.gz"),
+                    "w:gz",
+                ):
+                    pass
+
+            with patch.object(HDFS, "copy_to_local", side_effect=create_empty_archive):
+                with self.assertRaises(FileNotFoundError):
+                    context.download(submission)
+            self.assertFalse(os.path.exists(os.path.join(local_root, "tmp")))
+
+    def test_hdfs_metadata_read_and_exists_delegate_to_backend(self) -> None:
+        """Metadata helpers preserve the HDFS path contract."""
+        context = HDFSContext.__new__(HDFSContext)
+        context.remote_root = "/remote/submission"
+        with (
+            patch.object(HDFS, "exists", return_value=True) as exists,
+            patch.object(HDFS, "read_hdfs_file", return_value=b"ready") as read,
+        ):
+            self.assertTrue(context.check_file_exists("state.txt"))
+            self.assertEqual(context.read_file("state.txt"), b"ready")
+        exists.assert_called_once_with("/remote/submission/state.txt")
+        read.assert_called_once_with("/remote/submission/state.txt")
 
 
 @unittest.skipIf(not shutil.which("hadoop"), "requires hadoop")

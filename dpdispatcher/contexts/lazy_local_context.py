@@ -5,6 +5,7 @@ import subprocess as sp
 from typing import TYPE_CHECKING, Any
 
 from dpdispatcher.base_context import BaseContext
+from dpdispatcher.file_manager import AtomicTextWriter, PathResolver
 
 if TYPE_CHECKING:
     from dpdispatcher.submission import Submission
@@ -48,7 +49,7 @@ class LazyLocalContext(BaseContext):
         self,
         local_root: str,
         remote_root: str | None = None,
-        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] | None = None,  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -57,7 +58,7 @@ class LazyLocalContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(local_root)
-        self.remote_profile = remote_profile
+        self.remote_profile = dict(remote_profile) if remote_profile is not None else {}
         # self.job_uuid = None
         # self.submission = None
         # if job_uuid:
@@ -154,12 +155,13 @@ class LazyLocalContext(BaseContext):
         pass
 
     def write_file(self, fname: str, write_str: str) -> None:
-        os.makedirs(self.remote_root, exist_ok=True)
-        with open(os.path.join(self.remote_root, fname), "w") as fp:
-            fp.write(write_str)
+        AtomicTextWriter(self.remote_root).write(fname, write_str)
 
     def read_file(self, fname: str) -> str:
-        with open(os.path.join(self.remote_root, fname)) as fp:
+        with open(
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True),
+            encoding="utf-8",
+        ) as fp:
             ret = fp.read()
         return ret
 
@@ -168,7 +170,9 @@ class LazyLocalContext(BaseContext):
         # file_to_be_checked = os.path.join(submission_work_base, fname)
         # print('debug:dpdispatcher.LazyLocalContext().check_file_exists:file_to_be_checked', file_to_be_checked)
         # return os.path.isfile(file_to_be_checked)
-        return os.path.isfile(os.path.join(self.remote_root, fname))
+        return (
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True).is_file()
+        )
 
     def call(self, cmd: str) -> sp.Popen:
         cwd = os.getcwd()

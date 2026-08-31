@@ -58,6 +58,23 @@ class TestSubmission(unittest.TestCase):
             os.path.join(machine.context.temp_remote_root, submission.submission_hash),
         )
 
+    def test_absolute_work_base_is_supported_and_serializable(self) -> None:
+        """Absolute work directories retain their historical as-is behavior."""
+        machine = SampleClass.get_sample_pbs_local_context()
+        absolute_work_base = os.path.abspath(os.path.join("/tmp", "dpdispatcher-work"))
+        submission = Submission(
+            work_base=absolute_work_base,
+            machine=machine,
+            resources=SampleClass.get_sample_resources(),
+        )
+
+        self.assertEqual(submission.work_base, absolute_work_base)
+        restored = Submission.deserialize(
+            submission.serialize(), machine=machine, bind_context=False
+        )
+        self.assertEqual(restored.work_base, absolute_work_base)
+        self.assertEqual(restored._abs_work_base, absolute_work_base)
+
     def test_get_submision_state(self) -> None:
         pass
 

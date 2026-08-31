@@ -1,7 +1,9 @@
 import errno
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -110,6 +112,94 @@ class TestSSHContextRemoteRootRecovery(unittest.TestCase):
 
         self.sftp.rename.assert_not_called()
         self.sftp.rmdir.assert_not_called()
+
+    def test_remote_metadata_paths_use_posix_and_stay_in_root(self) -> None:
+        """Remote SFTP paths must not depend on the controller's OS separator."""
+        self.context.remote_root = "/remote/hash"
+
+        self.assertEqual(
+            self.context._resolve_remote_path("task\\state.json"),
+            "/remote/hash/task/state.json",
+        )
+        self.assertEqual(
+            self.context._resolve_remote_path("/remote/hash/task/state.json"),
+            "/remote/hash/task/state.json",
+        )
+        with self.assertRaises(ValueError):
+            self.context._resolve_remote_path("/remote/other/state.json")
+
+    def test_remote_file_operations_use_resolved_posix_paths(self) -> None:
+        """Metadata I/O keeps POSIX names even when the controller is Windows."""
+        self.context.remote_root = "/remote/hash"
+        self.context.block_checkcall = MagicMock()
+        handle = MagicMock()
+        self.context.sftp.open.return_value.__enter__.return_value = handle
+
+        self.context.write_file("state\\status.txt", "ready")
+        self.context.sftp.open.assert_called_with(
+            "/remote/hash/state/status.txt_tmp", "w"
+        )
+        self.context.block_checkcall.assert_called_once()
+
+        handle.read.return_value = b"ready"
+        self.assertEqual(self.context.read_file("state/status.txt"), "ready")
+        self.context.sftp.open.assert_called_with("/remote/hash/state/status.txt", "r")
+
+        self.context.sftp.stat.return_value = MagicMock()
+        self.assertTrue(self.context.check_file_exists("state/status.txt"))
+        self.context.sftp.stat.side_effect = OSError("missing")
+        self.assertFalse(self.context.check_file_exists("state/status.txt"))
+
+        with self.assertRaises(ValueError):
+            self.context._resolve_remote_path("bad\x00name")
+
+    def test_upload_builds_manifest_and_delegates_to_archive_transfer(self) -> None:
+        """Normal SSH uploads use relative manifest paths exactly once."""
+        with tempfile.TemporaryDirectory() as local_root:
+            task_root = Path(local_root, "task")
+            task_root.mkdir()
+            (task_root / "input.txt").write_text("input", encoding="utf-8")
+            self.context.local_root = local_root
+            self.context.remote_root = "/remote/hash"
+            self.context.temp_remote_root = "/remote"
+            self.context.remote_profile = {}
+            self.context._put_files = MagicMock()
+            submission = SimpleNamespace(
+                belonging_tasks=[
+                    SimpleNamespace(task_work_path="task", forward_files=["input.txt"])
+                ],
+                forward_common_files=[],
+            )
+
+            self.context.upload(submission)
+
+            self.context._put_files.assert_called_once_with(
+                ["task/input.txt"],
+                dereference=True,
+                directories=["task"],
+                tar_compress=True,
+            )
+
+    def test_download_records_missing_remote_patterns(self) -> None:
+        """SSH downloads report missing wildcard outputs and write markers."""
+        with tempfile.TemporaryDirectory() as local_root:
+            self.context.local_root = local_root
+            self.context.remote_root = "/remote/hash"
+            self.context.remote_profile = {}
+            self.context.list_remote_dir = MagicMock()
+            submission = SimpleNamespace(
+                belonging_tasks=[
+                    SimpleNamespace(task_work_path="task", backward_files=["missing*"])
+                ],
+                backward_common_files=[],
+            )
+            with self.assertRaises(FileNotFoundError):
+                self.context.download(submission)
+
+            self.context.download(submission, check_exists=True, mark_failure=True)
+            self.assertTrue(
+                Path(local_root, "task", "tag_failure_download_missing_").exists()
+            )
 
 
 @unittest.skipIf(

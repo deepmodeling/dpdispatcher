@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import glob
 import os
 import shutil
 import uuid
 from typing import TYPE_CHECKING, Any, ClassVar, NoReturn
-from zipfile import ZipFile
 
 import tqdm
 
@@ -24,7 +22,12 @@ else:
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
-from dpdispatcher.utils.archive import safe_extract_zip
+from dpdispatcher.file_manager import (
+    AtomicTextWriter,
+    FileTransfer,
+    PathResolver,
+)
+from dpdispatcher.utils.dpcloudserver.zip_file import unzip_file, zip_file_list
 from dpdispatcher.utils.job_status import JobStatus
 
 if TYPE_CHECKING:
@@ -34,37 +37,6 @@ if TYPE_CHECKING:
 DP_CLOUD_SERVER_HOME_DIR = os.path.join(
     os.path.expanduser("~"), ".dpdispatcher/", "dp_cloud_server/"
 )
-
-
-def unzip_file(zip_file: str, out_dir: str = "./") -> set[str]:
-    """Extract a ZIP archive into a local directory."""
-    with ZipFile(zip_file, "r") as obj:
-        return safe_extract_zip(obj, out_dir)
-
-
-def zip_file_list(root_path: str, zip_filename: str, file_list: list[str] = []) -> str:
-    """Create a ZIP archive from paths and glob patterns below a root."""
-    out_zip_file = os.path.join(root_path, zip_filename)
-    # print('debug: file_list', file_list)
-    zip_obj = ZipFile(out_zip_file, "w")
-    for f in file_list:
-        matched_files = os.path.join(root_path, f)
-        for ii in glob.glob(matched_files):
-            # print('debug: matched_files:ii', ii)
-            if os.path.isdir(ii):
-                arcname = os.path.relpath(ii, start=root_path)
-                zip_obj.write(ii, arcname)
-                for root, dirs, files in os.walk(ii):
-                    for file in files:
-                        filename = os.path.join(root, file)
-                        arcname = os.path.relpath(filename, start=root_path)
-                        # print('debug: filename:arcname:root_path', filename, arcname, root_path)
-                        zip_obj.write(filename, arcname)
-            else:
-                arcname = os.path.relpath(ii, start=root_path)
-                zip_obj.write(ii, arcname)
-    zip_obj.close()
-    return out_zip_file
 
 
 class OpenAPIContext(BaseContext):
@@ -78,7 +50,7 @@ class OpenAPIContext(BaseContext):
         self,
         local_root: str,
         remote_root: str | None = None,
-        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] | None = None,  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -89,7 +61,8 @@ class OpenAPIContext(BaseContext):
         self.init_local_root = local_root
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
-        self.remote_profile = remote_profile
+        remote_profile = {} if remote_profile is None else remote_profile
+        self.remote_profile = dict(remote_profile)
         access_key = (
             remote_profile.get("access_key", None)
             or os.getenv("BOHRIUM_ACCESS_KEY", None)
@@ -294,23 +267,21 @@ class OpenAPIContext(BaseContext):
         return result
 
     def write_local_file(self, fname: str, write_str: str) -> str:
-        local_filename = os.path.join(self.local_root, fname)
-        with open(local_filename, "w") as f:
-            f.write(write_str)
-        return local_filename
+        return os.fspath(AtomicTextWriter(self.local_root).write(fname, write_str))
 
     def read_file(self, fname: str) -> str:
         result = self.read_home_file(fname)
         return result
 
     def write_home_file(self, fname: str, write_str: str) -> bool:
-        # os.makedirs(self.remote_root, exist_ok = True)
-        with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname), "w") as fp:
-            fp.write(write_str)
+        AtomicTextWriter(DP_CLOUD_SERVER_HOME_DIR).write(fname, write_str)
         return True
 
     def read_home_file(self, fname: str) -> str:
-        with open(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname)) as fp:
+        with open(
+            PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(fname, allow_absolute=True),
+            encoding="utf-8",
+        ) as fp:
             ret = fp.read()
         return ret
 
@@ -319,12 +290,18 @@ class OpenAPIContext(BaseContext):
         return result
 
     def check_home_file_exits(self, fname: str) -> bool:
-        return os.path.isfile(os.path.join(DP_CLOUD_SERVER_HOME_DIR, fname))
+        return (
+            PathResolver(DP_CLOUD_SERVER_HOME_DIR)
+            .resolve(fname, allow_absolute=True)
+            .is_file()
+        )
 
     def clean(self) -> bool:
         submission_file_name = f"{self.submission.submission_hash}.json"
-        submission_json = os.path.join(DP_CLOUD_SERVER_HOME_DIR, submission_file_name)
-        os.remove(submission_json)
+        submission_json = PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(
+            submission_file_name
+        )
+        FileTransfer.remove(submission_json)
         return True
 
     def _check_if_job_has_already_downloaded(

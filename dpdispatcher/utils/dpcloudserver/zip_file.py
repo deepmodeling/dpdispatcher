@@ -1,10 +1,9 @@
 """Create and extract ZIP archives for cloud file transfer."""
 
-import glob
-import os
 from collections.abc import Iterable
 from zipfile import ZipFile
 
+from dpdispatcher.file_manager import ArchiveBuilder
 from dpdispatcher.utils.archive import safe_extract_zip
 
 # def zip_file_list(root_path, zip_filename, file_list=[]):
@@ -18,27 +17,8 @@ def zip_file_list(
     file_list: Iterable[str] | None = None,
 ) -> str:
     """Create a ZIP archive from paths and glob patterns below a root."""
-    out_zip_file = os.path.join(root_path, zip_filename)
-    # print('debug: file_list', file_list)
-    patterns = file_list if file_list is not None else ()
-    with ZipFile(out_zip_file, "w") as zip_obj:
-        for f in patterns:
-            matched_files = os.path.join(root_path, f)
-            for ii in glob.glob(matched_files):
-                # print('debug: matched_files:ii', ii)
-                if os.path.isdir(ii):
-                    arcname = os.path.relpath(ii, start=root_path)
-                    zip_obj.write(ii, arcname)
-                    for root, dirs, files in os.walk(ii):
-                        for file in files:
-                            filename = os.path.join(root, file)
-                            arcname = os.path.relpath(filename, start=root_path)
-                            # print('debug: filename:arcname:root_path', filename, arcname, root_path)
-                            zip_obj.write(filename, arcname)
-                else:
-                    arcname = os.path.relpath(ii, start=root_path)
-                    zip_obj.write(ii, arcname)
-    return out_zip_file
+    patterns = list(file_list) if file_list is not None else []
+    return str(ArchiveBuilder(root_path).build_zip(zip_filename, patterns))
 
 
 # def zip_files(root_path, out_file, selected=[]):

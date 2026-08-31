@@ -6,14 +6,18 @@ import os
 import shutil
 import subprocess as sp
 import tempfile
-from glob import glob
 from subprocess import TimeoutExpired
 from typing import TYPE_CHECKING, Any
 
 from dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
-from dpdispatcher.dlog import dlog
+from dpdispatcher.file_manager import (
+    AtomicTextWriter,
+    FileTransfer,
+    PathResolver,
+    SubmissionStagingPlan,
+)
 
 if TYPE_CHECKING:
     from dpdispatcher.submission import Submission
@@ -37,6 +41,7 @@ class SPRetObj:
 
 
 def _check_file_path(fname: str) -> None:
+    """Create parent directories for the compatibility copy helpers."""
     dirname = os.path.dirname(fname)
     if dirname != "":
         os.makedirs(dirname, exist_ok=True)
@@ -63,7 +68,7 @@ class LocalContext(BaseContext):
         self,
         local_root: str,
         remote_root: str,
-        remote_profile: dict[str, Any] = {},  # noqa: ANN401
+        remote_profile: dict[str, Any] | None = None,  # noqa: ANN401
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
@@ -72,7 +77,8 @@ class LocalContext(BaseContext):
         self.init_remote_root = remote_root
         self.temp_local_root = os.path.abspath(local_root)
         self.temp_remote_root = os.path.abspath(remote_root)
-        self.remote_profile = remote_profile
+        remote_profile = {} if remote_profile is None else remote_profile
+        self.remote_profile = dict(remote_profile)
         self.symlink = remote_profile.get("symlink", True)
 
     @classmethod
@@ -99,6 +105,12 @@ class LocalContext(BaseContext):
         )
 
     def _copy_from_local_to_remote(self, local_path: str, remote_path: str) -> None:
+        """Copy one local path to a remote path, replacing any old entry.
+
+        This low-level helper remains for callers that used the historical
+        retry-upload API. Normal submission staging goes through
+        :class:`FileTransfer` and ``SubmissionStagingPlan``.
+        """
         if not os.path.exists(local_path):
             raise FileNotFoundError(
                 f"cannot find uploaded file {os.path.join(local_path)}"
@@ -113,7 +125,6 @@ class LocalContext(BaseContext):
         _check_file_path(remote_path)
 
         if self.symlink:
-            # ensure the file exist
             os.symlink(local_path, remote_path)
         elif os.path.isfile(local_path):
             shutil.copyfile(local_path, remote_path)
@@ -125,7 +136,12 @@ class LocalContext(BaseContext):
     def _copy_missing_from_local_to_remote(
         self, local_path: str, remote_path: str
     ) -> None:
-        """Copy missing paths without replacing an existing remote entry."""
+        """Atomically add missing paths without replacing existing entries.
+
+        Kept as a compatibility primitive for retry code and integrations that
+        need to publish a shared directory concurrently. The regular upload
+        path uses the object-oriented transfer manifest instead.
+        """
         if os.path.lexists(remote_path):
             if (
                 os.path.isdir(local_path)
@@ -182,51 +198,34 @@ class LocalContext(BaseContext):
             raise ValueError(f"Unknown file type: {local_path}")
 
     def upload(self, submission: Submission) -> None:
+        """Stage all forward files through one validated transfer manifest."""
         os.makedirs(self.remote_root, exist_ok=True)
-        for ii in submission.belonging_tasks:
-            local_job = os.path.join(self.local_root, ii.task_work_path)
-            remote_job = os.path.join(self.remote_root, ii.task_work_path)
-            os.makedirs(remote_job, exist_ok=True)
-
-            file_list = []
-            for kk in ii.forward_files:
-                abs_file_list = glob(os.path.join(local_job, kk))
-                if not abs_file_list:
-                    raise FileNotFoundError(
-                        "cannot find upload file " + os.path.join(local_job, kk)
-                    )
-                rel_file_list = [
-                    os.path.relpath(ii, start=local_job) for ii in abs_file_list
-                ]
-                file_list.extend(rel_file_list)
-
-            for jj in file_list:
-                self._copy_from_local_to_remote(
-                    os.path.join(local_job, jj), os.path.join(remote_job, jj)
-                )
-
-        local_job = self.local_root
-        remote_job = self.remote_root
-
-        file_list = []
-        for kk in submission.forward_common_files:
-            abs_file_list = glob(os.path.join(local_job, kk))
-            if not abs_file_list:
+        plan = SubmissionStagingPlan(self.local_root, submission)
+        preserve_common = getattr(
+            submission, "preserve_existing_forward_common_files", False
+        )
+        if preserve_common:
+            manifests = (
+                plan.upload_manifest(include_common=False),
+                plan.upload_manifest(include_tasks=False),
+            )
+        else:
+            manifests = (plan.upload_manifest(),)
+        for index, manifest in enumerate(manifests):
+            if manifest.missing:
+                missing = manifest.missing[0]
                 raise FileNotFoundError(
-                    "cannot find upload file " + os.path.join(local_job, kk)
+                    "cannot find upload file "
+                    + os.path.join(
+                        self.local_root, missing.destination_prefix, missing.pattern
+                    )
                 )
-            rel_file_list = [
-                os.path.relpath(ii, start=local_job) for ii in abs_file_list
-            ]
-            file_list.extend(rel_file_list)
-
-        for jj in file_list:
-            local_path = os.path.join(local_job, jj)
-            remote_path = os.path.join(remote_job, jj)
-            if getattr(submission, "preserve_existing_forward_common_files", False):
-                self._copy_missing_from_local_to_remote(local_path, remote_path)
-            else:
-                self._copy_from_local_to_remote(local_path, remote_path)
+            FileTransfer(
+                self.remote_root,
+                symlink=self.symlink,
+                link_sources=self.symlink,
+                overwrite=not (preserve_common and index == 1),
+            ).apply(manifest)
 
     def download(
         self,
@@ -235,153 +234,25 @@ class LocalContext(BaseContext):
         mark_failure: bool = True,
         back_error: bool = False,
     ) -> None:
-        for ii in submission.belonging_tasks:
-            local_job = os.path.join(self.local_root, ii.task_work_path)
-            remote_job = os.path.join(self.remote_root, ii.task_work_path)
-            flist = []
-            for kk in ii.backward_files:
-                abs_flist_r = glob(os.path.join(remote_job, kk))
-                abs_flist_l = glob(os.path.join(local_job, kk))
-                if not abs_flist_r and not abs_flist_l:
-                    if check_exists:
-                        if mark_failure:
-                            tag_file_path = os.path.join(
-                                self.local_root,
-                                ii.task_work_path,
-                                f"tag_failure_download_{kk}",
-                            )
-                            with open(tag_file_path, "w") as fp:
-                                pass
-                        else:
-                            pass
-                    else:
-                        raise FileNotFoundError(
-                            "cannot find download file " + os.path.join(remote_job, kk)
-                        )
-                rel_flist = [
-                    os.path.relpath(ii, start=remote_job) for ii in abs_flist_r
-                ]
-                flist.extend(rel_flist)
-            if back_error:
-                abs_flist = glob(os.path.join(remote_job, "error*"))
-                rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
-                flist.extend(rel_flist)
-            for jj in flist:
-                rfile = os.path.join(remote_job, jj)
-                lfile = os.path.join(local_job, jj)
-                if not os.path.realpath(rfile) == os.path.realpath(lfile):
-                    if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
-                        if check_exists:
-                            if mark_failure:
-                                tag_file_path = os.path.join(
-                                    self.local_root,
-                                    ii.task_work_path,
-                                    f"tag_failure_download_{jj}",
-                                )
-                                with open(tag_file_path, "w") as fp:
-                                    pass
-                            else:
-                                pass
-                        else:
-                            raise FileNotFoundError(
-                                "do not find download file " + rfile
-                            )
-                    elif (not os.path.exists(rfile)) and (os.path.exists(lfile)):
-                        # already downloaded
-                        pass
-                    elif (os.path.exists(rfile)) and (not os.path.exists(lfile)):
-                        # trivial case, download happily
-                        # for links, copy instead of moving (default behavior of copyfile is following symlinks)
-                        if not os.path.islink(rfile):
-                            shutil.move(rfile, lfile)
-                        else:
-                            shutil.copyfile(rfile, lfile)
-                    elif (os.path.exists(rfile)) and (os.path.exists(lfile)):
-                        # both exists, replace!
-                        dlog.info(f"find existing {lfile}, replacing by {rfile}")
-                        if os.path.isdir(lfile):
-                            shutil.rmtree(lfile, ignore_errors=True)
-                        elif os.path.isfile(lfile) or os.path.islink(lfile):
-                            os.remove(lfile)
-                        if not os.path.islink(rfile):
-                            shutil.move(rfile, lfile)
-                        else:
-                            shutil.copyfile(rfile, lfile)
-                    else:
-                        raise RuntimeError("should not reach here!")
-                else:
-                    # no nothing in the case of linked files
-                    pass
-        local_job = self.local_root
-        remote_job = self.remote_root
-        flist = []
-        for kk in submission.backward_common_files:
-            abs_flist_r = glob(os.path.join(remote_job, kk))
-            abs_flist_l = glob(os.path.join(local_job, kk))
-            if not abs_flist_r and not abs_flist_l:
-                if check_exists:
-                    if mark_failure:
-                        tag_file_path = os.path.join(
-                            self.local_root, f"tag_failure_download_{kk}"
-                        )
-                        with open(tag_file_path, "w") as fp:
-                            pass
-                    else:
-                        pass
-                else:
-                    raise FileNotFoundError(
-                        "cannot find download file " + os.path.join(remote_job, kk)
-                    )
-            rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist_r]
-            flist.extend(rel_flist)
-        if back_error:
-            abs_flist = glob(os.path.join(remote_job, "error*"))
-            rel_flist = [os.path.relpath(ii, start=remote_job) for ii in abs_flist]
-            flist.extend(rel_flist)
-        for jj in flist:
-            rfile = os.path.join(remote_job, jj)
-            lfile = os.path.join(local_job, jj)
-            if not os.path.realpath(rfile) == os.path.realpath(lfile):
-                if (not os.path.exists(rfile)) and (not os.path.exists(lfile)):
-                    if check_exists:
-                        if mark_failure:
-                            with open(
-                                os.path.join(
-                                    self.local_root, f"tag_failure_download_{jj}"
-                                ),
-                                "w",
-                            ) as fp:
-                                pass
-                        else:
-                            pass
-                    else:
-                        raise FileNotFoundError("do not find download file " + rfile)
-                elif (not os.path.exists(rfile)) and (os.path.exists(lfile)):
-                    # already downloaded
-                    pass
-                elif (os.path.exists(rfile)) and (not os.path.exists(lfile)):
-                    # trivial case, download happily
-                    if not os.path.islink(rfile):
-                        shutil.move(rfile, lfile)
-                    else:
-                        shutil.copyfile(rfile, lfile)
-                elif (os.path.exists(rfile)) and (os.path.exists(lfile)):
-                    dlog.info(f"both exist rfile:{rfile}; lfile:{lfile}")
-                    # both exists, replace!
-                    dlog.info(f"find existing {lfile}, replacing by {rfile}")
-                    if os.path.isdir(lfile):
-                        shutil.rmtree(lfile, ignore_errors=True)
-                    elif os.path.isfile(lfile) or os.path.islink(lfile):
-                        os.remove(lfile)
-                    if not os.path.islink(rfile):
-                        shutil.move(rfile, lfile)
-                    else:
-                        shutil.copyfile(rfile, lfile)
-                else:
-                    raise RuntimeError("should not reach here!")
-            else:
-                # no nothing in the case of linked files
-                pass
+        """Download requested artifacts through a manifest and one copier."""
+        manifest = SubmissionStagingPlan(self.local_root, submission).download_manifest(
+            self.remote_root,
+            fallback_root=self.local_root,
+            include_errors=back_error,
+        )
+        if manifest.missing and not check_exists:
+            missing = manifest.missing[0]
+            raise FileNotFoundError(
+                "cannot find download file "
+                + os.path.join(
+                    self.remote_root, missing.destination_prefix, missing.pattern
+                )
+            )
+        if check_exists and mark_failure:
+            writer = AtomicTextWriter(self.local_root)
+            for missing in manifest.missing:
+                writer.write(missing.failure_marker(), "")
+        FileTransfer(self.local_root, move=True).apply(manifest)
 
     def block_call(self, cmd: str) -> tuple[int, None, SPRetObj, SPRetObj]:
         proc = sp.Popen(
@@ -394,20 +265,23 @@ class LocalContext(BaseContext):
         return code, None, stdout, stderr
 
     def clean(self) -> None:
-        shutil.rmtree(self.remote_root, ignore_errors=True)
+        FileTransfer.remove(self.remote_root)
 
     def write_file(self, fname: str, write_str: str) -> None:
-        os.makedirs(self.remote_root, exist_ok=True)
-        with open(os.path.join(self.remote_root, fname), "w") as fp:
-            fp.write(write_str)
+        AtomicTextWriter(self.remote_root).write(fname, write_str)
 
     def read_file(self, fname: str) -> str:
-        with open(os.path.join(self.remote_root, fname)) as fp:
+        with open(
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True),
+            encoding="utf-8",
+        ) as fp:
             ret = fp.read()
         return ret
 
     def check_file_exists(self, fname: str) -> bool:
-        return os.path.isfile(os.path.join(self.remote_root, fname))
+        return (
+            PathResolver(self.remote_root).resolve(fname, allow_absolute=True).is_file()
+        )
 
     def call(self, cmd: str) -> sp.Popen:
         proc = sp.Popen(

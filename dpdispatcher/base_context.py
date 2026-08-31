@@ -41,7 +41,7 @@ class BaseContext(metaclass=ABCMeta):
     # Whether completion tags can be queried through ``check_file_exists``.
     # Cloud backends expose job metadata rather than task work directories and
     # therefore recover whole completed jobs from the persisted record instead.
-    supports_task_completion_tags: bool = True
+    supports_task_completion_tags: ClassVar[bool] = True
     # Cloud contexts retrieve one archive per parent job; filesystem contexts
     # can select backward files directly at task granularity.
     downloads_by_job: ClassVar[bool] = False

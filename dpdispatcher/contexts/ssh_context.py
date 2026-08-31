@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import errno
-import fnmatch
 import os
 import pathlib
 import posixpath
@@ -16,7 +15,6 @@ import tarfile
 import time
 import uuid
 from functools import cache
-from glob import glob
 from stat import S_ISDIR, S_ISREG
 from typing import TYPE_CHECKING, Any
 
@@ -26,6 +24,13 @@ from dargs.dargs import Argument
 
 from dpdispatcher.base_context import BaseContext
 from dpdispatcher.dlog import dlog
+from dpdispatcher.file_manager import (
+    AtomicTextWriter,
+    PathPolicy,
+    PathResolver,
+    RemoteManifestBuilder,
+    SubmissionStagingPlan,
+)
 from dpdispatcher.utils.archive import safe_extract_tar
 
 # from dpdispatcher.submission import Machine
@@ -739,40 +744,6 @@ class SSHContext(BaseContext):
         # except Exception:
         #     pass
 
-    def _walk_directory(
-        self,
-        files: list[str],
-        work_path: str,
-        file_list: list[str],
-        directory_list: list[str],
-    ) -> None:
-        """Convert input path to list of files and directories."""
-        for jj in files:
-            file_name = os.path.join(work_path, jj)
-            if os.path.isfile(file_name):
-                file_list.append(file_name)
-            elif os.path.isdir(file_name):
-                for root, dirs, files in os.walk(
-                    file_name, topdown=False, followlinks=True
-                ):
-                    if not files:
-                        directory_list.append(root)
-                    for name in files:
-                        file_list.append(os.path.join(root, name))
-            elif os.path.islink(file_name) and not os.path.exists(file_name):
-                raise OSError(f"{file_name} is broken symbolic link")
-            elif glob(file_name):
-                # If the file name contains a wildcard, os.path functions will fail to identify it. Use glob to get the complete list of filenames which match the wildcard.
-                abs_file_list = glob(file_name)
-                rel_file_list = [
-                    os.path.relpath(ii, start=work_path) for ii in abs_file_list
-                ]
-                self._walk_directory(
-                    rel_file_list, work_path, file_list, directory_list
-                )
-            else:
-                raise FileNotFoundError(f"cannot find upload file {work_path} {jj}")
-
     def upload(
         self,
         # job_dirs,
@@ -793,26 +764,26 @@ class SSHContext(BaseContext):
                 recover = True
         self.ssh_session.sftp.chdir(None)
 
-        file_list = []
-        directory_list = []
-        for task in submission.belonging_tasks:
-            directory_list.append(os.path.join(self.local_root, task.task_work_path))
-            #     file_list.append(ii)
-            self._walk_directory(
-                task.forward_files,
-                os.path.join(self.local_root, task.task_work_path),
-                file_list,
-                directory_list,
+        manifest = SubmissionStagingPlan(self.local_root, submission).upload_manifest()
+        if manifest.missing:
+            missing = manifest.missing[0]
+            raise FileNotFoundError(
+                "cannot find upload file "
+                + os.path.join(
+                    self.local_root, missing.destination_prefix, missing.pattern
+                )
             )
-        self._walk_directory(
-            submission.forward_common_files,
-            self.local_root,
-            file_list,
-            directory_list,
-        )
-
-        # convert to relative path to local_root
-        directory_list = [os.path.relpath(jj, self.local_root) for jj in directory_list]
+        resolver = PathResolver(self.local_root)
+        file_list = [
+            resolver.relative(entry.source)
+            for entry in manifest.entries
+            if entry.source != pathlib.Path(".")
+        ]
+        directory_list = [
+            entry.destination
+            for entry in manifest.entries
+            if entry.source == pathlib.Path(".")
+        ]
 
         # check if the same file exists on the remote file
         # only check sha256 when the job is recovered
@@ -820,10 +791,8 @@ class SSHContext(BaseContext):
             # generate local sha256 file
             sha256_list = []
             for jj in file_list:
-                sha256 = get_sha256(jj)
-                jj_rel = pathlib.PurePath(
-                    os.path.relpath(jj, self.local_root)
-                ).as_posix()
+                sha256 = get_sha256(os.path.join(self.local_root, jj))
+                jj_rel = pathlib.PurePath(jj).as_posix()
                 sha256_list.append(f"{sha256}  {jj_rel}")
             # write to remote
             sha256_file = pathlib.PurePath(
@@ -842,10 +811,6 @@ class SSHContext(BaseContext):
             for ii in self.read_file(".sha256sum_stdout").split("\n"):
                 if ii:
                     file_list.append(ii.split(":")[0])
-        else:
-            # convert to relative path to local_root
-            file_list = [os.path.relpath(jj, self.local_root) for jj in file_list]
-
         self._put_files(
             file_list,
             dereference=dereference,
@@ -865,6 +830,8 @@ class SSHContext(BaseContext):
                 os.path.join(remote_dir, entry.filename)
             ).as_posix()
             st_mode = entry.st_mode
+            if st_mode is None:
+                continue
             if S_ISDIR(st_mode):
                 self.list_remote_dir(sftp, remote_name, ref_remote_root, result_list)
             elif S_ISREG(st_mode):
@@ -874,78 +841,69 @@ class SSHContext(BaseContext):
     def download(
         self,
         submission: Submission,
-        # job_dirs,
-        # remote_down_files,
         check_exists: bool = False,
         mark_failure: bool = True,
         back_error: bool = False,
     ) -> None:
+        """Download selected remote files using one SFTP-backed manifest.
+
+        Remote wildcard expansion is performed against a single recursive
+        SFTP index; the controller's local ``glob`` implementation must never
+        be applied to paths that only exist on the remote host.
+        """
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
-        file_list = []
-        # for ii in job_dirs :
-        for ii in submission.belonging_tasks:
-            remote_file_list = None
-            for jj in ii.backward_files:
-                if "*" in jj or "?" in jj:
-                    if remote_file_list is not None:
-                        abs_file_list = fnmatch.filter(remote_file_list, jj)
-                    else:
-                        remote_file_list = []
-                        remote_job = pathlib.PurePath(
-                            os.path.join(self.remote_root, ii.task_work_path)
-                        ).as_posix()
-                        self.list_remote_dir(
-                            self.sftp, remote_job, remote_job, remote_file_list
-                        )
-
-                        abs_file_list = fnmatch.filter(remote_file_list, jj)
-                    rel_file_list = [
-                        pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
-                        for kk in abs_file_list
-                    ]
-
-                else:
-                    rel_file_list = [
-                        pathlib.PurePath(os.path.join(ii.task_work_path, jj)).as_posix()
-                    ]
-                if check_exists:
-                    for file_name in rel_file_list:
-                        if self.check_file_exists(file_name):
-                            file_list.append(file_name)
-                        elif mark_failure:
-                            with open(
-                                os.path.join(
-                                    self.local_root,
-                                    ii.task_work_path,
-                                    f"tag_failure_download_{jj}",
-                                ),
-                                "w",
-                            ) as fp:
-                                pass
-                        else:
-                            pass
-                else:
-                    file_list.extend(rel_file_list)
+        remote_files: list[str] = []
+        self.list_remote_dir(
+            self.sftp, self.remote_root, self.remote_root, remote_files
+        )
+        builder = RemoteManifestBuilder(
+            remote_files,
+            exists=self.check_file_exists,
+            assume_literals=not check_exists,
+        )
+        for task in submission.belonging_tasks:
+            builder.add_paths(
+                source_prefix=task.task_work_path,
+                destination_prefix=task.task_work_path,
+                patterns=task.backward_files,
+                required=True,
+            )
             if back_error:
-                if remote_file_list is not None:
-                    abs_errors = fnmatch.filter(remote_file_list, "error*")
-                else:
-                    remote_file_list = []
-                    remote_job = pathlib.PurePath(
-                        os.path.join(self.remote_root, ii.task_work_path)
-                    ).as_posix()
-                    self.list_remote_dir(
-                        self.sftp, remote_job, remote_job, remote_file_list
-                    )
-                    abs_errors = fnmatch.filter(remote_file_list, "error*")
-                rel_errors = [
-                    pathlib.PurePath(os.path.join(ii.task_work_path, kk)).as_posix()
-                    for kk in abs_errors
-                ]
-                file_list.extend(rel_errors)
-        file_list.extend(submission.backward_common_files)
-        if len(file_list) > 0:
+                builder.add_paths(
+                    source_prefix=task.task_work_path,
+                    destination_prefix=task.task_work_path,
+                    patterns=["error*"],
+                    required=False,
+                )
+        builder.add_paths(
+            source_prefix=".",
+            destination_prefix=".",
+            patterns=submission.backward_common_files,
+            required=True,
+        )
+        if back_error:
+            builder.add_paths(
+                source_prefix=".",
+                destination_prefix=".",
+                patterns=["error*"],
+                required=False,
+            )
+        manifest = builder.build()
+        if manifest.missing and not check_exists:
+            missing = manifest.missing[0]
+            raise FileNotFoundError(
+                "cannot find download file "
+                + os.path.join(
+                    self.remote_root, missing.destination_prefix, missing.pattern
+                )
+            )
+        if check_exists and mark_failure:
+            writer = AtomicTextWriter(self.local_root)
+            for missing in manifest.missing:
+                writer.write(missing.failure_marker(), "")
+        file_list = [entry.destination for entry in manifest.entries]
+        if file_list:
             self._get_files(
                 file_list,
                 tar_compress=bool(self.remote_profile.get("tar_compress", True)),
@@ -967,7 +925,7 @@ class SSHContext(BaseContext):
     def write_file(self, fname: str, write_str: str) -> None:
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
-        fname = pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
+        fname = self._resolve_remote_path(fname)
         # to prevent old file from being overwritten but cancelled, create a temporary file first
         # when it is fully written, rename it to the original file name
         temp_fname = fname + "_tmp"
@@ -985,7 +943,7 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         with self.sftp.open(
-            pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix(),
+            self._resolve_remote_path(fname),
             "r",
         ) as fp:
             ret = fp.read().decode("utf-8")
@@ -995,13 +953,30 @@ class SSHContext(BaseContext):
         assert self.remote_root is not None
         self.ssh_session.ensure_alive()
         try:
-            self.sftp.stat(
-                pathlib.PurePath(os.path.join(self.remote_root, fname)).as_posix()
-            )
+            self.sftp.stat(self._resolve_remote_path(fname))
             ret = True
         except OSError:
             ret = False
         return ret
+
+    def _resolve_remote_path(self, fname: str) -> str:
+        """Resolve a remote POSIX path independently of controller OS rules."""
+        assert self.remote_root is not None
+        raw = os.fspath(fname).replace("\\", "/")
+        if "\x00" in raw:
+            raise ValueError("path must not contain a NUL byte")
+        root = pathlib.PurePosixPath(posixpath.normpath(self.remote_root))
+        if posixpath.isabs(raw):
+            candidate = pathlib.PurePosixPath(posixpath.normpath(raw))
+            try:
+                candidate.relative_to(root)
+            except ValueError as error:
+                raise ValueError(
+                    f"path {candidate} is outside remote root {root}"
+                ) from error
+            return candidate.as_posix()
+        relative = pathlib.PurePosixPath(PathPolicy.normalize_relative(raw))
+        return (root / relative).as_posix()
 
     def call(self, cmd: str) -> dict[str, Any]:  # noqa: ANN401
         stdin, stdout, stderr = self.ssh_session.exec_command(cmd)

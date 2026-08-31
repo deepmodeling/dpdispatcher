@@ -47,7 +47,9 @@ test $? -ne 0 && exit 1
 wait
 FLAG_IF_JOB_TASK_FAIL=$(cat {flag_if_job_task_fail})
 if test $FLAG_IF_JOB_TASK_FAIL -eq 0; then
-    tar czf {submission_hash}_{job_hash}_download.tar.gz {all_task_dirs}
+    # Download archives are consumed by SafeArchiveExtractor, which rejects
+    # archive links; store linked outputs as their file contents instead.
+    tar --dereference -czf {submission_hash}_{job_hash}_download.tar.gz {all_task_dirs}
     hadoop fs -put -f {submission_hash}_{job_hash}_download.tar.gz {remote_root}
     hadoop fs -touchz {remote_root}/{job_tag_finished}
 else
