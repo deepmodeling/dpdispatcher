@@ -31,7 +31,7 @@ script_template = """\
 
 script_env_template = """
 REMOTE_ROOT=$(readlink -f {remote_root})
-echo 0 > $REMOTE_ROOT/{flag_if_job_task_fail}
+echo 0 > "$REMOTE_ROOT"/{flag_if_job_task_fail}
 test $? -ne 0 && exit 1
 
 {module_unload_part}
@@ -42,17 +42,17 @@ test $? -ne 0 && exit 1
 """
 
 script_command_template = """
-cd $REMOTE_ROOT
+cd "$REMOTE_ROOT"
 cd {task_work_path}
 test $? -ne 0 && exit 1
 if [ ! -f {task_tag_finished} ] ;then
   {command_env} ( {command} ) {log_err_part}
-  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > $REMOTE_ROOT/{flag_if_job_task_fail};{failure_diagnostic_part}fi
+  if test $? -eq 0; then touch {task_tag_finished}; else echo 1 > "$REMOTE_ROOT"/{flag_if_job_task_fail};{failure_diagnostic_part}fi
 fi &
 """
 
 script_end_template = """
-cd $REMOTE_ROOT
+cd "$REMOTE_ROOT"
 test $? -ne 0 && exit 1
 
 wait
@@ -428,7 +428,7 @@ class Machine(metaclass=ABCMeta):
 
     def gen_script_run_command(self, job: Job) -> str:
         """Return the command that sources the generated per-task script."""
-        return f"source $REMOTE_ROOT/{job.script_file_name}.run"
+        return f'source "$REMOTE_ROOT"/{shlex.quote(job.script_file_name + ".run")}'
 
     def gen_script(self, job: Job) -> str:
         """Generate the complete scheduler submission script for a job."""
@@ -581,8 +581,8 @@ class Machine(metaclass=ABCMeta):
         task_work_path = shlex.quote(pathlib.PurePath(task.task_work_path).as_posix())
         return (
             "tail -v -c 1000 "
-            f"$REMOTE_ROOT/{task_work_path}/{shlex.quote(task.errlog)} "
-            f"> $REMOTE_ROOT/{shlex.quote(last_err_file)};"
+            f'"$REMOTE_ROOT"/{task_work_path}/{shlex.quote(task.errlog)} '
+            f'> "$REMOTE_ROOT"/{shlex.quote(last_err_file)};'
         )
 
     def gen_script_end(self, job: Job) -> str:

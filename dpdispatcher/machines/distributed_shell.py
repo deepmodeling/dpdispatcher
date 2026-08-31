@@ -41,7 +41,7 @@ for TGZ in `ls *.tgz`; do tar xvf $TGZ; done
 
 """
 script_end_template = """
-cd $REMOTE_ROOT
+cd "$REMOTE_ROOT"
 test $? -ne 0 && exit 1
 
 wait

@@ -100,7 +100,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
         benchmark_env = textwrap.dedent(
             f"""
             REMOTE_ROOT={task_hash}
-            echo 0 > $REMOTE_ROOT/{job_hash}_flag_if_job_task_fail
+            echo 0 > "$REMOTE_ROOT"/{job_hash}_flag_if_job_task_fail
             test $? -ne 0 && exit 1
 
             module purge
@@ -127,7 +127,7 @@ class TestLSFScriptGeneration(unittest.TestCase):
         benchmark_footer = textwrap.dedent(
             f"""\
 
-            cd $REMOTE_ROOT
+            cd "$REMOTE_ROOT"
             test $? -ne 0 && exit 1
 
             wait
