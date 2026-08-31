@@ -413,6 +413,51 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         self.assertIsNone(submission.previous_submission_hash)
         self.assertEqual(context.remote_root, new_remote_root)
 
+    def test_hdfs_recovery_bind_failure_rolls_back_move(self) -> None:
+        """Reverse an HDFS rename when rebinding the new root fails."""
+        context = HDFSContext.__new__(HDFSContext)
+        old_remote_root = "hdfs://cluster/work/old"
+        new_remote_root = "hdfs://cluster/work/" + "1" * 40
+        context.remote_root = old_remote_root
+        context.temp_remote_root = "hdfs://cluster/work"
+        context.temp_local_root = "/local"
+
+        machine = MagicMock()
+        machine.context = context
+        submission = Submission.__new__(Submission)
+        submission.machine = machine
+        submission.work_base = "work"
+        submission._abs_work_base = "/local/work"
+        submission.resources = Resources(1, 1, 0, "", 1)
+        submission.forward_common_files = []
+        submission.backward_common_files = []
+        submission.belonging_tasks = []
+        submission.belonging_jobs = []
+        submission.submission_hash = "1" * 40
+        submission.previous_submission_hash = "0" * 40
+
+        def fail_rebind(_machine: MagicMock) -> None:
+            context.remote_root = new_remote_root
+            raise OSError("bind failed")
+
+        submission.bind_machine = MagicMock(side_effect=fail_rebind)
+        with (
+            patch.object(HDFS, "exists", side_effect=[False, True, False, True]),
+            patch.object(HDFS, "move") as move,
+        ):
+            with self.assertRaisesRegex(OSError, "bind failed"):
+                submission._bind_recovered_submission()
+
+        self.assertEqual(
+            move.call_args_list,
+            [
+                call(old_remote_root, new_remote_root),
+                call(new_remote_root, old_remote_root),
+            ],
+        )
+        self.assertEqual(submission.previous_submission_hash, "0" * 40)
+        self.assertEqual(context.remote_root, old_remote_root)
+
     def test_cloud_recovery_uses_persisted_finished_job_state(self) -> None:
         """Cloud recovery must not depend on unavailable task-tag paths."""
         task = Task("true", "task")
@@ -468,6 +513,52 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         context.upload(submission)
 
         context.upload_job.assert_called_once_with(pending, [])
+
+    def test_bohrium_upload_stages_new_jobs_with_uninitialized_state(self) -> None:
+        """Public upload_jobs stages jobs before their first state refresh."""
+        context = BohriumContext.__new__(BohriumContext)
+        context.upload_job = MagicMock()
+        context.remote_profile = {}
+        fresh = MagicMock(job_state=None)
+        submission = MagicMock(belonging_jobs=[fresh], forward_common_files=[])
+
+        context.upload(submission)
+
+        context.upload_job.assert_called_once_with(fresh, [])
+
+    def test_recovery_accepts_legacy_record_without_absolute_work_base(self) -> None:
+        """Records written before ``_abs_work_base`` was serialized remain usable."""
+        task = Task("true", "task")
+        machine = MagicMock()
+        machine.serialize.return_value = {"cloud": "machine"}
+        machine.context.supports_task_completion_tags = False
+        submission = Submission.__new__(Submission)
+        submission.machine = machine
+        submission.work_base = "work"
+        submission._abs_work_base = os.path.abspath("work")
+        submission.previous_submission_hash = "previous-hash"
+        submission.submission_hash = "current-hash"
+        submission.forward_common_files = []
+        submission.backward_common_files = []
+        job = Job(
+            job_task_list=[task],
+            machine=machine,
+            resources=Resources(1, 1, 0, "", 1),
+        )
+        job.job_state = JobStatus.finished
+        submission.belonging_tasks = [task]
+        submission.belonging_jobs = [job]
+        previous = {
+            "work_base": "work",
+            "machine": {"cloud": "machine"},
+            "forward_common_files": [],
+            "backward_common_files": [],
+            "belonging_jobs": [job.serialize()],
+        }
+
+        submission._recover_finished_tasks_from_previous(previous)
+
+        self.assertEqual(task.task_state, JobStatus.finished)
 
     def test_recovered_cloud_job_ids_are_used_for_download(self) -> None:
         """Use persisted IDs when fetching results for finished cloud jobs."""

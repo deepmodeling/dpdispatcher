@@ -161,7 +161,10 @@ class BohriumContext(BaseContext):
             # Finished jobs recovered from a previous submission already have
             # their result archives on the platform.  Upload only jobs that need
             # a new attempt, matching the OpenAPI context behavior.
-            if job.job_state in (JobStatus.unsubmitted, JobStatus.terminated):
+            # A freshly generated Job has ``None`` state until its first status
+            # refresh.  Public ``upload_jobs`` should still stage that job;
+            # ``run_submission`` normally refreshes it to ``unsubmitted`` first.
+            if job.job_state in (None, JobStatus.unsubmitted, JobStatus.terminated):
                 job_to_be_uploaded.append(job)
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")

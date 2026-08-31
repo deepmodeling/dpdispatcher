@@ -867,7 +867,11 @@ class Submission:
                 try:
                     if callable(migration_hook):
                         rollback_succeeded = (
-                            migration_hook(new_remote_root, old_remote_root)
+                            migration_hook(
+                                new_remote_root,
+                                old_remote_root,
+                                force=True,
+                            )
                             is not False
                         )
                     elif hasattr(context, "_recover_remote_root"):
@@ -920,10 +924,6 @@ class Submission:
         expected_machine = machine.serialize()
         compatibility_checks = {
             "work_base": (previous.get("work_base"), self.work_base),
-            "absolute work_base": (
-                previous.get("_abs_work_base"),
-                self._abs_work_base,
-            ),
             "machine": (previous.get("machine"), expected_machine),
             "forward_common_files": (
                 previous.get("forward_common_files"),
@@ -944,6 +944,16 @@ class Submission:
                 ],
             ),
         }
+        # ``_abs_work_base`` was added after the initial recovery format.  A
+        # legacy record without this optional field remains compatible; when it
+        # is present, compare it to prevent resuming state from a different
+        # absolute work directory.
+        previous_abs_work_base = previous.get("_abs_work_base")
+        if previous_abs_work_base is not None:
+            compatibility_checks["absolute work_base"] = (
+                previous_abs_work_base,
+                self._abs_work_base,
+            )
         mismatches = [
             name for name, (old, new) in compatibility_checks.items() if old != new
         ]

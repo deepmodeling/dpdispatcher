@@ -58,7 +58,13 @@ class HDFSContext(BaseContext):
 
         HDFS.mkdir(self.remote_root)
 
-    def migrate_recovery_root(self, old_remote_root: str, new_remote_root: str) -> bool:
+    def migrate_recovery_root(
+        self,
+        old_remote_root: str,
+        new_remote_root: str,
+        *,
+        force: bool = False,
+    ) -> bool:
         """Move a recovered submission tree through the HDFS API.
 
         Resource-only resumes must preserve completion tags stored under the
@@ -69,8 +75,17 @@ class HDFSContext(BaseContext):
         Returns
         -------
         bool
-            Whether this call moved an existing source root.  Recovery uses the
-            signal to roll the move back if subsequent rebinding fails.
+            Whether this call moved (or, for a forced rollback, confirmed) an
+            existing source root.  Recovery uses the signal to roll the move
+            back if subsequent rebinding fails.
+
+        Parameters
+        ----------
+        force : bool, default=False
+            Treat an existing destination with no source as an already-completed
+            operation and report success. Recovery passes this only while
+            reversing a move, so a concurrent rollback is considered successful
+            instead of being mistaken for a failed rollback.
         """
         self._last_recovery_already_at_destination = False
         if old_remote_root == new_remote_root:
@@ -86,7 +101,7 @@ class HDFSContext(BaseContext):
                     f"roots exist ({old_remote_root}, {new_remote_root})"
                 )
             self._last_recovery_already_at_destination = True
-            return False
+            return force
         if not HDFS.exists(old_remote_root):
             raise FileNotFoundError(
                 f"Recovered HDFS submission root does not exist: {old_remote_root}"

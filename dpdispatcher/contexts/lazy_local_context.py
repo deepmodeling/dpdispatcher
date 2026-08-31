@@ -86,7 +86,13 @@ class LazyLocalContext(BaseContext):
         #     "self.local_root:{self.local_root};"
         #     "self.remote_root:{self.remote_root}")
 
-    def migrate_recovery_root(self, old_remote_root: str, new_remote_root: str) -> bool:
+    def migrate_recovery_root(
+        self,
+        old_remote_root: str,
+        new_remote_root: str,
+        *,
+        force: bool = False,
+    ) -> bool:
         """Keep the shared work-base directory in place during recovery.
 
         LazyLocalContext deliberately reuses one directory for every submission
