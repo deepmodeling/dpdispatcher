@@ -717,6 +717,7 @@ class SSHContext(BaseContext):
         ).as_posix()
         self._last_recovery_moved = False
         self._last_recovery_conflict = False
+        self._last_recovery_already_at_destination = False
         if old_remote_root and old_remote_root != self.remote_root:
             try:
                 self._last_recovery_moved = self._recover_remote_root(old_remote_root)
@@ -1060,23 +1061,6 @@ class SSHContext(BaseContext):
             It it is False, then it is uncompressed
         """
         assert self.submission.submission_hash is not None
-        """Upload files to server.
-
-        Parameters
-        ----------
-        files : list
-            uploaded files
-        dereference : bool, default: True
-            If dereference is False, add symbolic and hard links to the archive.
-            If it is True, add the content of the target files to the archive.
-            This has no effect on systems that do not support symbolic links.
-        directories : list, default: None
-            uploaded directories non-recursively. Use `files` for uploading
-            recursively
-        tar_compress : bool, default: True
-            If tar_compress is True, compress the archive using gzip
-            It it is False, then it is uncompressed
-        """
         assert self.remote_root is not None
         of_suffix = ".tgz"
         if not tar_compress:

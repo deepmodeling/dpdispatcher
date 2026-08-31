@@ -881,22 +881,25 @@ class Submission:
                             migration_hook(new_remote_root, old_remote_root)
                             is not False
                         )
-                    elif hasattr(context, "_recover_remote_root"):
+                    else:
                         # SSHContext exposes the same atomic rename primitive via
                         # its private recovery helper; point it at the old root
-                        # before reversing the move.
-                        context.remote_root = old_remote_root
-                        rollback_succeeded = bool(
-                            context._recover_remote_root(new_remote_root)
-                        )
-                    elif os.path.lexists(new_remote_root):
-                        if os.path.lexists(old_remote_root):
-                            raise FileExistsError(
-                                "Cannot roll back recovered submission: both old "
-                                f"and new roots exist ({old_remote_root}, "
-                                f"{new_remote_root})"
-                            )
-                        os.replace(new_remote_root, old_remote_root)
+                        # before reversing the move. Resolve the optional
+                        # attribute dynamically and narrow it with ``callable``
+                        # so type checkers do not treat an arbitrary context
+                        # attribute as invocable.
+                        recover_root = getattr(context, "_recover_remote_root", None)
+                        if callable(recover_root):
+                            context.remote_root = old_remote_root
+                            rollback_succeeded = bool(recover_root(new_remote_root))
+                        elif os.path.lexists(new_remote_root):
+                            if os.path.lexists(old_remote_root):
+                                raise FileExistsError(
+                                    "Cannot roll back recovered submission: both old "
+                                    f"and new roots exist ({old_remote_root}, "
+                                    f"{new_remote_root})"
+                                )
+                            os.replace(new_remote_root, old_remote_root)
                 except Exception as rollback_error:
                     rollback_succeeded = False
                     dlog.error(
