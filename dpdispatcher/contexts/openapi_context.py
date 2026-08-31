@@ -279,7 +279,8 @@ class OpenAPIContext(BaseContext):
 
     def read_home_file(self, fname: str) -> str:
         with open(
-            PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(fname), encoding="utf-8"
+            PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(fname, allow_absolute=True),
+            encoding="utf-8",
         ) as fp:
             ret = fp.read()
         return ret
@@ -289,7 +290,11 @@ class OpenAPIContext(BaseContext):
         return result
 
     def check_home_file_exits(self, fname: str) -> bool:
-        return PathResolver(DP_CLOUD_SERVER_HOME_DIR).resolve(fname).is_file()
+        return (
+            PathResolver(DP_CLOUD_SERVER_HOME_DIR)
+            .resolve(fname, allow_absolute=True)
+            .is_file()
+        )
 
     def clean(self) -> bool:
         submission_file_name = f"{self.submission.submission_hash}.json"

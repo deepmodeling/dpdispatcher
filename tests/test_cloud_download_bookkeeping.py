@@ -117,6 +117,9 @@ class TestCloudDownloadBookkeeping(unittest.TestCase):
                     self.assertTrue(context.write_file("state.txt", "ready"))
                     self.assertEqual(context.read_file("state.txt"), "ready")
                     self.assertTrue(context.check_file_exists("state.txt"))
+                    absolute_state = str(Path(temp_dir, "state.txt"))
+                    self.assertEqual(context.read_file(absolute_state), "ready")
+                    self.assertTrue(context.check_file_exists(absolute_state))
                     local_file = context.write_local_file("local.txt", "local")
                     with open(local_file, encoding="utf-8") as stream:
                         self.assertEqual(stream.read(), "local")

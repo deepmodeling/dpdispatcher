@@ -288,6 +288,11 @@ class TestManifestAndTransfer(unittest.TestCase):
             self.assertEqual(
                 [entry.destination for entry in manifest.entries], ["data[1].out"]
             )
+            destination = root / "destination"
+            FileTransfer(destination).apply(manifest)
+            self.assertEqual(
+                (destination / "data[1].out").read_text(encoding="utf-8"), "result"
+            )
 
     def test_remote_manifest_uses_indexed_paths_for_globs(self) -> None:
         manifest = (

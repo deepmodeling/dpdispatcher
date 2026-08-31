@@ -588,11 +588,11 @@ class FileTransfer:
         moved_directories = []
         for entry in manifest.entries:
             if entry.source == Path("."):
-                self.destination.resolve(entry.destination).mkdir(
+                self.destination.resolve(entry.destination, allow_glob=True).mkdir(
                     parents=True, exist_ok=True
                 )
                 continue
-            target = self.destination.resolve(entry.destination)
+            target = self.destination.resolve(entry.destination, allow_glob=True)
             # Moving a directory already moves every selected child beneath
             # it.  Skip overlapping child entries so a manifest produced from
             # patterns such as ``["task", "task/*"]`` remains valid after the
