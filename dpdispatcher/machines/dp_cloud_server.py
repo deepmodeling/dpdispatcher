@@ -1,5 +1,6 @@
 """Implement the legacy Bohrium cloud-service batch backend."""
 
+import copy
 import os
 import shutil
 import time
@@ -31,7 +32,10 @@ class Bohrium(Machine):
     def __init__(self, context: "BaseContext", **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(context=context, **kwargs)
         self.context = context
-        self.input_data = context.remote_profile["input_data"].copy()
+        # The API payload contains mutable nested collections, especially
+        # ``job_resources``. Keep the caller's profile independent from the
+        # machine and from each per-job submission payload.
+        self.input_data = copy.deepcopy(context.remote_profile["input_data"])
         self.api_version = 2
         if "api_version" in self.input_data:
             self.api_version = self.input_data.get("api_version", 2)
@@ -77,8 +81,8 @@ class Bohrium(Machine):
         self.group_id = None
 
     def gen_script(self, job: "Job") -> str:
-        shell_script = super(DpCloudServer, self).gen_script(job)
-        return shell_script
+        """Generate a job script with the common machine implementation."""
+        return super().gen_script(job)
 
     def gen_script_header(self, job: "Job") -> str:
         resources = job.resources
@@ -138,7 +142,9 @@ class Bohrium(Machine):
         # oss_task_zip = 'indicate/' + job.job_hash + '/' + zip_filename
         oss_task_zip = self._gen_oss_path(job, zip_filename)
         job_resources = ALI_OSS_BUCKET_URL + oss_task_zip
-        input_data = self.input_data.copy()
+        # Each job must receive its own nested lists; a shallow copy would
+        # append this job's OSS URL to every previously submitted job.
+        input_data = copy.deepcopy(self.input_data)
 
         if not input_data.get("job_resources"):
             input_data["job_resources"] = []
