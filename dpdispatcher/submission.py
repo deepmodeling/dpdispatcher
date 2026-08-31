@@ -52,6 +52,9 @@ class Submission:
         Shared result files downloaded after execution.
     task_list : list of Task, optional
         Tasks to register when the submission is created.
+    previous_submission_hash : str, optional
+        SHA-1 hash of a compatible prior submission whose finished-task state
+        should be reused after a resource-only change.
     continue_on_failure : bool, default=False
         Continue monitoring other jobs after one job exhausts its retries.
         The default preserves the historical fail-fast behavior.
@@ -66,8 +69,10 @@ class Submission:
         backward_common_files: list[str] = [],
         *,
         task_list: list["Task"] = [],
+        previous_submission_hash: str | None = None,
         continue_on_failure: bool = False,
     ) -> None:
+        """Initialize submission configuration and an optional recovery locator."""
         self.local_root = None
         self.work_base = work_base
         self._abs_work_base = os.path.abspath(work_base)
@@ -85,6 +90,11 @@ class Submission:
         )
 
         self.submission_hash = None
+        if previous_submission_hash is not None and not re.fullmatch(
+            r"[0-9a-f]{40}", previous_submission_hash
+        ):
+            raise ValueError("previous_submission_hash must be a 40-character SHA-1")
+        self.previous_submission_hash = previous_submission_hash
         # warning: can not remote .copy() or there will be bugs
         # self.belonging_tasks = task_list
         self.belonging_tasks = task_list.copy()
@@ -144,6 +154,7 @@ class Submission:
             forward_common_files=submission_dict["forward_common_files"],
             backward_common_files=submission_dict["backward_common_files"],
             task_list=task_list,
+            previous_submission_hash=submission_dict.get("previous_submission_hash"),
             continue_on_failure=submission_dict.get("continue_on_failure", False),
         )
         # Preserve the original absolute path when a record is resumed from a
@@ -161,12 +172,14 @@ class Submission:
             submission.belonging_tasks = [
                 task for job in submission.belonging_jobs for task in job.job_task_list
             ]
-        submission.submission_hash = submission.get_hash()
-        if machine is not None:
-            submission.bind_machine(machine=machine, bind_context=bind_context)
-        else:
+        if machine is None:
             machine = Machine.deserialize(machine_dict=submission_dict["machine"])
-            submission.bind_machine(machine)
+        # ``get_hash`` includes the machine configuration.  Set it before binding
+        # so a fresh process derives the same hash that was persisted by the
+        # original submission instead of hashing an unbound placeholder machine.
+        submission.machine = machine
+        submission.submission_hash = submission.get_hash()
+        submission.bind_machine(machine=machine, bind_context=bind_context)
         return submission
 
     def serialize(self, if_static: bool = False) -> dict[str, Any]:  # noqa: ANN401
@@ -215,6 +228,8 @@ class Submission:
         submission_dict["belonging_jobs"] = [
             job.serialize(if_static=if_static) for job in self.belonging_jobs
         ]
+        if not if_static:
+            submission_dict["previous_submission_hash"] = self.previous_submission_hash
         return submission_dict
 
     def register_task(self, task: "Task") -> None:
@@ -265,7 +280,16 @@ class Submission:
         self.submission_hash = self.get_hash()
         if machine is not None:
             if bind_context:
-                machine.context.bind_submission(self)
+                # The previous hash is an explicit remote-state locator, not part of
+                # the new submission's identity. Bind the context to that directory
+                # while preserving the current hash used for new jobs and records.
+                current_hash = self.submission_hash
+                if self.previous_submission_hash is not None:
+                    self.submission_hash = self.previous_submission_hash
+                try:
+                    machine.context.bind_submission(self)
+                finally:
+                    self.submission_hash = current_hash
             self.local_root = machine.context.temp_local_root
         return self
 
@@ -998,13 +1022,23 @@ class Submission:
     def try_recover_from_json(self) -> None:
         """Restore compatible job state from the remote submission JSON file."""
         machine = self._require_machine()
-        submission_file_name = f"{self.submission_hash}.json"
+        recovery_hash = self.previous_submission_hash or self.submission_hash
+        submission_file_name = f"{recovery_hash}.json"
         if_recover = machine.context.check_file_exists(submission_file_name)
+        if self.previous_submission_hash is not None and not if_recover:
+            raise FileNotFoundError(
+                "Previous submission state was not found for explicit "
+                f"previous_submission_hash={self.previous_submission_hash}"
+            )
         submission = None
         submission_dict = {}
         if if_recover:
             submission_dict_str = machine.context.read_file(fname=submission_file_name)
             submission_dict = json.loads(submission_dict_str)
+            if self.previous_submission_hash is not None:
+                self._recover_finished_tasks_from_previous(submission_dict)
+                self._bind_recovered_submission()
+                return
             # Reuse the authenticated machine that read the recovery file. Creating a
             # second SSHContext here can fail for one-time authentication methods such
             # as TOTP, and the reconstructed machine would be discarded immediately.
@@ -1035,6 +1069,262 @@ class Submission:
                 print(self.serialize())
                 print(submission.serialize())
                 raise RuntimeError("Recover failed.")
+
+    def _bind_recovered_submission(self) -> None:
+        """Move a recovered work directory under this submission's new hash.
+
+        Explicit resource-only resumes initially bind the context to the
+        previous hash so completion tags can be inspected.  Once recovery is
+        validated, the directory must follow the new hash; otherwise the next
+        fresh process cannot locate the persisted ``H1.json`` state.  SSH
+        contexts perform the remote rename in ``bind_submission``; local
+        filesystem contexts are migrated here before rebinding.
+        """
+        machine = self._require_machine()
+        context = machine.context
+        old_remote_root = getattr(context, "remote_root", None)
+        current_hash = self.submission_hash
+        if current_hash is None:
+            raise RuntimeError("Recovered submission has no submission hash")
+
+        previous_hash = self.previous_submission_hash
+        new_remote_root: str | None = None
+        migration_hook: Any = None
+        migration_performed = False
+        try:
+            temp_remote_root = getattr(context, "temp_remote_root", None)
+            if isinstance(old_remote_root, str) and isinstance(temp_remote_root, str):
+                new_remote_root = os.path.join(temp_remote_root, current_hash)
+                if old_remote_root != new_remote_root:
+                    migration_hook = getattr(context, "migrate_recovery_root", None)
+                    if callable(migration_hook):
+                        # Contexts such as HDFS must move state through their
+                        # backend API; local os.path/os.replace cannot address URIs.
+                        migration_performed = (
+                            migration_hook(old_remote_root, new_remote_root)
+                            is not False
+                        )
+                    elif not hasattr(context, "_recover_remote_root"):
+                        # LocalContext/Shell use ordinary filesystem paths and do
+                        # not implement SSHContext's remote rename hook.
+                        if os.path.isdir(old_remote_root):
+                            # A pre-existing destination can contain state from a
+                            # concurrent or earlier resume.  Do not silently bind
+                            # to it while abandoning completion tags in the source.
+                            if os.path.lexists(new_remote_root):
+                                raise FileExistsError(
+                                    "Cannot migrate recovered submission: both old "
+                                    f"and new roots exist ({old_remote_root}, "
+                                    f"{new_remote_root})"
+                                )
+                            os.replace(old_remote_root, new_remote_root)
+                            migration_performed = True
+
+            # SSHContext performs its root migration from inside bind_machine().
+            # Clear the one-time locator only for that bind attempt so a failed
+            # migration or rebind remains retryable from the original root.
+            self.previous_submission_hash = None
+            self.bind_machine(machine)
+        except Exception:
+            # SSHContext performs its rename inside bind_submission, so consult
+            # its explicit move marker after a later mkdir or transport failure.
+            migration_performed = migration_performed or bool(
+                getattr(context, "_last_recovery_moved", False)
+            )
+            state_bound_to_new_root = (
+                isinstance(new_remote_root, str)
+                and getattr(context, "remote_root", None) == new_remote_root
+            )
+            roots_conflict = bool(getattr(context, "_last_recovery_conflict", False))
+            if (
+                not roots_conflict
+                and isinstance(old_remote_root, str)
+                and isinstance(new_remote_root, str)
+                and not hasattr(context, "_recover_remote_root")
+                and os.path.lexists(old_remote_root)
+                and os.path.lexists(new_remote_root)
+            ):
+                roots_conflict = True
+            already_at_destination = bool(
+                getattr(context, "_last_recovery_already_at_destination", False)
+            )
+            if (
+                state_bound_to_new_root
+                and not migration_performed
+                and not roots_conflict
+                and isinstance(old_remote_root, str)
+                and isinstance(new_remote_root, str)
+                and not hasattr(context, "_recover_remote_root")
+                and not os.path.lexists(old_remote_root)
+                and os.path.lexists(new_remote_root)
+            ):
+                already_at_destination = True
+            rollback_succeeded = True
+            if (
+                migration_performed
+                and isinstance(old_remote_root, str)
+                and isinstance(new_remote_root, str)
+                and old_remote_root != new_remote_root
+            ):
+                try:
+                    rollback_hook = getattr(context, "rollback_recovery_root", None)
+                    if callable(rollback_hook):
+                        rollback_succeeded = (
+                            rollback_hook(
+                                new_remote_root,
+                                old_remote_root,
+                            )
+                            is not False
+                        )
+                    elif callable(migration_hook):
+                        # Preserve compatibility with third-party contexts that
+                        # predate the optional force-aware rollback hook.
+                        rollback_succeeded = (
+                            migration_hook(new_remote_root, old_remote_root)
+                            is not False
+                        )
+                    else:
+                        # SSHContext exposes the same atomic rename primitive via
+                        # its private recovery helper; point it at the old root
+                        # before reversing the move. Resolve the optional
+                        # attribute dynamically and narrow it with ``callable``
+                        # so type checkers do not treat an arbitrary context
+                        # attribute as invocable.
+                        recover_root = getattr(context, "_recover_remote_root", None)
+                        if callable(recover_root):
+                            context.remote_root = old_remote_root
+                            rollback_succeeded = bool(recover_root(new_remote_root))
+                        elif os.path.lexists(new_remote_root):
+                            if os.path.lexists(old_remote_root):
+                                raise FileExistsError(
+                                    "Cannot roll back recovered submission: both old "
+                                    f"and new roots exist ({old_remote_root}, "
+                                    f"{new_remote_root})"
+                                )
+                            os.replace(new_remote_root, old_remote_root)
+                except Exception as rollback_error:
+                    rollback_succeeded = False
+                    dlog.error(
+                        "Failed to roll back recovered submission root from %s to %s: %s",
+                        new_remote_root,
+                        old_remote_root,
+                        rollback_error,
+                    )
+
+            if rollback_succeeded and not already_at_destination:
+                self.previous_submission_hash = previous_hash
+                if isinstance(old_remote_root, str):
+                    context.remote_root = old_remote_root
+            else:
+                # The state is now known to live under the new hash.  Do not
+                # restore a locator that points at a root we could not recover.
+                self.previous_submission_hash = None
+                if isinstance(new_remote_root, str):
+                    context.remote_root = new_remote_root
+            raise
+
+    def _recover_finished_tasks_from_previous(self, previous: dict[str, Any]) -> None:
+        """Reuse task completion tags after an explicitly selected resource change.
+
+        The previous scheduler jobs themselves cannot be reused because their scripts,
+        resource requests, and hashes may differ. Instead, this validates every
+        non-resource part of the submission and marks only tasks with an existing
+        completion tag as finished. New jobs are then submitted only for groups that
+        still contain unfinished tasks.
+        """
+        machine = self._require_machine()
+        expected_machine = machine.serialize()
+        compatibility_checks = {
+            "work_base": (previous.get("work_base"), self.work_base),
+            "machine": (previous.get("machine"), expected_machine),
+            "forward_common_files": (
+                previous.get("forward_common_files"),
+                self.forward_common_files,
+            ),
+            "backward_common_files": (
+                previous.get("backward_common_files"),
+                self.backward_common_files,
+            ),
+            "task grouping": (
+                [
+                    job_data[next(iter(job_data))]["job_task_list"]
+                    for job_data in previous.get("belonging_jobs", [])
+                ],
+                [
+                    [task.serialize() for task in job.job_task_list]
+                    for job in self.belonging_jobs
+                ],
+            ),
+        }
+        # ``_abs_work_base`` was added after the initial recovery format.  A
+        # legacy record without this optional field remains compatible; when it
+        # is present, compare it to prevent resuming state from a different
+        # absolute work directory.
+        previous_abs_work_base = previous.get("_abs_work_base")
+        if previous_abs_work_base is not None:
+            compatibility_checks["absolute work_base"] = (
+                previous_abs_work_base,
+                self._abs_work_base,
+            )
+        mismatches = [
+            name for name, (old, new) in compatibility_checks.items() if old != new
+        ]
+        if mismatches:
+            raise RuntimeError(
+                "Cannot resume previous submission because these non-resource "
+                f"fields changed: {', '.join(mismatches)}"
+            )
+
+        finished_count = 0
+        supports_task_tags = getattr(
+            machine.context, "supports_task_completion_tags", True
+        )
+        previous_jobs = previous.get("belonging_jobs", [])
+        for job_index, job in enumerate(self.belonging_jobs):
+            previous_job_state = None
+            previous_job_id: str | int = ""
+            if job_index < len(previous_jobs):
+                previous_job = previous_jobs[job_index]
+                if previous_job:
+                    previous_job_data = previous_job[next(iter(previous_job))]
+                    previous_job_state = previous_job_data.get("job_state")
+                    previous_job_id = previous_job_data.get("job_id", "")
+            for task in job.job_task_list:
+                # Cloud contexts cannot inspect task tags.  A persisted
+                # finished job is the strongest available signal there; cloud
+                # archives are job-scoped, so partial grouped-job recovery is
+                # intentionally not inferred from unavailable task paths.
+                if (
+                    not supports_task_tags and previous_job_state == JobStatus.finished
+                ) or (supports_task_tags and task.has_finished_tag(machine.context)):
+                    task.task_state = JobStatus.finished
+                    finished_count += 1
+                else:
+                    task.task_state = JobStatus.unsubmitted
+            job.job_state = (
+                JobStatus.finished
+                if all(
+                    task.task_state == JobStatus.finished for task in job.job_task_list
+                )
+                else JobStatus.unsubmitted
+            )
+            # Cloud contexts cannot inspect per-task completion tags.  Preserve
+            # the persisted scheduler ID for a finished cloud job so its result
+            # archive can still be downloaded and the job is not re-uploaded.
+            job.job_id = (
+                previous_job_id
+                if not supports_task_tags and previous_job_state == JobStatus.finished
+                else ""
+            )
+            job.fail_count = 0
+
+        dlog.info(
+            "Recovered %d completed tasks from previous submission %s; "
+            "new resource configuration uses submission %s",
+            finished_count,
+            self.previous_submission_hash,
+            self.submission_hash,
+        )
 
 
 class Task:
@@ -1282,13 +1572,16 @@ class Task:
             # unsubmitted task do not need to check tag
             return
         # check tag
+        if self.has_finished_tag(context):
+            self.task_state = JobStatus.finished
+
+    def has_finished_tag(self, context: "BaseContext") -> bool:
+        """Return whether the remote completion tag for this task exists."""
         task_tag_finished = (
             pathlib.PurePath(self.task_work_path)
             / (self.task_hash + "_task_tag_finished")
         ).as_posix()
-        result = context.check_file_exists(task_tag_finished)
-        if result:
-            self.task_state = JobStatus.finished
+        return context.check_file_exists(task_tag_finished)
 
 
 class Job:

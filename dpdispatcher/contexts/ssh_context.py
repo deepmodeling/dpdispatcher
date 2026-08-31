@@ -514,6 +514,16 @@ class SSHContext(BaseContext):
         if self.remote_profile.get("archive_chunk_size") == 0:
             self.remote_profile.pop("archive_chunk_size")
         self.remote_root = ""
+        # Set during bind_submission so recovery can undo a rename if a later
+        # bind step fails.  Empty placeholder directories are not considered
+        # migrated because they carry no completion state.
+        self._last_recovery_moved = False
+        # Distinguish a benign race (the source disappeared because another
+        # process already moved it) from a hard conflict where both roots are
+        # present.  Submission recovery uses this marker to decide which
+        # locator remains retryable after a later bind failure.
+        self._last_recovery_already_at_destination = False
+        self._last_recovery_conflict = False
 
         # self.job_uuid = None
         self.clean_asynchronously = clean_asynchronously
@@ -583,7 +593,7 @@ class SSHContext(BaseContext):
         """Return whether an SFTP error reports a missing remote path."""
         return isinstance(error, FileNotFoundError) or error.errno == errno.ENOENT
 
-    def _recover_remote_root(self, old_remote_root: str) -> None:
+    def _recover_remote_root(self, old_remote_root: str) -> bool:
         """Move recoverable state from a previous submission hash.
 
         An empty directory can be left behind when a submission is rebound before
@@ -598,7 +608,17 @@ class SSHContext(BaseContext):
             old_entries = sftp.listdir(old_remote_root)
         except OSError as error:
             if self._is_missing_remote_path(error):
-                return
+                # A concurrent recovery may have moved the source before this
+                # process listed it.  If the destination now exists, preserve
+                # that destination as the authoritative state.
+                try:
+                    sftp.stat(self.remote_root)
+                except OSError as destination_error:
+                    if not self._is_missing_remote_path(destination_error):
+                        raise
+                else:
+                    self._last_recovery_already_at_destination = True
+                return False
             raise
 
         if not old_entries:
@@ -609,7 +629,7 @@ class SSHContext(BaseContext):
                 # Other failures, including a newly non-empty directory, must surface.
                 if not self._is_missing_remote_path(error):
                     raise
-            return
+            return False
 
         try:
             sftp.stat(self.remote_root)
@@ -618,7 +638,12 @@ class SSHContext(BaseContext):
                 raise
         else:
             # Never overwrite a destination that may contain newer recovery data.
-            return
+            # Surface the conflict instead of silently abandoning completion
+            # tags that remain in the old root.
+            raise FileExistsError(
+                "Cannot migrate recovered SSH submission: both old and new "
+                f"roots exist ({old_remote_root}, {self.remote_root})"
+            )
 
         try:
             # Unlike a shell `mv`, SFTP rename exposes a missing-source errno. This
@@ -627,6 +652,18 @@ class SSHContext(BaseContext):
         except OSError as error:
             if not self._is_missing_remote_path(error):
                 raise
+            # Treat a lost-source race as an already-completed move only when
+            # the destination is observable.  Otherwise the caller can safely
+            # restore the original locator and retry.
+            try:
+                sftp.stat(self.remote_root)
+            except OSError as destination_error:
+                if not self._is_missing_remote_path(destination_error):
+                    raise
+            else:
+                self._last_recovery_already_at_destination = True
+            return False
+        return True
 
     def _mkdir(self, remote_dir: str, recursive: bool = False) -> None:
         if not remote_dir:
@@ -678,8 +715,15 @@ class SSHContext(BaseContext):
         self.remote_root = pathlib.PurePath(
             os.path.join(self.temp_remote_root, submission.submission_hash)
         ).as_posix()
+        self._last_recovery_moved = False
+        self._last_recovery_conflict = False
+        self._last_recovery_already_at_destination = False
         if old_remote_root and old_remote_root != self.remote_root:
-            self._recover_remote_root(old_remote_root)
+            try:
+                self._last_recovery_moved = self._recover_remote_root(old_remote_root)
+            except FileExistsError:
+                self._last_recovery_conflict = True
+                raise
 
         self._mkdir(self.remote_root, recursive=self.create_remote_root)
 
@@ -1017,23 +1061,6 @@ class SSHContext(BaseContext):
             It it is False, then it is uncompressed
         """
         assert self.submission.submission_hash is not None
-        """Upload files to server.
-
-        Parameters
-        ----------
-        files : list
-            uploaded files
-        dereference : bool, default: True
-            If dereference is False, add symbolic and hard links to the archive.
-            If it is True, add the content of the target files to the archive.
-            This has no effect on systems that do not support symbolic links.
-        directories : list, default: None
-            uploaded directories non-recursively. Use `files` for uploading
-            recursively
-        tar_compress : bool, default: True
-            If tar_compress is True, compress the archive using gzip
-            It it is False, then it is uncompressed
-        """
         assert self.remote_root is not None
         of_suffix = ".tgz"
         if not tar_compress:

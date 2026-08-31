@@ -22,6 +22,7 @@ from dpdispatcher.utils.dpcloudserver.config import (
     ALI_STS_BUCKET_NAME,
     ALI_STS_ENDPOINT,
 )
+from dpdispatcher.utils.job_status import JobStatus
 
 if TYPE_CHECKING:
     from dpdispatcher.submission import Job, Submission
@@ -36,6 +37,8 @@ DP_CLOUD_SERVER_HOME_DIR = os.path.join(
 class BohriumContext(BaseContext):
     """Transfer submissions through Bohrium object storage and cloud APIs."""
 
+    # Bohrium exposes job archives and metadata, not task completion-tag paths.
+    supports_task_completion_tags = False
     downloads_by_job: ClassVar[bool] = True
     alias = ("DpCloudServerContext", "LebesgueContext")
 
@@ -156,7 +159,14 @@ class BohriumContext(BaseContext):
         result = None
         dlog.info("checking all job has been uploaded")
         for job in submission.belonging_jobs:
-            job_to_be_uploaded.append(job)
+            # Finished jobs recovered from a previous submission already have
+            # their result archives on the platform.  Upload only jobs that need
+            # a new attempt, matching the OpenAPI context behavior.
+            # A freshly generated Job has ``None`` state until its first status
+            # refresh.  Public ``upload_jobs`` should still stage that job;
+            # ``run_submission`` normally refreshes it to ``unsubmitted`` first.
+            if job.job_state in (None, JobStatus.unsubmitted, JobStatus.terminated):
+                job_to_be_uploaded.append(job)
         if len(job_to_be_uploaded) == 0:
             dlog.info("all job has been uploaded, continue")
             return result
