@@ -12,7 +12,7 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from hashlib import sha1
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -1646,18 +1646,23 @@ class Task:
         if not any(char in path for char in "*?["):
             return context.check_file_exists(path)
         remote_root = getattr(context, "remote_root", None)
-        if isinstance(remote_root, str) and hasattr(context, "list_remote_dir"):
+        list_remote_dir = getattr(context, "list_remote_dir", None)
+        sftp = getattr(context, "sftp", None)
+        if isinstance(remote_root, str) and callable(list_remote_dir) and sftp is not None:
             available: list[str] = []
-            context.list_remote_dir(context.sftp, remote_root, remote_root, available)
+            cast(Callable[..., None], list_remote_dir)(
+                sftp, remote_root, remote_root, available
+            )
             from dpdispatcher.file_manager import RemoteManifestBuilder
 
             return any(
                 RemoteManifestBuilder._match_path(item, path) for item in available
             )
-        if isinstance(remote_root, str) and hasattr(context, "_remote_file"):
+        remote_file = getattr(context, "_remote_file", None)
+        if isinstance(remote_root, str) and callable(remote_file):
             from dpdispatcher.utils.hdfs_cli import HDFS
 
-            return HDFS.glob_exists(context._remote_file(path))
+            return HDFS.glob_exists(cast(Callable[[str], str], remote_file)(path))
         if isinstance(remote_root, str):
             return bool(glob.glob(os.path.join(remote_root, path), recursive=True))
         return context.check_file_exists(path)
@@ -1674,11 +1679,12 @@ class Task:
             except OSError:
                 pass
             return
-        if isinstance(remote_root, str) and hasattr(context, "_remote_file"):
+        remote_file = getattr(context, "_remote_file", None)
+        if isinstance(remote_root, str) and callable(remote_file):
             from dpdispatcher.utils.hdfs_cli import HDFS
 
             try:
-                HDFS.remove(context._remote_file(tag))
+                HDFS.remove(cast(Callable[[str], str], remote_file)(tag))
             except RuntimeError:
                 pass
             return
