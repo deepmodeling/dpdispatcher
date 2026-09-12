@@ -1096,7 +1096,9 @@ class Submission:
         for task in self.belonging_tasks:
             task.reconcile_finished_state(context)
         for job in self.belonging_jobs:
-            if any(task.task_state == JobStatus.unsubmitted for task in job.job_task_list):
+            if any(
+                task.task_state == JobStatus.unsubmitted for task in job.job_task_list
+            ):
                 job.job_state = JobStatus.unsubmitted
 
     def _bind_recovered_submission(self) -> None:
@@ -1632,7 +1634,9 @@ class Task:
         if not missing:
             return
         self.task_state = JobStatus.unsubmitted
-        tag = pathlib.PurePath(self.task_work_path, self.task_hash + "_task_tag_finished").as_posix()
+        tag = pathlib.PurePath(
+            self.task_work_path, self.task_hash + "_task_tag_finished"
+        ).as_posix()
         if context.check_file_exists(tag):
             self._quarantine_finished_tag(context, tag)
 
@@ -1647,7 +1651,9 @@ class Task:
             context.list_remote_dir(context.sftp, remote_root, remote_root, available)
             from dpdispatcher.file_manager import RemoteManifestBuilder
 
-            return any(RemoteManifestBuilder._match_path(item, path) for item in available)
+            return any(
+                RemoteManifestBuilder._match_path(item, path) for item in available
+            )
         if isinstance(remote_root, str) and hasattr(context, "_remote_file"):
             from dpdispatcher.utils.hdfs_cli import HDFS
 
