@@ -1056,6 +1056,7 @@ class Submission:
             submission_dict = json.loads(submission_dict_str)
             if self.previous_submission_hash is not None:
                 self._recover_finished_tasks_from_previous(submission_dict)
+                self._reconcile_recovered_tasks(machine.context)
                 self._bind_recovered_submission()
                 return
             # Reuse the authenticated machine that read the recovery file. Creating a
@@ -1078,18 +1079,7 @@ class Submission:
                         submission_dict["continue_on_failure"]
                     )
                 self.bind_machine(machine=self.machine)
-                # A stale finished tag can survive ratio_unfinished cleanup
-                # while its backward files were removed. Reconcile those
-                # tasks before monitoring so recovery reruns only the missing
-                # task instead of archiving absent files.
-                for task in self.belonging_tasks:
-                    task.reconcile_finished_state(machine.context)
-                for job in self.belonging_jobs:
-                    if any(
-                        task.task_state == JobStatus.unsubmitted
-                        for task in job.job_task_list
-                    ):
-                        job.job_state = JobStatus.unsubmitted
+                self._reconcile_recovered_tasks(machine.context)
                 dlog.info(
                     f"Find old submission; recover submission from json file;"
                     f"submission.submission_hash:{submission.submission_hash}; "
@@ -1100,6 +1090,14 @@ class Submission:
                 print(self.serialize())
                 print(submission.serialize())
                 raise RuntimeError("Recover failed.")
+
+    def _reconcile_recovered_tasks(self, context: "BaseContext") -> None:
+        """Reopen recovered tasks whose declared outputs are missing."""
+        for task in self.belonging_tasks:
+            task.reconcile_finished_state(context)
+        for job in self.belonging_jobs:
+            if any(task.task_state == JobStatus.unsubmitted for task in job.job_task_list):
+                job.job_state = JobStatus.unsubmitted
 
     def _bind_recovered_submission(self) -> None:
         """Move a recovered work directory under this submission's new hash.
@@ -1626,30 +1624,65 @@ class Task:
         """Reclassify a stale finished task when backward files are missing."""
         if self.task_state != JobStatus.finished or not self.backward_files:
             return
-        missing = []
+        missing: list[str] = []
         for filename in self.backward_files:
             path = pathlib.PurePath(self.task_work_path, filename).as_posix()
-            if not context.check_file_exists(path):
+            if not self._matches_remote_output(context, path):
                 missing.append(path)
         if not missing:
             return
         self.task_state = JobStatus.unsubmitted
-        tag = pathlib.PurePath(
-            self.task_work_path, self.task_hash + "_task_tag_finished"
-        ).as_posix()
+        tag = pathlib.PurePath(self.task_work_path, self.task_hash + "_task_tag_finished").as_posix()
+        if context.check_file_exists(tag):
+            self._quarantine_finished_tag(context, tag)
+
+    @staticmethod
+    def _matches_remote_output(context: "BaseContext", path: str) -> bool:
+        """Check literal or wildcard output paths on the execution backend."""
+        if not any(char in path for char in "*?["):
+            return context.check_file_exists(path)
+        remote_root = getattr(context, "remote_root", None)
+        if isinstance(remote_root, str) and hasattr(context, "list_remote_dir"):
+            available: list[str] = []
+            context.list_remote_dir(context.sftp, remote_root, remote_root, available)
+            from dpdispatcher.file_manager import RemoteManifestBuilder
+
+            return any(RemoteManifestBuilder._match_path(item, path) for item in available)
+        if isinstance(remote_root, str) and hasattr(context, "_remote_file"):
+            from dpdispatcher.utils.hdfs_cli import HDFS
+
+            return HDFS.glob_exists(context._remote_file(path))
+        if isinstance(remote_root, str):
+            return bool(glob.glob(os.path.join(remote_root, path), recursive=True))
+        return context.check_file_exists(path)
+
+    @staticmethod
+    def _quarantine_finished_tag(context: "BaseContext", tag: str) -> None:
+        """Move or remove a stale completion tag on the active backend."""
         remote_root = getattr(context, "remote_root", None)
         sftp = getattr(context, "sftp", None)
-        if (
-            context.check_file_exists(tag)
-            and isinstance(remote_root, str)
-            and sftp is not None
-        ):
+        if isinstance(remote_root, str) and sftp is not None:
             remote_tag = pathlib.PurePath(remote_root, tag).as_posix()
-            stale_tag = remote_tag + ".stale-recovery"
             try:
-                sftp.rename(remote_tag, stale_tag)
+                sftp.rename(remote_tag, remote_tag + ".stale-recovery")
             except OSError:
                 pass
+            return
+        if isinstance(remote_root, str) and hasattr(context, "_remote_file"):
+            from dpdispatcher.utils.hdfs_cli import HDFS
+
+            try:
+                HDFS.remove(context._remote_file(tag))
+            except RuntimeError:
+                pass
+            return
+        if isinstance(remote_root, str):
+            local_tag = Path(remote_root) / tag
+            if local_tag.exists():
+                try:
+                    local_tag.replace(Path(str(local_tag) + ".stale-recovery"))
+                except OSError:
+                    pass
 
     def get_task_state(self, context: "BaseContext") -> None:
         """Get the task state by checking the tag file.
