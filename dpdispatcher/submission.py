@@ -1686,7 +1686,7 @@ class Task:
             local_tag = pathlib.Path(remote_root) / tag
             if local_tag.exists():
                 try:
-                    local_tag.replace(Path(str(local_tag) + ".stale-recovery"))
+                    local_tag.replace(pathlib.Path(str(local_tag) + ".stale-recovery"))
                 except OSError:
                     pass
 

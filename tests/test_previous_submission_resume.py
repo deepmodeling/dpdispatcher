@@ -61,6 +61,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         task = previous.belonging_jobs[0].job_task_list[0]
         task_dir = os.path.join(previous.machine.context.remote_root, "task")
         os.makedirs(task_dir)
+        open(os.path.join(task_dir, "result"), "w").close()
         open(os.path.join(task_dir, f"{task.task_hash}_task_tag_finished"), "w").close()
 
         current = Submission(
@@ -106,6 +107,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         task = previous.belonging_jobs[0].job_task_list[0]
         task_dir = os.path.join(previous.machine.context.remote_root, "task")
         os.makedirs(task_dir)
+        open(os.path.join(task_dir, "result"), "w").close()
         open(os.path.join(task_dir, f"{task.task_hash}_task_tag_finished"), "w").close()
 
         current = Submission(
@@ -152,6 +154,7 @@ class TestPreviousSubmissionResume(unittest.TestCase):
         task = previous.belonging_jobs[0].job_task_list[0]
         task_dir = os.path.join(previous.machine.context.remote_root, "task")
         os.makedirs(task_dir)
+        open(os.path.join(task_dir, "result"), "w").close()
         open(os.path.join(task_dir, f"{task.task_hash}_task_tag_finished"), "w").close()
 
         current = Submission(
