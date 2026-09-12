@@ -84,6 +84,62 @@ class TestStaleFinishedRecovery(unittest.TestCase):
         self.assertTrue(HDFS.glob_exists("hdfs:///work/results/*.out"))
         run_hadoop.assert_called_once()
 
+    @patch("dpdispatcher.utils.hdfs_cli._run_hadoop")
+    def test_hdfs_glob_missing_output_is_false(self, run_hadoop: MagicMock) -> None:
+        """Treat an absent HDFS glob as an ordinary missing output."""
+        run_hadoop.return_value = (1, b"", b"No such file or directory")
+
+        from dpdispatcher.utils.hdfs_cli import HDFS
+
+        self.assertFalse(HDFS.glob_exists("hdfs:///work/results/*.out"))
+
+    @patch("dpdispatcher.utils.hdfs_cli._run_hadoop")
+    def test_hdfs_glob_unexpected_error_propagates(self, run_hadoop: MagicMock) -> None:
+        """Do not hide an unrelated HDFS glob failure."""
+        run_hadoop.return_value = (2, b"", b"permission denied")
+
+        from dpdispatcher.utils.hdfs_cli import HDFS
+
+        with self.assertRaisesRegex(RuntimeError, "Cannot glob-check"):
+            HDFS.glob_exists("hdfs:///work/results/*.out")
+
+    def test_local_stale_tag_is_quarantined(self) -> None:
+        """Quarantine a stale tag when using a local filesystem context."""
+        with tempfile.TemporaryDirectory() as root:
+            task_root = Path(root) / "task"
+            task_root.mkdir()
+            task = Task("true", "task", backward_files=["result"])
+            task.task_state = JobStatus.finished
+            tag = task_root / f"{task.task_hash}_task_tag_finished"
+            tag.touch()
+            context = SimpleNamespace(
+                remote_root=root,
+                check_file_exists=lambda path: (Path(root) / path).is_file(),
+            )
+
+            task.reconcile_finished_state(context)
+
+            self.assertEqual(task.task_state, JobStatus.unsubmitted)
+            self.assertTrue(Path(str(tag) + ".stale-recovery").is_file())
+
+    @patch("dpdispatcher.utils.hdfs_cli.HDFS.remove")
+    def test_hdfs_stale_tag_is_removed(self, remove: MagicMock) -> None:
+        """Remove a stale tag through the HDFS backend."""
+        task = Task("true", "task", backward_files=["result"])
+        task.task_state = JobStatus.finished
+        context = MagicMock()
+        context.remote_root = "hdfs:///work"
+        context.sftp = None
+        context.check_file_exists.side_effect = lambda path: path.endswith(
+            "_task_tag_finished"
+        )
+        context._remote_file.side_effect = lambda path: f"hdfs:///work/{path}"
+
+        task.reconcile_finished_state(context)
+
+        self.assertEqual(task.task_state, JobStatus.unsubmitted)
+        remove.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
