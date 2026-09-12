@@ -1683,7 +1683,7 @@ class Task:
                 pass
             return
         if isinstance(remote_root, str):
-            local_tag = Path(remote_root) / tag
+            local_tag = pathlib.Path(remote_root) / tag
             if local_tag.exists():
                 try:
                     local_tag.replace(Path(str(local_tag) + ".stale-recovery"))
