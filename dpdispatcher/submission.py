@@ -1648,7 +1648,11 @@ class Task:
         remote_root = getattr(context, "remote_root", None)
         list_remote_dir = getattr(context, "list_remote_dir", None)
         sftp = getattr(context, "sftp", None)
-        if isinstance(remote_root, str) and callable(list_remote_dir) and sftp is not None:
+        if (
+            isinstance(remote_root, str)
+            and callable(list_remote_dir)
+            and sftp is not None
+        ):
             available: list[str] = []
             cast(Callable[..., None], list_remote_dir)(
                 sftp, remote_root, remote_root, available
