@@ -74,6 +74,19 @@ class HDFS:
             ) from error
 
     @staticmethod
+    def glob_exists(uri_pattern: str) -> bool:
+        """Return whether an HDFS glob pattern matches at least one path."""
+        uri_pattern = _validate_operand(uri_pattern, "uri_pattern")
+        ret, out, err = _run_hadoop(["hadoop", "fs", "-ls", uri_pattern])
+        if ret == 0:
+            return bool(out.strip())
+        if _reports_missing_path(out, err):
+            return False
+        raise RuntimeError(
+            f"Cannot glob-check hdfs uri[{uri_pattern}] with ret[{ret}] stderr[{err}]"
+        )
+
+    @staticmethod
     def remove(uri: str) -> bool:
         """Remove an HDFS URI recursively."""
         uri = _validate_operand(uri, "uri")
