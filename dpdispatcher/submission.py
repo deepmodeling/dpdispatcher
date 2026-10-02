@@ -1026,6 +1026,10 @@ class Submission:
             dlog.warning(
                 "remote cleanup was deferred; preserving the submission recovery record"
             )
+            try:
+                record.write(self)
+            except Exception:  # noqa: BLE001 - cleanup must not hide the result
+                dlog.exception("Unable to persist deferred cleanup record")
             return False
         assert self.submission_hash is not None
         record.remove(self.submission_hash)
