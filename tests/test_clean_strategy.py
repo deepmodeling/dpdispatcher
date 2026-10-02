@@ -112,7 +112,9 @@ class TestCleanJobs(unittest.TestCase):
 
     @patch("dpdispatcher.submission.record.write")
     @patch("dpdispatcher.submission.record.remove")
-    def test_deferred_cleanup_preserves_record(self, remove: MagicMock, write: MagicMock) -> None:
+    def test_deferred_cleanup_preserves_record(
+        self, remove: MagicMock, write: MagicMock
+    ) -> None:
         sub = self._make_submission(False)
 
         self.assertFalse(sub.clean_jobs())
