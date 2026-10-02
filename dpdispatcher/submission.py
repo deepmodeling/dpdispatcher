@@ -1024,8 +1024,7 @@ class Submission:
         cleaned = self._require_machine().context.clean()
         if cleaned is False:
             dlog.warning(
-                "remote cleanup was deferred; preserving the submission "
-                "recovery record"
+                "remote cleanup was deferred; preserving the submission recovery record"
             )
             return False
         assert self.submission_hash is not None
