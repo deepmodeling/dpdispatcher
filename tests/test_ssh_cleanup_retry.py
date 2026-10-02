@@ -149,12 +149,11 @@ exit 1
         sleep.assert_not_called()
 
     @patch("dpdispatcher.contexts.ssh_context.time.sleep")
-    def test_rmtree_raises_after_retry_exhaustion(self, sleep: MagicMock) -> None:
-        """Raise the original transient error after bounded retries."""
+    def test_rmtree_defers_after_retry_exhaustion(self, sleep: MagicMock) -> None:
+        """Preserve the remote root after bounded transient retries."""
         self.context.block_checkcall.side_effect = RuntimeError("Directory not empty")
 
-        with self.assertRaisesRegex(RuntimeError, "Directory not empty"):
-            self.context._rmtree("/remote/root")
+        self.assertFalse(self.context._rmtree("/remote/root"))
 
         self.assertEqual(self.context.block_checkcall.call_count, 3)
         self.assertEqual(sleep.call_args_list, [call(1), call(2)])

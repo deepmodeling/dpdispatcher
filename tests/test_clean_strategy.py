@@ -100,6 +100,34 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
             mock_upload.assert_not_called()
 
 
+class TestCleanJobs(unittest.TestCase):
+    """Recovery records survive cleanup that was explicitly deferred."""
+
+    def _make_submission(self, clean_result):
+        sub = Submission.__new__(Submission)
+        sub.submission_hash = "test_hash"
+        sub.machine = MagicMock()
+        sub.machine.context.clean.return_value = clean_result
+        return sub
+
+    @patch("dpdispatcher.submission.record.remove")
+    def test_deferred_cleanup_preserves_record(self, remove):
+        sub = self._make_submission(False)
+
+        self.assertFalse(sub.clean_jobs())
+
+        sub.machine.context.clean.assert_called_once_with()
+        remove.assert_not_called()
+
+    @patch("dpdispatcher.submission.record.remove")
+    def test_successful_cleanup_removes_record(self, remove):
+        sub = self._make_submission(True)
+
+        self.assertTrue(sub.clean_jobs())
+
+        remove.assert_called_once_with("test_hash")
+
+
 class TestDownloadResult(unittest.TestCase):
     """Result-download status must distinguish success from retry exhaustion."""
 
