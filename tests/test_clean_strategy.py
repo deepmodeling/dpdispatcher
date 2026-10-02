@@ -103,6 +103,13 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
 class TestDownloadResult(unittest.TestCase):
     """Result-download status must distinguish success from retry exhaustion."""
 
+    def test_include_failed_download_requests_failed_tasks(self) -> None:
+        sub = Submission.__new__(Submission)
+        sub.download_jobs = MagicMock()
+
+        self.assertTrue(sub.try_download_result(include_failed=True))
+        sub.download_jobs.assert_called_once_with(include_failed=True)
+
     def test_successful_download_returns_true(self) -> None:
         sub = Submission.__new__(Submission)
         sub.download_jobs = MagicMock()
