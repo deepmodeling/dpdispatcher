@@ -1050,7 +1050,7 @@ class SSHContext(BaseContext):
                     attempt,
                 )
                 time.sleep(attempt)
-        return False
+        return False  # pragma: no cover
 
     def _put_files(
         self,
