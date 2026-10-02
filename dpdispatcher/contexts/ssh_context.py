@@ -1050,6 +1050,7 @@ class SSHContext(BaseContext):
                     attempt,
                 )
                 time.sleep(attempt)
+        return False
 
     def _put_files(
         self,
