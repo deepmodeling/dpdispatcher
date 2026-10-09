@@ -139,7 +139,8 @@ class TestCleanJobs(unittest.TestCase):
         write.side_effect = RuntimeError("disk full")
         sub = self._make_submission(False)
 
-        self.assertFalse(sub.clean_jobs())
+        with self.assertRaisesRegex(RuntimeError, "disk full"):
+            sub.clean_jobs()
 
         remove.assert_not_called()
         write.assert_called_once_with(sub)

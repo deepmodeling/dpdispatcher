@@ -1030,6 +1030,7 @@ class Submission:
                 record.write(self)
             except Exception:  # noqa: BLE001 - cleanup must not hide the result
                 dlog.exception("Unable to persist deferred cleanup record")
+                raise
             return False
         assert self.submission_hash is not None
         record.remove(self.submission_hash)
