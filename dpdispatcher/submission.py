@@ -326,6 +326,8 @@ class Submission:
         clean: bool | str = True,
         check_interval: int = 30,
         continue_on_failure: bool | None = None,
+        raise_on_failure: bool = True,
+        include_failed_results: bool = False,
     ) -> dict[str, Any]:  # noqa: ANN401
         """Execute the submission and monitor it until completion.
 
@@ -347,6 +349,12 @@ class Submission:
             Continue monitoring remaining jobs after retry exhaustion. If omitted,
             use the policy stored on this submission (which defaults to ``False``).
             An explicit value overrides the persisted policy for this run.
+        raise_on_failure : bool, default=True
+            Raise after downloads when continued jobs contain terminal failures.
+            Set false for callers that need to inspect partial results themselves.
+        include_failed_results : bool, default=False
+            Download declared files from failed jobs when available, skipping
+            missing files so valid partial outputs can be inspected.
 
         Returns
         -------
@@ -443,7 +451,10 @@ class Submission:
                 self.handle_unexpected_submission_state(continue_on_failure=True)
             else:
                 self.handle_unexpected_submission_state()
-            results_downloaded = self.try_download_result()
+            if include_failed_results:
+                results_downloaded = self.try_download_result(include_failed=True)
+            else:
+                results_downloaded = self.try_download_result()
             all_jobs_genuinely_finished = (
                 all_jobs_genuinely_finished and results_downloaded
             )
@@ -478,7 +489,7 @@ class Submission:
                 "preserving remote workdir for debugging at: "
                 f"{machine.context.remote_root}"
             )
-        if continue_on_failure:
+        if continue_on_failure and raise_on_failure:
             self.raise_for_failed_jobs()
         return self.serialize()
 
@@ -599,14 +610,17 @@ class Submission:
                         f"Could not download error file for job {job.job_hash}: {e}"
                     )
 
-    def try_download_result(self) -> bool:
+    def try_download_result(self, include_failed: bool = False) -> bool:
         """Download results, retrying transient failures for up to 24 hours."""
         start_time = time.time()
         retry_interval = 60  # retry every 1 minute
         success = False
         while not success:
             try:
-                self.download_jobs()
+                if include_failed:
+                    self.download_jobs(include_failed=True)
+                else:
+                    self.download_jobs()
                 success = True
             except FileNotFoundError as e:
                 # retry will never success if the file is not found

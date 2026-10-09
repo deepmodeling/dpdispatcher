@@ -100,8 +100,45 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
             mock_upload.assert_not_called()
 
 
+class TestFailedResultPolicy(unittest.TestCase):
+    """The opt-in run policy forwards failed-result downloads."""
+
+    def test_run_submission_requests_failed_results(self) -> None:
+        sub = Submission.__new__(Submission)
+        sub.belonging_jobs = [MagicMock(job_state=JobStatus.finished)]
+        sub.belonging_tasks = []
+        sub.submission_hash = "test_hash"
+        sub.machine = MagicMock()
+        sub.resources = MagicMock()
+        sub.resources.strategy = {"ratio_unfinished": 0.0}
+        sub.resources.wait_time = 0
+        sub.try_recover_from_json = MagicMock()
+        sub.update_submission_state = MagicMock()
+        sub.check_all_finished = MagicMock(return_value=True)
+        sub.handle_unexpected_submission_state = MagicMock()
+        sub.try_download_result = MagicMock(return_value=True)
+        sub.try_download_error_info = MagicMock()
+        sub.submission_to_json = MagicMock()
+        sub.serialize = MagicMock(return_value={})
+
+        sub.run_submission(
+            clean=False,
+            check_interval=0,
+            include_failed_results=True,
+        )
+
+        sub.try_download_result.assert_called_once_with(include_failed=True)
+
+
 class TestDownloadResult(unittest.TestCase):
     """Result-download status must distinguish success from retry exhaustion."""
+
+    def test_include_failed_download_requests_failed_tasks(self) -> None:
+        sub = Submission.__new__(Submission)
+        sub.download_jobs = MagicMock()
+
+        self.assertTrue(sub.try_download_result(include_failed=True))
+        sub.download_jobs.assert_called_once_with(include_failed=True)
 
     def test_successful_download_returns_true(self) -> None:
         sub = Submission.__new__(Submission)
