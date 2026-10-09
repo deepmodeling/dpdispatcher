@@ -1013,11 +1013,28 @@ class Submission:
         #     job.tag_finished()
         # self.machine.context.write_file(self.machine.finish_tag_name, write_str="")
 
-    def clean_jobs(self) -> None:
-        """Remove remote working data and the local recovery record."""
-        self._require_machine().context.clean()
+    def clean_jobs(self) -> bool:
+        """Remove remote data and the recovery record when cleanup succeeds.
+
+        A context may return False when remote garbage collection is
+        deferred after an exhausted transient cleanup error. In that case the
+        recovery record is intentionally retained so a later cleanup or
+        reconciliation can still find the remote root.
+        """
+        cleaned = self._require_machine().context.clean()
+        if cleaned is False:
+            dlog.warning(
+                "remote cleanup was deferred; preserving the submission recovery record"
+            )
+            try:
+                record.write(self)
+            except Exception:  # noqa: BLE001 - cleanup must not hide the result
+                dlog.exception("Unable to persist deferred cleanup record")
+                raise
+            return False
         assert self.submission_hash is not None
         record.remove(self.submission_hash)
+        return True
 
     def submission_to_json(self) -> None:
         # self.update_submission_state()

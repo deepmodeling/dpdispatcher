@@ -918,9 +918,9 @@ class SSHContext(BaseContext):
         exit_status = stdout.channel.recv_exit_status()
         return exit_status, stdin, stdout, stderr
 
-    def clean(self) -> None:
+    def clean(self) -> bool:
         self.ssh_session.ensure_alive()
-        self._rmtree(self.remote_root)
+        return self._rmtree(self.remote_root)
 
     def write_file(self, fname: str, write_str: str) -> None:
         assert self.remote_root is not None
@@ -995,8 +995,16 @@ class SSHContext(BaseContext):
             retcode = cmd_pipes["stdout"].channel.recv_exit_status()
             return retcode, cmd_pipes["stdout"], cmd_pipes["stderr"]
 
-    def _rmtree(self, remotepath: str, verbose: bool = False) -> None:
-        """Remove the remote path, retrying transient NAS metadata races."""
+    def _rmtree(self, remotepath: str, verbose: bool = False) -> bool:
+        """Remove the remote path, retrying transient NAS metadata races.
+
+        Returns
+        -------
+        bool
+            Whether the remote path was confirmed clean. Exhausted recognized
+            transient NFS/NAS errors are reported as deferred cleanup and
+            return False so callers can preserve recovery state.
+        """
         # The original implementation method removes files one by one using sftp.
         # If the latency of the remote server is high, it is very slow.
         # Thus, it's better to use system's `rm` to remove a directory, which may
@@ -1009,14 +1017,14 @@ class SSHContext(BaseContext):
         command = f"rm -rf {shlex.quote(remotepath)}"
         if self.clean_asynchronously:
             self.block_checkcall(command, asynchronously=True)
-            return
+            return True
 
         attempts = 3
         for attempt in range(1, attempts + 1):
             try:
                 # Keep diagnostics in English for the transient-error checks below.
                 self.block_checkcall(f"env LC_ALL=C {command}", asynchronously=False)
-                return
+                return True
             except RuntimeError as error:
                 message = str(error)
                 _, separator, diagnostic = message.rpartition(" . message: ")
@@ -1028,7 +1036,12 @@ class SSHContext(BaseContext):
                 if not is_transient:
                     raise
                 if attempt == attempts:
-                    raise
+                    dlog.error(
+                        "remote cleanup exhausted transient retries for %s; "
+                        "preserving the remote root for later cleanup",
+                        remotepath,
+                    )
+                    return False
                 dlog.warning(
                     "remote cleanup failed for %s (attempt %d/%d); retrying in %d s",
                     remotepath,
@@ -1037,6 +1050,7 @@ class SSHContext(BaseContext):
                     attempt,
                 )
                 time.sleep(attempt)
+        return False  # pragma: no cover
 
     def _put_files(
         self,

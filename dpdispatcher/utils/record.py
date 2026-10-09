@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dpdispatcher.file_manager import write_text_atomic
+
 if TYPE_CHECKING:
     from dpdispatcher.submission import Submission
 
@@ -45,7 +47,11 @@ class Record:
             Path to submission data.
         """
         submission_path = self.record_directory / f"{submission.submission_hash}.json"
-        submission_path.write_text(json.dumps(submission.serialize(), indent=2))
+        write_text_atomic(
+            self.record_directory,
+            submission_path.name,
+            json.dumps(submission.serialize(), indent=2),
+        )
         return submission_path
 
     def get_submission(self, hash: str, not_exist_ok: bool = False) -> Path:

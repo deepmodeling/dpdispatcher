@@ -100,6 +100,52 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
             mock_upload.assert_not_called()
 
 
+class TestCleanJobs(unittest.TestCase):
+    """Recovery records survive cleanup that was explicitly deferred."""
+
+    def _make_submission(self, clean_result: bool) -> Submission:
+        sub = Submission.__new__(Submission)
+        sub.submission_hash = "test_hash"
+        sub.machine = MagicMock()
+        sub.machine.context.clean.return_value = clean_result
+        return sub
+
+    @patch("dpdispatcher.submission.record.write")
+    @patch("dpdispatcher.submission.record.remove")
+    def test_deferred_cleanup_preserves_record(
+        self, remove: MagicMock, write: MagicMock
+    ) -> None:
+        sub = self._make_submission(False)
+
+        self.assertFalse(sub.clean_jobs())
+
+        sub.machine.context.clean.assert_called_once_with()
+        remove.assert_not_called()
+        write.assert_called_once_with(sub)
+
+    @patch("dpdispatcher.submission.record.remove")
+    def test_successful_cleanup_removes_record(self, remove: MagicMock) -> None:
+        sub = self._make_submission(True)
+
+        self.assertTrue(sub.clean_jobs())
+
+        remove.assert_called_once_with("test_hash")
+
+    @patch("dpdispatcher.submission.record.write")
+    @patch("dpdispatcher.submission.record.remove")
+    def test_deferred_cleanup_preserves_record_when_persist_fails(
+        self, remove: MagicMock, write: MagicMock
+    ) -> None:
+        write.side_effect = RuntimeError("disk full")
+        sub = self._make_submission(False)
+
+        with self.assertRaisesRegex(RuntimeError, "disk full"):
+            sub.clean_jobs()
+
+        remove.assert_not_called()
+        write.assert_called_once_with(sub)
+
+
 class TestDownloadResult(unittest.TestCase):
     """Result-download status must distinguish success from retry exhaustion."""
 
