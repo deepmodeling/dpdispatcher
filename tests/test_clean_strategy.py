@@ -131,6 +131,19 @@ class TestCleanJobs(unittest.TestCase):
 
         remove.assert_called_once_with("test_hash")
 
+    @patch("dpdispatcher.submission.record.write")
+    @patch("dpdispatcher.submission.record.remove")
+    def test_deferred_cleanup_preserves_record_when_persist_fails(
+        self, remove: MagicMock, write: MagicMock
+    ) -> None:
+        write.side_effect = RuntimeError("disk full")
+        sub = self._make_submission(False)
+
+        self.assertFalse(sub.clean_jobs())
+
+        remove.assert_not_called()
+        write.assert_called_once_with(sub)
+
 
 class TestDownloadResult(unittest.TestCase):
     """Result-download status must distinguish success from retry exhaustion."""
