@@ -158,6 +158,17 @@ exit 1
         self.assertEqual(self.context.block_checkcall.call_count, 3)
         self.assertEqual(sleep.call_args_list, [call(1), call(2)])
 
+    def test_clean_returns_cleanup_status(self) -> None:
+        """Expose the remote cleanup result to the submission layer."""
+        self.context.remote_root = "/remote/root"
+        self.context.ssh_session = MagicMock()
+        self.context._rmtree = MagicMock(return_value=False)
+
+        self.assertFalse(self.context.clean())
+
+        self.context.ssh_session.ensure_alive.assert_called_once_with()
+        self.context._rmtree.assert_called_once_with("/remote/root")
+
     def test_async_cleanup_does_not_retry(self) -> None:
         """Keep asynchronous cleanup as a single nonblocking call."""
         self.context.clean_asynchronously = True
