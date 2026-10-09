@@ -103,7 +103,7 @@ class TestInvalidStrategyFailsFast(unittest.TestCase):
 class TestFailedResultPolicy(unittest.TestCase):
     """The opt-in run policy forwards failed-result downloads."""
 
-    def test_run_submission_requests_failed_results(self):
+    def test_run_submission_requests_failed_results(self) -> None:
         sub = Submission.__new__(Submission)
         sub.belonging_jobs = [MagicMock(job_state=JobStatus.finished)]
         sub.belonging_tasks = []
