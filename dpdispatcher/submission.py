@@ -19,9 +19,8 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import yaml
 from dargs.dargs import Argument, Variant
 
-from dpdispatcher.file_manager import PathPolicy
-
 from dpdispatcher.dlog import dlog
+from dpdispatcher.file_manager import PathPolicy
 from dpdispatcher.machine import Machine
 from dpdispatcher.utils.job_status import JobStatus
 from dpdispatcher.utils.record import record
