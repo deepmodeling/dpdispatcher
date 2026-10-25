@@ -12,7 +12,7 @@ def skill_root() -> Path:
     if bundled.is_dir():
         return bundled
     checkout = package.parent
-    if (checkout / "pyproject.toml").is_file():
+    if (checkout / "pyproject.toml").is_file() and (checkout / "skills").is_dir():
         return checkout / "skills"
     raise ValueError("Bundled skills are missing; reinstall the package.")
 
@@ -59,13 +59,13 @@ def read_skill(name: str, path: str = "SKILL.md") -> str:
 
 def run(args: argparse.Namespace) -> None:
     """Write the requested guide to stdout; report invalid references as CLI errors."""
-    if args.skills_action == "list":
-        root = skill_root().resolve()
-        for path in sorted(root.glob("*/SKILL.md")):
-            if path.parent.resolve().parent == root:
-                print(path.parent.name)
-        return
     try:
+        if args.skills_action == "list":
+            root = skill_root().resolve()
+            for path in sorted(root.glob("*/SKILL.md")):
+                if path.parent.resolve().parent == root:
+                    print(path.parent.name)
+            return
         content = read_skill(args.name, args.path)
     except (ValueError, OSError) as exc:
         print(f"dpdisp skills: {exc}", file=sys.stderr)

@@ -8,9 +8,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import ModuleType
+from unittest.mock import Mock, patch
 
-from dpdispatcher.dpdisp import main_parser, parse_args
+from dpdispatcher.dpdisp import main, main_parser, parse_args
 from dpdispatcher.skills import read_skill, run, skill_root
 
 
@@ -104,3 +105,143 @@ class TestSkills(unittest.TestCase):
                     env={**os.environ, "HOME": home},
                     check=True,
                 )
+
+    def test_resource_locations(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package = root / "dpdispatcher"
+            package.mkdir()
+            with patch("dpdispatcher.skills.__file__", str(package / "skills.py")):
+                with self.assertRaisesRegex(ValueError, "reinstall"):
+                    skill_root()
+                (root / "pyproject.toml").touch()
+                with self.assertRaisesRegex(ValueError, "reinstall"):
+                    skill_root()
+                (root / "skills").mkdir()
+                self.assertEqual(skill_root(), root / "skills")
+                bundled = package / "_skills"
+                bundled.mkdir()
+                self.assertEqual(skill_root(), bundled)
+
+    def test_invalid_utf8_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            guide = root / "guide"
+            guide.mkdir()
+            (guide / "SKILL.md").write_text("guide", encoding="utf-8")
+            (guide / "invalid.txt").write_bytes(b"\xff")
+            with patch("dpdispatcher.skills.skill_root", return_value=root):
+                with self.assertRaisesRegex(ValueError, "not UTF-8"):
+                    read_skill("guide", "invalid.txt")
+                with self.assertRaisesRegex(ValueError, "unknown skill reference"):
+                    read_skill("guide", "missing.md")
+
+    def test_read_reports_resource_and_io_errors(self) -> None:
+        args = parse_args(["skills", "read", "dpdisp-submit"])
+        for error in [ValueError("missing resources"), OSError("cannot read guide")]:
+            output, errors = io.StringIO(), io.StringIO()
+            with (
+                self.subTest(error=error),
+                patch("dpdispatcher.skills.read_skill", side_effect=error),
+                contextlib.redirect_stdout(output),
+                contextlib.redirect_stderr(errors),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                run(args)
+            self.assertEqual(raised.exception.code, 2)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn(f"dpdisp skills: {error}", errors.getvalue())
+            self.assertNotIn("Traceback", errors.getvalue())
+
+    def test_main_reads_exact_guide(self) -> None:
+        output = io.StringIO()
+        with (
+            patch.object(sys, "argv", ["dpdisp", "skills", "read", "dpdisp-submit"]),
+            contextlib.redirect_stdout(output),
+        ):
+            main()
+        self.assertEqual(output.getvalue(), read_skill("dpdisp-submit"))
+
+    def test_lazy_workflow_dispatch_preserves_arguments(self) -> None:
+        cases = [
+            (
+                ["run", "script.py", "--allow-ref"],
+                "run",
+                "run",
+                {"filename": "script.py", "allow_ref": True},
+            ),
+            (
+                ["submit", "job.json"],
+                "submit",
+                "submit",
+                {
+                    "filename": "job.json",
+                    "dry_run": False,
+                    "exit_on_submit": False,
+                    "allow_ref": False,
+                    "clean": True,
+                    "continue_on_failure": None,
+                },
+            ),
+            (
+                ["submit", "job.json", "--continue-on-failure", "--no-clean"],
+                "submit",
+                "submit",
+                {
+                    "filename": "job.json",
+                    "dry_run": False,
+                    "exit_on_submit": False,
+                    "allow_ref": False,
+                    "clean": False,
+                    "continue_on_failure": True,
+                },
+            ),
+            (
+                ["gui", "--port", "7000", "--bind_all"],
+                "gui",
+                "start_dpgui",
+                {"port": 7000, "bind_all": True},
+            ),
+            (
+                ["submission", "hash", "--clean"],
+                "submission",
+                "handle_submission",
+                {
+                    "submission_hash": "hash",
+                    "download_terminated_log": False,
+                    "download_finished_task": False,
+                    "clean": True,
+                    "reset_fail_count": False,
+                },
+            ),
+        ]
+        for argv, module, function, expected in cases:
+            name = f"dpdispatcher.entrypoints.{module}"
+            fake = ModuleType(name)
+            handler = Mock()
+            setattr(fake, function, handler)
+            with (
+                self.subTest(argv=argv),
+                patch.dict(sys.modules, {name: fake}),
+                patch.object(sys, "argv", ["dpdisp", *argv]),
+            ):
+                main()
+            handler.assert_called_once_with(**expected)
+
+    def test_missing_resources_are_cli_errors(self) -> None:
+        for command in [["skills", "list"], ["skills", "read", "dpdisp-submit"]]:
+            args = parse_args(command)
+            for error in [ValueError("missing guides"), OSError("guides inaccessible")]:
+                output, errors = io.StringIO(), io.StringIO()
+                with (
+                    self.subTest(command=command, error=error),
+                    patch("dpdispatcher.skills.skill_root", side_effect=error),
+                    contextlib.redirect_stdout(output),
+                    contextlib.redirect_stderr(errors),
+                    self.assertRaises(SystemExit) as raised,
+                ):
+                    run(args)
+                self.assertEqual(raised.exception.code, 2)
+                self.assertEqual(output.getvalue(), "")
+                self.assertIn(f"dpdisp skills: {error}", errors.getvalue())
+                self.assertNotIn("Traceback", errors.getvalue())
