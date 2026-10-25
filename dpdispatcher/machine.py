@@ -764,3 +764,8 @@ class Machine(metaclass=ABCMeta):
         raise NotImplementedError(
             "abstract method get_exit_code should be implemented by derived class"
         )
+
+
+# Direct imports of this factory must register scheduler implementations too;
+# the top-level package intentionally defers runtime imports for offline guides.
+import dpdispatcher.machines  # noqa: E402, F401

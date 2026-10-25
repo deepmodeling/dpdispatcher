@@ -238,3 +238,8 @@ class BaseContext(metaclass=ABCMeta):
         """
         doc_remote_profile = "The information used to maintain the connection with remote machine. This field is empty for this context."
         return [Argument("remote_profile", dict, optional=True, doc=doc_remote_profile)]
+
+
+# Preserve backend discovery for direct imports without initializing it for the
+# documentation-only CLI path.
+import dpdispatcher.contexts  # noqa: E402, F401

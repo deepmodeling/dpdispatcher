@@ -3,10 +3,8 @@
 
 import argparse
 
-from dpdispatcher.entrypoints.gui import start_dpgui
-from dpdispatcher.entrypoints.run import run
-from dpdispatcher.entrypoints.submission import handle_submission
-from dpdispatcher.entrypoints.submit import submit
+from dpdispatcher.skills import add_parser, workflow_help
+from dpdispatcher.skills import run as run_skills
 
 
 def main_parser() -> argparse.ArgumentParser:
@@ -26,6 +24,7 @@ def main_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     subparsers = parser.add_subparsers(title="Valid subcommands", dest="command")
+    add_parser(subparsers)
     ##########################################
     # backward
     parser_submission = subparsers.add_parser(
@@ -145,6 +144,9 @@ def main_parser() -> argparse.ArgumentParser:
             "By default the remote directory is removed."
         ),
     )
+    parser.epilog = "Discover bundled workflow guides: dpdisp skills list."
+    parser_run.epilog = workflow_help("dpdisp-submit")
+    parser_submit.epilog = workflow_help("dpdisp-submit")
     return parser
 
 
@@ -170,6 +172,8 @@ def main() -> None:
     """Parse command-line arguments and dispatch the selected subcommand."""
     args = parse_args()
     if args.command == "submission":
+        from dpdispatcher.entrypoints.submission import handle_submission
+
         handle_submission(
             submission_hash=args.SUBMISSION_HASH,
             download_terminated_log=args.download_terminated_log,
@@ -178,13 +182,19 @@ def main() -> None:
             reset_fail_count=args.reset_fail_count,
         )
     elif args.command == "gui":
+        from dpdispatcher.entrypoints.gui import start_dpgui
+
         start_dpgui(
             port=args.port,
             bind_all=args.bind_all,
         )
     elif args.command == "run":
+        from dpdispatcher.entrypoints.run import run
+
         run(filename=args.filename, allow_ref=args.allow_ref)
     elif args.command == "submit":
+        from dpdispatcher.entrypoints.submit import submit
+
         submit(
             filename=args.filename,
             dry_run=args.dry_run,
@@ -195,6 +205,8 @@ def main() -> None:
             # submission that explicitly enables continuation remains honored.
             continue_on_failure=(True if args.continue_on_failure else None),
         )
+    elif args.command == "skills":
+        run_skills(args)
     elif args.command is None:
         pass
     else:
