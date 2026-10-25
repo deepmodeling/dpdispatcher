@@ -118,10 +118,10 @@ class TestSkills(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "reinstall"):
                     skill_root()
                 (root / "skills").mkdir()
-                self.assertEqual(skill_root(), root / "skills")
+                self.assertEqual(skill_root(), (root / "skills").resolve())
                 bundled = package / "_skills"
                 bundled.mkdir()
-                self.assertEqual(skill_root(), bundled)
+                self.assertEqual(skill_root(), bundled.resolve())
 
     def test_invalid_utf8_reference(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -245,3 +245,15 @@ class TestSkills(unittest.TestCase):
                 self.assertEqual(output.getvalue(), "")
                 self.assertIn(f"dpdisp skills: {error}", errors.getvalue())
                 self.assertNotIn("Traceback", errors.getvalue())
+
+    def test_resource_locations_through_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            actual, alias = root / "actual", root / "alias"
+            actual.mkdir()
+            try:
+                alias.symlink_to(actual, target_is_directory=True)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"Directory symlinks are unavailable: {exc}")
+            with patch("tempfile.tempdir", str(alias)):
+                self.test_resource_locations()
