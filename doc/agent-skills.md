@@ -12,6 +12,21 @@ The `dpdisp-submit` skill is one of the core workflow components described in th
 
 - Mingwei Ding, Chen Huang, Yibo Hu, Yifan Li, Zitian Lu, Xingtai Yu, Duo Zhang, Wenxi Zhai, Tong Zhu, Qiangqiang Gu, and Jinzhe Zeng. [Automating Computational Chemistry Workflows via OpenClaw and Domain-Specific Skills](https://doi.org/10.1021/acs.jctc.6c00622). _J. Chem. Theory Comput._, 2026, DOI: [10.1021/acs.jctc.6c00622](https://doi.org/10.1021/acs.jctc.6c00622).
 
+## Read bundled guides offline
+
+The DPDispatcher package ships a copy of its public workflow guides. Read
+the instructions from your installed version without network access:
+
+```sh
+dpdisp skills list
+dpdisp skills read dpdisp-submit
+```
+
+`dpdisp skills read <name> [relative-path]` displays the guide's `SKILL.md`
+by default, or a relative text reference within that guide. The command
+is read-only: it does not execute the examples, submit jobs, or install the
+skills into an agent. Agent installation is described below.
+
 ## Install skills
 
 ### If you are human beings

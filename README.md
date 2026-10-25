@@ -49,11 +49,3 @@ See [Getting Started](https://dpdispatcher.readthedocs.io/en/latest/getting-star
 
 DPDispatcher is maintained by DeepModeling's developers and welcomes other people.
 See [Contributing Guide](CONTRIBUTING.md) to become a contributor! 🤓
-
-### Bundled workflow guides
-
-`dpdisp skills list` lists the public workflow guides shipped with the installed
-version. Run `dpdisp skills read dpdisp-submit` to read a guide, or append a
-relative reference path to read an accompanying text file. Reading guides works
-offline and does not submit jobs or execute their examples. The canonical source
-is the repository's `skills/` directory; no separate skill installation is needed.
